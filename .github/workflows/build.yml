@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -25,19 +25,39 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # ✅ الخطوة الحرجة!
       - name: Create local.properties
-        run: echo "flutter.sdk=$FLUTTER_HOME" > android/local.properties
+        run: |
+          mkdir -p android
+          cat > android/local.properties << EOF
+          flutter.sdk=$FLUTTER_HOME
+          flutter.versionCode=1
+          flutter.versionName=2.0.0
+          EOF
 
-      - name: Clean and get dependencies
+      - name: Clean
         run: |
           flutter clean
-          flutter pub get
+          rm -f pubspec.lock
+          rm -rf .dart_tool/
+          rm -rf android/.gradle/
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Update project
+        run: flutter create . --platforms=android --no-offline
 
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk \
+            --release \
+            --no-shrink \
+            --target-platform android-arm64
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: zadam-app-release
           path: build/app/outputs/flutter-apk/app-release.apk
