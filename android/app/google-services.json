@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "653081498334",
+    "project_id": "restaurant-app-ed699",
+    "storage_bucket": "restaurant-app-ed699.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:653081498334:android:2491e673eb333d5320684f",
+        "android_client_info": {
+          "package_name": "com.example.delivery_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "653081498334-l4bc31fp8chfgbjq8ut962u74hhb0e45.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuU7g3vG5enxaebwxGdGgavG5U8cftwd4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "653081498334-l4bc31fp8chfgbjq8ut962u74hhb0e45.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:653081498334:android:6d7b3006fc329fda20684f",
+        "android_client_info": {
+          "package_name": "com.zadam.delivery"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "653081498334-l4bc31fp8chfgbjq8ut962u74hhb0e45.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuU7g3vG5enxaebwxGdGgavG5U8cftwd4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "653081498334-l4bc31fp8chfgbjq8ut962u74hhb0e45.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
