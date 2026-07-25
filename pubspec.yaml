@@ -1,3 +1,4 @@
+# استبدل محتوى pubspec.yaml بـ:
 name: zadam_delivery
 description: نظام إدارة توصيل طلبات - شركة زادم
 publish_to: 'none'
@@ -10,31 +11,27 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase - استخدم إصدارات متوافقة
-  firebase_core: ^2.29.0
-  firebase_auth: ^4.19.0
-  cloud_firestore: ^4.17.0
-  firebase_storage: ^11.7.0
-
-  # State Management
-  provider: ^6.2.0
-
-  # UI - ⚠️ خفّض google_fonts
+  firebase_core: ^2.24.0
+  firebase_auth: ^4.14.0
+  cloud_firestore: ^4.13.0
+  firebase_storage: ^11.5.0
+  
+  provider: ^6.0.0        # ✅ الإصدار الصحيح (ليس 6.2.0)
+  
   google_fonts: ^6.1.0
   flutter_rating_bar: ^4.0.1
-  badges: ^3.2.0
+  badges: ^3.1.0
   shimmer: ^3.0.0
-  fl_chart: ^0.68.0
+  fl_chart: ^0.65.0
 
-  # Utils
-  uuid: ^4.4.0
+  uuid: ^4.0.0
   intl: ^0.19.0
-  shared_preferences: ^2.2.3
+  shared_preferences: ^2.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.2
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
