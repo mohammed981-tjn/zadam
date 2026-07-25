@@ -3,6 +3,7 @@ name: Build Flutter APK
 on:
   push:
     branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,24 +18,57 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
+          flutter-version: '3.24.0'
           channel: 'stable'
+          cache: true
 
-      - name: Install dependencies
+      - name: Create local.properties
+        run: |
+          echo "flutter.sdk=$FLUTTER_HOME" > android/local.properties
+          echo "flutter.buildMode=release" >> android/local.properties
+
+      - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Upgrade project configuration for Gradle
-        run: flutter create . --platforms=android
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Format code
+        run: dart format --set-exit-if-changed lib/
+
+      - name: Clean build
+        run: flutter clean
 
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk \
+            --release \
+            --no-shrink \
+            --target-platform android-arm64
 
-      - name: Upload APK Artifact
+      - name: Upload APK to artifacts
         uses: actions/upload-artifact@v4
+        if: success()
         with:
-          name: app-release
+          name: zadam-app-release
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Create Release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            APK Release for Zadam Delivery
+            Built on: ${{ github.event.head_commit.timestamp }}
+          draft: false
+          prerelease: false
