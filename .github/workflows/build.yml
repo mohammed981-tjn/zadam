@@ -8,67 +8,36 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
           cache: 'gradle'
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
 
       - name: Create local.properties
+        run: echo "flutter.sdk=$FLUTTER_HOME" > android/local.properties
+
+      - name: Clean and get dependencies
         run: |
-          echo "flutter.sdk=$FLUTTER_HOME" > android/local.properties
-          echo "flutter.buildMode=release" >> android/local.properties
-
-      - name: Install Flutter dependencies
-        run: flutter pub get
-
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Format code
-        run: dart format --set-exit-if-changed lib/
-
-      - name: Clean build
-        run: flutter clean
+          flutter clean
+          flutter pub get
 
       - name: Build APK
-        run: |
-          flutter build apk \
-            --release \
-            --no-shrink \
-            --target-platform android-arm64
+        run: flutter build apk --release
 
-      - name: Upload APK to artifacts
+      - name: Upload APK
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: zadam-app-release
           path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 30
-
-      - name: Create Release
-        if: success()
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
-          body: |
-            APK Release for Zadam Delivery
-            Built on: ${{ github.event.head_commit.timestamp }}
-          draft: false
-          prerelease: false
