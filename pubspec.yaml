@@ -10,19 +10,19 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase
-  firebase_core: ^2.27.1
-  firebase_auth: ^4.17.9
-  cloud_firestore: ^4.15.9
-  firebase_storage: ^11.6.10
+  # Firebase - استخدم إصدارات متوافقة
+  firebase_core: ^2.29.0
+  firebase_auth: ^4.19.0
+  cloud_firestore: ^4.17.0
+  firebase_storage: ^11.7.0
 
   # State Management
-  provider: ^6.1.2
+  provider: ^6.2.0
 
-  # UI
-  google_fonts: ^6.2.1
+  # UI - ⚠️ خفّض google_fonts
+  google_fonts: ^6.1.0
   flutter_rating_bar: ^4.0.1
-  badges: ^3.1.2
+  badges: ^3.2.0
   shimmer: ^3.0.0
   fl_chart: ^0.68.0
 
