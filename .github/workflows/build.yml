@@ -27,8 +27,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Clean build cache
-        run: flutter clean
+      - name: Upgrade project configuration for Gradle
+        run: flutter create . --platforms=android
 
       - name: Build APK
         run: flutter build apk --release
