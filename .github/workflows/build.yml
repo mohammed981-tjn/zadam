@@ -8,56 +8,35 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'gradle'
 
-      - uses: subosito/flutter-action@v2
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-          cache: true
 
-      # ✅ الخطوة الحرجة!
       - name: Create local.properties
-        run: |
-          mkdir -p android
-          cat > android/local.properties << EOF
-          flutter.sdk=$FLUTTER_HOME
-          flutter.versionCode=1
-          flutter.versionName=2.0.0
-          EOF
+        run: echo "flutter.sdk=$FLUTTER_HOME" > android/local.properties
 
-      - name: Clean
-        run: |
-          flutter clean
-          rm -f pubspec.lock
-          rm -rf .dart_tool/
-          rm -rf android/.gradle/
-
-      - name: Get dependencies
+      - name: Install dependencies
         run: flutter pub get
 
-      - name: Update project
-        run: flutter create . --platforms=android --no-offline
-
       - name: Build APK
-        run: |
-          flutter build apk \
-            --release \
-            --no-shrink \
-            --target-platform android-arm64
+        run: flutter build apk --release --no-shrink
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: zadam-app-release
           path: build/app/outputs/flutter-apk/app-release.apk
