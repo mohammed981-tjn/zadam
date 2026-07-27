@@ -102,4 +102,104 @@ class FirebaseService {
     return order.id;
   }
 
-  Stream<List
+  Stream<List<models.Order>> streamAllOrders() => _orders
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((s) => s.docs.map((d) => models.Order.fromMap(d.data(), d.id)).toList());
+
+  Stream<List<models.Order>> streamCustomerOrders(String customerId) => _orders
+      .where('customerId', isEqualTo: customerId)
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((s) => s.docs.map((d) => models.Order.fromMap(d.data(), d.id)).toList());
+
+  Stream<List<models.Order>> streamDriverOrders(String driverId) => _orders
+      .where('driverId', isEqualTo: driverId)
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((s) => s.docs.map((d) => models.Order.fromMap(d.data(), d.id)).toList());
+
+  Stream<models.Order?> streamOrder(String orderId) => _orders.doc(orderId).snapshots().map(
+      (doc) => doc.exists && doc.data() != null ? models.Order.fromMap(doc.data()!, doc.id) : null);
+
+  Future<void> updateOrderStatus(String orderId, models.OrderStatus status) =>
+      _orders.doc(orderId).update({
+        'status': status.name,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+  Future<void> assignDriver(String orderId, String driverId, String driverName) async {
+    final batch = _db.batch();
+    batch.update(_orders.doc(orderId), {
+      'driverId': driverId,
+      'driverName': driverName,
+      'status': models.OrderStatus.outForDelivery.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    batch.update(_drivers.doc(driverId), {'isAvailable': false});
+    await batch.commit();
+  }
+
+  Future<void> markOrderDelivered(String orderId, String driverId) async {
+    final orderDoc = await _orders.doc(orderId).get();
+    double commission = 0;
+    if (orderDoc.exists && orderDoc.data() != null) {
+      final order = models.Order.fromMap(orderDoc.data()!, orderDoc.id);
+      commission = order.calculatedCommission;
+    }
+    final batch = _db.batch();
+    batch.update(_orders.doc(orderId), {
+      'status': models.OrderStatus.delivered.name,
+      'isPaid': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'platformCommission': commission,
+    });
+    batch.update(_drivers.doc(driverId), {
+      'totalDeliveries': FieldValue.increment(1),
+      'pendingPayout': FieldValue.increment(10),
+      'isAvailable': true,
+    });
+    await batch.commit();
+  }
+
+  Future<void> cancelOrder(String orderId) => _orders.doc(orderId).update({
+        'status': models.OrderStatus.cancelled.name,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+  Future<void> rateOrder({
+    required String orderId,
+    required String driverId,
+    required double orderRating,
+    required double driverRating,
+    String? review,
+  }) async {
+    await _orders.doc(orderId).update({
+      'customerRating': orderRating,
+      'driverRating': driverRating,
+      'isRated': true,
+      if (review != null) 'review': review,
+    });
+    await updateDriverRating(driverId, driverRating);
+  }
+
+  Stream<List<models.Complaint>> streamComplaints() => _complaints
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((s) => s.docs.map((d) => models.Complaint.fromMap(d.data(), d.id)).toList());
+
+  Future<void> submitComplaint(models.Complaint complaint) =>
+      _complaints.doc(complaint.id).set(complaint.toMap());
+
+  Future<void> updateComplaintStatus(
+    String complaintId,
+    models.ComplaintStatus status, {
+    String? adminNote,
+    String? resolution,
+  }) =>
+      _complaints.doc(complaintId).update({
+        'status': status.name,
+        if (adminNote != null) 'adminNote': adminNote,
+        if (resolution != null) 'resolution': resolution,
+      });
+}
