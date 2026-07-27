@@ -2,9 +2,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter/material.dart';
 
-// ══════════════════════════════════════════════════════════
-//  ENUMS
-// ══════════════════════════════════════════════════════════
 enum UserRole { admin, customer, driver }
 
 enum OrderStatus {
@@ -24,12 +21,9 @@ enum ComplaintStatus { open, inProgress, resolved, closed }
 
 enum ComplaintType { lateDelivery, wrongOrder, badQuality, driverBehavior, other }
 
-// ══════════════════════════════════════════════════════════
-//  EXTENSIONS
-// ══════════════════════════════════════════════════════════
 extension OrderStatusExt on OrderStatus {
   String get label {
-    const labels = {
+    const map = {
       OrderStatus.pending: 'قيد الانتظار',
       OrderStatus.confirmed: 'تم التأكيد',
       OrderStatus.preparing: 'جاري التحضير',
@@ -39,11 +33,11 @@ extension OrderStatusExt on OrderStatus {
       OrderStatus.cancelled: 'ملغى',
       OrderStatus.rejected: 'مرفوض',
     };
-    return labels[this] ?? '';
+    return map[this] ?? '';
   }
 
   Color get color {
-    const colors = {
+    const map = {
       OrderStatus.pending: Color(0xFFFF9800),
       OrderStatus.confirmed: Color(0xFF2196F3),
       OrderStatus.preparing: Color(0xFF9C27B0),
@@ -53,11 +47,11 @@ extension OrderStatusExt on OrderStatus {
       OrderStatus.cancelled: Color(0xFFF44336),
       OrderStatus.rejected: Color(0xFF795548),
     };
-    return colors[this] ?? Colors.grey;
+    return map[this] ?? Colors.grey;
   }
 
   IconData get icon {
-    const icons = {
+    const map = {
       OrderStatus.pending: Icons.hourglass_empty_rounded,
       OrderStatus.confirmed: Icons.check_circle_outline,
       OrderStatus.preparing: Icons.restaurant_rounded,
@@ -67,85 +61,77 @@ extension OrderStatusExt on OrderStatus {
       OrderStatus.cancelled: Icons.cancel_outlined,
       OrderStatus.rejected: Icons.block_rounded,
     };
-    return icons[this] ?? Icons.info_outline;
+    return map[this] ?? Icons.info_outline;
   }
 
   bool get isActive =>
       this != OrderStatus.delivered &&
       this != OrderStatus.cancelled &&
       this != OrderStatus.rejected;
-
-  bool get canBeCancelled =>
-      this == OrderStatus.pending || this == OrderStatus.confirmed;
 }
 
 extension PaymentMethodExt on PaymentMethod {
   String get label {
-    const labels = {
+    const map = {
       PaymentMethod.cash: 'نقداً عند الاستلام',
       PaymentMethod.card: 'بطاقة ائتمان',
       PaymentMethod.wallet: 'المحفظة الإلكترونية',
     };
-    return labels[this] ?? '';
+    return map[this] ?? '';
   }
 
   IconData get icon {
-    const icons = {
+    const map = {
       PaymentMethod.cash: Icons.money_rounded,
       PaymentMethod.card: Icons.credit_card_rounded,
       PaymentMethod.wallet: Icons.account_balance_wallet_rounded,
     };
-    return icons[this] ?? Icons.payment;
-  }
-}
-
-extension ComplaintStatusExt on ComplaintStatus {
-  String get label {
-    const labels = {
-      ComplaintStatus.open: 'مفتوحة',
-      ComplaintStatus.inProgress: 'قيد المعالجة',
-      ComplaintStatus.resolved: 'تم الحل',
-      ComplaintStatus.closed: 'مغلقة',
-    };
-    return labels[this] ?? '';
-  }
-
-  Color get color {
-    const colors = {
-      ComplaintStatus.open: Color(0xFFF44336),
-      ComplaintStatus.inProgress: Color(0xFFFF9800),
-      ComplaintStatus.resolved: Color(0xFF4CAF50),
-      ComplaintStatus.closed: Color(0xFF9E9E9E),
-    };
-    return colors[this] ?? Colors.grey;
+    return map[this] ?? Icons.payment;
   }
 }
 
 extension ComplaintTypeExt on ComplaintType {
   String get label {
-    const labels = {
+    const map = {
       ComplaintType.lateDelivery: 'تأخر التوصيل',
       ComplaintType.wrongOrder: 'طلب خاطئ',
       ComplaintType.badQuality: 'جودة رديئة',
       ComplaintType.driverBehavior: 'سلوك السائق',
       ComplaintType.other: 'أخرى',
     };
-    return labels[this] ?? '';
+    return map[this] ?? '';
   }
 }
 
-// ══════════════════════════════════════════════════════════
-//  APP USER
-// ══════════════════════════════════════════════════════════
+extension ComplaintStatusExt on ComplaintStatus {
+  String get label {
+    const map = {
+      ComplaintStatus.open: 'مفتوحة',
+      ComplaintStatus.inProgress: 'قيد المعالجة',
+      ComplaintStatus.resolved: 'تم الحل',
+      ComplaintStatus.closed: 'مغلقة',
+    };
+    return map[this] ?? '';
+  }
+
+  Color get color {
+    const map = {
+      ComplaintStatus.open: Color(0xFFF44336),
+      ComplaintStatus.inProgress: Color(0xFFFF9800),
+      ComplaintStatus.resolved: Color(0xFF4CAF50),
+      ComplaintStatus.closed: Color(0xFF9E9E9E),
+    };
+    return map[this] ?? Colors.grey;
+  }
+}
+
 class AppUser {
   final String uid;
   final String name;
   final String email;
   final String phone;
   final UserRole role;
-  final String? fcmToken;
   final DateTime createdAt;
-  final String? address;
 
   const AppUser({
     required this.uid,
@@ -153,9 +139,7 @@ class AppUser {
     required this.email,
     required this.phone,
     required this.role,
-    this.fcmToken,
     required this.createdAt,
-    this.address,
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map, String uid) => AppUser(
@@ -167,9 +151,7 @@ class AppUser {
           (r) => r.name == map['role'],
           orElse: () => UserRole.customer,
         ),
-        fcmToken: map['fcmToken'] as String?,
         createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-        address: map['address'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -177,37 +159,14 @@ class AppUser {
         'email': email,
         'phone': phone,
         'role': role.name,
-        if (fcmToken != null) 'fcmToken': fcmToken,
         'createdAt': Timestamp.fromDate(createdAt),
-        if (address != null) 'address': address,
       };
-
-  AppUser copyWith({
-    String? name,
-    String? phone,
-    String? fcmToken,
-    String? address,
-  }) =>
-      AppUser(
-        uid: uid,
-        name: name ?? this.name,
-        email: email,
-        phone: phone ?? this.phone,
-        role: role,
-        fcmToken: fcmToken ?? this.fcmToken,
-        createdAt: createdAt,
-        address: address ?? this.address,
-      );
 }
 
-// ══════════════════════════════════════════════════════════
-//  RESTAURANT
-// ══════════════════════════════════════════════════════════
 class Restaurant {
   final String id;
   final String name;
   final String description;
-  final String imageUrl;
   final String emoji;
   final String phone;
   final bool isOpen;
@@ -216,13 +175,13 @@ class Restaurant {
   final String address;
   final int estimatedTimeMin;
   final double rating;
-  final int totalOrders;
+  final double? lat;
+  final double? lng;
 
   const Restaurant({
     required this.id,
     required this.name,
     required this.description,
-    this.imageUrl = '',
     required this.emoji,
     required this.phone,
     this.isOpen = true,
@@ -231,7 +190,8 @@ class Restaurant {
     required this.address,
     this.estimatedTimeMin = 30,
     this.rating = 5.0,
-    this.totalOrders = 0,
+    this.lat,
+    this.lng,
   });
 
   factory Restaurant.fromMap(Map<String, dynamic> map, String id) =>
@@ -239,7 +199,6 @@ class Restaurant {
         id: id,
         name: map['name'] as String? ?? '',
         description: map['description'] as String? ?? '',
-        imageUrl: map['imageUrl'] as String? ?? '',
         emoji: map['emoji'] as String? ?? '🍽️',
         phone: map['phone'] as String? ?? '',
         isOpen: map['isOpen'] as bool? ?? true,
@@ -248,13 +207,13 @@ class Restaurant {
         address: map['address'] as String? ?? '',
         estimatedTimeMin: (map['estimatedTimeMin'] as num?)?.toInt() ?? 30,
         rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
-        totalOrders: (map['totalOrders'] as num?)?.toInt() ?? 0,
+        lat: (map['lat'] as num?)?.toDouble(),
+        lng: (map['lng'] as num?)?.toDouble(),
       );
 
   Map<String, dynamic> toMap() => {
         'name': name,
         'description': description,
-        'imageUrl': imageUrl,
         'emoji': emoji,
         'phone': phone,
         'isOpen': isOpen,
@@ -263,43 +222,11 @@ class Restaurant {
         'address': address,
         'estimatedTimeMin': estimatedTimeMin,
         'rating': rating,
-        'totalOrders': totalOrders,
+        'lat': lat,
+        'lng': lng,
       };
-
-  Restaurant copyWith({
-    String? name,
-    String? description,
-    String? imageUrl,
-    String? emoji,
-    String? phone,
-    bool? isOpen,
-    double? deliveryFee,
-    double? minOrder,
-    String? address,
-    int? estimatedTimeMin,
-    double? rating,
-    int? totalOrders,
-  }) =>
-      Restaurant(
-        id: id,
-        name: name ?? this.name,
-        description: description ?? this.description,
-        imageUrl: imageUrl ?? this.imageUrl,
-        emoji: emoji ?? this.emoji,
-        phone: phone ?? this.phone,
-        isOpen: isOpen ?? this.isOpen,
-        deliveryFee: deliveryFee ?? this.deliveryFee,
-        minOrder: minOrder ?? this.minOrder,
-        address: address ?? this.address,
-        estimatedTimeMin: estimatedTimeMin ?? this.estimatedTimeMin,
-        rating: rating ?? this.rating,
-        totalOrders: totalOrders ?? this.totalOrders,
-      );
 }
 
-// ══════════════════════════════════════════════════════════
-//  MENU CATEGORY
-// ══════════════════════════════════════════════════════════
 class MenuCategory {
   final String id;
   final String restaurantId;
@@ -328,9 +255,6 @@ class MenuCategory {
       };
 }
 
-// ══════════════════════════════════════════════════════════
-//  MENU ITEM — مع إضافة المخزون (Phase 1)
-// ══════════════════════════════════════════════════════════
 class MenuItem {
   final String id;
   final String restaurantId;
@@ -339,13 +263,9 @@ class MenuItem {
   final String description;
   final double price;
   final String emoji;
-  final String imageUrl;
   final bool isAvailable;
-  final List<String> extras;
-  // ✅ جديد: إدارة المخزون
-  final int? stockQuantity;     // null = غير محدود
-  final bool trackStock;        // هل نتتبع المخزون؟
-  final int totalSold;          // إجمالي المبيعات للتحليلات
+  final int? stockQuantity;
+  final bool trackStock;
 
   const MenuItem({
     required this.id,
@@ -355,15 +275,11 @@ class MenuItem {
     required this.description,
     required this.price,
     required this.emoji,
-    this.imageUrl = '',
     this.isAvailable = true,
-    this.extras = const [],
     this.stockQuantity,
     this.trackStock = false,
-    this.totalSold = 0,
   });
 
-  // هل الصنف متاح فعلاً (متاح + مخزون كافٍ)
   bool get canOrder =>
       isAvailable && (!trackStock || (stockQuantity != null && stockQuantity! > 0));
 
@@ -375,12 +291,9 @@ class MenuItem {
         description: map['description'] as String? ?? '',
         price: (map['price'] as num?)?.toDouble() ?? 0.0,
         emoji: map['emoji'] as String? ?? '🍽️',
-        imageUrl: map['imageUrl'] as String? ?? '',
         isAvailable: map['isAvailable'] as bool? ?? true,
-        extras: List<String>.from(map['extras'] as List? ?? []),
         stockQuantity: (map['stockQuantity'] as num?)?.toInt(),
         trackStock: map['trackStock'] as bool? ?? false,
-        totalSold: (map['totalSold'] as num?)?.toInt() ?? 0,
       );
 
   Map<String, dynamic> toMap() => {
@@ -390,52 +303,17 @@ class MenuItem {
         'description': description,
         'price': price,
         'emoji': emoji,
-        'imageUrl': imageUrl,
         'isAvailable': isAvailable,
-        'extras': extras,
         'stockQuantity': stockQuantity,
         'trackStock': trackStock,
-        'totalSold': totalSold,
       };
-
-  MenuItem copyWith({
-    String? name,
-    String? description,
-    double? price,
-    String? emoji,
-    String? imageUrl,
-    bool? isAvailable,
-    List<String>? extras,
-    int? stockQuantity,
-    bool? trackStock,
-    int? totalSold,
-  }) =>
-      MenuItem(
-        id: id,
-        restaurantId: restaurantId,
-        categoryId: categoryId,
-        name: name ?? this.name,
-        description: description ?? this.description,
-        price: price ?? this.price,
-        emoji: emoji ?? this.emoji,
-        imageUrl: imageUrl ?? this.imageUrl,
-        isAvailable: isAvailable ?? this.isAvailable,
-        extras: extras ?? this.extras,
-        stockQuantity: stockQuantity ?? this.stockQuantity,
-        trackStock: trackStock ?? this.trackStock,
-        totalSold: totalSold ?? this.totalSold,
-      );
 }
 
-// ══════════════════════════════════════════════════════════
-//  DRIVER
-// ══════════════════════════════════════════════════════════
 class Driver {
   final String id;
   final String name;
   final String phone;
   final String vehicleType;
-  final String vehiclePlate;
   final bool isAvailable;
   final bool isOnline;
   final double totalEarnings;
@@ -443,13 +321,14 @@ class Driver {
   final int totalDeliveries;
   final double rating;
   final int ratingCount;
+  final double? lat;
+  final double? lng;
 
   const Driver({
     required this.id,
     required this.name,
     required this.phone,
     required this.vehicleType,
-    this.vehiclePlate = '',
     this.isAvailable = true,
     this.isOnline = false,
     this.totalEarnings = 0,
@@ -457,6 +336,8 @@ class Driver {
     this.totalDeliveries = 0,
     this.rating = 5.0,
     this.ratingCount = 0,
+    this.lat,
+    this.lng,
   });
 
   factory Driver.fromMap(Map<String, dynamic> map, String id) => Driver(
@@ -464,7 +345,6 @@ class Driver {
         name: map['name'] as String? ?? '',
         phone: map['phone'] as String? ?? '',
         vehicleType: map['vehicleType'] as String? ?? 'دراجة نارية',
-        vehiclePlate: map['vehiclePlate'] as String? ?? '',
         isAvailable: map['isAvailable'] as bool? ?? true,
         isOnline: map['isOnline'] as bool? ?? false,
         totalEarnings: (map['totalEarnings'] as num?)?.toDouble() ?? 0,
@@ -472,13 +352,14 @@ class Driver {
         totalDeliveries: (map['totalDeliveries'] as num?)?.toInt() ?? 0,
         rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
         ratingCount: (map['ratingCount'] as num?)?.toInt() ?? 0,
+        lat: (map['lat'] as num?)?.toDouble(),
+        lng: (map['lng'] as num?)?.toDouble(),
       );
 
   Map<String, dynamic> toMap() => {
         'name': name,
         'phone': phone,
         'vehicleType': vehicleType,
-        'vehiclePlate': vehiclePlate,
         'isAvailable': isAvailable,
         'isOnline': isOnline,
         'totalEarnings': totalEarnings,
@@ -486,47 +367,17 @@ class Driver {
         'totalDeliveries': totalDeliveries,
         'rating': rating,
         'ratingCount': ratingCount,
+        'lat': lat,
+        'lng': lng,
       };
-
-  Driver copyWith({
-    String? name,
-    String? phone,
-    String? vehicleType,
-    String? vehiclePlate,
-    bool? isAvailable,
-    bool? isOnline,
-    double? totalEarnings,
-    double? pendingPayout,
-    int? totalDeliveries,
-    double? rating,
-    int? ratingCount,
-  }) =>
-      Driver(
-        id: id,
-        name: name ?? this.name,
-        phone: phone ?? this.phone,
-        vehicleType: vehicleType ?? this.vehicleType,
-        vehiclePlate: vehiclePlate ?? this.vehiclePlate,
-        isAvailable: isAvailable ?? this.isAvailable,
-        isOnline: isOnline ?? this.isOnline,
-        totalEarnings: totalEarnings ?? this.totalEarnings,
-        pendingPayout: pendingPayout ?? this.pendingPayout,
-        totalDeliveries: totalDeliveries ?? this.totalDeliveries,
-        rating: rating ?? this.rating,
-        ratingCount: ratingCount ?? this.ratingCount,
-      );
 }
 
-// ══════════════════════════════════════════════════════════
-//  ORDER ITEM
-// ══════════════════════════════════════════════════════════
 class OrderItem {
   final String menuItemId;
   final String name;
   final double price;
   final String emoji;
   final int quantity;
-  final String? extras;
 
   const OrderItem({
     required this.menuItemId,
@@ -534,7 +385,6 @@ class OrderItem {
     required this.price,
     required this.emoji,
     this.quantity = 1,
-    this.extras,
   });
 
   double get subtotal => price * quantity;
@@ -545,7 +395,6 @@ class OrderItem {
         price: (map['price'] as num?)?.toDouble() ?? 0.0,
         emoji: map['emoji'] as String? ?? '🍽️',
         quantity: (map['quantity'] as num?)?.toInt() ?? 1,
-        extras: map['extras'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -554,22 +403,9 @@ class OrderItem {
         'price': price,
         'emoji': emoji,
         'quantity': quantity,
-        if (extras != null) 'extras': extras,
       };
-
-  OrderItem copyWith({int? quantity, String? extras}) => OrderItem(
-        menuItemId: menuItemId,
-        name: name,
-        price: price,
-        emoji: emoji,
-        quantity: quantity ?? this.quantity,
-        extras: extras ?? this.extras,
-      );
 }
 
-// ══════════════════════════════════════════════════════════
-//  ORDER — مع إضافات Phase 1
-// ══════════════════════════════════════════════════════════
 class Order {
   final String id;
   final String restaurantId;
@@ -589,15 +425,14 @@ class Order {
   final String? notes;
   final double deliveryFee;
   final String orderNumber;
-  // ✅ جديد Phase 1: التقييم
-  final double? customerRating;       // تقييم العميل للطلب (1-5)
-  final String? customerReview;       // تعليق العميل
-  final double? driverRating;         // تقييم العميل للسائق (1-5)
-  final bool isRated;                 // هل قيّم العميل؟
-  final DateTime? ratedAt;            // وقت التقييم
-  // ✅ جديد Phase 1: عمولة 1%
-  final double platformCommission;    // عمولة المنصة (1% من الطلب)
-  final DateTime? deliveredAt;        // وقت التوصيل الفعلي
+  final double? customerRating;
+  final double? driverRating;
+  final bool isRated;
+  final double platformCommission;
+  final double? deliveryLat;
+  final double? deliveryLng;
+  final double? restaurantLat;
+  final double? restaurantLng;
 
   const Order({
     required this.id,
@@ -619,19 +454,17 @@ class Order {
     this.deliveryFee = 5.0,
     required this.orderNumber,
     this.customerRating,
-    this.customerReview,
     this.driverRating,
     this.isRated = false,
-    this.ratedAt,
     this.platformCommission = 0,
-    this.deliveredAt,
+    this.deliveryLat,
+    this.deliveryLng,
+    this.restaurantLat,
+    this.restaurantLng,
   });
 
   double get itemsTotal => items.fold(0.0, (s, i) => s + i.subtotal);
   double get grandTotal => itemsTotal + deliveryFee;
-  int get itemCount => items.fold(0, (s, i) => s + i.quantity);
-
-  // حساب عمولة 1% تلقائياً
   double get calculatedCommission => itemsTotal * 0.01;
 
   factory Order.fromMap(Map<String, dynamic> map, String id) => Order(
@@ -660,15 +493,15 @@ class Order {
         driverName: map['driverName'] as String?,
         notes: map['notes'] as String?,
         deliveryFee: (map['deliveryFee'] as num?)?.toDouble() ?? 5.0,
-        // ✅ إصلاح: يقبل الاثنين (حرف صغير وكبير للتوافق مع البيانات القديمة)
-        orderNumber: (map['orderNumber'] ?? map['OrderNumber'] ?? id.substring(0, 6).toUpperCase()) as String,
+        orderNumber: (map['orderNumber'] as String?) ?? id.substring(0, 6).toUpperCase(),
         customerRating: (map['customerRating'] as num?)?.toDouble(),
-        customerReview: map['customerReview'] as String?,
         driverRating: (map['driverRating'] as num?)?.toDouble(),
         isRated: map['isRated'] as bool? ?? false,
-        ratedAt: (map['ratedAt'] as Timestamp?)?.toDate(),
         platformCommission: (map['platformCommission'] as num?)?.toDouble() ?? 0,
-        deliveredAt: (map['deliveredAt'] as Timestamp?)?.toDate(),
+        deliveryLat: (map['deliveryLat'] as num?)?.toDouble(),
+        deliveryLng: (map['deliveryLng'] as num?)?.toDouble(),
+        restaurantLat: (map['restaurantLat'] as num?)?.toDouble(),
+        restaurantLng: (map['restaurantLng'] as num?)?.toDouble(),
       );
 
   Map<String, dynamic> toMap() => {
@@ -688,77 +521,28 @@ class Order {
         'driverName': driverName,
         'notes': notes,
         'deliveryFee': deliveryFee,
-        'orderNumber': orderNumber,   // ✅ حرف صغير دائماً
+        'orderNumber': orderNumber,
         'customerRating': customerRating,
-        'customerReview': customerReview,
         'driverRating': driverRating,
         'isRated': isRated,
-        'ratedAt': ratedAt != null ? Timestamp.fromDate(ratedAt!) : null,
         'platformCommission': platformCommission,
-        'deliveredAt': deliveredAt != null ? Timestamp.fromDate(deliveredAt!) : null,
+        'deliveryLat': deliveryLat,
+        'deliveryLng': deliveryLng,
+        'restaurantLat': restaurantLat,
+        'restaurantLng': restaurantLng,
       };
-
-  Order copyWith({
-    OrderStatus? status,
-    bool? isPaid,
-    String? driverId,
-    String? driverName,
-    DateTime? updatedAt,
-    double? customerRating,
-    String? customerReview,
-    double? driverRating,
-    bool? isRated,
-    DateTime? ratedAt,
-    double? platformCommission,
-    DateTime? deliveredAt,
-  }) =>
-      Order(
-        id: id,
-        restaurantId: restaurantId,
-        restaurantName: restaurantName,
-        customerId: customerId,
-        customerName: customerName,
-        customerPhone: customerPhone,
-        deliveryAddress: deliveryAddress,
-        items: items,
-        status: status ?? this.status,
-        paymentMethod: paymentMethod,
-        isPaid: isPaid ?? this.isPaid,
-        createdAt: createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-        driverId: driverId ?? this.driverId,
-        driverName: driverName ?? this.driverName,
-        notes: notes,
-        deliveryFee: deliveryFee,
-        orderNumber: orderNumber,
-        customerRating: customerRating ?? this.customerRating,
-        customerReview: customerReview ?? this.customerReview,
-        driverRating: driverRating ?? this.driverRating,
-        isRated: isRated ?? this.isRated,
-        ratedAt: ratedAt ?? this.ratedAt,
-        platformCommission: platformCommission ?? this.platformCommission,
-        deliveredAt: deliveredAt ?? this.deliveredAt,
-      );
 }
 
-// ══════════════════════════════════════════════════════════
-//  COMPLAINT — جديد Phase 1
-// ══════════════════════════════════════════════════════════
 class Complaint {
   final String id;
   final String orderId;
   final String orderNumber;
   final String customerId;
   final String customerName;
-  final String restaurantId;
-  final String restaurantName;
   final ComplaintType type;
   final String description;
   final ComplaintStatus status;
   final DateTime createdAt;
-  final DateTime? resolvedAt;
-  final String? adminNote;
-  final String? resolution;
 
   const Complaint({
     required this.id,
@@ -766,15 +550,10 @@ class Complaint {
     required this.orderNumber,
     required this.customerId,
     required this.customerName,
-    required this.restaurantId,
-    required this.restaurantName,
     required this.type,
     required this.description,
     this.status = ComplaintStatus.open,
     required this.createdAt,
-    this.resolvedAt,
-    this.adminNote,
-    this.resolution,
   });
 
   factory Complaint.fromMap(Map<String, dynamic> map, String id) => Complaint(
@@ -783,8 +562,6 @@ class Complaint {
         orderNumber: map['orderNumber'] as String? ?? '',
         customerId: map['customerId'] as String? ?? '',
         customerName: map['customerName'] as String? ?? '',
-        restaurantId: map['restaurantId'] as String? ?? '',
-        restaurantName: map['restaurantName'] as String? ?? '',
         type: ComplaintType.values.firstWhere(
           (t) => t.name == map['type'],
           orElse: () => ComplaintType.other,
@@ -795,9 +572,6 @@ class Complaint {
           orElse: () => ComplaintStatus.open,
         ),
         createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-        resolvedAt: (map['resolvedAt'] as Timestamp?)?.toDate(),
-        adminNote: map['adminNote'] as String?,
-        resolution: map['resolution'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -805,50 +579,16 @@ class Complaint {
         'orderNumber': orderNumber,
         'customerId': customerId,
         'customerName': customerName,
-        'restaurantId': restaurantId,
-        'restaurantName': restaurantName,
         'type': type.name,
         'description': description,
         'status': status.name,
         'createdAt': Timestamp.fromDate(createdAt),
-        'resolvedAt': resolvedAt != null ? Timestamp.fromDate(resolvedAt!) : null,
-        'adminNote': adminNote,
-        'resolution': resolution,
       };
-
-  Complaint copyWith({
-    ComplaintStatus? status,
-    String? adminNote,
-    String? resolution,
-    DateTime? resolvedAt,
-  }) =>
-      Complaint(
-        id: id,
-        orderId: orderId,
-        orderNumber: orderNumber,
-        customerId: customerId,
-        customerName: customerName,
-        restaurantId: restaurantId,
-        restaurantName: restaurantName,
-        type: type,
-        description: description,
-        status: status ?? this.status,
-        createdAt: createdAt,
-        resolvedAt: resolvedAt ?? this.resolvedAt,
-        adminNote: adminNote ?? this.adminNote,
-        resolution: resolution ?? this.resolution,
-      );
 }
 
-// ══════════════════════════════════════════════════════════
-//  CART ITEM (local only — لا يُحفظ في Firestore)
-// ══════════════════════════════════════════════════════════
 class CartItem {
   final MenuItem item;
   int quantity;
-  String? extras;
-
-  CartItem({required this.item, this.quantity = 1, this.extras});
-
+  CartItem({required this.item, this.quantity = 1});
   double get subtotal => item.price * quantity;
 }
