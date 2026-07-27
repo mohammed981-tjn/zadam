@@ -4,7 +4,7 @@
     <application
         android:label="زادم للتوصيل"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+       android:icon="@android:drawable/sym_def_app_icon"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
