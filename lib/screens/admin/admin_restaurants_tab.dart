@@ -2,11 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:latlong2/latlong.dart';
 import '../../providers/firebase_service.dart';
 import '../../models/models.dart';
 import '../../utils/theme.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common_widgets.dart';
+import 'pick_location_screen.dart';
 
 class AdminRestaurantsTab extends StatelessWidget {
   const AdminRestaurantsTab({super.key});
@@ -103,6 +105,12 @@ class _RestaurantCard extends StatelessWidget {
                   icon: Icons.star_rounded,
                   text: 'التقييم: ${restaurant.rating.toStringAsFixed(1)} ⭐  •  ${restaurant.totalOrders} طلب',
                 ),
+                InfoRow(
+                  icon: restaurant.lat != null ? Icons.check_circle : Icons.warning_amber_rounded,
+                  text: restaurant.lat != null
+                      ? 'الموقع محدد على الخريطة'
+                      : 'لم يُحدَّد موقع على الخريطة',
+                ),
                 const SizedBox(height: 12),
                 Row(children: [
                   Expanded(
@@ -153,6 +161,7 @@ class _RestaurantFormState extends State<_RestaurantForm> {
   late final TextEditingController _name, _desc, _phone, _addr,
       _fee, _min, _time, _emoji;
   bool _loading = false;
+  double? _lat, _lng;
 
   @override
   void initState() {
@@ -166,6 +175,8 @@ class _RestaurantFormState extends State<_RestaurantForm> {
     _min   = TextEditingController(text: r?.minOrder.toString() ?? '20');
     _time  = TextEditingController(text: r?.estimatedTimeMin.toString() ?? '30');
     _emoji = TextEditingController(text: r?.emoji ?? '🍽️');
+    _lat = r?.lat;
+    _lng = r?.lng;
   }
 
   @override
@@ -174,6 +185,23 @@ class _RestaurantFormState extends State<_RestaurantForm> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _pickLocation() async {
+    final result = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PickLocationScreen(
+          initialLocation: _lat != null && _lng != null ? LatLng(_lat!, _lng!) : null,
+        ),
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _lat = result.latitude;
+        _lng = result.longitude;
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -193,6 +221,8 @@ class _RestaurantFormState extends State<_RestaurantForm> {
       isOpen: widget.existing?.isOpen ?? true,
       rating: widget.existing?.rating ?? 5.0,
       totalOrders: widget.existing?.totalOrders ?? 0,
+      lat: _lat,
+      lng: _lng,
     );
     if (widget.existing == null) {
       await service.addRestaurant(r);
@@ -241,6 +271,15 @@ class _RestaurantFormState extends State<_RestaurantForm> {
                   Expanded(child: _f(_min, 'الحد الأدنى', type: TextInputType.number, validator: validatePrice)),
                 ]),
                 _f(_time, 'وقت التوصيل (دقيقة)', type: TextInputType.number),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _pickLocation,
+                  icon: Icon(_lat != null ? Icons.check_circle : Icons.map_outlined,
+                      color: _lat != null ? AppColors.success : null),
+                  label: Text(_lat != null
+                      ? 'الموقع محدد ✓ (اضغط للتعديل)'
+                      : 'اختر موقع المطعم من الخريطة'),
+                ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity, height: 50,
@@ -518,7 +557,6 @@ class _ItemFormState extends State<_ItemForm> {
                 _f(_name, 'اسم الصنف'),
                 _f(_desc, 'الوصف'),
                 _f(_price, 'السعر', type: TextInputType.number, validator: validatePrice),
-                // إدارة المخزون
                 SwitchListTile(
                   value: _trackStock,
                   onChanged: (v) => setState(() => _trackStock = v),
