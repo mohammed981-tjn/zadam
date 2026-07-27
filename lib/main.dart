@@ -13,12 +13,11 @@ void main() async {
 
   await Firebase.initializeApp(
     options: const FirebaseOptions(
-      apiKey:            'AIzaSyBoAvj7C2vJyzERVnK26Oa-dJZ1mV0vO6g',
-      authDomain:        'restaurant-app-ed699.firebaseapp.com',
+      apiKey:            'AIzaSyBuU7g3vG5enxaebwxGdGgavG5U8cftwd4',
+      appId:             '1:653081498334:android:6d7b3006fc329fda20684f',
+      messagingSenderId: '653081498334',
       projectId:         'restaurant-app-ed699',
       storageBucket:     'restaurant-app-ed699.firebasestorage.app',
-      messagingSenderId: '653081498334',
-      appId:             '1:653081498334:web:68bbe28bb046d5fa20684f',
     ),
   );
 
