@@ -7,6 +7,7 @@ import '../../utils/theme.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common_widgets.dart';
 import '../auth/login_screen.dart';
+import '../customer/order_map_screen.dart';
 
 class DriverHome extends StatefulWidget {
   const DriverHome({super.key});
@@ -130,6 +131,11 @@ class _OrderCard extends StatelessWidget {
               child: Text('#${order.orderNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
             ),
             const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.map_outlined, color: AppColors.secondary),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderMapScreen(order: order))),
+              tooltip: 'عرض الخريطة',
+            ),
             StatusBadge(label: order.status.label, color: order.status.color, icon: order.status.icon),
           ]),
           const SizedBox(height: 10),
