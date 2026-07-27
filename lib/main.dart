@@ -1,4 +1,3 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +20,9 @@ void main() async {
     ),
   );
 
+  // تأخير بسيط لضمان اكتمال تهيئة خدمات Firebase الداخلية
+  await Future.delayed(const Duration(milliseconds: 500));
+
   runApp(const ZadamApp());
 }
 
@@ -41,7 +43,7 @@ class ZadamApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'زادم للتوصيل',
+        title: 'Zadgo',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         builder: (context, child) => Directionality(
