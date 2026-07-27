@@ -1,594 +1,603 @@
-// lib/models/models.dart
-import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
+// lib/screens/admin/admin_restaurants_tab.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+import 'package:latlong2/latlong.dart';
+import '../../providers/firebase_service.dart';
+import '../../models/models.dart';
+import '../../utils/theme.dart';
+import '../../utils/helpers.dart';
+import '../../widgets/common_widgets.dart';
+import 'pick_location_screen.dart';
 
-enum UserRole { admin, customer, driver }
+class AdminRestaurantsTab extends StatelessWidget {
+  const AdminRestaurantsTab({super.key});
 
-enum OrderStatus {
-  pending,
-  confirmed,
-  preparing,
-  readyForPickup,
-  outForDelivery,
-  delivered,
-  cancelled,
-  rejected,
-}
-
-enum PaymentMethod { cash, card, wallet }
-
-enum ComplaintStatus { open, inProgress, resolved, closed }
-
-enum ComplaintType { lateDelivery, wrongOrder, badQuality, driverBehavior, other }
-
-extension OrderStatusExt on OrderStatus {
-  String get label {
-    const map = {
-      OrderStatus.pending: 'قيد الانتظار',
-      OrderStatus.confirmed: 'تم التأكيد',
-      OrderStatus.preparing: 'جاري التحضير',
-      OrderStatus.readyForPickup: 'جاهز للاستلام',
-      OrderStatus.outForDelivery: 'في الطريق إليك',
-      OrderStatus.delivered: 'تم التوصيل',
-      OrderStatus.cancelled: 'ملغى',
-      OrderStatus.rejected: 'مرفوض',
-    };
-    return map[this] ?? '';
-  }
-
-  Color get color {
-    const map = {
-      OrderStatus.pending: Color(0xFFFF9800),
-      OrderStatus.confirmed: Color(0xFF2196F3),
-      OrderStatus.preparing: Color(0xFF9C27B0),
-      OrderStatus.readyForPickup: Color(0xFF00BCD4),
-      OrderStatus.outForDelivery: Color(0xFF3F51B5),
-      OrderStatus.delivered: Color(0xFF4CAF50),
-      OrderStatus.cancelled: Color(0xFFF44336),
-      OrderStatus.rejected: Color(0xFF795548),
-    };
-    return map[this] ?? Colors.grey;
-  }
-
-  IconData get icon {
-    const map = {
-      OrderStatus.pending: Icons.hourglass_empty_rounded,
-      OrderStatus.confirmed: Icons.check_circle_outline,
-      OrderStatus.preparing: Icons.restaurant_rounded,
-      OrderStatus.readyForPickup: Icons.shopping_bag_outlined,
-      OrderStatus.outForDelivery: Icons.delivery_dining_rounded,
-      OrderStatus.delivered: Icons.done_all_rounded,
-      OrderStatus.cancelled: Icons.cancel_outlined,
-      OrderStatus.rejected: Icons.block_rounded,
-    };
-    return map[this] ?? Icons.info_outline;
-  }
-
-  bool get isActive =>
-      this != OrderStatus.delivered &&
-      this != OrderStatus.cancelled &&
-      this != OrderStatus.rejected;
-}
-
-extension PaymentMethodExt on PaymentMethod {
-  String get label {
-    const map = {
-      PaymentMethod.cash: 'نقداً عند الاستلام',
-      PaymentMethod.card: 'بطاقة ائتمان',
-      PaymentMethod.wallet: 'المحفظة الإلكترونية',
-    };
-    return map[this] ?? '';
-  }
-
-  IconData get icon {
-    const map = {
-      PaymentMethod.cash: Icons.money_rounded,
-      PaymentMethod.card: Icons.credit_card_rounded,
-      PaymentMethod.wallet: Icons.account_balance_wallet_rounded,
-    };
-    return map[this] ?? Icons.payment;
+  @override
+  Widget build(BuildContext context) {
+    final service = context.read<FirebaseService>();
+    return StreamBuilder<List<Restaurant>>(
+      stream: service.streamRestaurants(),
+      builder: (ctx, snap) {
+        if (!snap.hasData) return const AppLoading();
+        final list = snap.data!;
+        return Scaffold(
+          body: list.isEmpty
+              ? AppEmpty(
+                  emoji: '🍽️',
+                  title: 'لا يوجد مطاعم',
+                  action: ElevatedButton(
+                    onPressed: () => _showRestaurantForm(ctx, null),
+                    child: const Text('إضافة مطعم'),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: list.length,
+                  itemBuilder: (_, i) => _RestaurantCard(restaurant: list[i]),
+                ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _showRestaurantForm(ctx, null),
+            icon: const Icon(Icons.add),
+            label: const Text('مطعم جديد'),
+          ),
+        );
+      },
+    );
   }
 }
 
-extension ComplaintTypeExt on ComplaintType {
-  String get label {
-    const map = {
-      ComplaintType.lateDelivery: 'تأخر التوصيل',
-      ComplaintType.wrongOrder: 'طلب خاطئ',
-      ComplaintType.badQuality: 'جودة رديئة',
-      ComplaintType.driverBehavior: 'سلوك السائق',
-      ComplaintType.other: 'أخرى',
-    };
-    return map[this] ?? '';
-  }
-}
+class _RestaurantCard extends StatelessWidget {
+  final Restaurant restaurant;
+  const _RestaurantCard({required this.restaurant});
 
-extension ComplaintStatusExt on ComplaintStatus {
-  String get label {
-    const map = {
-      ComplaintStatus.open: 'مفتوحة',
-      ComplaintStatus.inProgress: 'قيد المعالجة',
-      ComplaintStatus.resolved: 'تم الحل',
-      ComplaintStatus.closed: 'مغلقة',
-    };
-    return map[this] ?? '';
-  }
-
-  Color get color {
-    const map = {
-      ComplaintStatus.open: Color(0xFFF44336),
-      ComplaintStatus.inProgress: Color(0xFFFF9800),
-      ComplaintStatus.resolved: Color(0xFF4CAF50),
-      ComplaintStatus.closed: Color(0xFF9E9E9E),
-    };
-    return map[this] ?? Colors.grey;
-  }
-}
-
-class AppUser {
-  final String uid;
-  final String name;
-  final String email;
-  final String phone;
-  final UserRole role;
-  final DateTime createdAt;
-
-  const AppUser({
-    required this.uid,
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.role,
-    required this.createdAt,
-  });
-
-  factory AppUser.fromMap(Map<String, dynamic> map, String uid) => AppUser(
-        uid: uid,
-        name: map['name'] as String? ?? '',
-        email: map['email'] as String? ?? '',
-        phone: map['phone'] as String? ?? '',
-        role: UserRole.values.firstWhere(
-          (r) => r.name == map['role'],
-          orElse: () => UserRole.customer,
+  @override
+  Widget build(BuildContext context) {
+    final service = context.read<FirebaseService>();
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Text(restaurant.emoji, style: const TextStyle(fontSize: 24)),
+          ),
         ),
-        createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      );
-
-  Map<String, dynamic> toMap() => {
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'role': role.name,
-        'createdAt': Timestamp.fromDate(createdAt),
-      };
-}
-
-class Restaurant {
-  final String id;
-  final String name;
-  final String description;
-  final String emoji;
-  final String phone;
-  final bool isOpen;
-  final double deliveryFee;
-  final double minOrder;
-  final String address;
-  final int estimatedTimeMin;
-  final double rating;
-  final double? lat;
-  final double? lng;
-
-  const Restaurant({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.emoji,
-    required this.phone,
-    this.isOpen = true,
-    this.deliveryFee = 5.0,
-    this.minOrder = 20.0,
-    required this.address,
-    this.estimatedTimeMin = 30,
-    this.rating = 5.0,
-    this.lat,
-    this.lng,
-  });
-
-  factory Restaurant.fromMap(Map<String, dynamic> map, String id) =>
-      Restaurant(
-        id: id,
-        name: map['name'] as String? ?? '',
-        description: map['description'] as String? ?? '',
-        emoji: map['emoji'] as String? ?? '🍽️',
-        phone: map['phone'] as String? ?? '',
-        isOpen: map['isOpen'] as bool? ?? true,
-        deliveryFee: (map['deliveryFee'] as num?)?.toDouble() ?? 5.0,
-        minOrder: (map['minOrder'] as num?)?.toDouble() ?? 20.0,
-        address: map['address'] as String? ?? '',
-        estimatedTimeMin: (map['estimatedTimeMin'] as num?)?.toInt() ?? 30,
-        rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
-        lat: (map['lat'] as num?)?.toDouble(),
-        lng: (map['lng'] as num?)?.toDouble(),
-      );
-
-  Map<String, dynamic> toMap() => {
-        'name': name,
-        'description': description,
-        'emoji': emoji,
-        'phone': phone,
-        'isOpen': isOpen,
-        'deliveryFee': deliveryFee,
-        'minOrder': minOrder,
-        'address': address,
-        'estimatedTimeMin': estimatedTimeMin,
-        'rating': rating,
-        'lat': lat,
-        'lng': lng,
-      };
-}
-
-class MenuCategory {
-  final String id;
-  final String restaurantId;
-  final String name;
-  final int sortOrder;
-
-  const MenuCategory({
-    required this.id,
-    required this.restaurantId,
-    required this.name,
-    this.sortOrder = 0,
-  });
-
-  factory MenuCategory.fromMap(Map<String, dynamic> map, String id) =>
-      MenuCategory(
-        id: id,
-        restaurantId: map['restaurantId'] as String? ?? '',
-        name: map['name'] as String? ?? '',
-        sortOrder: (map['sortOrder'] as num?)?.toInt() ?? 0,
-      );
-
-  Map<String, dynamic> toMap() => {
-        'restaurantId': restaurantId,
-        'name': name,
-        'sortOrder': sortOrder,
-      };
-}
-
-class MenuItem {
-  final String id;
-  final String restaurantId;
-  final String categoryId;
-  final String name;
-  final String description;
-  final double price;
-  final String emoji;
-  final bool isAvailable;
-  final int? stockQuantity;
-  final bool trackStock;
-
-  const MenuItem({
-    required this.id,
-    required this.restaurantId,
-    required this.categoryId,
-    required this.name,
-    required this.description,
-    required this.price,
-    required this.emoji,
-    this.isAvailable = true,
-    this.stockQuantity,
-    this.trackStock = false,
-  });
-
-  bool get canOrder =>
-      isAvailable && (!trackStock || (stockQuantity != null && stockQuantity! > 0));
-
-  factory MenuItem.fromMap(Map<String, dynamic> map, String id) => MenuItem(
-        id: id,
-        restaurantId: map['restaurantId'] as String? ?? '',
-        categoryId: map['categoryId'] as String? ?? '',
-        name: map['name'] as String? ?? '',
-        description: map['description'] as String? ?? '',
-        price: (map['price'] as num?)?.toDouble() ?? 0.0,
-        emoji: map['emoji'] as String? ?? '🍽️',
-        isAvailable: map['isAvailable'] as bool? ?? true,
-        stockQuantity: (map['stockQuantity'] as num?)?.toInt(),
-        trackStock: map['trackStock'] as bool? ?? false,
-      );
-
-  Map<String, dynamic> toMap() => {
-        'restaurantId': restaurantId,
-        'categoryId': categoryId,
-        'name': name,
-        'description': description,
-        'price': price,
-        'emoji': emoji,
-        'isAvailable': isAvailable,
-        'stockQuantity': stockQuantity,
-        'trackStock': trackStock,
-      };
-}
-
-class Driver {
-  final String id;
-  final String name;
-  final String phone;
-  final String vehicleType;
-  final bool isAvailable;
-  final bool isOnline;
-  final double totalEarnings;
-  final double pendingPayout;
-  final int totalDeliveries;
-  final double rating;
-  final int ratingCount;
-  final double? lat;
-  final double? lng;
-
-  const Driver({
-    required this.id,
-    required this.name,
-    required this.phone,
-    required this.vehicleType,
-    this.isAvailable = true,
-    this.isOnline = false,
-    this.totalEarnings = 0,
-    this.pendingPayout = 0,
-    this.totalDeliveries = 0,
-    this.rating = 5.0,
-    this.ratingCount = 0,
-    this.lat,
-    this.lng,
-  });
-
-  factory Driver.fromMap(Map<String, dynamic> map, String id) => Driver(
-        id: id,
-        name: map['name'] as String? ?? '',
-        phone: map['phone'] as String? ?? '',
-        vehicleType: map['vehicleType'] as String? ?? 'دراجة نارية',
-        isAvailable: map['isAvailable'] as bool? ?? true,
-        isOnline: map['isOnline'] as bool? ?? false,
-        totalEarnings: (map['totalEarnings'] as num?)?.toDouble() ?? 0,
-        pendingPayout: (map['pendingPayout'] as num?)?.toDouble() ?? 0,
-        totalDeliveries: (map['totalDeliveries'] as num?)?.toInt() ?? 0,
-        rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
-        ratingCount: (map['ratingCount'] as num?)?.toInt() ?? 0,
-        lat: (map['lat'] as num?)?.toDouble(),
-        lng: (map['lng'] as num?)?.toDouble(),
-      );
-
-  Map<String, dynamic> toMap() => {
-        'name': name,
-        'phone': phone,
-        'vehicleType': vehicleType,
-        'isAvailable': isAvailable,
-        'isOnline': isOnline,
-        'totalEarnings': totalEarnings,
-        'pendingPayout': pendingPayout,
-        'totalDeliveries': totalDeliveries,
-        'rating': rating,
-        'ratingCount': ratingCount,
-        'lat': lat,
-        'lng': lng,
-      };
-}
-
-class OrderItem {
-  final String menuItemId;
-  final String name;
-  final double price;
-  final String emoji;
-  final int quantity;
-
-  const OrderItem({
-    required this.menuItemId,
-    required this.name,
-    required this.price,
-    required this.emoji,
-    this.quantity = 1,
-  });
-
-  double get subtotal => price * quantity;
-
-  factory OrderItem.fromMap(Map<String, dynamic> map) => OrderItem(
-        menuItemId: map['menuItemId'] as String? ?? '',
-        name: map['name'] as String? ?? '',
-        price: (map['price'] as num?)?.toDouble() ?? 0.0,
-        emoji: map['emoji'] as String? ?? '🍽️',
-        quantity: (map['quantity'] as num?)?.toInt() ?? 1,
-      );
-
-  Map<String, dynamic> toMap() => {
-        'menuItemId': menuItemId,
-        'name': name,
-        'price': price,
-        'emoji': emoji,
-        'quantity': quantity,
-      };
-}
-
-class Order {
-  final String id;
-  final String restaurantId;
-  final String restaurantName;
-  final String customerId;
-  final String customerName;
-  final String customerPhone;
-  final String deliveryAddress;
-  final List<OrderItem> items;
-  final OrderStatus status;
-  final PaymentMethod paymentMethod;
-  final bool isPaid;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
-  final String? driverId;
-  final String? driverName;
-  final String? notes;
-  final double deliveryFee;
-  final String orderNumber;
-  final double? customerRating;
-  final double? driverRating;
-  final bool isRated;
-  final double platformCommission;
-  final double? deliveryLat;
-  final double? deliveryLng;
-  final double? restaurantLat;
-  final double? restaurantLng;
-
-  const Order({
-    required this.id,
-    required this.restaurantId,
-    required this.restaurantName,
-    required this.customerId,
-    required this.customerName,
-    required this.customerPhone,
-    required this.deliveryAddress,
-    required this.items,
-    this.status = OrderStatus.pending,
-    required this.paymentMethod,
-    this.isPaid = false,
-    required this.createdAt,
-    this.updatedAt,
-    this.driverId,
-    this.driverName,
-    this.notes,
-    this.deliveryFee = 5.0,
-    required this.orderNumber,
-    this.customerRating,
-    this.driverRating,
-    this.isRated = false,
-    this.platformCommission = 0,
-    this.deliveryLat,
-    this.deliveryLng,
-    this.restaurantLat,
-    this.restaurantLng,
-  });
-
-  double get itemsTotal => items.fold(0.0, (s, i) => s + i.subtotal);
-  double get grandTotal => itemsTotal + deliveryFee;
-  double get calculatedCommission => itemsTotal * 0.01;
-
-  factory Order.fromMap(Map<String, dynamic> map, String id) => Order(
-        id: id,
-        restaurantId: map['restaurantId'] as String? ?? '',
-        restaurantName: map['restaurantName'] as String? ?? '',
-        customerId: map['customerId'] as String? ?? '',
-        customerName: map['customerName'] as String? ?? '',
-        customerPhone: map['customerPhone'] as String? ?? '',
-        deliveryAddress: map['deliveryAddress'] as String? ?? '',
-        items: ((map['items'] as List?) ?? [])
-            .map((i) => OrderItem.fromMap(i as Map<String, dynamic>))
-            .toList(),
-        status: OrderStatus.values.firstWhere(
-          (s) => s.name == map['status'],
-          orElse: () => OrderStatus.pending,
+        title: Text(restaurant.name,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(restaurant.description,
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Switch(
+              value: restaurant.isOpen,
+              onChanged: (v) => service.toggleRestaurant(restaurant.id, v),
+              activeColor: AppColors.success,
+            ),
+          ],
         ),
-        paymentMethod: PaymentMethod.values.firstWhere(
-          (p) => p.name == map['paymentMethod'],
-          orElse: () => PaymentMethod.cash,
-        ),
-        isPaid: map['isPaid'] as bool? ?? false,
-        createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-        updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
-        driverId: map['driverId'] as String?,
-        driverName: map['driverName'] as String?,
-        notes: map['notes'] as String?,
-        deliveryFee: (map['deliveryFee'] as num?)?.toDouble() ?? 5.0,
-        orderNumber: (map['orderNumber'] as String?) ?? id.substring(0, 6).toUpperCase(),
-        customerRating: (map['customerRating'] as num?)?.toDouble(),
-        driverRating: (map['driverRating'] as num?)?.toDouble(),
-        isRated: map['isRated'] as bool? ?? false,
-        platformCommission: (map['platformCommission'] as num?)?.toDouble() ?? 0,
-        deliveryLat: (map['deliveryLat'] as num?)?.toDouble(),
-        deliveryLng: (map['deliveryLng'] as num?)?.toDouble(),
-        restaurantLat: (map['restaurantLat'] as num?)?.toDouble(),
-        restaurantLng: (map['restaurantLng'] as num?)?.toDouble(),
-      );
-
-  Map<String, dynamic> toMap() => {
-        'restaurantId': restaurantId,
-        'restaurantName': restaurantName,
-        'customerId': customerId,
-        'customerName': customerName,
-        'customerPhone': customerPhone,
-        'deliveryAddress': deliveryAddress,
-        'items': items.map((i) => i.toMap()).toList(),
-        'status': status.name,
-        'paymentMethod': paymentMethod.name,
-        'isPaid': isPaid,
-        'createdAt': Timestamp.fromDate(createdAt),
-        'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
-        'driverId': driverId,
-        'driverName': driverName,
-        'notes': notes,
-        'deliveryFee': deliveryFee,
-        'orderNumber': orderNumber,
-        'customerRating': customerRating,
-        'driverRating': driverRating,
-        'isRated': isRated,
-        'platformCommission': platformCommission,
-        'deliveryLat': deliveryLat,
-        'deliveryLng': deliveryLng,
-        'restaurantLat': restaurantLat,
-        'restaurantLng': restaurantLng,
-      };
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Column(
+              children: [
+                InfoRow(icon: Icons.phone_outlined, text: restaurant.phone),
+                InfoRow(icon: Icons.location_on_outlined, text: restaurant.address),
+                InfoRow(
+                  icon: Icons.delivery_dining,
+                  text: 'رسوم التوصيل: ${formatCurrency(restaurant.deliveryFee)}',
+                ),
+                InfoRow(
+                  icon: Icons.timer_outlined,
+                  text: 'وقت التوصيل: ${restaurant.estimatedTimeMin} دقيقة',
+                ),
+                InfoRow(
+                  icon: Icons.shopping_bag_outlined,
+                  text: 'الحد الأدنى: ${formatCurrency(restaurant.minOrder)}',
+                ),
+                InfoRow(
+                  icon: Icons.star_rounded,
+                  text: 'التقييم: ${restaurant.rating.toStringAsFixed(1)} ⭐',
+                ),
+                InfoRow(
+                  icon: restaurant.lat != null ? Icons.check_circle : Icons.warning_amber_rounded,
+                  text: restaurant.lat != null
+                      ? 'الموقع محدد على الخريطة'
+                      : 'لم يُحدَّد موقع على الخريطة',
+                ),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showRestaurantForm(context, restaurant),
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: const Text('تعديل'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showMenuManager(context, restaurant),
+                      icon: const Icon(Icons.menu_book_outlined, size: 16),
+                      label: const Text('القائمة'),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class Complaint {
-  final String id;
-  final String orderId;
-  final String orderNumber;
-  final String customerId;
-  final String customerName;
-  final ComplaintType type;
-  final String description;
-  final ComplaintStatus status;
-  final DateTime createdAt;
-
-  const Complaint({
-    required this.id,
-    required this.orderId,
-    required this.orderNumber,
-    required this.customerId,
-    required this.customerName,
-    required this.type,
-    required this.description,
-    this.status = ComplaintStatus.open,
-    required this.createdAt,
-  });
-
-  factory Complaint.fromMap(Map<String, dynamic> map, String id) => Complaint(
-        id: id,
-        orderId: map['orderId'] as String? ?? '',
-        orderNumber: map['orderNumber'] as String? ?? '',
-        customerId: map['customerId'] as String? ?? '',
-        customerName: map['customerName'] as String? ?? '',
-        type: ComplaintType.values.firstWhere(
-          (t) => t.name == map['type'],
-          orElse: () => ComplaintType.other,
-        ),
-        description: map['description'] as String? ?? '',
-        status: ComplaintStatus.values.firstWhere(
-          (s) => s.name == map['status'],
-          orElse: () => ComplaintStatus.open,
-        ),
-        createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      );
-
-  Map<String, dynamic> toMap() => {
-        'orderId': orderId,
-        'orderNumber': orderNumber,
-        'customerId': customerId,
-        'customerName': customerName,
-        'type': type.name,
-        'description': description,
-        'status': status.name,
-        'createdAt': Timestamp.fromDate(createdAt),
-      };
+// ── Restaurant Form ────────────────────────────────────────
+void _showRestaurantForm(BuildContext context, Restaurant? r) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (_) => _RestaurantForm(existing: r),
+  );
 }
 
-class CartItem {
+class _RestaurantForm extends StatefulWidget {
+  final Restaurant? existing;
+  const _RestaurantForm({this.existing});
+  @override
+  State<_RestaurantForm> createState() => _RestaurantFormState();
+}
+
+class _RestaurantFormState extends State<_RestaurantForm> {
+  final _form = GlobalKey<FormState>();
+  late final TextEditingController _name, _desc, _phone, _addr,
+      _fee, _min, _time, _emoji;
+  bool _loading = false;
+  double? _lat, _lng;
+
+  @override
+  void initState() {
+    super.initState();
+    final r = widget.existing;
+    _name  = TextEditingController(text: r?.name ?? '');
+    _desc  = TextEditingController(text: r?.description ?? '');
+    _phone = TextEditingController(text: r?.phone ?? '');
+    _addr  = TextEditingController(text: r?.address ?? '');
+    _fee   = TextEditingController(text: r?.deliveryFee.toString() ?? '5');
+    _min   = TextEditingController(text: r?.minOrder.toString() ?? '20');
+    _time  = TextEditingController(text: r?.estimatedTimeMin.toString() ?? '30');
+    _emoji = TextEditingController(text: r?.emoji ?? '🍽️');
+    _lat = r?.lat;
+    _lng = r?.lng;
+  }
+
+  @override
+  void dispose() {
+    for (final c in [_name, _desc, _phone, _addr, _fee, _min, _time, _emoji]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _pickLocation() async {
+    final result = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PickLocationScreen(
+          initialLocation: _lat != null && _lng != null ? LatLng(_lat!, _lng!) : null,
+        ),
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _lat = result.latitude;
+        _lng = result.longitude;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() => _loading = true);
+    final service = context.read<FirebaseService>();
+    final r = Restaurant(
+      id: widget.existing?.id ?? const Uuid().v4(),
+      name: _name.text.trim(),
+      description: _desc.text.trim(),
+      emoji: _emoji.text.trim(),
+      phone: _phone.text.trim(),
+      address: _addr.text.trim(),
+      deliveryFee: double.tryParse(_fee.text) ?? 5,
+      minOrder: double.tryParse(_min.text) ?? 20,
+      estimatedTimeMin: int.tryParse(_time.text) ?? 30,
+      isOpen: widget.existing?.isOpen ?? true,
+      rating: widget.existing?.rating ?? 5.0,
+      lat: _lat,
+      lng: _lng,
+    );
+    if (widget.existing == null) {
+      await service.addRestaurant(r);
+    } else {
+      await service.updateRestaurant(r);
+    }
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          top: 16, left: 16, right: 16,
+        ),
+        child: Form(
+          key: _form,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  widget.existing == null ? 'إضافة مطعم' : 'تعديل المطعم',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                _f(_emoji, 'رمز المطعم (Emoji)', isReq: false),
+                _f(_name, 'اسم المطعم'),
+                _f(_desc, 'وصف المطعم'),
+                _f(_phone, 'رقم الهاتف', type: TextInputType.phone),
+                _f(_addr, 'العنوان'),
+                Row(children: [
+                  Expanded(child: _f(_fee, 'رسوم التوصيل', type: TextInputType.number, validator: validatePrice)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _f(_min, 'الحد الأدنى', type: TextInputType.number, validator: validatePrice)),
+                ]),
+                _f(_time, 'وقت التوصيل (دقيقة)', type: TextInputType.number),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _pickLocation,
+                  icon: Icon(_lat != null ? Icons.check_circle : Icons.map_outlined,
+                      color: _lat != null ? AppColors.success : null),
+                  label: Text(_lat != null
+                      ? 'الموقع محدد ✓ (اضغط للتعديل)'
+                      : 'اختر موقع المطعم من الخريطة'),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity, height: 50,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _save,
+                    child: _loading
+                        ? const SizedBox(width: 20, height: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('حفظ'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _f(
+    TextEditingController c, String label, {
+    TextInputType type = TextInputType.text,
+    bool isReq = true,
+    String? Function(String?)? validator,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextFormField(
+          controller: c,
+          keyboardType: type,
+          decoration: InputDecoration(labelText: label),
+          validator: validator ?? (isReq ? (v) => validateRequired(v, label) : null),
+        ),
+      );
+}
+
+// ── Menu Manager ───────────────────────────────────────────
+void _showMenuManager(BuildContext context, Restaurant r) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => MenuManagerScreen(restaurant: r)),
+  );
+}
+
+class MenuManagerScreen extends StatelessWidget {
+  final Restaurant restaurant;
+  const MenuManagerScreen({super.key, required this.restaurant});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = context.read<FirebaseService>();
+    return Scaffold(
+      appBar: AppBar(title: Text('قائمة ${restaurant.name}')),
+      body: StreamBuilder<List<MenuCategory>>(
+        stream: service.streamCategories(restaurant.id),
+        builder: (ctx, catSnap) {
+          return StreamBuilder<List<MenuItem>>(
+            stream: service.streamMenuItems(restaurant.id),
+            builder: (ctx2, itemSnap) {
+              if (!catSnap.hasData || !itemSnap.hasData) return const AppLoading();
+              final cats = catSnap.data!;
+              final allItems = itemSnap.data!;
+              return ListView(
+                padding: const EdgeInsets.all(12),
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _addCategoryDialog(context, restaurant.id),
+                    icon: const Icon(Icons.add),
+                    label: const Text('إضافة فئة'),
+                  ),
+                  const SizedBox(height: 12),
+                  ...cats.map((cat) {
+                    final catItems = allItems.where((i) => i.categoryId == cat.id).toList();
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ExpansionTile(
+                        title: Text(cat.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('${catItems.length} صنف'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+                          onPressed: () => _showItemForm(context, restaurant.id, cat.id, null),
+                        ),
+                        children: catItems
+                            .map((item) => _ItemTile(
+                                item: item, restaurantId: restaurant.id))
+                            .toList(),
+                      ),
+                    );
+                  }),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void _addCategoryDialog(BuildContext context, String rId) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('إضافة فئة'),
+        content: TextField(
+          controller: ctrl,
+          decoration: const InputDecoration(labelText: 'اسم الفئة'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (ctrl.text.trim().isNotEmpty) {
+                await context.read<FirebaseService>().addCategory(
+                      MenuCategory(
+                        id: const Uuid().v4(),
+                        restaurantId: rId,
+                        name: ctrl.text.trim(),
+                      ),
+                    );
+                if (context.mounted) Navigator.pop(context);
+              }
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemTile extends StatelessWidget {
   final MenuItem item;
-  int quantity;
-  CartItem({required this.item, this.quantity = 1});
-  double get subtotal => item.price * quantity;
+  final String restaurantId;
+  const _ItemTile({required this.item, required this.restaurantId});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = context.read<FirebaseService>();
+    return ListTile(
+      leading: Text(item.emoji, style: const TextStyle(fontSize: 28)),
+      title: Text(item.name),
+      subtitle: Text(
+        '${formatCurrency(item.price)}${item.trackStock ? "  •  مخزون: ${item.stockQuantity ?? "∞"}" : ""}',
+        style: const TextStyle(fontSize: 12),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Switch(
+            value: item.isAvailable,
+            onChanged: (v) =>
+                service.toggleItemAvailability(restaurantId, item.id, v),
+            activeColor: AppColors.success,
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            onPressed: () =>
+                _showItemForm(context, restaurantId, item.categoryId, item),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+            onPressed: () async {
+              final ok = await showConfirmDialog(
+                context,
+                title: 'حذف الصنف',
+                content: 'هل تريد حذف "${item.name}"؟',
+                confirmLabel: 'حذف',
+                confirmColor: Colors.red,
+              );
+              if (ok == true && context.mounted) {
+                await service.deleteMenuItem(restaurantId, item.id);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+void _showItemForm(
+    BuildContext context, String rId, String catId, MenuItem? existing) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (_) =>
+        _ItemForm(restaurantId: rId, categoryId: catId, existing: existing),
+  );
+}
+
+class _ItemForm extends StatefulWidget {
+  final String restaurantId, categoryId;
+  final MenuItem? existing;
+  const _ItemForm(
+      {required this.restaurantId, required this.categoryId, this.existing});
+  @override
+  State<_ItemForm> createState() => _ItemFormState();
+}
+
+class _ItemFormState extends State<_ItemForm> {
+  final _form = GlobalKey<FormState>();
+  late final TextEditingController _name, _desc, _price, _emoji, _stock;
+  bool _loading = false;
+  bool _trackStock = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final i = widget.existing;
+    _name  = TextEditingController(text: i?.name ?? '');
+    _desc  = TextEditingController(text: i?.description ?? '');
+    _price = TextEditingController(text: i?.price.toString() ?? '');
+    _emoji = TextEditingController(text: i?.emoji ?? '🍽️');
+    _stock = TextEditingController(text: i?.stockQuantity?.toString() ?? '');
+    _trackStock = i?.trackStock ?? false;
+  }
+
+  @override
+  void dispose() {
+    for (final c in [_name, _desc, _price, _emoji, _stock]) c.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() => _loading = true);
+    final service = context.read<FirebaseService>();
+    final item = MenuItem(
+      id: widget.existing?.id ?? const Uuid().v4(),
+      restaurantId: widget.restaurantId,
+      categoryId: widget.categoryId,
+      name: _name.text.trim(),
+      description: _desc.text.trim(),
+      price: double.tryParse(_price.text) ?? 0,
+      emoji: _emoji.text.trim(),
+      isAvailable: widget.existing?.isAvailable ?? true,
+      trackStock: _trackStock,
+      stockQuantity:
+          _trackStock && _stock.text.isNotEmpty ? int.tryParse(_stock.text) : null,
+    );
+    if (widget.existing == null) {
+      await service.addMenuItem(item);
+    } else {
+      await service.updateMenuItem(item);
+    }
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          top: 16, left: 16, right: 16,
+        ),
+        child: Form(
+          key: _form,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.existing == null ? 'إضافة صنف' : 'تعديل الصنف',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                _f(_emoji, 'رمز الصنف', isReq: false),
+                _f(_name, 'اسم الصنف'),
+                _f(_desc, 'الوصف'),
+                _f(_price, 'السعر', type: TextInputType.number, validator: validatePrice),
+                SwitchListTile(
+                  value: _trackStock,
+                  onChanged: (v) => setState(() => _trackStock = v),
+                  title: const Text('تتبع المخزون'),
+                  subtitle: const Text('إخفاء الصنف تلقائياً عند نفاده',
+                      style: TextStyle(fontSize: 12)),
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: AppColors.primary,
+                ),
+                if (_trackStock)
+                  _f(_stock, 'الكمية المتاحة', type: TextInputType.number),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity, height: 50,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _save,
+                    child: _loading
+                        ? const SizedBox(width: 20, height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2))
+                        : const Text('حفظ'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _f(
+    TextEditingController c, String label, {
+    TextInputType type = TextInputType.text,
+    bool isReq = true,
+    String? Function(String?)? validator,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextFormField(
+          controller: c,
+          keyboardType: type,
+          decoration: InputDecoration(labelText: label),
+          validator: validator ?? (isReq ? (v) => validateRequired(v, label) : null),
+        ),
+      );
 }
