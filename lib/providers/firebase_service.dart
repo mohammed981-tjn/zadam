@@ -64,6 +64,8 @@ class FirebaseService {
       _items(item.restaurantId).doc(item.id).update(item.toMap());
   Future<void> toggleItemAvailability(String rId, String itemId, bool isAvailable) =>
       _items(rId).doc(itemId).update({'isAvailable': isAvailable});
+  Future<void> deleteMenuItem(String rId, String itemId) =>
+      _items(rId).doc(itemId).delete();
 
   Stream<List<models.Driver>> streamDrivers() => _drivers
       .snapshots()
@@ -73,8 +75,15 @@ class FirebaseService {
       (doc) => doc.exists && doc.data() != null ? models.Driver.fromMap(doc.data()!, doc.id) : null);
 
   Future<void> addDriver(models.Driver d) => _drivers.doc(d.id).set(d.toMap());
+  Future<void> updateDriver(models.Driver d) => _drivers.doc(d.id).update(d.toMap());
   Future<void> setDriverOnline(String id, bool isOnline) =>
       _drivers.doc(id).update({'isOnline': isOnline});
+
+  Future<void> markPayoutDone(String driverId, double amount) =>
+      _drivers.doc(driverId).update({
+        'totalEarnings': FieldValue.increment(amount),
+        'pendingPayout': 0,
+      });
 
   Future<void> updateDriverRating(String driverId, double newRating) async {
     final doc = await _drivers.doc(driverId).get();
@@ -163,11 +172,13 @@ class FirebaseService {
     required String driverId,
     required double orderRating,
     required double driverRating,
+    String? review,
   }) async {
     await _orders.doc(orderId).update({
       'customerRating': orderRating,
       'driverRating': driverRating,
       'isRated': true,
+      if (review != null) 'review': review,
     });
     await updateDriverRating(driverId, driverRating);
   }
@@ -180,6 +191,9 @@ class FirebaseService {
   Future<void> submitComplaint(models.Complaint complaint) =>
       _complaints.doc(complaint.id).set(complaint.toMap());
 
-  Future<void> updateComplaintStatus(String complaintId, models.ComplaintStatus status) =>
-      _complaints.doc(complaintId).update({'status': status.name});
+  Future<void> updateComplaintStatus(String complaintId, models.ComplaintStatus status, {String? adminNote}) =>
+      _complaints.doc(complaintId).update({
+        'status': status.name,
+        if (adminNote != null) 'adminNote': adminNote,
+      });
 }
