@@ -1,164 +1,74 @@
-// lib/screens/customer/my_orders_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../models/models.dart';
-import '../../providers/firebase_service.dart';
-import '../../providers/auth_provider.dart' as app_auth;
 import '../../utils/theme.dart';
-import '../../utils/helpers.dart';
-import '../../widgets/common_widgets.dart';
-import 'order_tracking_screen.dart';
-import 'complaint_screen.dart';
 
-class MyOrdersScreen extends StatelessWidget {
-  const MyOrdersScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final service = context.read<FirebaseService>();
-    final uid = context.read<app_auth.AuthProvider>().user?.uid ?? '';
-
-    return StreamBuilder<List<Order>>(
-      stream: service.streamCustomerOrders(uid),
-      builder: (ctx, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const AppLoading(message: 'جاري تحميل طلباتك...');
-        }
-        final orders = snap.data ?? [];
-        if (orders.isEmpty) {
-          return const AppEmpty(
-            emoji: '📋',
-            title: 'لا يوجد طلبات',
-            subtitle: 'ابدأ بطلب وجبتك المفضلة!',
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: orders.length,
-          itemBuilder: (_, i) => _OrderCard(order: orders[i]),
-        );
-      },
-    );
-  }
-}
-
-class _OrderCard extends StatelessWidget {
+class OrderMapScreen extends StatelessWidget {
   final Order order;
-  const _OrderCard({required this.order});
+  const OrderMapScreen({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => OrderTrackingScreen(orderId: order.id),
+    final points = <Marker>[];
+    final polyPoints = <LatLng>[];
+
+    if (order.restaurantLat != null && order.restaurantLng != null) {
+      final p = LatLng(order.restaurantLat!, order.restaurantLng!);
+      polyPoints.add(p);
+      points.add(Marker(
+        point: p,
+        width: 60,
+        height: 60,
+        child: const Column(children: [
+          Icon(Icons.restaurant, color: Colors.orange, size: 32),
+        ]),
+      ));
+    }
+
+    if (order.deliveryLat != null && order.deliveryLng != null) {
+      final p = LatLng(order.deliveryLat!, order.deliveryLng!);
+      polyPoints.add(p);
+      points.add(Marker(
+        point: p,
+        width: 60,
+        height: 60,
+        child: const Column(children: [
+          Icon(Icons.location_on, color: AppColors.primary, size: 32),
+        ]),
+      ));
+    }
+
+    if (points.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('خريطة الطلب')),
+        body: const Center(child: Text('لا توجد إحداثيات محفوظة لهذا الطلب')),
+      );
+    }
+
+    final center = points.length > 1
+        ? LatLng(
+            (points[0].point.latitude + points[1].point.latitude) / 2,
+            (points[0].point.longitude + points[1].point.longitude) / 2,
+          )
+        : points[0].point;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('خريطة الطلب')),
+      body: FlutterMap(
+        options: MapOptions(initialCenter: center, initialZoom: 13),
+        children: [
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'com.zadam.delivery',
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'طلب #${order.orderNumber}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                  ),
-                  StatusBadge(
-                    label: order.status.label,
-                    color: order.status.color,
-                    icon: order.status.icon,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              InfoRow(icon: Icons.restaurant_rounded, text: order.restaurantName),
-              InfoRow(
-                icon: Icons.access_time,
-                text: formatDateTime(order.createdAt),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                order.items.map((i) => '${i.emoji} ${i.name}').join('  •  '),
-                style: const TextStyle(fontSize: 12, color: AppColors.textGray),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const Divider(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    formatCurrency(order.grandTotal),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                      fontSize: 15,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      if (order.status == OrderStatus.delivered &&
-                          !order.isRated)
-                        _actionBtn(
-                          context,
-                          '⭐ قيّم',
-                          AppColors.warning,
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  OrderTrackingScreen(orderId: order.id),
-                            ),
-                          ),
-                        ),
-                      if (order.status == OrderStatus.delivered) ...[
-                        const SizedBox(width: 8),
-                        _actionBtn(
-                          context,
-                          '📝 شكوى',
-                          AppColors.secondary,
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ComplaintScreen(order: order),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+          if (polyPoints.length > 1)
+            PolylineLayer(polylines: [
+              Polyline(points: polyPoints, strokeWidth: 4, color: AppColors.primary),
+            ]),
+          MarkerLayer(markers: points),
+        ],
       ),
     );
   }
-
-  Widget _actionBtn(BuildContext ctx, String label, Color color,
-      VoidCallback onTap) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.3)),
-          ),
-          child: Text(label,
-              style: TextStyle(
-                  color: color, fontSize: 12, fontWeight: FontWeight.w600)),
-        ),
-      );
 }
