@@ -1,4 +1,3 @@
-
 // lib/models/models.dart
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter/material.dart';
@@ -176,6 +175,7 @@ class Restaurant {
   final String address;
   final int estimatedTimeMin;
   final double rating;
+  final int totalOrders;
   final double? lat;
   final double? lng;
 
@@ -191,6 +191,7 @@ class Restaurant {
     required this.address,
     this.estimatedTimeMin = 30,
     this.rating = 5.0,
+    this.totalOrders = 0,
     this.lat,
     this.lng,
   });
@@ -208,6 +209,7 @@ class Restaurant {
         address: map['address'] as String? ?? '',
         estimatedTimeMin: (map['estimatedTimeMin'] as num?)?.toInt() ?? 30,
         rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
+        totalOrders: (map['totalOrders'] as num?)?.toInt() ?? 0,
         lat: (map['lat'] as num?)?.toDouble(),
         lng: (map['lng'] as num?)?.toDouble(),
       );
@@ -223,6 +225,7 @@ class Restaurant {
         'address': address,
         'estimatedTimeMin': estimatedTimeMin,
         'rating': rating,
+        'totalOrders': totalOrders,
         'lat': lat,
         'lng': lng,
       };
@@ -267,6 +270,7 @@ class MenuItem {
   final bool isAvailable;
   final int? stockQuantity;
   final bool trackStock;
+  final int totalSold;
 
   const MenuItem({
     required this.id,
@@ -279,6 +283,7 @@ class MenuItem {
     this.isAvailable = true,
     this.stockQuantity,
     this.trackStock = false,
+    this.totalSold = 0,
   });
 
   bool get canOrder =>
@@ -295,6 +300,7 @@ class MenuItem {
         isAvailable: map['isAvailable'] as bool? ?? true,
         stockQuantity: (map['stockQuantity'] as num?)?.toInt(),
         trackStock: map['trackStock'] as bool? ?? false,
+        totalSold: (map['totalSold'] as num?)?.toInt() ?? 0,
       );
 
   Map<String, dynamic> toMap() => {
@@ -307,6 +313,7 @@ class MenuItem {
         'isAvailable': isAvailable,
         'stockQuantity': stockQuantity,
         'trackStock': trackStock,
+        'totalSold': totalSold,
       };
 }
 
@@ -315,6 +322,7 @@ class Driver {
   final String name;
   final String phone;
   final String vehicleType;
+  final String vehiclePlate;
   final bool isAvailable;
   final bool isOnline;
   final double totalEarnings;
@@ -330,6 +338,7 @@ class Driver {
     required this.name,
     required this.phone,
     required this.vehicleType,
+    this.vehiclePlate = '',
     this.isAvailable = true,
     this.isOnline = false,
     this.totalEarnings = 0,
@@ -346,6 +355,7 @@ class Driver {
         name: map['name'] as String? ?? '',
         phone: map['phone'] as String? ?? '',
         vehicleType: map['vehicleType'] as String? ?? 'دراجة نارية',
+        vehiclePlate: map['vehiclePlate'] as String? ?? '',
         isAvailable: map['isAvailable'] as bool? ?? true,
         isOnline: map['isOnline'] as bool? ?? false,
         totalEarnings: (map['totalEarnings'] as num?)?.toDouble() ?? 0,
@@ -361,6 +371,7 @@ class Driver {
         'name': name,
         'phone': phone,
         'vehicleType': vehicleType,
+        'vehiclePlate': vehiclePlate,
         'isAvailable': isAvailable,
         'isOnline': isOnline,
         'totalEarnings': totalEarnings,
@@ -379,6 +390,7 @@ class OrderItem {
   final double price;
   final String emoji;
   final int quantity;
+  final String? extras;
 
   const OrderItem({
     required this.menuItemId,
@@ -386,6 +398,7 @@ class OrderItem {
     required this.price,
     required this.emoji,
     this.quantity = 1,
+    this.extras,
   });
 
   double get subtotal => price * quantity;
@@ -396,6 +409,7 @@ class OrderItem {
         price: (map['price'] as num?)?.toDouble() ?? 0.0,
         emoji: map['emoji'] as String? ?? '🍽️',
         quantity: (map['quantity'] as num?)?.toInt() ?? 1,
+        extras: map['extras'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -404,6 +418,7 @@ class OrderItem {
         'price': price,
         'emoji': emoji,
         'quantity': quantity,
+        if (extras != null) 'extras': extras,
       };
 }
 
@@ -427,6 +442,7 @@ class Order {
   final double deliveryFee;
   final String orderNumber;
   final double? customerRating;
+  final String? customerReview;
   final double? driverRating;
   final bool isRated;
   final double platformCommission;
@@ -455,6 +471,7 @@ class Order {
     this.deliveryFee = 5.0,
     required this.orderNumber,
     this.customerRating,
+    this.customerReview,
     this.driverRating,
     this.isRated = false,
     this.platformCommission = 0,
@@ -496,6 +513,7 @@ class Order {
         deliveryFee: (map['deliveryFee'] as num?)?.toDouble() ?? 5.0,
         orderNumber: (map['orderNumber'] as String?) ?? id.substring(0, 6).toUpperCase(),
         customerRating: (map['customerRating'] as num?)?.toDouble(),
+        customerReview: map['customerReview'] as String?,
         driverRating: (map['driverRating'] as num?)?.toDouble(),
         isRated: map['isRated'] as bool? ?? false,
         platformCommission: (map['platformCommission'] as num?)?.toDouble() ?? 0,
@@ -524,6 +542,7 @@ class Order {
         'deliveryFee': deliveryFee,
         'orderNumber': orderNumber,
         'customerRating': customerRating,
+        'customerReview': customerReview,
         'driverRating': driverRating,
         'isRated': isRated,
         'platformCommission': platformCommission,
@@ -540,10 +559,13 @@ class Complaint {
   final String orderNumber;
   final String customerId;
   final String customerName;
+  final String restaurantId;
+  final String restaurantName;
   final ComplaintType type;
   final String description;
   final ComplaintStatus status;
   final DateTime createdAt;
+  final String? adminNote;
 
   const Complaint({
     required this.id,
@@ -551,10 +573,13 @@ class Complaint {
     required this.orderNumber,
     required this.customerId,
     required this.customerName,
+    this.restaurantId = '',
+    this.restaurantName = '',
     required this.type,
     required this.description,
     this.status = ComplaintStatus.open,
     required this.createdAt,
+    this.adminNote,
   });
 
   factory Complaint.fromMap(Map<String, dynamic> map, String id) => Complaint(
@@ -563,6 +588,8 @@ class Complaint {
         orderNumber: map['orderNumber'] as String? ?? '',
         customerId: map['customerId'] as String? ?? '',
         customerName: map['customerName'] as String? ?? '',
+        restaurantId: map['restaurantId'] as String? ?? '',
+        restaurantName: map['restaurantName'] as String? ?? '',
         type: ComplaintType.values.firstWhere(
           (t) => t.name == map['type'],
           orElse: () => ComplaintType.other,
@@ -573,6 +600,7 @@ class Complaint {
           orElse: () => ComplaintStatus.open,
         ),
         createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        adminNote: map['adminNote'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -580,16 +608,20 @@ class Complaint {
         'orderNumber': orderNumber,
         'customerId': customerId,
         'customerName': customerName,
+        'restaurantId': restaurantId,
+        'restaurantName': restaurantName,
         'type': type.name,
         'description': description,
         'status': status.name,
         'createdAt': Timestamp.fromDate(createdAt),
+        'adminNote': adminNote,
       };
 }
 
 class CartItem {
   final MenuItem item;
   int quantity;
-  CartItem({required this.item, this.quantity = 1});
+  String? extras;
+  CartItem({required this.item, this.quantity = 1, this.extras});
   double get subtotal => item.price * quantity;
 }
