@@ -1,45 +1,50 @@
-// lib/providers/firebase_service.dart
-import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
-import 'package:firebase_auth/firebase_auth.dart';
-import '../models/models.dart' as models;
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
+}
 
-class FirebaseService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader -> localProperties.load(reader) }
+}
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
+def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0'
 
-  CollectionReference<Map<String, dynamic>> get _users => _db.collection('users');
-  CollectionReference<Map<String, dynamic>> get _restaurants => _db.collection('restaurants');
-  CollectionReference<Map<String, dynamic>> get _orders => _db.collection('orders');
-  CollectionReference<Map<String, dynamic>> get _drivers => _db.collection('drivers');
-  CollectionReference<Map<String, dynamic>> get _complaints => _db.collection('complaints');
+android {
+    namespace "com.zadam.delivery"
+    compileSdk 34
+    ndkVersion flutter.ndkVersion
 
-  CollectionReference<Map<String, dynamic>> _categories(String rId) =>
-      _restaurants.doc(rId).collection('categories');
-  CollectionReference<Map<String, dynamic>> _items(String rId) =>
-      _restaurants.doc(rId).collection('items');
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = '17' }
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
-  User? get currentUser => _auth.currentUser;
+    defaultConfig {
+        applicationId "com.zadam.delivery"
+        minSdk 23
+        targetSdk 34
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true
+    }
 
-  Future<UserCredential> signIn(String email, String password) =>
-      _auth.signInWithEmailAndPassword(email: email, password: password);
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+}
 
-  Future<UserCredential> register(String email, String password) =>
-      _auth.createUserWithEmailAndPassword(email: email, password: password);
+flutter { source '../..' }
 
-  Future<void> signOut() => _auth.signOut();
-
-  Future<void> createUser(models.AppUser user) => _users.doc(user.uid).set(user.toMap());
-
-  Future<models.AppUser?> getUser(String uid) async {
-    final doc = await _users.doc(uid).get();
-    if (!doc.exists || doc.data() == null) return null;
-    return models.AppUser.fromMap(doc.data()!, doc.id);
-  }
-
-  Stream<List<models.Restaurant>> streamRestaurants() =>
-      _restaurants.orderBy('name').snapshots().map(
-          (s) => s.docs.map((d) => models.Restaurant.fromMap(d.data(), d.id)).toList());
-
-  Future<void> addRestaurant(models.Restaurant r) => _restaurants.doc(r.id).set(r.toMap());
-  Future
+dependencies {
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation platform('com.google.firebase:firebase-bom:33.5.1')
+}
