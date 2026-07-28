@@ -20,28 +20,63 @@ class CartScreen extends StatelessWidget {
     final cart = context.watch<CartProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('السلة')),
-      body: cart.isEmpty ? const AppEmpty(emoji: '🛒', title: 'السلة فارغة') : Column(children: [
-        Expanded(child: ListView(padding: const EdgeInsets.all(16), children: [
-          ...cart.items.map((ci) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [
-            Text(ci.item.emoji, style: const TextStyle(fontSize: 26)),
-            const SizedBox(width: 10),
-            Expanded(child: Text(ci.item.name)),
-            IconButton(icon: const Icon(Icons.remove), onPressed: () => context.read<CartProvider>().remove(ci.item.id)),
-            Text('${ci.quantity}'),
-            IconButton(icon: const Icon(Icons.add), onPressed: () => context.read<CartProvider>().add(ci.item, cart.restaurantId!, cart.restaurantName!, cart.restaurantEmoji ?? '🍽️', cart.deliveryFee)),
-            Text(formatCurrency(ci.subtotal), style: const TextStyle(fontWeight: FontWeight.bold)),
-          ]))),
-          const Divider(),
-          PriceRow(label: 'المجموع', value: formatCurrency(cart.itemsTotal)),
-          PriceRow(label: 'التوصيل', value: formatCurrency(cart.deliveryFee)),
-          PriceRow(label: 'الضريبة 15%', value: formatCurrency(cart.vat)),
-          const Divider(),
-          PriceRow(label: 'الإجمالي', value: formatCurrency(cart.grandTotalWithVat), bold: true),
-        ])),
-        SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: SizedBox(width: double.infinity, height: 52,
-          child: ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen())),
-              child: Text('المتابعة للدفع — ${formatCurrency(cart.grandTotalWithVat)}'))))),
-      ]),
+      body: cart.isEmpty
+          ? const AppEmpty(emoji: '🛒', title: 'السلة فارغة')
+          : Column(children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    ...cart.items.map((ci) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(children: [
+                            Text(ci.item.emoji, style: const TextStyle(fontSize: 26)),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(ci.item.name)),
+                            IconButton(
+                                icon: const Icon(Icons.remove),
+                                onPressed: () => context.read<CartProvider>().remove(ci.item.id)),
+                            Text('${ci.quantity}'),
+                            IconButton(
+                                icon: const Icon(Icons.add),
+                                onPressed: () => context.read<CartProvider>().add(
+                                    ci.item,
+                                    cart.restaurantId!,
+                                    cart.restaurantName!,
+                                    cart.restaurantEmoji ?? '🍽️',
+                                    cart.deliveryFee)),
+                            Text(formatCurrency(ci.subtotal),
+                                style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ]),
+                        )),
+                    const Divider(),
+                    PriceRow(label: 'المجموع', value: formatCurrency(cart.itemsTotal)),
+                    PriceRow(label: 'التوصيل', value: formatCurrency(cart.deliveryFee)),
+                    PriceRow(label: 'الضريبة 15%', value: formatCurrency(cart.vat)),
+                    const Divider(),
+                    PriceRow(
+                        label: 'الإجمالي',
+                        value: formatCurrency(cart.grandTotalWithVat),
+                        bold: true),
+                  ],
+                ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.push(
+                          context, MaterialPageRoute(builder: (_) => const CheckoutScreen())),
+                      child: Text(
+                          'المتابعة للدفع — ${formatCurrency(cart.grandTotalWithVat)}'),
+                    ),
+                  ),
+                ),
+              ),
+            ]),
     );
   }
 }
@@ -76,8 +111,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _placeOrder() async {
-    if (_addrCtrl.text.trim().isEmpty) { showError(context, 'أدخل عنوان التوصيل'); return; }
-    if (_lat == null || _lng == null) { showError(context, 'حدد موقعك على الخريطة'); return; }
+    if (_addrCtrl.text.trim().isEmpty) {
+      showError(context, 'أدخل عنوان التوصيل');
+      return;
+    }
+    if (_lat == null || _lng == null) {
+      showError(context, 'حدد موقعك على الخريطة');
+      return;
+    }
 
     setState(() => _loading = true);
     final cart = context.read<CartProvider>();
@@ -87,7 +128,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     const uuid = Uuid();
     final orderId = uuid.v4();
 
-    // ✅ جلب موقع المطعم تلقائياً لحفظه مع الطلب
     final restaurant = await service.getRestaurantOnce(cart.restaurantId!);
 
     final order = Order(
@@ -114,7 +154,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       await service.placeOrder(order);
       cart.clear();
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MyOrdersScreen()), (r) => r.isFirst);
+      Navigator.pushAndRemoveUntil(
+          context, MaterialPageRoute(builder: (_) => const MyOrdersScreen()), (r) => r.isFirst);
       showSuccess(context, 'تم إرسال طلبك بنجاح!');
     } catch (e) {
       setState(() => _loading = false);
@@ -125,15 +166,48 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    return Scaffold(appBar: AppBar(title: const Text('إتمام الطلب')), body: ListView(padding: const EdgeInsets.all(16), children: [
-      TextField(controller: _addrCtrl, maxLines: 2, decoration: const InputDecoration(hintText: 'عنوان التوصيل بالتفصيل', prefixIcon: Icon(Icons.location_on_outlined))),
-      const SizedBox(height: 12),
-      OutlinedButton.icon(
-        onPressed: _pickLocation,
-        icon: Icon(_lat != null ? Icons.check_circle : Icons.map_outlined,
-            color: _lat != null ? AppColors.success : null),
-        label: Text(_lat != null ? 'الموقع محدد ✓ (اضغط للتعديل)' : 'حدد موقعك على الخريطة'),
+    return Scaffold(
+      appBar: AppBar(title: const Text('إتمام الطلب')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          TextField(
+            controller: _addrCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+                hintText: 'عنوان التوصيل بالتفصيل',
+                prefixIcon: Icon(Icons.location_on_outlined)),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _pickLocation,
+            icon: Icon(_lat != null ? Icons.check_circle : Icons.map_outlined,
+                color: _lat != null ? AppColors.success : null),
+            label: Text(_lat != null
+                ? 'الموقع محدد ✓ (اضغط للتعديل)'
+                : 'حدد موقعك على الخريطة'),
+          ),
+          const SizedBox(height: 20),
+          const Text('طريقة الدفع', style: TextStyle(fontWeight: FontWeight.bold)),
+          ...PaymentMethod.values.map((p) => RadioListTile<PaymentMethod>(
+                value: p,
+                groupValue: _payment,
+                onChanged: (v) => setState(() => _payment = v!),
+                title: Text(p.label),
+              )),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _loading ? null : _placeOrder,
+              child: _loading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('تأكيد الطلب'),
+            ),
+          ),
+        ],
       ),
-      const SizedBox(height: 20),
-      const Text('طريقة الدفع', style: TextStyle(fontWeight: FontWeight.bold)),
-      ...PaymentMethod.values.map((p) => RadioListT
+    );
+  }
+}
