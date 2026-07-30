@@ -8,6 +8,8 @@ import '../../utils/helpers.dart';
 import '../../widgets/common_widgets.dart';
 import '../auth/login_screen.dart';
 import '../customer/order_map_screen.dart';
+import '../customer/order_chat_screen.dart';
+import '../../main.dart';
 
 class DriverHome extends StatefulWidget {
   const DriverHome({super.key});
@@ -17,6 +19,31 @@ class DriverHome extends StatefulWidget {
 
 class _DriverHomeState extends State<DriverHome> {
   int _tab = 0;
+  Timer? _locationTimer;
+  double _simLat = 24.7136;
+  double _simLng = 46.6753;
+
+  @override
+  void initState() {
+    super.initState();
+    _locationTimer = Timer.periodic(const Duration(seconds: 8), (_) => _pushLocation());
+  }
+
+  @override
+  void dispose() {
+    _locationTimer?.cancel();
+    super.dispose();
+  }
+
+  void _pushLocation() {
+    final auth = context.read<app_auth.AuthProvider>();
+    final service = context.read<FirebaseService>();
+    final driverId = auth.user?.uid;
+    if (driverId == null) return;
+    _simLat += (0.0003 * (DateTime.now().second.isEven ? 1 : -1));
+    _simLng += (0.0003 * (DateTime.now().second.isOdd ? 1 : -1));
+    service.updateDriverLocation(driverId, _simLat, _simLng);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +89,6 @@ class _DriverHomeState extends State<DriverHome> {
     );
   }
 }
-
 class _AvailableOrdersTab extends StatelessWidget {
   final String driverId;
   final Driver? driver;
@@ -131,11 +157,18 @@ class _OrderCard extends StatelessWidget {
               child: Text('#${order.orderNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
             ),
             const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.map_outlined, color: AppColors.secondary),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderMapScreen(order: order))),
-              tooltip: 'عرض الخريطة',
-            ),
+            if (mode == _CardMode.mine) ...[
+              IconButton(
+                icon: const Icon(Icons.chat_bubble_outline, color: AppColors.secondary),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderChatScreen(order: order))),
+              ),
+              IconButton(
+                icon: const Icon(Icons.map_outlined, color: AppColors.secondary),
+                onPressed: () => navigatorKey.currentState?.push(
+                  MaterialPageRoute(builder: (_) => OrderMapScreen(order: order, isDriverView: true)),
+                ),
+              ),
+            ],
             StatusBadge(label: order.status.label, color: order.status.color, icon: order.status.icon),
           ]),
           const SizedBox(height: 10),
@@ -162,6 +195,10 @@ class _OrderCard extends StatelessWidget {
           if (ok == true) {
             await service.assignDriver(order.id, auth.user!.uid, auth.user!.name);
             if (ctx.mounted) showSuccess(ctx, 'تم قبول الطلب! توجّه للمطعم');
+            // ✅ الانتقال التلقائي للخريطة بعد قبول الطلب
+            navigatorKey.currentState?.push(
+              MaterialPageRoute(builder: (_) => OrderMapScreen(order: order, isDriverView: true)),
+            );
           }
         },
         icon: const Icon(Icons.check_circle_outline),
@@ -176,7 +213,14 @@ class _OrderCard extends StatelessWidget {
       return SizedBox(width: double.infinity, child: ElevatedButton.icon(
         onPressed: () async {
           final ok = await showConfirmDialog(ctx, title: 'استلام الطلب', content: 'هل استلمت الطلب من المطعم؟', confirmLabel: 'نعم');
-          if (ok == true) await service.updateOrderStatus(order.id, OrderStatus.outForDelivery);
+          if (ok == true) {
+            await service.updateOrderStatus(order.id, OrderStatus.outForDelivery);
+            if (ctx.mounted) showSuccess(ctx, 'الطلب في الطريق نحو العميل');
+            // ✅ الانتقال التلقائي للخريطة بعد استلام الطلب
+            navigatorKey.currentState?.push(
+              MaterialPageRoute(builder: (_) => OrderMapScreen(order: order, isDriverView: true)),
+            );
+          }
         },
         icon: const Icon(Icons.delivery_dining),
         label: const Text('استلمت الطلب — في الطريق'),
