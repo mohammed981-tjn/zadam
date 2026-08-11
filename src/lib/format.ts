@@ -21,6 +21,19 @@ export function statusLabel(status: string) {
   );
 }
 
+export function topicLabel(topic: string) {
+  return (
+    {
+      soil: "تربة",
+      pest: "آفات",
+      water: "ري ومياه",
+      variety: "أصناف",
+      institutional: "نماذج مؤسسية",
+      general: "عام",
+    }[topic] ?? topic
+  );
+}
+
 export function cropVisual(projectName: string) {
   if (projectName.includes("قطن"))
     return { emoji: "🌱", gradient: "from-emerald-600 to-emerald-800" };

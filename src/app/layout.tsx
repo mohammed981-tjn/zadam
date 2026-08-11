@@ -11,14 +11,18 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "سودجري | استثمار زراعي ذكي في السودان",
+  title: "سودجري | معرفة زراعية واستثمار ذكي في السودان",
   description:
-    "منصة استثمار زراعي رقمية في السودان: تمويل مشاريع استصلاح وزراعة موثقة، متابعة ميدانية بالأقمار الصناعية، ومحفظة استثمارية شفافة.",
+    "منصة تخدم كل مزارع ومستثمر سوداني: قاعدة معرفة زراعية موثّقة عن المحاصيل والثروة الحيوانية، ومشاريع استثمار زراعي موثّقة قانونياً بمتابعة ميدانية دورية.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ar" dir="rtl" className={`${tajawal.variable} h-full antialiased`}>
+    <html
+      lang="ar"
+      dir="rtl"
+      className={`${tajawal.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col">
         <Navbar />
         <main className="flex-1">{children}</main>

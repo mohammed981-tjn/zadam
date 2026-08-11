@@ -1,5 +1,10 @@
 export type UserRole = "investor" | "admin" | "field_agent";
-export type ProjectStatus = "draft" | "open" | "funded" | "in_progress" | "completed";
+export type ProjectStatus =
+  | "draft"
+  | "open"
+  | "funded"
+  | "in_progress"
+  | "completed";
 export type RiskLevel = "low" | "medium" | "high";
 export type InvestmentStatus = "pending" | "confirmed" | "cancelled";
 
@@ -50,13 +55,54 @@ export interface Investment {
   created_at: string;
 }
 
+export type KnowledgeTopic =
+  | "soil"
+  | "pest"
+  | "water"
+  | "variety"
+  | "institutional"
+  | "general";
+
+export interface KnowledgeEntry {
+  id: string;
+  crop: string;
+  topic: KnowledgeTopic;
+  title: string;
+  content: string;
+  source_country: string | null;
+  source_note: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
-      profiles: { Row: Profile; Insert: Partial<Profile> & { id: string }; Update: Partial<Profile> };
-      projects: { Row: Project; Insert: Partial<Project>; Update: Partial<Project> };
-      project_updates: { Row: ProjectUpdate; Insert: Partial<ProjectUpdate>; Update: Partial<ProjectUpdate> };
-      investments: { Row: Investment; Insert: Partial<Investment>; Update: Partial<Investment> };
+      profiles: {
+        Row: Profile;
+        Insert: Partial<Profile> & { id: string };
+        Update: Partial<Profile>;
+      };
+      projects: {
+        Row: Project;
+        Insert: Partial<Project>;
+        Update: Partial<Project>;
+      };
+      project_updates: {
+        Row: ProjectUpdate;
+        Insert: Partial<ProjectUpdate>;
+        Update: Partial<ProjectUpdate>;
+      };
+      investments: {
+        Row: Investment;
+        Insert: Partial<Investment>;
+        Update: Partial<Investment>;
+      };
+      knowledge_entries: {
+        Row: KnowledgeEntry;
+        Insert: Partial<KnowledgeEntry>;
+        Update: Partial<KnowledgeEntry>;
+      };
     };
   };
 }
