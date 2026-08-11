@@ -43,7 +43,7 @@ export default function AssistantWidget() {
       {open && (
         <div className="mb-3 flex h-[28rem] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
           <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
-            <span className="font-bold">🌾 مساعد زرعة</span>
+            <span className="font-bold">🌾 مساعد سودجري</span>
             <button onClick={() => setOpen(false)} className="text-lg leading-none" aria-label="إغلاق">
               ×
             </button>
@@ -100,7 +100,7 @@ export default function AssistantWidget() {
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground shadow-lg hover:opacity-90"
-        aria-label="افتح مساعد زرعة"
+        aria-label="افتح مساعد سودجري"
       >
         💬
       </button>

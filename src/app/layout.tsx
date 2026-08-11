@@ -11,7 +11,7 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "زرعة | استثمار زراعي ذكي في السودان",
+  title: "سودجري | استثمار زراعي ذكي في السودان",
   description:
     "منصة استثمار زراعي رقمية في السودان: تمويل مشاريع استصلاح وزراعة موثقة، متابعة ميدانية بالأقمار الصناعية، ومحفظة استثمارية شفافة.",
 };
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Navbar />
         <main className="flex-1">{children}</main>
         <footer className="border-t border-border py-6 text-center text-sm text-muted">
-          زرعة — منصة استثمار زراعي رقمي في السودان · MVP تجريبي
+          سودجري — منصة استثمار زراعي رقمي في السودان · MVP تجريبي
         </footer>
         <AssistantWidget />
       </body>

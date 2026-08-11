@@ -35,7 +35,7 @@ export default async function DashboardPage({
 
       {invested === "1" && (
         <p className="mt-4 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
-          تم تسجيل طلب استثمارك بنجاح، بانتظار التأكيد من فريق زرعة.
+          تم تسجيل طلب استثمارك بنجاح، بانتظار التأكيد من فريق سودجري.
         </p>
       )}
 
