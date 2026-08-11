@@ -1,5 +1,8 @@
 export function formatUsd(amount: number) {
-  return new Intl.NumberFormat("ar", { style: "currency", currency: "USD" }).format(amount);
+  return new Intl.NumberFormat("ar", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
 }
 
 export function riskLabel(risk: string) {
@@ -16,4 +19,16 @@ export function statusLabel(status: string) {
       completed: "مكتمل",
     }[status] ?? status
   );
+}
+
+export function cropVisual(projectName: string) {
+  if (projectName.includes("قطن"))
+    return { emoji: "🌱", gradient: "from-emerald-600 to-emerald-800" };
+  if (projectName.includes("قمح"))
+    return { emoji: "🌾", gradient: "from-amber-500 to-amber-700" };
+  if (projectName.includes("سمسم"))
+    return { emoji: "🌻", gradient: "from-yellow-500 to-orange-600" };
+  if (projectName.includes("ذرة") || projectName.includes("الذرة"))
+    return { emoji: "🌽", gradient: "from-yellow-400 to-amber-600" };
+  return { emoji: "🌿", gradient: "from-primary to-emerald-800" };
 }
