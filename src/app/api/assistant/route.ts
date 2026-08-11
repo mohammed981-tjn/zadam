@@ -85,6 +85,17 @@ export async function POST(req: NextRequest) {
     if (!geminiRes.ok) {
       const bodyText = await geminiRes.text();
       console.error("assistant: gemini error", geminiRes.status, bodyText);
+
+      if (geminiRes.status === 429) {
+        return NextResponse.json(
+          {
+            error:
+              "المساعد يستقبل عدداً كبيراً من الأسئلة حالياً وتجاوزنا الحد المجاني المؤقت. حاول مرة أخرى خلال دقائق قليلة.",
+          },
+          { status: 429 },
+        );
+      }
+
       return NextResponse.json(
         { error: `تعذّر الاتصال بـ Gemini (HTTP ${geminiRes.status}): ${bodyText.slice(0, 300)}` },
         { status: 502 },
