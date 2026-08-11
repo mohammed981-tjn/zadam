@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import AssistantWidget from "@/components/AssistantWidget";
 
 const tajawal = Tajawal({
   variable: "--font-tajawal",
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="border-t border-border py-6 text-center text-sm text-muted">
           زرعة — منصة استثمار زراعي رقمي في السودان · MVP تجريبي
         </footer>
+        <AssistantWidget />
       </body>
     </html>
   );
