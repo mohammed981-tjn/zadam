@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-const SYSTEM_PROMPT = `أنت "مساعد زرعة" — مساعد ذكي يتحدث العربية فقط، يجيب على أسئلة زوار ومستثمري منصة "زرعة" للاستثمار الزراعي في السودان حول المشاريع المعروضة عليها.
+const SYSTEM_PROMPT = `أنت "مساعد زرعة" — مساعد ذكي يتحدث العربية فقط لمنصة "زرعة" للاستثمار الزراعي في السودان. تجيب على نوعين من الأسئلة:
 
-قواعد صارمة يجب الالتزام بها:
-- أجب فقط استناداً إلى بيانات المشاريع المرفقة أدناه (بصيغة JSON). لا تختلق أرقاماً أو حقائق غير موجودة فيها.
-- إن سُئلت عن معلومة غير متوفرة في البيانات (نصيحة استثمارية شخصية، ضمانات، مواعيد دقيقة غير مذكورة)، وضّح أنها غير متوفرة حالياً واقترح التواصل مع فريق زرعة.
+1) أسئلة عن المشاريع المعروضة على المنصة (بيانات "المشاريع" أدناه).
+2) أسئلة زراعية عامة (تربة، آفات، ري، أصناف) — تستعين فيها بـ"قاعدة المعرفة الزراعية" أدناه فقط.
+
+قواعد صارمة:
+- أجب فقط استناداً إلى البيانات المرفقة. لا تختلق أرقاماً أو حقائق غير موجودة فيها.
+- عند استخدام "قاعدة المعرفة الزراعية"، اذكر الدولة المرجعية (source_country) بوضوح في إجابتك، ووضّح أنها معرفة عامة تحتاج تحققاً محلياً قبل التطبيق الفعلي إن كان source_note يشير لذلك.
+- إن سُئلت عن معلومة غير متوفرة في أي من المصدرين، وضّح أنها غير متوفرة حالياً واقترح التواصل مع فريق زرعة أو محطات البحوث الزراعية السودانية.
 - لا تقدّم نصائح مالية قاطعة ("استثمر الآن"، "هذا مضمون") — اعرض الحقائق المتاحة فقط ودع القارئ يقرر.
 - كن مختصراً ومباشراً وودوداً بعربية فصحى بسيطة.
 - اكتب نصاً عادياً فقط بدون أي رموز تنسيق (بدون **، بدون #، بدون قوائم بشرطات) لأن الرد يُعرض كنص خام.`;
@@ -29,19 +33,28 @@ export async function POST(req: NextRequest) {
 
   try {
     const supabase = await createClient();
-    const { data: projects, error: dbError } = await supabase
-      .from("projects")
-      .select(
-        "name, location, description, total_feddans, price_per_share, total_shares, shares_sold, status, risk_level, expected_annual_return",
-      )
-      .neq("status", "draft");
 
-    if (dbError) {
+    const [{ data: projects, error: projectsError }, { data: knowledge, error: knowledgeError }] =
+      await Promise.all([
+        supabase
+          .from("projects")
+          .select(
+            "name, location, description, total_feddans, price_per_share, total_shares, shares_sold, status, risk_level, expected_annual_return",
+          )
+          .neq("status", "draft"),
+        supabase
+          .from("knowledge_entries")
+          .select("crop, topic, title, content, source_country, source_note"),
+      ]);
+
+    if (projectsError || knowledgeError) {
+      const dbError = projectsError ?? knowledgeError;
       console.error("assistant: supabase error", dbError);
-      return NextResponse.json({ error: `تعذّر قراءة بيانات المشاريع: ${dbError.message}` }, { status: 502 });
+      return NextResponse.json({ error: `تعذّر قراءة البيانات: ${dbError?.message}` }, { status: 502 });
     }
 
-    const context = JSON.stringify(projects ?? []);
+    const projectsContext = JSON.stringify(projects ?? []);
+    const knowledgeContext = JSON.stringify(knowledge ?? []);
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
@@ -55,7 +68,7 @@ export async function POST(req: NextRequest) {
               role: "user",
               parts: [
                 {
-                  text: `بيانات المشاريع المتاحة حالياً على المنصة (JSON):\n${context}\n\nسؤال الزائر: ${question}`,
+                  text: `المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
                 },
               ],
             },
