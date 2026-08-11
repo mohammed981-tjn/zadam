@@ -99,22 +99,8 @@ export async function confirmInvestment(formData: FormData) {
   const { supabase } = await requireAdmin();
   const investmentId = String(formData.get("investment_id") ?? "");
   const projectId = String(formData.get("project_id") ?? "");
-  const shares = Number(formData.get("shares") ?? 0);
 
-  await supabase.from("investments").update({ status: "confirmed" }).eq("id", investmentId);
-
-  const { data: project } = await supabase
-    .from("projects")
-    .select("shares_sold")
-    .eq("id", projectId)
-    .single();
-
-  if (project) {
-    await supabase
-      .from("projects")
-      .update({ shares_sold: project.shares_sold + shares })
-      .eq("id", projectId);
-  }
+  await supabase.rpc("confirm_investment", { p_investment_id: investmentId });
 
   revalidatePath(`/admin/projects/${projectId}`);
   redirect(`/admin/projects/${projectId}`);

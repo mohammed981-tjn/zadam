@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { translateAuthError } from "@/lib/auth-errors";
 
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "");
@@ -11,7 +12,7 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(`/login?error=${encodeURIComponent(translateAuthError(error.message))}`);
   }
 
   redirect("/dashboard");
@@ -23,14 +24,20 @@ export async function signup(formData: FormData) {
   const fullName = String(formData.get("full_name") ?? "");
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { full_name: fullName } },
   });
 
   if (error) {
-    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+    redirect(`/signup?error=${encodeURIComponent(translateAuthError(error.message))}`);
+  }
+
+  if (!data.session) {
+    redirect(
+      `/login?message=${encodeURIComponent("تم إنشاء الحساب. تحقق من بريدك الإلكتروني واضغط رابط التفعيل قبل تسجيل الدخول.")}`,
+    );
   }
 
   redirect("/dashboard");

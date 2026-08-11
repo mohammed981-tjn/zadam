@@ -104,7 +104,6 @@ export default async function AdminProjectPage({
                   <form action={confirmInvestment}>
                     <input type="hidden" name="investment_id" value={row.id} />
                     <input type="hidden" name="project_id" value={typedProject.id} />
-                    <input type="hidden" name="shares" value={row.shares} />
                     <button
                       type="submit"
                       className="rounded-lg border border-primary px-3 py-1.5 text-xs text-primary hover:bg-primary/10"
