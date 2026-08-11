@@ -7,7 +7,8 @@ const SYSTEM_PROMPT = `أنت "مساعد زرعة" — مساعد ذكي يتح
 - أجب فقط استناداً إلى بيانات المشاريع المرفقة أدناه (بصيغة JSON). لا تختلق أرقاماً أو حقائق غير موجودة فيها.
 - إن سُئلت عن معلومة غير متوفرة في البيانات (نصيحة استثمارية شخصية، ضمانات، مواعيد دقيقة غير مذكورة)، وضّح أنها غير متوفرة حالياً واقترح التواصل مع فريق زرعة.
 - لا تقدّم نصائح مالية قاطعة ("استثمر الآن"، "هذا مضمون") — اعرض الحقائق المتاحة فقط ودع القارئ يقرر.
-- كن مختصراً ومباشراً وودوداً بعربية فصحى بسيطة.`;
+- كن مختصراً ومباشراً وودوداً بعربية فصحى بسيطة.
+- اكتب نصاً عادياً فقط بدون أي رموز تنسيق (بدون **، بدون #، بدون قوائم بشرطات) لأن الرد يُعرض كنص خام.`;
 
 export async function POST(req: NextRequest) {
   let question: unknown;
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
               ],
             },
           ],
-          generationConfig: { maxOutputTokens: 500, temperature: 0.3 },
+          generationConfig: { maxOutputTokens: 2048, temperature: 0.3 },
         }),
       },
     );
@@ -74,8 +75,9 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await geminiRes.json();
-    const answer: string =
+    const rawAnswer: string =
       data.candidates?.[0]?.content?.parts?.[0]?.text ?? "لم أتمكن من فهم السؤال، حاول صياغته بشكل مختلف.";
+    const answer = rawAnswer.replace(/[*#_`]+/g, "").trim();
 
     return NextResponse.json({ answer });
   } catch (err) {
