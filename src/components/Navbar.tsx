@@ -21,7 +21,10 @@ export default async function Navbar() {
   return (
     <header className="border-b border-border">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="flex items-center gap-2 text-lg font-bold text-primary">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-lg font-bold text-primary"
+        >
           🌾 سودجري
         </Link>
 
@@ -33,6 +36,9 @@ export default async function Navbar() {
             <>
               <Link href="/dashboard" className="hover:text-primary">
                 محفظتي
+              </Link>
+              <Link href="/plan" className="hover:text-primary">
+                خطط استثمارك
               </Link>
               {role === "admin" && (
                 <Link href="/admin" className="hover:text-primary">
