@@ -31,6 +31,8 @@ export interface Project {
   risk_level: RiskLevel;
   expected_annual_return: number | null;
   cover_image_url: string | null;
+  /** Illustrative sample project — must never be presented as a real offer. */
+  is_demo: boolean;
   created_by: string | null;
   created_at: string;
 }

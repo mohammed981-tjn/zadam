@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cropVisual, formatUsd, riskLabel, statusLabel } from "@/lib/format";
 import type { Project, ProjectUpdate } from "@/types/database";
+import { INVESTMENT_LIVE } from "@/lib/config";
+import NotifyMeForm from "@/components/NotifyMeForm";
 import { invest } from "./actions";
 
 export default async function ProjectPage({
@@ -42,6 +44,10 @@ export default async function ProjectPage({
   const remainingShares = typedProject.total_shares - typedProject.shares_sold;
   const { emoji, gradient } = cropVisual(typedProject.name);
 
+  // Money only moves for a real, published project once the platform goes live.
+  const investmentOpen =
+    INVESTMENT_LIVE && !typedProject.is_demo && typedProject.status === "open";
+
   return (
     <div>
       <div
@@ -51,6 +57,15 @@ export default async function ProjectPage({
         {emoji}
       </div>
       <div className="mx-auto max-w-4xl px-4 py-10">
+        {typedProject.is_demo && (
+          <div className="mb-6 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
+            <strong className="font-bold">نموذج توضيحي.</strong> هذا المشروع
+            مُدخل لعرض شكل المنصة فقط — لا يوجد على الأرض مشروع بهذا الاسم ولا
+            أرض مخصصة له، ولا يمكن الاستثمار فيه. المشاريع الحقيقية ستُنشر بعد
+            توثيقها قانونياً ومعاينتها ميدانياً.
+          </div>
+        )}
+
         <p className="text-sm text-muted">{typedProject.location}</p>
         <h1 className="mt-1 text-3xl font-black">{typedProject.name}</h1>
 
@@ -111,65 +126,84 @@ export default async function ProjectPage({
           </section>
 
           <aside className="h-fit rounded-2xl border border-border bg-card p-5">
-            <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-border">
-              <div
-                className="h-full bg-primary"
-                style={{ width: `${fundedPct}%` }}
-              />
-            </div>
-            <p className="mb-4 text-sm text-muted">
-              {fundedPct}% ممول · متبقي {remainingShares} حصة من أصل{" "}
-              {typedProject.total_shares}
-            </p>
-
-            {error && (
-              <p className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
-                {error}
-              </p>
-            )}
-
-            {typedProject.status === "open" ? (
-              <form action={invest} className="flex flex-col gap-3">
-                <input
-                  type="hidden"
-                  name="project_id"
-                  value={typedProject.id}
-                />
-                <input type="hidden" name="slug" value={typedProject.slug} />
-                <input
-                  type="hidden"
-                  name="price_per_share"
-                  value={typedProject.price_per_share}
-                />
-                <label className="flex flex-col gap-1 text-sm">
-                  عدد الحصص (سعر الحصة {formatUsd(typedProject.price_per_share)}
-                  )
-                  <input
-                    type="number"
-                    name="shares"
-                    min={1}
-                    max={remainingShares}
-                    defaultValue={1}
-                    required
-                    className="rounded-lg border border-border bg-background px-3 py-2 outline-none focus:border-primary"
+            {!investmentOpen ? (
+              <>
+                <span className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  قريباً
+                </span>
+                <h2 className="mb-2 text-lg font-bold">
+                  الاستثمار لم يُفتح بعد
+                </h2>
+                <p className="mb-4 text-sm text-muted">
+                  نحن نبني المنصة الآن ولا نستقبل أي أموال حتى تكتمل الترتيبات
+                  القانونية وتوثيق المشاريع. اترك بياناتك وسنبلغك أول ما يُفتح
+                  باب الاستثمار.
+                </p>
+                <p className="mb-4 text-sm">
+                  سعر الحصة الاسترشادي:{" "}
+                  <span className="font-bold">
+                    {formatUsd(typedProject.price_per_share)}
+                  </span>
+                </p>
+                <NotifyMeForm interest={`مشروع: ${typedProject.name}`} />
+              </>
+            ) : (
+              <>
+                <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-border">
+                  <div
+                    className="h-full bg-primary"
+                    style={{ width: `${fundedPct}%` }}
                   />
-                </label>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90"
-                >
-                  استثمر الآن
-                </button>
-                {!user && (
-                  <p className="text-xs text-muted">
-                    سيُطلب منك تسجيل الدخول أولاً.
+                </div>
+                <p className="mb-4 text-sm text-muted">
+                  {fundedPct}% ممول · متبقي {remainingShares} حصة من أصل{" "}
+                  {typedProject.total_shares}
+                </p>
+
+                {error && (
+                  <p className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+                    {error}
                   </p>
                 )}
-              </form>
-            ) : (
-              <p className="text-sm text-muted">
-                هذا المشروع غير متاح للاستثمار حالياً.
-              </p>
+
+                <form action={invest} className="flex flex-col gap-3">
+                  <input
+                    type="hidden"
+                    name="project_id"
+                    value={typedProject.id}
+                  />
+                  <input type="hidden" name="slug" value={typedProject.slug} />
+                  <input
+                    type="hidden"
+                    name="price_per_share"
+                    value={typedProject.price_per_share}
+                  />
+                  <label className="flex flex-col gap-1 text-sm">
+                    عدد الحصص (سعر الحصة{" "}
+                    {formatUsd(typedProject.price_per_share)})
+                    <input
+                      type="number"
+                      name="shares"
+                      min={1}
+                      max={remainingShares}
+                      defaultValue={1}
+                      required
+                      className="rounded-lg border border-border bg-background px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90"
+                  >
+                    استثمر الآن
+                  </button>
+                  {!user && (
+                    <p className="text-xs text-muted">
+                      سيُطلب منك تسجيل الدخول أولاً.
+                    </p>
+                  )}
+                </form>
+              </>
             )}
           </aside>
         </div>

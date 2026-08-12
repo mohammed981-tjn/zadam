@@ -19,6 +19,12 @@ export default async function PlanPage() {
         توزيع آلي يعتمد على مستوى مخاطرة كل مشروع والحصص المتاحة فعلياً فيه،
         وليس توصية مالية شخصية.
       </p>
+      <div className="mb-6 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
+        المشاريع المستخدمة في الحساب{" "}
+        <strong className="font-bold">نماذج توضيحية</strong> حالياً، والاستثمار
+        لم يُفتح بعد. الأداة تُظهر كيف سيوزّع النظام المبلغ فعلياً عند إطلاق
+        المشاريع الحقيقية.
+      </div>
       <PlanForm />
     </div>
   );

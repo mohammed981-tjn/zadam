@@ -27,6 +27,12 @@ export default function ProjectCard({ project }: { project: Project }) {
         {emoji}
       </div>
 
+      {project.is_demo && (
+        <span className="-mb-1 w-fit rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
+          نموذج توضيحي — ليس عرضاً حقيقياً
+        </span>
+      )}
+
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-lg font-bold">{project.name}</h3>
         <span
