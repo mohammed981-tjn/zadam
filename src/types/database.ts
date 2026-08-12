@@ -33,9 +33,24 @@ export interface Project {
   cover_image_url: string | null;
   /** Illustrative sample project — must never be presented as a real offer. */
   is_demo: boolean;
+  review_status: ReviewStatus;
+  submitted_by: string | null;
+  review_note: string | null;
+  risk_score: number | null;
+  crop_key: string | null;
+  station_key: string | null;
+  planting_month: number | null;
+  irrigation: string | null;
+  water_source: string | null;
+  declared_water_per_feddan: number | null;
+  documents_on_file: number;
+  documents_required: number;
+  km_to_market: number | null;
   created_by: string | null;
   created_at: string;
 }
+
+export type ReviewStatus = "submitted" | "approved" | "rejected";
 
 export interface ProjectUpdate {
   id: string;

@@ -43,6 +43,9 @@ export default async function Navbar() {
               <Link href="/plan" className="hover:text-primary">
                 خطط استثمارك
               </Link>
+              <Link href="/opportunities/new" className="hover:text-primary">
+                ارفع فرصة
+              </Link>
               {role === "admin" && (
                 <Link href="/admin" className="hover:text-primary">
                   لوحة الإدارة
