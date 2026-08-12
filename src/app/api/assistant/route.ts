@@ -38,6 +38,20 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
 
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const { data: allowed, error: rateLimitError } = await supabase.rpc("check_assistant_rate_limit", {
+      p_ip: ip,
+    });
+
+    if (rateLimitError) {
+      console.error("assistant: rate limit check failed", rateLimitError);
+    } else if (allowed === false) {
+      return NextResponse.json(
+        { error: "عدد كبير من الأسئلة خلال دقيقة قصيرة. انتظر قليلاً ثم أعد المحاولة." },
+        { status: 429 },
+      );
+    }
+
     const [{ data: projects, error: projectsError }, { data: knowledge, error: knowledgeError }] =
       await Promise.all([
         supabase
