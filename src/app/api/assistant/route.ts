@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
 
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    // The leftmost x-forwarded-for entry is client-supplied and spoofable; the
+    // last entry is the one Vercel's edge appends for the real connecting IP.
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const ip = req.headers.get("x-real-ip") ?? forwardedFor?.split(",").pop()?.trim() ?? "unknown";
     const { data: allowed, error: rateLimitError } = await supabase.rpc("check_assistant_rate_limit", {
       p_ip: ip,
     });
