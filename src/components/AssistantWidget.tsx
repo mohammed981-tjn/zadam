@@ -65,7 +65,12 @@ export default function AssistantWidget() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-50">
+    // Sits above the mobile browser's bottom chrome, which was hiding the
+    // launcher entirely on phones.
+    <div
+      className="fixed bottom-4 left-4 z-50"
+      style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+    >
       {open && (
         <div className="mb-3 flex h-[28rem] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
           <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
@@ -205,12 +210,20 @@ export default function AssistantWidget() {
         </div>
       )}
 
+      {/* A labelled pill rather than a bare icon — a lone circle reads as
+          decoration and visitors were not finding the assistant at all. */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground shadow-lg hover:opacity-90"
+        className="flex items-center gap-2 rounded-full bg-primary py-3 pe-5 ps-4 text-primary-foreground shadow-xl ring-2 ring-primary/25 transition hover:opacity-90"
         aria-label="افتح مساعد سودجري"
+        aria-expanded={open}
       >
-        💬
+        <span className="text-2xl leading-none">💬</span>
+        {!open && (
+          <span className="whitespace-nowrap text-sm font-bold">
+            اسأل سودجري
+          </span>
+        )}
       </button>
     </div>
   );

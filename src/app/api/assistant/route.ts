@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { retrieveRelevant, type RetrievableEntry } from "@/lib/retrieval";
 
 const SYSTEM_PROMPT = `أنت "مساعد سودجري" — مساعد ذكي يتحدث العربية فقط لمنصة "سودجري" للاستثمار الزراعي في السودان. تجيب على ثلاثة أنواع من الأسئلة، ولكل نوع قاعدة مختلفة:
 
@@ -26,13 +27,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "طلب غير صالح" }, { status: 400 });
   }
 
-  if (typeof question !== "string" || question.trim().length === 0 || question.length > 500) {
+  if (
+    typeof question !== "string" ||
+    question.trim().length === 0 ||
+    question.length > 500
+  ) {
     return NextResponse.json({ error: "سؤال غير صالح" }, { status: 400 });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "المساعد غير مُفعّل حالياً" }, { status: 503 });
+    return NextResponse.json(
+      { error: "المساعد غير مُفعّل حالياً" },
+      { status: 503 },
+    );
   }
 
   try {
@@ -41,41 +49,61 @@ export async function POST(req: NextRequest) {
     // The leftmost x-forwarded-for entry is client-supplied and spoofable; the
     // last entry is the one Vercel's edge appends for the real connecting IP.
     const forwardedFor = req.headers.get("x-forwarded-for");
-    const ip = req.headers.get("x-real-ip") ?? forwardedFor?.split(",").pop()?.trim() ?? "unknown";
-    const { data: allowed, error: rateLimitError } = await supabase.rpc("check_assistant_rate_limit", {
-      p_ip: ip,
-    });
+    const ip =
+      req.headers.get("x-real-ip") ??
+      forwardedFor?.split(",").pop()?.trim() ??
+      "unknown";
+    const { data: allowed, error: rateLimitError } = await supabase.rpc(
+      "check_assistant_rate_limit",
+      {
+        p_ip: ip,
+      },
+    );
 
     if (rateLimitError) {
       console.error("assistant: rate limit check failed", rateLimitError);
     } else if (allowed === false) {
       return NextResponse.json(
-        { error: "عدد كبير من الأسئلة خلال دقيقة قصيرة. انتظر قليلاً ثم أعد المحاولة." },
+        {
+          error:
+            "عدد كبير من الأسئلة خلال دقيقة قصيرة. انتظر قليلاً ثم أعد المحاولة.",
+        },
         { status: 429 },
       );
     }
 
-    const [{ data: projects, error: projectsError }, { data: knowledge, error: knowledgeError }] =
-      await Promise.all([
-        supabase
-          .from("projects")
-          .select(
-            "name, location, description, total_feddans, price_per_share, total_shares, shares_sold, status, risk_level, expected_annual_return",
-          )
-          .neq("status", "draft"),
-        supabase
-          .from("knowledge_entries")
-          .select("crop, topic, title, content, source_country, source_note"),
-      ]);
+    const [
+      { data: projects, error: projectsError },
+      { data: knowledge, error: knowledgeError },
+    ] = await Promise.all([
+      supabase
+        .from("projects")
+        .select(
+          "name, location, description, total_feddans, price_per_share, total_shares, shares_sold, status, risk_level, expected_annual_return",
+        )
+        .neq("status", "draft"),
+      supabase
+        .from("knowledge_entries")
+        .select("crop, topic, title, content, source_country, source_note"),
+    ]);
 
     if (projectsError || knowledgeError) {
       const dbError = projectsError ?? knowledgeError;
       console.error("assistant: supabase error", dbError);
-      return NextResponse.json({ error: `تعذّر قراءة البيانات: ${dbError?.message}` }, { status: 502 });
+      return NextResponse.json(
+        { error: `تعذّر قراءة البيانات: ${dbError?.message}` },
+        { status: 502 },
+      );
     }
 
     const projectsContext = JSON.stringify(projects ?? []);
-    const knowledgeContext = JSON.stringify(knowledge ?? []);
+
+    // Send only the entries that bear on the question. Sending the whole base
+    // cost about 18,000 prompt tokens per question and buried the two entries
+    // that answered it among forty-five that did not.
+    const knowledgeContext = JSON.stringify(
+      retrieveRelevant(question, (knowledge ?? []) as RetrievableEntry[], 12),
+    );
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
@@ -114,20 +142,26 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: `تعذّر الاتصال بمحرك سودجري الذكي (HTTP ${geminiRes.status}): ${bodyText.slice(0, 300)}` },
+        {
+          error: `تعذّر الاتصال بمحرك سودجري الذكي (HTTP ${geminiRes.status}): ${bodyText.slice(0, 300)}`,
+        },
         { status: 502 },
       );
     }
 
     const data = await geminiRes.json();
     const rawAnswer: string =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ?? "لم أتمكن من فهم السؤال، حاول صياغته بشكل مختلف.";
+      data.candidates?.[0]?.content?.parts?.[0]?.text ??
+      "لم أتمكن من فهم السؤال، حاول صياغته بشكل مختلف.";
     const answer = rawAnswer.replace(/[*#_`]+/g, "").trim();
 
     return NextResponse.json({ answer });
   } catch (err) {
     console.error("assistant: unhandled error", err);
     const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: `خطأ غير متوقع: ${message}` }, { status: 500 });
+    return NextResponse.json(
+      { error: `خطأ غير متوقع: ${message}` },
+      { status: 500 },
+    );
   }
 }
