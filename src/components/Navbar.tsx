@@ -43,6 +43,9 @@ export default async function Navbar() {
               <Link href="/plan" className="hover:text-primary">
                 خطط استثمارك
               </Link>
+              <Link href="/seasons" className="hover:text-primary">
+                مواسمي
+              </Link>
               <Link href="/opportunities/new" className="hover:text-primary">
                 ارفع فرصة
               </Link>

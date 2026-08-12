@@ -52,6 +52,80 @@ export interface Project {
 
 export type ReviewStatus = "submitted" | "approved" | "rejected";
 
+export type StageKeyDb =
+  | "land_prep"
+  | "planting"
+  | "establishment"
+  | "vegetative"
+  | "flowering"
+  | "maturity"
+  | "harvest";
+
+export type LedgerCategoryDb =
+  | "seeds"
+  | "fertiliser"
+  | "pesticide"
+  | "labour"
+  | "irrigation"
+  | "transport"
+  | "other"
+  | "revenue";
+
+export interface Season {
+  id: string;
+  owner_id: string;
+  project_id: string | null;
+  name: string;
+  location: string | null;
+  crop_key: string;
+  station_key: string;
+  irrigation: string;
+  feddans: number;
+  budget_per_feddan: number;
+  planting_date: string;
+  harvest_date: string | null;
+  status: "active" | "completed" | "abandoned";
+  created_at: string;
+}
+
+export interface SeasonStage {
+  id: string;
+  season_id: string;
+  stage_key: StageKeyDb;
+  stage_order: number;
+  planned_start: string;
+  planned_end: string;
+  actual_start: string | null;
+  actual_end: string | null;
+  planned_water_m3: number;
+  budget: number;
+  completed: boolean;
+  completed_at: string | null;
+  note: string | null;
+}
+
+export interface StageEvidence {
+  id: string;
+  stage_id: string;
+  kind: "photo" | "invoice" | "inspection" | "note";
+  url: string | null;
+  caption: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface LedgerEntryRow {
+  id: string;
+  season_id: string;
+  stage_id: string | null;
+  category: LedgerCategoryDb;
+  amount: number;
+  description: string | null;
+  entry_date: string;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface ProjectUpdate {
   id: string;
   project_id: string;
