@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "المساعد غير مُفعّل حالياً (لا يوجد مفتاح Gemini)" }, { status: 503 });
+    return NextResponse.json({ error: "المساعد غير مُفعّل حالياً" }, { status: 503 });
   }
 
   try {
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: `تعذّر الاتصال بـ Gemini (HTTP ${geminiRes.status}): ${bodyText.slice(0, 300)}` },
+        { error: `تعذّر الاتصال بمحرك سودجري الذكي (HTTP ${geminiRes.status}): ${bodyText.slice(0, 300)}` },
         { status: 502 },
       );
     }

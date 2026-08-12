@@ -75,6 +75,18 @@ export interface KnowledgeEntry {
   created_at: string;
 }
 
+export type LeadRole = "investor" | "farmer" | "other";
+
+export interface Lead {
+  id: string;
+  full_name: string;
+  contact: string;
+  role: LeadRole;
+  interest: string | null;
+  message: string | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -102,6 +114,11 @@ export interface Database {
         Row: KnowledgeEntry;
         Insert: Partial<KnowledgeEntry>;
         Update: Partial<KnowledgeEntry>;
+      };
+      leads: {
+        Row: Lead;
+        Insert: Partial<Lead>;
+        Update: Partial<Lead>;
       };
     };
   };

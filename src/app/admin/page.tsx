@@ -29,12 +29,17 @@ export default async function AdminPage() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">لوحة إدارة المشاريع</h1>
-        <Link
-          href="/admin/projects/new"
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-        >
-          + مشروع جديد
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/leads" className="text-sm text-primary underline">
+            العملاء المحتملون
+          </Link>
+          <Link
+            href="/admin/projects/new"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            + مشروع جديد
+          </Link>
+        </div>
       </div>
 
       {!projects || projects.length === 0 ? (
@@ -59,9 +64,14 @@ export default async function AdminPage() {
                   <td className="px-4 py-3">
                     {project.shares_sold}/{project.total_shares}
                   </td>
-                  <td className="px-4 py-3">{formatUsd(project.price_per_share)}</td>
                   <td className="px-4 py-3">
-                    <Link href={`/admin/projects/${project.id}`} className="text-primary underline">
+                    {formatUsd(project.price_per_share)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/projects/${project.id}`}
+                      className="text-primary underline"
+                    >
                       إدارة
                     </Link>
                   </td>
