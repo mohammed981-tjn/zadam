@@ -32,6 +32,9 @@ export default async function Navbar() {
           <Link href="/" className="hover:text-primary">
             المشاريع
           </Link>
+          <Link href="/tools/water" className="hover:text-primary">
+            حاسبة المياه
+          </Link>
           {user ? (
             <>
               <Link href="/dashboard" className="hover:text-primary">
