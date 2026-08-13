@@ -177,7 +177,11 @@ export type KnowledgeTopic =
   | "water"
   | "variety"
   | "institutional"
-  | "general";
+  | "general"
+  | "agronomy"
+  | "technology"
+  | "livestock"
+  | "economics";
 
 export interface KnowledgeEntry {
   id: string;

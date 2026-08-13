@@ -30,6 +30,10 @@ export function topicLabel(topic: string) {
       variety: "أصناف",
       institutional: "نماذج مؤسسية",
       general: "عام",
+      agronomy: "خدمة المحصول",
+      technology: "تقنيات",
+      livestock: "ثروة حيوانية",
+      economics: "اقتصاد وتسويق",
     }[topic] ?? topic
   );
 }
