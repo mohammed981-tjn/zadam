@@ -101,9 +101,27 @@ export async function POST(req: NextRequest) {
     // Send only the entries that bear on the question. Sending the whole base
     // cost about 18,000 prompt tokens per question and buried the two entries
     // that answered it among forty-five that did not.
-    const knowledgeContext = JSON.stringify(
-      retrieveRelevant(question, (knowledge ?? []) as RetrievableEntry[], 12),
-    );
+    const allKnowledge = (knowledge ?? []) as RetrievableEntry[];
+    const matched = retrieveRelevant(question, allKnowledge, 12);
+    const knowledgeContext = JSON.stringify(matched);
+
+    // A question the retriever could not match is a gap in the base. Logging it
+    // turns visitor questions into the list of what to write next. Never allowed
+    // to break the answer the visitor is waiting for.
+    const logQuestion = (answered: boolean) =>
+      supabase
+        .rpc("log_assistant_question", {
+          p_question: question,
+          p_matched:
+            matched.length === allKnowledge.length
+              ? allKnowledge.length
+              : matched.length,
+          p_answered: answered,
+        })
+        .then(
+          () => undefined,
+          (e: unknown) => console.error("assistant: question log failed", e),
+        );
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
@@ -130,6 +148,7 @@ export async function POST(req: NextRequest) {
     if (!geminiRes.ok) {
       const bodyText = await geminiRes.text();
       console.error("assistant: gemini error", geminiRes.status, bodyText);
+      await logQuestion(false);
 
       if (geminiRes.status === 429) {
         return NextResponse.json(
@@ -154,6 +173,8 @@ export async function POST(req: NextRequest) {
       data.candidates?.[0]?.content?.parts?.[0]?.text ??
       "لم أتمكن من فهم السؤال، حاول صياغته بشكل مختلف.";
     const answer = rawAnswer.replace(/[*#_`]+/g, "").trim();
+
+    await logQuestion(true);
 
     return NextResponse.json({ answer });
   } catch (err) {

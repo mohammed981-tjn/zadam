@@ -30,6 +30,15 @@ export default async function AdminPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">لوحة إدارة المشاريع</h1>
         <div className="flex items-center gap-3">
+          <Link
+            href="/admin/analytics"
+            className="text-sm text-primary underline"
+          >
+            التحليلات
+          </Link>
+          <Link href="/admin/review" className="text-sm text-primary underline">
+            مراجعة الفرص
+          </Link>
           <Link href="/admin/leads" className="text-sm text-primary underline">
             العملاء المحتملون
           </Link>
