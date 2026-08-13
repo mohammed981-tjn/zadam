@@ -20,10 +20,26 @@ export default async function AdminPage() {
 
   if (profile?.role !== "admin") redirect("/dashboard");
 
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const [{ data: projects }, { data: lastCheck }] = await Promise.all([
+    supabase.from("projects").select("*").order("created_at", { ascending: false }),
+    // The view answers "has the schedule stopped?" from the database's own
+    // clock. Comparing the check's timestamp against the web server's clock
+    // would compare two different clocks, and drift on either would report a
+    // healthy schedule as stalled or the reverse.
+    supabase
+      .from("system_health")
+      .select("checked_at, ok, details, stale")
+      .maybeSingle(),
+  ]);
+
+  const check = lastCheck as {
+    checked_at: string;
+    ok: boolean;
+    details: { problems?: string[] };
+    stale: boolean;
+  } | null;
+  const problems = check?.details?.problems ?? [];
+  const scheduleStalled = check?.stale === true;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -50,6 +66,51 @@ export default async function AdminPage() {
           </Link>
         </div>
       </div>
+
+      <section
+        className={`mb-6 rounded-xl border p-4 ${
+          !check || scheduleStalled || !check.ok
+            ? "border-danger/40 bg-danger/5"
+            : "border-border bg-card"
+        }`}
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-medium">حالة المنصة</h2>
+          <span className="text-xs text-muted">
+            {check
+              ? `آخر فحص: ${new Date(check.checked_at).toLocaleString("ar-EG")}`
+              : "لم يُجرَ أي فحص بعد"}
+          </span>
+        </div>
+
+        {!check && (
+          <p className="mt-2 text-sm text-danger">
+            الفحص اليومي لم يعمل ولا مرة. تأكّد من إعداد المهمة المجدولة — بدونها
+            تتوقف قاعدة البيانات المجانية بعد سبعة أيام من عدم النشاط.
+          </p>
+        )}
+
+        {scheduleStalled && (
+          <p className="mt-2 text-sm text-danger">
+            مضى على آخر فحص أكثر من يومين. المهمة المجدولة توقفت على الأرجح، وهي
+            وحدها ما يمنع إيقاف قاعدة البيانات.
+          </p>
+        )}
+
+        {check && check.ok && !scheduleStalled && (
+          <p className="mt-2 text-sm text-muted">
+            كل الفحوص سليمة، وقاعدة البيانات نشطة.
+          </p>
+        )}
+
+        {problems.length > 0 && (
+          <ul className="mt-2 flex flex-col gap-1 text-sm text-danger">
+            {problems.map((p) => (
+              <li key={p}>• {p}</li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {!projects || projects.length === 0 ? (
         <p className="text-sm text-muted">لا توجد مشاريع بعد.</p>

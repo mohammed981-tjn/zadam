@@ -1,0 +1,45 @@
+name: Daily health check
+
+# A second, independent trigger for /api/health.
+#
+# Vercel Cron already calls the same endpoint daily. This exists because the
+# cost of the schedule silently stopping is a paused database and a platform
+# that appears broken to every visitor — and a scheduler that stops firing does
+# so quietly, by definition. Two unrelated systems on different clocks means one
+# failing does not pause the project.
+#
+# Worth knowing about this one specifically: GitHub disables scheduled workflows
+# in a repository with no activity for 60 days, so it must not be the only
+# trigger. Scheduled runs can also be delayed under load, which is harmless here
+# — the requirement is a few requests a day, not a precise time.
+
+on:
+  schedule:
+    # 18:00 UTC, twelve hours away from the Vercel job, so a single bad window
+    # cannot take both out.
+    - cron: "0 18 * * *"
+  # So it can be run by hand to confirm the wiring works.
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the health endpoint
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$HEALTH_URL" ]; then
+            echo "HEALTH_URL secret is not set — nothing to call."
+            echo "Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          # --fail-with-body so a non-2xx fails the job but still prints what the
+          # endpoint said, which is where the diagnosis is.
+          curl --fail-with-body --silent --show-error --location \
+               --max-time 30 \
+               --retry 3 --retry-delay 10 --retry-all-errors \
+               --header "Authorization: Bearer ${CRON_SECRET}" \
+               "$HEALTH_URL"
