@@ -31,10 +31,12 @@ export default async function Home() {
             استثمار زراعي شفافة قيد البناء للسودانيين في الداخل والمهجر.
           </p>
           <p className="mx-auto mt-4 max-w-2xl rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
-            المنصة في مرحلة التطوير. قاعدة المعرفة تعمل الآن ومتاحة للجميع، أما
-            المشاريع المعروضة فهي{" "}
-            <strong className="font-bold">نماذج توضيحية</strong> لشكل المنصة —
-            والاستثمار لم يُفتح بعد ولا نستقبل أي أموال.
+            المنصة في مرحلة التطوير.{" "}
+            <strong className="font-bold">
+              لا توجد مشاريع مطروحة للاستثمار حالياً
+            </strong>{" "}
+            — ولن نعرض مشروعاً إلا بعد توثيقه قانونياً ومعاينته ميدانياً. أما
+            قاعدة المعرفة وحاسبة المياه فتعملان الآن ومتاحتان للجميع مجاناً.
           </p>
         </div>
       </section>
@@ -65,7 +67,15 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl px-4 py-12">
         <h2 className="mb-6 text-xl font-bold">المشاريع المتاحة</h2>
         {!projects || projects.length === 0 ? (
-          <p className="text-muted">لا توجد مشاريع منشورة حالياً.</p>
+          <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <div className="mb-3 text-4xl">🌱</div>
+            <h3 className="mb-2 font-bold">لا توجد مشاريع مطروحة بعد</h3>
+            <p className="mx-auto max-w-lg text-sm text-muted">
+              نحن لا نعرض مشروعاً حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة
+              ميدانية، وموافقة الجهة الزراعية. سجّل اهتمامك عبر مساعد سودجري
+              وسنبلغك أول ما يُطرح مشروع موثّق.
+            </p>
+          </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {(projects as Project[]).map((project) => (

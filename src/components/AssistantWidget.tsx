@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { submitLead } from "@/app/leads/actions";
+import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 
 type Msg = { role: "user" | "assistant"; text: string };
 
@@ -21,6 +22,14 @@ export default function AssistantWidget() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open, showLeadForm]);
+
+  // The menu can open the assistant from any page, so a visitor who never
+  // notices the floating button still has a way in.
+  useEffect(() => {
+    const openIt = () => setOpen(true);
+    window.addEventListener(OPEN_ASSISTANT_EVENT, openIt);
+    return () => window.removeEventListener(OPEN_ASSISTANT_EVENT, openIt);
+  }, []);
 
   async function send() {
     const question = input.trim();
@@ -66,10 +75,11 @@ export default function AssistantWidget() {
 
   return (
     // Sits above the mobile browser's bottom chrome, which was hiding the
-    // launcher entirely on phones.
+    // launcher entirely on phones. The z-index is deliberately far above
+    // anything else on the page so no later component can bury it.
     <div
-      className="fixed bottom-4 left-4 z-50"
-      style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+      className="fixed bottom-4 left-4 z-[100]"
+      style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
     >
       {open && (
         <div className="mb-3 flex h-[28rem] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
+import NavMenu, { type NavGroup } from "./NavMenu";
 
 export default async function Navbar() {
   const supabase = await createClient();
@@ -18,9 +19,55 @@ export default async function Navbar() {
     role = profile?.role ?? null;
   }
 
+  const groups: NavGroup[] = [
+    {
+      title: "استكشف",
+      items: [
+        { href: "/", label: "الرئيسية" },
+        { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
+      ],
+    },
+  ];
+
+  if (user) {
+    groups.push({
+      title: "أرضي",
+      items: [
+        { href: "/seasons", label: "مواسمي" },
+        { href: "/opportunities/new", label: "ارفع فرصة" },
+      ],
+    });
+    groups.push({
+      title: "استثماري",
+      items: [
+        { href: "/dashboard", label: "محفظتي" },
+        { href: "/plan", label: "خطط استثمارك" },
+      ],
+    });
+    if (role === "admin") {
+      groups.push({
+        title: "الإدارة",
+        items: [
+          { href: "/admin", label: "لوحة المشاريع" },
+          { href: "/admin/review", label: "مراجعة الفرص" },
+          { href: "/admin/analytics", label: "التحليلات" },
+          { href: "/admin/leads", label: "العملاء المحتملون" },
+        ],
+      });
+    }
+  } else {
+    groups.push({
+      title: "حسابك",
+      items: [
+        { href: "/login", label: "تسجيل الدخول" },
+        { href: "/signup", label: "إنشاء حساب" },
+      ],
+    });
+  }
+
   return (
     <header className="border-b border-border">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
         <Link
           href="/"
           className="flex items-center gap-2 text-lg font-bold text-primary"
@@ -28,48 +75,20 @@ export default async function Navbar() {
           🌾 سودجري
         </Link>
 
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/" className="hover:text-primary">
-            المشاريع
-          </Link>
-          <Link href="/tools/water" className="hover:text-primary">
-            حاسبة المياه
-          </Link>
-          {user ? (
-            <>
-              <Link href="/dashboard" className="hover:text-primary">
-                محفظتي
-              </Link>
-              <Link href="/plan" className="hover:text-primary">
-                خطط استثمارك
-              </Link>
-              <Link href="/seasons" className="hover:text-primary">
-                مواسمي
-              </Link>
-              <Link href="/opportunities/new" className="hover:text-primary">
-                ارفع فرصة
-              </Link>
-              {role === "admin" && (
-                <Link href="/admin" className="hover:text-primary">
-                  لوحة الإدارة
-                </Link>
-              )}
-              <SignOutButton />
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="hover:text-primary">
-                دخول
-              </Link>
-              <Link
-                href="/signup"
-                className="rounded-lg bg-primary px-3 py-1.5 font-medium text-primary-foreground hover:opacity-90"
-              >
-                ابدأ الاستثمار
-              </Link>
-            </>
+        <div className="flex items-center gap-3">
+          {!user && (
+            <Link
+              href="/signup"
+              className="hidden rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 sm:inline-block"
+            >
+              ابدأ الآن
+            </Link>
           )}
-        </nav>
+          <NavMenu
+            groups={groups}
+            signOut={user ? <SignOutButton /> : undefined}
+          />
+        </div>
       </div>
     </header>
   );
