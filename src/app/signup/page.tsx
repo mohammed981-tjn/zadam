@@ -1,18 +1,23 @@
 import Link from "next/link";
 import { signup } from "../login/actions";
+import PhoneField from "@/components/PhoneField";
 
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; method?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, method } = await searchParams;
+  const byEmail = method === "email";
+
+  const field =
+    "rounded-lg border border-border bg-card px-3 py-2 outline-none focus:border-primary";
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="mb-2 text-2xl font-bold">إنشاء حساب مستثمر</h1>
+      <h1 className="mb-2 text-2xl font-bold">إنشاء حساب</h1>
       <p className="mb-6 text-sm text-muted">
-        سجّل بياناتك لتتمكن من تصفح المشاريع والاستثمار فيها.
+        سجّل برقم جوالك — لا حاجة لبريد إلكتروني.
       </p>
 
       {error && (
@@ -22,24 +27,26 @@ export default async function SignupPage({
       )}
 
       <form action={signup} className="flex flex-col gap-4">
+        <input type="hidden" name="method" value={byEmail ? "email" : "phone"} />
+
         <label className="flex flex-col gap-1 text-sm">
           الاسم الكامل
-          <input
-            type="text"
-            name="full_name"
-            required
-            className="rounded-lg border border-border bg-card px-3 py-2 outline-none focus:border-primary"
-          />
+          <input type="text" name="full_name" required className={field} />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          البريد الإلكتروني
-          <input
-            type="email"
-            name="email"
-            required
-            className="rounded-lg border border-border bg-card px-3 py-2 outline-none focus:border-primary"
-          />
-        </label>
+
+        {byEmail ? (
+          <label className="flex flex-col gap-1 text-sm">
+            البريد الإلكتروني
+            <input type="email" name="email" required className={field} />
+            <span className="text-xs text-muted">
+              ستصلك رسالة تفعيل باسم خدمة الاستضافة (Supabase) لا باسم سودجري —
+              هذا طبيعي وليست رسالة احتيال. افتحها واضغط الرابط.
+            </span>
+          </label>
+        ) : (
+          <PhoneField autoFocus />
+        )}
+
         <label className="flex flex-col gap-1 text-sm">
           كلمة المرور
           <input
@@ -47,9 +54,12 @@ export default async function SignupPage({
             name="password"
             required
             minLength={6}
-            className="rounded-lg border border-border bg-card px-3 py-2 outline-none focus:border-primary"
+            autoComplete="new-password"
+            className={field}
           />
+          <span className="text-xs text-muted">ستة أحرف على الأقل.</span>
         </label>
+
         <button
           type="submit"
           className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90"
@@ -57,6 +67,18 @@ export default async function SignupPage({
           إنشاء الحساب
         </button>
       </form>
+
+      <p className="mt-4 text-center text-sm">
+        {byEmail ? (
+          <Link href="/signup" className="text-primary underline">
+            التسجيل برقم الجوال بدلاً من ذلك
+          </Link>
+        ) : (
+          <Link href="/signup?method=email" className="text-primary underline">
+            التسجيل بالبريد الإلكتروني بدلاً من ذلك
+          </Link>
+        )}
+      </p>
 
       <p className="mt-6 text-sm text-muted">
         لديك حساب بالفعل؟{" "}
