@@ -32,6 +32,7 @@ export default async function Navbar() {
       items: [
         { href: "/", label: "الرئيسية" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
+        { href: "/guide", label: "دليل الاستخدام" },
       ],
     },
     {

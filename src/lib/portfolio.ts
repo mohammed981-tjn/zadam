@@ -8,7 +8,8 @@ export interface Allocation {
   shares: number;
 }
 
-const RISK_WEIGHTS: Record<RiskProfile, Record<RiskLevel, number>> = {
+/** Exported so the user guide can state the real split instead of a copy of it. */
+export const RISK_WEIGHTS: Record<RiskProfile, Record<RiskLevel, number>> = {
   low: { low: 0.7, medium: 0.25, high: 0.05 },
   medium: { low: 0.35, medium: 0.4, high: 0.25 },
   high: { low: 0.15, medium: 0.35, high: 0.5 },
