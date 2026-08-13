@@ -2,13 +2,18 @@
 
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { compressImage } from "@/lib/imageCompress";
+import { readJpegMetadata, NO_METADATA, type PhotoMetadata } from "@/lib/exif";
 
 export interface EvidenceKind {
   value: string;
   label: string;
 }
 
+/** The bucket's own limit; the server rejects anything above it regardless. */
 const MAX_BYTES = 10 * 1024 * 1024;
+/** What the browser will attempt to decode and shrink before giving up. */
+const MAX_SOURCE_BYTES = 50 * 1024 * 1024;
 
 /*
  * The extension comes from the content type, not from the file name.
@@ -28,6 +33,8 @@ const ACCEPTED_EXTENSION: Record<string, string> = {
   "application/pdf": "pdf",
 };
 const ACCEPTED = Object.keys(ACCEPTED_EXTENSION);
+
+const mb = (bytes: number) => (bytes / 1048576).toFixed(1);
 
 /**
  * Uploads a real file, then records it.
@@ -51,6 +58,7 @@ export default function EvidenceUpload({
     kind: string;
     storagePath: string;
     caption: string;
+    metadata: PhotoMetadata;
   }) => Promise<{ ok: boolean; message?: string } | void>;
   label?: string;
 }) {
@@ -58,6 +66,7 @@ export default function EvidenceUpload({
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const field =
@@ -71,9 +80,13 @@ export default function EvidenceUpload({
       setError("اختر ملفاً أولاً — صورة أو مستند PDF.");
       return;
     }
-    if (file.size > MAX_BYTES) {
+    // Checked against the pre-compression ceiling, not the storage limit: a
+    // modern phone photo often exceeds ten megabytes and compression will bring
+    // it comfortably under. Rejecting it here would turn a solvable problem
+    // into a refusal.
+    if (file.size > MAX_SOURCE_BYTES) {
       setError(
-        `الملف ${(file.size / 1048576).toFixed(1)} ميجابايت، والحد الأقصى 10.`,
+        `الملف ${mb(file.size)} ميجابايت، وهو أكبر من أن يُعالَج في المتصفح.`,
       );
       return;
     }
@@ -83,6 +96,7 @@ export default function EvidenceUpload({
     }
 
     setBusy(true);
+    setNotice(null);
     try {
       const supabase = createClient();
       const {
@@ -94,24 +108,66 @@ export default function EvidenceUpload({
         return;
       }
 
+      /*
+       * Read the metadata from the original, then shrink it — in that order.
+       *
+       * Compression re-encodes the pixels through a canvas, which discards
+       * every EXIF tag. The date and coordinates a phone wrote into the photo
+       * are the part that makes it evidence rather than a picture, so they are
+       * lifted out first and stored as columns. Reading them must never block
+       * an upload: a scanned deed has none, and that is fine.
+       */
+      let metadata: PhotoMetadata = NO_METADATA;
+      if (file.type === "image/jpeg") {
+        try {
+          metadata = readJpegMetadata(await file.arrayBuffer());
+        } catch {
+          metadata = NO_METADATA;
+        }
+      }
+
+      const { file: toUpload, compressed, originalBytes } =
+        await compressImage(file);
+
+      // Compression is best-effort — a PDF, a HEIC the browser cannot decode,
+      // or an already-small file all come back untouched. So the storage limit
+      // is enforced against what will actually be sent.
+      if (toUpload.size > MAX_BYTES) {
+        setError(
+          `الملف ${mb(toUpload.size)} ميجابايت بعد المعالجة، والحد الأقصى 10. ` +
+            `جرّب تصويره بدقة أقل أو ارفعه كملف PDF مضغوط.`,
+        );
+        return;
+      }
+
       // The storage policy checks the first path segment against the caller,
       // so the user id must lead.
-      const extension = ACCEPTED_EXTENSION[file.type];
+      const extension = ACCEPTED_EXTENSION[toUpload.type] ?? "jpg";
       const path = `${user.id}/${folder}/${crypto.randomUUID()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
         .from("evidence")
-        .upload(path, file, { contentType: file.type, upsert: false });
+        .upload(path, toUpload, {
+          contentType: toUpload.type,
+          upsert: false,
+        });
 
       if (uploadError) {
         setError(`تعذّر رفع الملف: ${uploadError.message}`);
         return;
       }
 
+      if (compressed) {
+        setNotice(
+          `تم ضغط الصورة من ${mb(originalBytes)} إلى ${mb(toUpload.size)} ميجابايت قبل الرفع.`,
+        );
+      }
+
       const result = await onUploaded({
         kind,
         storagePath: path,
         caption: caption.trim() || file.name,
+        metadata,
       });
 
       if (result && !result.ok) {
@@ -170,9 +226,11 @@ export default function EvidenceUpload({
       </div>
 
       {error && <p className="text-xs text-danger">{error}</p>}
+      {notice && <p className="text-xs text-primary">{notice}</p>}
       <p className="text-xs text-muted">
         الصور المأخوذة بالهاتف في الموقع أقوى دليل — تحمل تاريخها وغالباً
-        إحداثياتها.
+        إحداثياتها، ونحفظهما مع الملف. تُصغَّر الصور تلقائياً قبل الرفع لتسريعه
+        على الشبكات الضعيفة.
       </p>
     </div>
   );

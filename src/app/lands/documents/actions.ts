@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { sanitisePhotoMetadata } from "@/lib/exif";
 
 const KINDS = ["tenure", "photo", "permit", "inspection"];
 
@@ -23,6 +24,8 @@ export async function addLandDocument(args: {
   kind: string;
   storagePath: string;
   caption: string;
+  /** EXIF read in the browser before compression re-encoded the file. */
+  metadata?: unknown;
 }): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();
   const {
@@ -40,11 +43,16 @@ export async function addLandDocument(args: {
     return { ok: false, message: "مسار ملف غير صالح." };
   }
 
+  const photo = sanitisePhotoMetadata(args.metadata);
+
   const { error } = await supabase.from("land_documents").insert({
     land_id: args.landId,
     kind: args.kind,
     storage_path: args.storagePath,
     caption: args.caption,
+    captured_at: photo.capturedAt,
+    latitude: photo.latitude,
+    longitude: photo.longitude,
     created_by: user.id,
   });
 

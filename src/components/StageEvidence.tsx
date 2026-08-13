@@ -21,8 +21,8 @@ export default function StageEvidence({
       kinds={KINDS}
       folder="stages"
       label="ارفع الدليل"
-      onUploaded={({ kind, storagePath, caption }) =>
-        addEvidence({ stageId, seasonId, kind, storagePath, caption })
+      onUploaded={({ kind, storagePath, caption, metadata }) =>
+        addEvidence({ stageId, seasonId, kind, storagePath, caption, metadata })
       }
     />
   );

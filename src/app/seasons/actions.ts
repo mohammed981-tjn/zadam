@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { planSeason, type LedgerCategory } from "@/lib/season";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
+import { sanitisePhotoMetadata } from "@/lib/exif";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -119,6 +120,8 @@ export async function addEvidence(args: {
   kind: string;
   storagePath: string;
   caption: string;
+  /** EXIF read in the browser before compression re-encoded the file. */
+  metadata?: unknown;
 }): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();
   const {
@@ -136,11 +139,16 @@ export async function addEvidence(args: {
     return { ok: false, message: "مسار ملف غير صالح." };
   }
 
+  const photo = sanitisePhotoMetadata(args.metadata);
+
   const { error } = await supabase.from("stage_evidence").insert({
     stage_id: args.stageId,
     kind: args.kind,
     caption: args.caption,
     storage_path: args.storagePath,
+    captured_at: photo.capturedAt,
+    latitude: photo.latitude,
+    longitude: photo.longitude,
     created_by: user.id,
   });
 

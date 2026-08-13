@@ -56,12 +56,13 @@ export default function LandDocuments({
         kinds={LAND_DOCUMENT_KINDS}
         folder="lands"
         label="ارفع المستند"
-        onUploaded={async ({ kind, storagePath, caption }) => {
+        onUploaded={async ({ kind, storagePath, caption, metadata }) => {
           const result = await addLandDocument({
             landId,
             kind,
             storagePath,
             caption,
+            metadata,
           });
           if (result.ok) setUploaded((u) => [...u, kind]);
           return result;
