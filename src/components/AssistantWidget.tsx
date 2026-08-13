@@ -82,21 +82,22 @@ export default function AssistantWidget() {
   }
 
   return (
-    // Sits above the mobile browser's bottom chrome, which was hiding the
-    // launcher entirely on phones. The z-index is deliberately far above
-    // anything else on the page so no later component can bury it.
-    <div
-      ref={dragRef}
-      suppressHydrationWarning
-      className="fixed bottom-4 left-4 z-[100]"
-      style={{
-        bottom: "calc(1.25rem + env(safe-area-inset-bottom))",
-        transform: `translate(${offset.x}px, ${offset.y}px)`,
-        touchAction: "none",
-      }}
-    >
+    /*
+     * The panel and the launcher are deliberately separate fixed elements.
+     *
+     * They used to share one container that carried the drag transform, and a
+     * transformed ancestor becomes the containing block for its fixed
+     * descendants — so dragging the launcher to the edge dragged the panel with
+     * it and pushed the panel off-screen when opened. Keeping them apart means
+     * the reader can put the button anywhere while the conversation always
+     * opens fully on-screen.
+     */
+    <>
       {open && (
-        <div className="mb-3 flex h-[28rem] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+        <div
+          className="fixed inset-x-4 z-[99] flex h-[28rem] max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl sm:right-auto sm:left-4 sm:w-80"
+          style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
+        >
           <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
             <span className="font-bold">🌾 مساعد سودجري</span>
             <div className="flex items-center gap-2">
@@ -237,26 +238,37 @@ export default function AssistantWidget() {
       {/* A labelled pill rather than a bare icon — a lone circle reads as
           decoration and visitors were not finding the assistant at all.
           Draggable, because no fixed corner is free on every page. */}
-      <button
-        onPointerDown={onPointerDown}
-        onClick={() => {
-          // A drag must not also open the panel.
-          if (consumeDrag()) return;
-          setOpen((v) => !v);
+      <div
+        ref={dragRef}
+        suppressHydrationWarning
+        className="fixed left-4 z-[100]"
+        style={{
+          bottom: "calc(1.25rem + env(safe-area-inset-bottom))",
+          transform: `translate(${offset.x}px, ${offset.y}px)`,
+          touchAction: "none",
         }}
-        className={`flex touch-none items-center gap-2 rounded-full bg-primary py-3 pe-5 ps-4 text-primary-foreground shadow-xl ring-2 ring-primary/25 transition hover:opacity-90 ${
-          dragging ? "scale-105 cursor-grabbing" : "cursor-grab"
-        }`}
-        aria-label="افتح مساعد سودجري — يمكنك سحب الزر لتحريكه"
-        aria-expanded={open}
       >
-        <span className="text-2xl leading-none">💬</span>
-        {!open && (
-          <span className="whitespace-nowrap text-sm font-bold">
-            اسأل سودجري
-          </span>
-        )}
-      </button>
-    </div>
+        <button
+          onPointerDown={onPointerDown}
+          onClick={() => {
+            // A drag must not also open the panel.
+            if (consumeDrag()) return;
+            setOpen((v) => !v);
+          }}
+          className={`flex touch-none items-center gap-2 rounded-full bg-primary py-3 pe-5 ps-4 text-primary-foreground shadow-xl ring-2 ring-primary/25 transition hover:opacity-90 ${
+            dragging ? "scale-105 cursor-grabbing" : "cursor-grab"
+          }`}
+          aria-label="افتح مساعد سودجري — يمكنك سحب الزر لتحريكه"
+          aria-expanded={open}
+        >
+          <span className="text-2xl leading-none">💬</span>
+          {!open && (
+            <span className="whitespace-nowrap text-sm font-bold">
+              اسأل سودجري
+            </span>
+          )}
+        </button>
+      </div>
+    </>
   );
 }
