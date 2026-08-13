@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { translateAuthError } from "@/lib/auth-errors";
 import { toE164 } from "@/lib/phone";
 import { phoneToEmail } from "@/lib/phoneIdentity";
@@ -18,9 +19,10 @@ import { phoneToEmail } from "@/lib/phoneIdentity";
  *
  * The number does not go through Supabase's phone provider, which cannot be
  * enabled without SMS credentials the platform has no way to obtain for Sudan
- * today. It is folded into an internal address instead and signed up through the
- * email flow — see lib/phoneIdentity for why, and for what this does and does
- * not amount to. The short version: the number is an identifier the user chose,
+ * today. It is folded into an internal address instead and the account is
+ * created already confirmed through the admin API — see lib/phoneIdentity for
+ * the address, lib/supabase/admin for why the elevated key is needed and how it
+ * is contained. The short version: the number is an identifier the user chose,
  * not a fact the platform has verified, and nothing may present it as verified
  * until a real SMS route exists.
  */
@@ -121,37 +123,58 @@ export async function signup(formData: FormData) {
     redirect(`/signup?error=${encodeURIComponent(phone.message)}`);
   }
 
-  /*
-   * The real number is written to user metadata, not left to be recovered from
-   * the internal address. A trigger copies it onto the profile, so the platform
-   * holds the number in the form it will need on the day an SMS route exists and
-   * these accounts have to be moved onto it.
-   */
-  const { data, error } = await supabase.auth.signUp({
-    email: phoneToEmail(phone.e164),
-    password,
-    options: { data: { full_name: fullName, phone: phone.e164 } },
-  });
+  const email = phoneToEmail(phone.e164);
 
-  if (error) {
+  /*
+   * Created already confirmed, through the admin API.
+   *
+   * The ordinary signup call would leave the account waiting on a confirmation
+   * link sent to an address that cannot receive one — an account nobody could
+   * ever sign into. Confirming at creation also means the email path keeps its
+   * own confirmation for real addresses: this is not a project-wide setting
+   * being switched off, it is one flow that has no inbox to check.
+   *
+   * The real number goes into user metadata, not left to be recovered from the
+   * internal address. A trigger copies it onto the profile, so the platform
+   * holds the number in the form a future SMS provider will want when these
+   * accounts are migrated onto real verification.
+   */
+  const admin = createAdminClient();
+  if (!admin) {
+    console.error("signup: SUPABASE_SERVICE_ROLE_KEY is not set");
     redirect(
       `/signup?error=${encodeURIComponent(
-        translateAuthError(error.message, "phone"),
+        "التسجيل برقم الجوال غير مُهيّأ على الخادم حالياً. سجّل بالبريد الإلكتروني، أو تواصل معنا.",
       )}`,
     );
   }
 
-  /*
-   * A session comes straight back while email confirmations are off, which is
-   * the setting this flow requires. If they are ever switched on, signUp returns
-   * without one and Supabase posts a confirmation to an address that cannot
-   * receive it — so this branch says what is actually wrong instead of telling
-   * the visitor to check an inbox that will never hold anything.
-   */
-  if (!data.session) {
+  const { error: createError } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: fullName, phone: phone.e164 },
+  });
+
+  if (createError) {
+    redirect(
+      `/signup?error=${encodeURIComponent(
+        translateAuthError(createError.message, "phone"),
+      )}`,
+    );
+  }
+
+  // The admin client holds no session — the account exists, and this is what
+  // actually signs the visitor in.
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInError) {
     redirect(
       `/login?message=${encodeURIComponent(
-        "أُنشئ حسابك، لكن تفعيل الحسابات ما يزال مطلوباً في إعدادات المنصة ولا يمكن إرساله إلى رقم جوال. تواصل معنا لتفعيل حسابك.",
+        "أُنشئ حسابك بنجاح. سجّل الدخول برقمك وكلمة مرورك.",
       )}`,
     );
   }

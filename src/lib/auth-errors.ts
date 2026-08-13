@@ -19,6 +19,10 @@ export function translateAuthError(
     "User already registered": byPhone
       ? "هذا الرقم مسجّل بالفعل. جرّب تسجيل الدخول بدلاً من ذلك."
       : "هذا البريد الإلكتروني مسجّل بالفعل. جرّب تسجيل الدخول بدلاً من ذلك.",
+    // The admin API words the duplicate differently from ordinary signup.
+    "A user with this email address has already been registered": byPhone
+      ? "هذا الرقم مسجّل بالفعل. جرّب تسجيل الدخول بدلاً من ذلك."
+      : "هذا البريد الإلكتروني مسجّل بالفعل. جرّب تسجيل الدخول بدلاً من ذلك.",
     "Password should be at least 6 characters":
       "كلمة المرور يجب أن تكون 6 أحرف على الأقل.",
     /*
