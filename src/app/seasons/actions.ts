@@ -106,30 +106,48 @@ export async function createSeason(
   redirect(`/seasons/${seasonId}`);
 }
 
-/** Attaches evidence to a stage. Without at least one, the stage cannot close. */
-export async function addEvidence(formData: FormData) {
+/**
+ * Records a file already uploaded to storage as evidence for a stage.
+ *
+ * The path is verified to sit under this user's own folder before it is
+ * stored, so a crafted request cannot attach someone else's object — the
+ * storage policy stops the upload, and this stops the reference.
+ */
+export async function addEvidence(args: {
+  stageId: string;
+  seasonId: string;
+  kind: string;
+  storagePath: string;
+  caption: string;
+}): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const stageId = str(formData, "stage_id");
-  const caption = str(formData, "caption");
-  const kind = str(formData, "kind");
+  if (!args.stageId || !args.storagePath) {
+    return { ok: false, message: "بيانات الدليل ناقصة." };
+  }
+  if (!["photo", "invoice", "inspection", "note"].includes(args.kind)) {
+    return { ok: false, message: "نوع دليل غير معروف." };
+  }
+  if (!args.storagePath.startsWith(`${user.id}/`)) {
+    return { ok: false, message: "مسار ملف غير صالح." };
+  }
 
-  if (!stageId || !caption) return;
-  if (!["photo", "invoice", "inspection", "note"].includes(kind)) return;
-
-  await supabase.from("stage_evidence").insert({
-    stage_id: stageId,
-    kind,
-    caption,
-    url: str(formData, "url") || null,
+  const { error } = await supabase.from("stage_evidence").insert({
+    stage_id: args.stageId,
+    kind: args.kind,
+    caption: args.caption,
+    storage_path: args.storagePath,
     created_by: user.id,
   });
 
-  revalidatePath(`/seasons/${str(formData, "season_id")}`);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath(`/seasons/${args.seasonId}`);
+  return { ok: true };
 }
 
 /**

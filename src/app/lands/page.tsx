@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { STATIONS } from "@/lib/agronomy";
 import { WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
 import type { Land } from "@/types/database";
+import LandDocuments from "@/components/LandDocuments";
 
 export const metadata = { title: "أراضيّ | سودجري" };
 
@@ -27,6 +28,18 @@ export default async function LandsPage() {
     .order("created_at", { ascending: false });
 
   const lands = (data ?? []) as Land[];
+
+  const { data: docRows } = await supabase
+    .from("land_documents")
+    .select("id, land_id, kind, caption")
+    .in("land_id", lands.length ? lands.map((l) => l.id) : ["0"]);
+
+  const documents = (docRows ?? []) as {
+    id: string;
+    land_id: string;
+    kind: string;
+    caption: string | null;
+  }[];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -110,6 +123,11 @@ export default async function LandsPage() {
                     </div>
                   ))}
                 </dl>
+
+                <LandDocuments
+                  landId={l.id}
+                  existing={documents.filter((d) => d.land_id === l.id)}
+                />
 
                 {l.verification_note && (
                   <p className="mt-3 rounded-lg bg-background px-3 py-2 text-xs text-muted">

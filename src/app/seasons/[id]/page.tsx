@@ -16,12 +16,8 @@ import type {
   SeasonStage,
   StageEvidence,
 } from "@/types/database";
-import {
-  addEvidence,
-  addLedgerEntry,
-  completeSeason,
-  completeStage,
-} from "../actions";
+import { addLedgerEntry, completeSeason, completeStage } from "../actions";
+import StageEvidenceUpload from "@/components/StageEvidence";
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -225,35 +221,7 @@ export default async function SeasonPage({
 
                 {season.status === "active" && (
                   <div className="mt-4 flex flex-wrap items-end gap-3">
-                    <form
-                      action={addEvidence}
-                      className="flex flex-wrap items-end gap-2"
-                    >
-                      <input type="hidden" name="stage_id" value={s.id} />
-                      <input type="hidden" name="season_id" value={season.id} />
-                      <select
-                        name="kind"
-                        className={field}
-                        defaultValue="photo"
-                      >
-                        <option value="photo">صورة</option>
-                        <option value="invoice">فاتورة</option>
-                        <option value="inspection">معاينة</option>
-                        <option value="note">ملاحظة</option>
-                      </select>
-                      <input
-                        name="caption"
-                        required
-                        placeholder="وصف الدليل"
-                        className={field}
-                      />
-                      <button
-                        type="submit"
-                        className="rounded-lg border border-border px-3 py-2 text-sm hover:border-primary"
-                      >
-                        أضف دليلاً
-                      </button>
-                    </form>
+                    <StageEvidenceUpload stageId={s.id} seasonId={season.id} />
 
                     {!s.completed && (
                       <form action={completeStage}>
