@@ -121,22 +121,36 @@ function stem(token: string): string {
 
 const FIELD_WEIGHT = { title: 3, crop: 3, topic: 1.5, content: 1 };
 
+/** Question terms, normalised and stemmed, with duplicates removed. */
+export function questionTerms(question: string): string[] {
+  return [...new Set(tokenize(question).map(stem))];
+}
+
+export interface ScoredEntry {
+  entry: RetrievableEntry;
+  score: number;
+  /** Which of the question's terms this entry actually contains. */
+  matched: string[];
+}
+
 /**
- * Ranks entries against a question and returns the strongest ones.
+ * Scores every entry against the question and returns them ranked, best first.
  *
  * Scoring is term frequency damped by a saturation curve, multiplied by inverse
  * document frequency so that a rare word like "بونجرو" counts far more than a
  * common one like "زراعة", and weighted by which field the term appears in.
+ *
+ * The scores are exposed rather than kept private because the local answerer
+ * needs them: deciding whether the base can answer on its own is a question
+ * about how strong the top match is and how far ahead of the runner-up it sits,
+ * and that judgement is impossible from a bare list of entries.
  */
-export function retrieveRelevant(
+export function scoreEntries(
   question: string,
   entries: RetrievableEntry[],
-  limit = 12,
-): RetrievableEntry[] {
-  if (entries.length <= limit) return entries;
-
-  const queryTerms = [...new Set(tokenize(question).map(stem))];
-  if (queryTerms.length === 0) return entries.slice(0, limit);
+): ScoredEntry[] {
+  const queryTerms = questionTerms(question);
+  if (queryTerms.length === 0 || entries.length === 0) return [];
 
   // How many entries contain each term, for inverse document frequency.
   const docsWithTerm = new Map<string, number>();
@@ -165,6 +179,7 @@ export function retrieveRelevant(
   const scored = entries.map((entry, i) => {
     const t = perEntryTokens[i];
     let score = 0;
+    const matched: string[] = [];
 
     for (const term of queryTerms) {
       const inDocs = docsWithTerm.get(term) ?? 0;
@@ -184,15 +199,30 @@ export function retrieveRelevant(
         raw += FIELD_WEIGHT.content * ((inContent * 2.2) / (inContent + 1.2));
       }
 
+      if (raw > 0) matched.push(term);
       score += raw * idf;
     }
 
-    return { entry, score };
+    return { entry, score, matched };
   });
 
-  const hits = scored
-    .filter((s) => s.score > 0)
-    .sort((a, b) => b.score - a.score);
+  return scored.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Ranks entries against a question and returns the strongest ones.
+ */
+export function retrieveRelevant(
+  question: string,
+  entries: RetrievableEntry[],
+  limit = 12,
+): RetrievableEntry[] {
+  if (entries.length <= limit) return entries;
+
+  const ranked = scoreEntries(question, entries);
+  if (ranked.length === 0) return entries.slice(0, limit);
+
+  const hits = ranked.filter((s) => s.score > 0);
 
   // If nothing matched, the question is off-topic for the base; send a small
   // sample rather than the whole thing so the model can still say it does not

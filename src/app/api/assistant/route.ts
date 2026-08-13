@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { retrieveRelevant, type RetrievableEntry } from "@/lib/retrieval";
+import { answerLocally, bestEffortAnswer } from "@/lib/localAnswer";
+import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
+import { INVESTMENT_LIVE } from "@/lib/config";
 
 const SYSTEM_PROMPT = `أنت "مساعد سودجري" — مساعد ذكي يتحدث العربية فقط لمنصة "سودجري" للاستثمار الزراعي في السودان. تجيب على ثلاثة أنواع من الأسئلة، ولكل نوع قاعدة مختلفة:
 
@@ -37,13 +40,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "سؤال غير صالح" }, { status: 400 });
   }
 
+  // Note there is no early return when GEMINI_API_KEY is missing. The assistant
+  // no longer depends on the model being reachable: the platform answers what it
+  // can from its own engines and knowledge base first, and only what survives
+  // that is sent out. A missing key now costs the general-knowledge answers, not
+  // the assistant.
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "المساعد غير مُفعّل حالياً" },
-      { status: 503 },
-    );
-  }
 
   try {
     const supabase = await createClient();
@@ -125,6 +127,45 @@ export async function POST(req: NextRequest) {
           (e: unknown) => console.error("assistant: question log failed", e),
         );
 
+    /*
+     * Answer from the platform itself before reaching for the model.
+     *
+     * Three kinds of question do not need one: what is on offer (a flag and a
+     * table), how much water a crop needs (FAO-56 arithmetic the platform
+     * already runs), and anything a curated entry answers squarely. These come
+     * back in under a millisecond, cost nothing, and cannot be hallucinated.
+     */
+    const local = answerLocally({
+      question,
+      entries: allKnowledge,
+      projectCount: projects?.length ?? 0,
+      investmentLive: INVESTMENT_LIVE,
+    });
+
+    if (local) {
+      await logQuestion(true);
+      return NextResponse.json({ answer: local.answer, source: local.source });
+    }
+
+    // Visitors repeat each other. Serving the second asker from memory keeps the
+    // quota for questions nobody has asked yet.
+    const cached = getCachedAnswer(question);
+    if (cached) {
+      await logQuestion(true);
+      return NextResponse.json({ answer: cached, source: "cache" });
+    }
+
+    if (!apiKey) {
+      await logQuestion(false);
+      return NextResponse.json(
+        {
+          error:
+            "لا أملك إجابة موثّقة لهذا السؤال في قاعدة سودجري بعد، ومحرك المعرفة العامة غير مُفعّل حالياً. جرّب صياغة أقرب لمحصول أو تقنية بعينها، أو اسألني عن الاحتياج المائي لمحصول محدد.",
+        },
+        { status: 503 },
+      );
+    }
+
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
       {
@@ -151,6 +192,16 @@ export async function POST(req: NextRequest) {
       const bodyText = await geminiRes.text();
       console.error("assistant: gemini error", geminiRes.status, bodyText);
       await logQuestion(false);
+
+      // The model being down is not a reason to send the visitor away empty
+      // handed. Show the nearest entries, labelled as approximate.
+      const degraded = bestEffortAnswer(question, allKnowledge);
+      if (degraded) {
+        return NextResponse.json({
+          answer: degraded.answer,
+          source: "knowledge",
+        });
+      }
 
       if (geminiRes.status === 429) {
         return NextResponse.json(
@@ -192,7 +243,9 @@ export async function POST(req: NextRequest) {
 
     await logQuestion(true);
 
-    return NextResponse.json({ answer });
+    if (rawAnswer) setCachedAnswer(question, answer);
+
+    return NextResponse.json({ answer, source: "model" });
   } catch (err) {
     console.error("assistant: unhandled error", err);
     const message = err instanceof Error ? err.message : String(err);

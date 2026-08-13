@@ -5,7 +5,24 @@ import { submitLead } from "@/app/leads/actions";
 import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { useDraggable } from "@/lib/useDraggable";
 
-type Msg = { role: "user" | "assistant"; text: string };
+type Msg = { role: "user" | "assistant"; text: string; source?: string };
+
+/*
+ * Where the answer came from, shown under it.
+ *
+ * A computed number, a quote from a reviewed entry, and a general-purpose
+ * model's recollection carry very different weight, and the platform stakes its
+ * credibility on not blurring them. The model is labelled as outside knowledge
+ * rather than left unmarked; a cached answer is a model answer served twice, so
+ * it carries the same label.
+ */
+const SOURCE_LABEL: Record<string, string> = {
+  calculator: "محسوبة داخل المنصة بمنهجية FAO-56",
+  knowledge: "من قاعدة معرفة سودجري المراجَعة",
+  platform: "من حالة المنصة الحالية",
+  cache: "معرفة عامة خارج قاعدة سودجري المتحقَّقة",
+  model: "معرفة عامة خارج قاعدة سودجري المتحقَّقة",
+};
 
 export default function AssistantWidget() {
   const [open, setOpen] = useState(false);
@@ -60,6 +77,7 @@ export default function AssistantWidget() {
         {
           role: "assistant",
           text: data.answer ?? data.error ?? "حدث خطأ غير متوقع",
+          source: data.answer ? data.source : undefined,
         },
       ]);
       if (userTurns === 2 && !leadResult) setShowLeadForm(true);
@@ -134,7 +152,12 @@ export default function AssistantWidget() {
                       : "self-start border border-border bg-background"
                   }`}
                 >
-                  {m.text}
+                  <p className="whitespace-pre-wrap">{m.text}</p>
+                  {m.source && SOURCE_LABEL[m.source] && (
+                    <p className="mt-1.5 border-t border-border pt-1.5 text-[0.7rem] text-muted">
+                      {SOURCE_LABEL[m.source]}
+                    </p>
+                  )}
                 </div>
               ))}
               {loading && (
