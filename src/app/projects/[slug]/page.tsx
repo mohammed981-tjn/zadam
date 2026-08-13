@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cropVisual, formatUsd, riskLabel, statusLabel } from "@/lib/format";
@@ -90,6 +91,15 @@ export default async function ProjectPage({
           <p className="mt-6 leading-relaxed text-foreground/90">
             {typedProject.description}
           </p>
+        )}
+
+        {typedProject.submitted_by && (
+          <Link
+            href={`/farmers/${typedProject.submitted_by}`}
+            className="mt-4 inline-block text-sm text-primary underline"
+          >
+            اطّلع على سجل المنفّذ ومؤشر ثقته
+          </Link>
         )}
 
         <div className="mt-8 grid gap-8 sm:grid-cols-[1fr_320px]">
