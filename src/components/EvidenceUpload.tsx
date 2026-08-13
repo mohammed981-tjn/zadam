@@ -9,13 +9,25 @@ export interface EvidenceKind {
 }
 
 const MAX_BYTES = 10 * 1024 * 1024;
-const ACCEPTED = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "application/pdf",
-];
+
+/*
+ * The extension comes from the content type, not from the file name.
+ *
+ * Splitting the name on "." and keeping the last piece looks equivalent until a
+ * file arrives with no extension at all: "صورة".split(".").pop() returns the
+ * whole Arabic name, which then lands in the storage path — and object names
+ * accept only a restricted character set, so the upload fails with an error
+ * that says nothing about the real cause. Deriving the extension from the type
+ * the file was already validated against removes the possibility.
+ */
+const ACCEPTED_EXTENSION: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/heic": "heic",
+  "application/pdf": "pdf",
+};
+const ACCEPTED = Object.keys(ACCEPTED_EXTENSION);
 
 /**
  * Uploads a real file, then records it.
@@ -84,7 +96,7 @@ export default function EvidenceUpload({
 
       // The storage policy checks the first path segment against the caller,
       // so the user id must lead.
-      const extension = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+      const extension = ACCEPTED_EXTENSION[file.type];
       const path = `${user.id}/${folder}/${crypto.randomUUID()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
