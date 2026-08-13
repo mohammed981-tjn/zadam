@@ -29,7 +29,10 @@ export default async function Navbar() {
     },
     {
       title: "التعدين",
-      items: [{ href: "/mining", label: "قسم التعدين" }],
+      items: [
+        { href: "/mining", label: "قسم التعدين" },
+        { href: "/mining/registry", label: "سجلّ إثبات المنشأ" },
+      ],
     },
   ];
 

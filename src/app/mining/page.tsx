@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import KnowledgeCard from "@/components/KnowledgeCard";
 import type { KnowledgeEntry } from "@/types/database";
@@ -67,15 +68,12 @@ export default async function MiningPage() {
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <div className="rounded-2xl border border-border bg-card p-6">
           <span className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            قيد التطوير
+            متاح الآن
           </span>
-          <h2 className="mb-3 text-lg font-bold">
-            سجلّ إثبات المنشأ — الخطوة القادمة
-          </h2>
+          <h2 className="mb-3 text-lg font-bold">سجلّ إثبات المنشأ</h2>
           <p className="mb-4 text-sm leading-relaxed text-muted">
-            نبني سجلاً يوثّق سلسلة الحيازة: موقع الاستخراج بإحداثياته، ومن
-            استخرج، وبأي طريقة، وكيف انتقل. تسجيل معلومات فقط — لا بيع ولا وساطة
-            ولا عمولة.
+            سجل يوثّق سلسلة الحيازة: موقع الاستخراج بإحداثياته، ومن استخرج، وبأي
+            طريقة، وكيف انتقل. تسجيل معلومات فقط — لا بيع ولا وساطة ولا عمولة.
           </p>
           <div className="mb-4 rounded-xl bg-background p-4 text-sm leading-relaxed">
             <p className="mb-2 font-bold">لماذا هذا وليس سوق تداول؟</p>
@@ -90,10 +88,16 @@ export default async function MiningPage() {
               بنظام فارغ.
             </p>
           </div>
-          <p className="text-sm text-muted">
-            الذهب المستخرج بلا زئبق له سوق مستعدّ يدفع أكثر — وهذا ما سيوثّقه
+          <p className="mb-4 text-sm text-muted">
+            الذهب المستخرج بلا زئبق له سوق مستعدّ يدفع أكثر — وهذا ما يوثّقه
             السجل أولاً.
           </p>
+          <Link
+            href="/mining/registry"
+            className="inline-block rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            افتح سجلّ إثبات المنشأ
+          </Link>
         </div>
       </section>
     </div>
