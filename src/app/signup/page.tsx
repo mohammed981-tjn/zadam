@@ -39,8 +39,8 @@ export default async function SignupPage({
             البريد الإلكتروني
             <input type="email" name="email" required className={field} />
             <span className="text-xs text-muted">
-              ستصلك رسالة تفعيل باسم خدمة الاستضافة (Supabase) لا باسم سودجري —
-              هذا طبيعي وليست رسالة احتيال. افتحها واضغط الرابط.
+              إن وصلتك رسالة تفعيل فستكون باسم خدمة الاستضافة (Supabase) لا باسم
+              سودجري — هذا طبيعي وليست رسالة احتيال. افتحها واضغط الرابط.
             </span>
           </label>
         ) : (

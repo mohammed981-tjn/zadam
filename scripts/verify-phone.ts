@@ -1,4 +1,9 @@
 import { toE164, toWesternDigits, COUNTRIES } from "../src/lib/phone";
+import {
+  phoneToEmail,
+  isPhoneEmail,
+  emailToPhone,
+} from "../src/lib/phoneIdentity";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -69,6 +74,41 @@ console.log("\nسلامة القائمة:");
   );
   ok(toWesternDigits("٠١٢٣٤٥٦٧٨٩") === "0123456789", "تحويل الأرقام العربية كاملاً");
   ok(toWesternDigits("۰۱۲۳") === "0123", "الأرقام الفارسية تُحوَّل كذلك");
+}
+
+console.log("\nالمُعرِّف الداخلي المشتقّ من الرقم:");
+{
+  const sd = phoneToEmail("249912345678");
+
+  ok(sd === "p249912345678@phone.invalid", "الرقم يتحوّل إلى عنوان داخلي ثابت");
+  ok(
+    phoneToEmail("249912345678") === phoneToEmail("249912345678"),
+    "نفس الرقم يعطي نفس العنوان دائماً — وإلا لتعذّر الدخول بعد التسجيل",
+  );
+  ok(
+    phoneToEmail("249912345678") !== phoneToEmail("249912345679"),
+    "رقمان مختلفان لا يتصادمان على حساب واحد",
+  );
+  ok(
+    sd.endsWith("@phone.invalid"),
+    "النطاق محجوز بمعيار RFC 2606 فلا يصل بريد إلى أحد",
+  );
+  ok(
+    /^[a-z]/.test(sd),
+    "الجزء المحلي يبدأ بحرف لا برقم — بعض المدقّقات ترفض الأرقام وحدها",
+  );
+  ok(isPhoneEmail(sd), "العنوان المشتقّ يُميَّز عن بريد حقيقي");
+  ok(!isPhoneEmail("someone@gmail.com"), "بريد حقيقي لا يُحسب رقم جوال");
+  ok(emailToPhone(sd) === "249912345678", "الرقم يُستخرج من العنوان عند الحاجة");
+  ok(emailToPhone("someone@gmail.com") === null, "لا يُستخرج رقم من بريد حقيقي");
+
+  // The number the user typed has to survive the whole path, because it is what
+  // a future SMS provider will be handed.
+  const typed = toE164("249", "٠٩١٢ ٣٤٥ ٦٧٨");
+  ok(
+    typed.ok && emailToPhone(phoneToEmail(typed.e164)) === "249912345678",
+    "رقم مكتوب بالعربية وبمسافات يصل سليماً إلى آخر المسار",
+  );
 }
 
 console.log(`\n${fail === 0 ? "كل الفحوص نجحت" : `${fail} فحص فشل`}\n`);

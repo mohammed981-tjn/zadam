@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { translateAuthError } from "@/lib/auth-errors";
 import { toE164 } from "@/lib/phone";
+import { phoneToEmail } from "@/lib/phoneIdentity";
 
 /*
  * Phone is the primary identifier, email the fallback.
@@ -15,11 +16,13 @@ import { toE164 } from "@/lib/phone";
  * Most Sudanese users have a phone and use it constantly; email is the less
  * natural identifier here, not the more natural one.
  *
- * Note what phone signup does and does not give us today. Supabase only sends a
- * confirmation code if an SMS provider is configured, and none is — so the
- * account is created immediately with no message and no waiting. The number is
- * therefore an identifier the user chose, not a fact the platform has verified.
- * Nothing in the product may present it as verified until an SMS route exists.
+ * The number does not go through Supabase's phone provider, which cannot be
+ * enabled without SMS credentials the platform has no way to obtain for Sudan
+ * today. It is folded into an internal address instead and signed up through the
+ * email flow — see lib/phoneIdentity for why, and for what this does and does
+ * not amount to. The short version: the number is an identifier the user chose,
+ * not a fact the platform has verified, and nothing may present it as verified
+ * until a real SMS route exists.
  */
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -42,7 +45,9 @@ export async function login(formData: FormData) {
     });
     if (error) {
       redirect(
-        `/login?error=${encodeURIComponent(translateAuthError(error.message))}`,
+        `/login?method=email&error=${encodeURIComponent(
+          translateAuthError(error.message, "email"),
+        )}`,
       );
     }
     redirect("/dashboard");
@@ -54,13 +59,15 @@ export async function login(formData: FormData) {
   }
 
   const { error } = await supabase.auth.signInWithPassword({
-    phone: phone.e164,
+    email: phoneToEmail(phone.e164),
     password,
   });
 
   if (error) {
     redirect(
-      `/login?error=${encodeURIComponent(translateAuthError(error.message))}`,
+      `/login?error=${encodeURIComponent(
+        translateAuthError(error.message, "phone"),
+      )}`,
     );
   }
 
@@ -92,13 +99,15 @@ export async function signup(formData: FormData) {
 
     if (error) {
       redirect(
-        `/signup?method=email&error=${encodeURIComponent(translateAuthError(error.message))}`,
+        `/signup?method=email&error=${encodeURIComponent(
+          translateAuthError(error.message, "email"),
+        )}`,
       );
     }
 
     if (!data.session) {
       redirect(
-        `/login?message=${encodeURIComponent(
+        `/login?method=email&message=${encodeURIComponent(
           "تم إنشاء الحساب. ستصلك رسالة تفعيل على بريدك من خدمة الاستضافة — افتحها واضغط الرابط، ثم عد لتسجيل الدخول.",
         )}`,
       );
@@ -112,28 +121,37 @@ export async function signup(formData: FormData) {
     redirect(`/signup?error=${encodeURIComponent(phone.message)}`);
   }
 
+  /*
+   * The real number is written to user metadata, not left to be recovered from
+   * the internal address. A trigger copies it onto the profile, so the platform
+   * holds the number in the form it will need on the day an SMS route exists and
+   * these accounts have to be moved onto it.
+   */
   const { data, error } = await supabase.auth.signUp({
-    phone: phone.e164,
+    email: phoneToEmail(phone.e164),
     password,
     options: { data: { full_name: fullName, phone: phone.e164 } },
   });
 
   if (error) {
     redirect(
-      `/signup?error=${encodeURIComponent(translateAuthError(error.message))}`,
+      `/signup?error=${encodeURIComponent(
+        translateAuthError(error.message, "phone"),
+      )}`,
     );
   }
 
   /*
-   * With no SMS provider there is no code to enter and a session comes back
-   * immediately. If one is configured later, signUp returns without a session
-   * and this branch is what the visitor sees — so it is written now rather than
-   * left as a silent dead end that only appears in production.
+   * A session comes straight back while email confirmations are off, which is
+   * the setting this flow requires. If they are ever switched on, signUp returns
+   * without one and Supabase posts a confirmation to an address that cannot
+   * receive it — so this branch says what is actually wrong instead of telling
+   * the visitor to check an inbox that will never hold anything.
    */
   if (!data.session) {
     redirect(
       `/login?message=${encodeURIComponent(
-        "تم إنشاء الحساب. ستصلك رسالة نصية بكود التفعيل.",
+        "أُنشئ حسابك، لكن تفعيل الحسابات ما يزال مطلوباً في إعدادات المنصة ولا يمكن إرساله إلى رقم جوال. تواصل معنا لتفعيل حسابك.",
       )}`,
     );
   }
