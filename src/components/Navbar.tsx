@@ -33,6 +33,7 @@ export default async function Navbar() {
     groups.push({
       title: "أرضي",
       items: [
+        { href: "/lands", label: "أراضيّ" },
         { href: "/seasons", label: "مواسمي" },
         { href: "/opportunities/new", label: "ارفع فرصة" },
       ],

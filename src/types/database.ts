@@ -71,6 +71,31 @@ export type LedgerCategoryDb =
   | "other"
   | "revenue";
 
+export interface Land {
+  id: string;
+  owner_id: string;
+  name: string;
+  state: string;
+  locality: string | null;
+  village: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  feddans: number;
+  station_key: string;
+  water_source: string;
+  water_per_feddan: number | null;
+  soil_note: string | null;
+  previous_crops: string | null;
+  km_to_market: number | null;
+  tenure: "owned" | "leased" | "communal" | "unspecified";
+  documents_on_file: number;
+  documents_required: number;
+  verification: "unverified" | "submitted" | "verified" | "rejected";
+  verification_note: string | null;
+  listed: boolean;
+  created_at: string;
+}
+
 export interface Season {
   id: string;
   owner_id: string;
