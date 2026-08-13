@@ -10,13 +10,20 @@ export default async function Navbar() {
   } = await supabase.auth.getUser();
 
   let role: string | null = null;
+  let unread = 0;
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    // Row-level security scopes the count to this user's own inbox, so no
+    // recipient filter is needed here — and adding one would imply the filter
+    // is what keeps inboxes apart.
+    const [{ data: profile }, { count }] = await Promise.all([
+      supabase.from("profiles").select("role").eq("id", user.id).single(),
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .is("read_at", null),
+    ]);
     role = profile?.role ?? null;
+    unread = count ?? 0;
   }
 
   const groups: NavGroup[] = [
@@ -84,6 +91,22 @@ export default async function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+          {user && (
+            <Link
+              href="/notifications"
+              aria-label={
+                unread > 0 ? `الإشعارات، ${unread} غير مقروء` : "الإشعارات"
+              }
+              className="relative rounded-lg border border-border px-2.5 py-2 text-sm hover:border-primary"
+            >
+              🔔
+              {unread > 0 && (
+                <span className="absolute -end-1.5 -top-1.5 min-w-5 rounded-full bg-danger px-1 text-center text-[0.65rem] font-bold leading-5 text-white">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </Link>
+          )}
           {!user && (
             <Link
               href="/signup"
