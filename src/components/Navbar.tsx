@@ -21,11 +21,15 @@ export default async function Navbar() {
 
   const groups: NavGroup[] = [
     {
-      title: "استكشف",
+      title: "الزراعة",
       items: [
         { href: "/", label: "الرئيسية" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
       ],
+    },
+    {
+      title: "التعدين",
+      items: [{ href: "/mining", label: "قسم التعدين" }],
     },
   ];
 

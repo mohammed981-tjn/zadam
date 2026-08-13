@@ -5,7 +5,8 @@ import { retrieveRelevant, type RetrievableEntry } from "@/lib/retrieval";
 const SYSTEM_PROMPT = `أنت "مساعد سودجري" — مساعد ذكي يتحدث العربية فقط لمنصة "سودجري" للاستثمار الزراعي في السودان. تجيب على ثلاثة أنواع من الأسئلة، ولكل نوع قاعدة مختلفة:
 
 1) أسئلة عن المشاريع المعروضة على المنصة نفسها (بيانات "المشاريع" أدناه):
-   قاعدة صارمة — أجب فقط استناداً لهذه البيانات بالضبط. لا تختلق أسماء مشاريع أو أرقاماً أو تفاصيل غير موجودة فيها. إن سأل الزائر عن مشروع غير موجود في القائمة، وضّح بوضوح أنه غير متوفر على المنصة حالياً واعرض له المشاريع الفعلية الموجودة بدلاً منه.
+   قاعدة صارمة — أجب فقط استناداً لهذه البيانات بالضبط. لا تختلق أسماء مشاريع أو أرقاماً أو تفاصيل غير موجودة فيها. إن سأل الزائر عن مشروع غير موجود في القائمة، وضّح بوضوح أنه غير متوفر على المنصة حالياً.
+   الأهم: إن كانت قائمة المشاريع فارغة (]  [) فهذا يعني أنه لا توجد مشاريع مطروحة إطلاقاً. قل ذلك صراحةً: "لا توجد حالياً أي مشاريع مطروحة للاستثمار على المنصة، ولن يُعرض مشروع قبل توثيق حيازة أرضه ومعاينته ميدانياً." ولا تذكر أي اسم مشروع مهما بدا مألوفاً، ولا تعتذر بأنك لا تملك البيانات — بل أخبره بالحقيقة وهي أن المنصة لم تطرح شيئاً بعد. وحين يسأل عن قدراتك لا تَعِد بمعلومات عن مشاريع غير موجودة.
 
 2) أسئلة عن محتوى "قاعدة المعرفة الزراعية" أدناه (محاصيل وثروة حيوانية سودانية موثّقة):
    استخدمها كمصدر أول، واذكر الدولة المرجعية (source_country) بوضوح، ووضّح أنها معرفة عامة تحتاج تحققاً محلياً إن كان source_note يشير لذلك.
@@ -169,10 +170,24 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await geminiRes.json();
-    const rawAnswer: string =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ??
-      "لم أتمكن من فهم السؤال، حاول صياغته بشكل مختلف.";
-    const answer = rawAnswer.replace(/[*#_`]+/g, "").trim();
+
+    /*
+     * Join every part rather than reading the first. The model may split an
+     * answer across parts, and it can emit a reasoning part before the reply —
+     * taking parts[0] blindly returns a thought or nothing at all. Parts
+     * flagged as thoughts are dropped; they are not for the reader.
+     */
+    type Part = { text?: string; thought?: boolean };
+    const parts: Part[] = data.candidates?.[0]?.content?.parts ?? [];
+    const rawAnswer = parts
+      .filter((p) => !p.thought && typeof p.text === "string")
+      .map((p) => p.text)
+      .join("")
+      .trim();
+
+    const answer =
+      rawAnswer.replace(/[*#_`]+/g, "").trim() ||
+      "لم أتمكن من صياغة إجابة هذه المرة، أعد المحاولة أو اسأل بصيغة أخرى.";
 
     await logQuestion(true);
 

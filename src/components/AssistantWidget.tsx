@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { submitLead } from "@/app/leads/actions";
 import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
+import { useDraggable } from "@/lib/useDraggable";
 
 type Msg = { role: "user" | "assistant"; text: string };
 
@@ -18,6 +19,13 @@ export default function AssistantWidget() {
   } | null>(null);
   const [leadSubmitting, setLeadSubmitting] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const {
+    ref: dragRef,
+    offset,
+    dragging,
+    onPointerDown,
+    consumeDrag,
+  } = useDraggable("sudagri:assistant-position");
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,8 +86,14 @@ export default function AssistantWidget() {
     // launcher entirely on phones. The z-index is deliberately far above
     // anything else on the page so no later component can bury it.
     <div
+      ref={dragRef}
+      suppressHydrationWarning
       className="fixed bottom-4 left-4 z-[100]"
-      style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
+      style={{
+        bottom: "calc(1.25rem + env(safe-area-inset-bottom))",
+        transform: `translate(${offset.x}px, ${offset.y}px)`,
+        touchAction: "none",
+      }}
     >
       {open && (
         <div className="mb-3 flex h-[28rem] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
@@ -221,11 +235,19 @@ export default function AssistantWidget() {
       )}
 
       {/* A labelled pill rather than a bare icon — a lone circle reads as
-          decoration and visitors were not finding the assistant at all. */}
+          decoration and visitors were not finding the assistant at all.
+          Draggable, because no fixed corner is free on every page. */}
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full bg-primary py-3 pe-5 ps-4 text-primary-foreground shadow-xl ring-2 ring-primary/25 transition hover:opacity-90"
-        aria-label="افتح مساعد سودجري"
+        onPointerDown={onPointerDown}
+        onClick={() => {
+          // A drag must not also open the panel.
+          if (consumeDrag()) return;
+          setOpen((v) => !v);
+        }}
+        className={`flex touch-none items-center gap-2 rounded-full bg-primary py-3 pe-5 ps-4 text-primary-foreground shadow-xl ring-2 ring-primary/25 transition hover:opacity-90 ${
+          dragging ? "scale-105 cursor-grabbing" : "cursor-grab"
+        }`}
+        aria-label="افتح مساعد سودجري — يمكنك سحب الزر لتحريكه"
         aria-expanded={open}
       >
         <span className="text-2xl leading-none">💬</span>

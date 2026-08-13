@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
 import KnowledgeCard from "@/components/KnowledgeCard";
@@ -12,9 +13,12 @@ export default async function Home() {
       .select("*")
       .neq("status", "draft")
       .order("created_at", { ascending: false }),
+    // Mining lives in its own section — mixing it into the agricultural feed
+    // is exactly what confuses a visitor who came for one of the two.
     supabase
       .from("knowledge_entries")
       .select("*")
+      .neq("crop", "تعدين")
       .order("created_at", { ascending: false })
       .limit(6),
   ]);
@@ -38,6 +42,30 @@ export default async function Home() {
             — ولن نعرض مشروعاً إلا بعد توثيقه قانونياً ومعاينته ميدانياً. أما
             قاعدة المعرفة وحاسبة المياه فتعملان الآن ومتاحتان للجميع مجاناً.
           </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pt-10">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border-2 border-primary bg-primary/5 p-5">
+            <div className="mb-2 text-3xl">🌾</div>
+            <h2 className="mb-1 text-lg font-bold text-primary">الزراعة</h2>
+            <p className="text-sm text-muted">
+              أنت هنا — معرفة المحاصيل والثروة الحيوانية، وحاسبة المياه، وتخطيط
+              المواسم، والاستثمار الزراعي.
+            </p>
+          </div>
+          <Link
+            href="/mining"
+            className="rounded-2xl border border-border bg-card p-5 transition hover:border-primary"
+          >
+            <div className="mb-2 text-3xl">⛏️</div>
+            <h2 className="mb-1 text-lg font-bold">التعدين</h2>
+            <p className="text-sm text-muted">
+              قسم منفصل: السلامة في الحفر، والاستخلاص بلا زئبق، وجيولوجيا الذهب
+              في السودان.
+            </p>
+          </Link>
         </div>
       </section>
 
