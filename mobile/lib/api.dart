@@ -57,6 +57,37 @@ class KnowledgeEntry {
       );
 }
 
+/// An investment opportunity as the landing page shows it.
+class Project {
+  const Project({
+    required this.name,
+    required this.location,
+    required this.description,
+    this.totalFeddans,
+    this.pricePerShare,
+    this.expectedAnnualReturn,
+    this.riskLevel,
+  });
+
+  final String name;
+  final String location;
+  final String description;
+  final num? totalFeddans;
+  final num? pricePerShare;
+  final num? expectedAnnualReturn;
+  final String? riskLevel;
+
+  factory Project.fromJson(Map<String, dynamic> json) => Project(
+        name: json['name'] as String? ?? '',
+        location: json['location'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        totalFeddans: json['total_feddans'] as num?,
+        pricePerShare: json['price_per_share'] as num?,
+        expectedAnnualReturn: json['expected_annual_return'] as num?,
+        riskLevel: json['risk_level'] as String?,
+      );
+}
+
 /// Raised for anything the caller should show the user rather than swallow.
 class ApiException implements Exception {
   ApiException(this.message);
@@ -72,34 +103,17 @@ class SudagriApi {
 
   static const _timeout = Duration(seconds: 30);
 
-  /// The published knowledge entries.
-  ///
-  /// Deliberately mirrors the website's filter: assistant_only entries are
-  /// regional reference material for the assistant to read, not a reading list
-  /// to put in front of a farmer, and showing them here would bury the
-  /// Sudan-specific ones under thirty foreign entries.
-  Future<List<KnowledgeEntry>> knowledge({String? search}) async {
+  /// One PostgREST read, with the two failures a caller actually needs to tell
+  /// apart: the network never answered, and the server refused.
+  Future<List<Map<String, dynamic>>> _get(
+    String table,
+    Map<String, String> params,
+  ) async {
     if (!ApiConfig.isConfigured) {
       throw ApiException('التطبيق غير مضبوط للاتصال بالخادم.');
     }
 
-    final params = <String, String>{
-      'select': 'crop,topic,title,content,source_country,source_note',
-      'assistant_only': 'eq.false',
-      'order': 'created_at.desc',
-      'limit': '200',
-    };
-
-    if (search != null && search.trim().isNotEmpty) {
-      // PostgREST treats a comma as the or() separator, so a comma inside the
-      // pattern would be read as another condition and silently change the
-      // query. Stripping it is enough here because the rest of the pattern is
-      // percent-encoded by Uri.
-      final safe = search.trim().replaceAll(',', ' ');
-      params['or'] = '(title.ilike.*$safe*,content.ilike.*$safe*,crop.ilike.*$safe*)';
-    }
-
-    final uri = Uri.parse('${ApiConfig.supabaseUrl}/rest/v1/knowledge_entries')
+    final uri = Uri.parse('${ApiConfig.supabaseUrl}/rest/v1/$table')
         .replace(queryParameters: params);
 
     late final http.Response res;
@@ -113,13 +127,60 @@ class SudagriApi {
     }
 
     if (res.statusCode != 200) {
-      throw ApiException('تعذّر تحميل قاعدة المعرفة (${res.statusCode}).');
+      throw ApiException('تعذّر تحميل البيانات (${res.statusCode}).');
     }
 
-    final decoded = jsonDecode(utf8.decode(res.bodyBytes)) as List<dynamic>;
-    return decoded
-        .map((e) => KnowledgeEntry.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return (jsonDecode(utf8.decode(res.bodyBytes)) as List<dynamic>)
+        .cast<Map<String, dynamic>>();
+  }
+
+  /// The projects the landing page lists.
+  ///
+  /// Mirrors the website's filter exactly: drafts are excluded, because a draft
+  /// is a project whose documentation is not finished, and the platform's whole
+  /// claim is that nothing is shown before it is verified.
+  Future<List<Project>> projects() async {
+    final rows = await _get('projects', {
+      'select':
+          'name,location,description,total_feddans,price_per_share,expected_annual_return,risk_level',
+      'status': 'neq.draft',
+      'order': 'created_at.desc',
+    });
+    return rows.map((e) => Project.fromJson(e)).toList();
+  }
+
+  /// The published knowledge entries.
+  ///
+  /// Deliberately mirrors the website's filter: assistant_only entries are
+  /// regional reference material for the assistant to read, not a reading list
+  /// to put in front of a farmer, and showing them here would bury the
+  /// Sudan-specific ones under thirty foreign entries.
+  Future<List<KnowledgeEntry>> knowledge({
+    String? search,
+    int limit = 200,
+    /// Mining lives in its own section on the website — mixing it into the
+    /// agricultural feed is what confuses a visitor who came for one of the two.
+    bool mining = false,
+  }) async {
+    final params = <String, String>{
+      'select': 'crop,topic,title,content,source_country,source_note',
+      'assistant_only': 'eq.false',
+      'crop': mining ? 'eq.تعدين' : 'neq.تعدين',
+      'order': 'created_at.desc',
+      'limit': '$limit',
+    };
+
+    if (search != null && search.trim().isNotEmpty) {
+      // PostgREST treats a comma as the or() separator, so a comma inside the
+      // pattern would be read as another condition and silently change the
+      // query. Stripping it is enough here because the rest of the pattern is
+      // percent-encoded by Uri.
+      final safe = search.trim().replaceAll(',', ' ');
+      params['or'] = '(title.ilike.*$safe*,content.ilike.*$safe*,crop.ilike.*$safe*)';
+    }
+
+    final rows = await _get('knowledge_entries', params);
+    return rows.map((e) => KnowledgeEntry.fromJson(e)).toList();
   }
 
   /// Asks the assistant, returning its answer and which engine produced it.

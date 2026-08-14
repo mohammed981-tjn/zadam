@@ -1,10 +1,14 @@
 /// سودجري — the mobile app.
 ///
-/// Three things, chosen because they are what a farmer standing in a field
-/// actually needs: how much water the crop wants, an assistant that answers in
-/// Arabic, and the knowledge base to read directly. Registering land and
-/// documenting a season stay on the web for now — they involve uploads and
-/// review queues that deserve their own design rather than a cramped port.
+/// Four screens: the platform's own landing page, the FAO-56 water requirement,
+/// the assistant, and the knowledge base. Registering land and documenting a
+/// season stay on the web for now — they involve uploads and review queues that
+/// deserve their own design rather than a cramped port.
+///
+/// The landing screen carries the website's copy verbatim, including the notice
+/// that nothing is on offer yet. Someone who reads the site on a borrowed
+/// laptop and the app on their own phone should meet the same platform saying
+/// the same things.
 ///
 /// The water calculator works with no connection at all. That is not a
 /// convenience: signal in the schemes is unreliable, and a tool that only works
@@ -15,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/assistant_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/knowledge_screen.dart';
 import 'screens/water_screen.dart';
 import 'theme.dart';
@@ -58,6 +63,7 @@ class _HomeShellState extends State<HomeShell> {
   // IndexedStack rather than swapping the child, so a half-finished
   // calculation or a conversation survives a glance at another tab.
   static const _screens = [
+    HomeScreen(),
     WaterScreen(),
     AssistantScreen(),
     KnowledgeScreen(),
@@ -71,6 +77,11 @@ class _HomeShellState extends State<HomeShell> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'الرئيسية',
+          ),
           NavigationDestination(
             icon: Icon(Icons.water_drop_outlined),
             selectedIcon: Icon(Icons.water_drop),
