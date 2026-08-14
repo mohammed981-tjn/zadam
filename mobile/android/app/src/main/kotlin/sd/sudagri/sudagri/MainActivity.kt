@@ -1,0 +1,5 @@
+package sd.sudagri.sudagri
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()

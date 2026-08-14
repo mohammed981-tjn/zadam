@@ -1,0 +1,88 @@
+name: Mobile app
+
+# Builds the Flutter app and attaches an installable APK to the run.
+#
+# This workflow is also the app's only full build: the analyzer and the tests
+# can run anywhere, but assembling an APK needs the Android SDK, so CI is where
+# a change to the mobile app is actually proven to compile. A green analyze on
+# a laptop is not evidence the thing installs.
+#
+# The APK is a debug build. Publishing to a store needs an upload key, which is
+# a secret that belongs to whoever owns the listing, not to this file — so this
+# stops at "installable by hand", which is the useful artefact while there is no
+# listing yet.
+
+on:
+  push:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.0"
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      # Fails the build on any analyzer complaint, not just errors — the app is
+      # small enough that keeping it at zero costs nothing and drifts otherwise.
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      # Includes the parity suite that pins the Dart water engine against the
+      # numbers the TypeScript one produces. If the two implementations drift,
+      # this is what catches it.
+      - name: Test
+        run: flutter test
+
+      # None of these are secrets — the Supabase anon key is publishable by
+      # design and every table it reaches is guarded by row-level security on
+      # the server. They live in repository variables so a fork building this
+      # workflow gets an app that runs rather than one that silently cannot
+      # reach anything.
+      - name: Build APK
+        env:
+          SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::warning::NEXT_PUBLIC_SUPABASE_URL repository variable is unset."
+            echo "::warning::The APK will build, but the knowledge screen will have nothing to read."
+            echo "::warning::Set it under Settings > Secrets and variables > Actions > Variables."
+          fi
+
+          flutter build apk --debug \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=SITE_URL="$SITE_URL"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sudagri-apk
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
