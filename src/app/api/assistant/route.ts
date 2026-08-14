@@ -176,6 +176,21 @@ export async function POST(req: NextRequest) {
 
     if (engines.length === 0) {
       await logQuestion(false);
+
+      // No key configured is the same predicament as every engine being down,
+      // and it had a worse answer: the degraded path below was only reachable
+      // after an engine failed, so a deployment that simply had no key sent the
+      // visitor away with an apology while the entries that half-answered them
+      // sat unread. Show those entries here too — a near miss under an honest
+      // heading beats nothing.
+      const degraded = bestEffortAnswer(question, allKnowledge);
+      if (degraded) {
+        return NextResponse.json({
+          answer: degraded.answer,
+          source: "knowledge",
+        });
+      }
+
       return NextResponse.json(
         {
           error:
