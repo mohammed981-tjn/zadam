@@ -120,6 +120,18 @@ const DEFAULT_OPENROUTER_MODELS = [
   "mistralai/mistral-small-3.2-24b-instruct:free",
 ];
 
+/**
+ * OpenRouter rejects a routing list longer than this — "'models' array must
+ * have 3 items or fewer", HTTP 400, which fails the whole request rather than
+ * routing to the first three. Sending five in one call silently disabled the
+ * entire standby pool.
+ *
+ * The pool is not truncated to fit. It is split across several engines of three,
+ * so the chain still reaches every model: server-side routing inside each
+ * request, and this module's own fallback between them.
+ */
+const OPENROUTER_MODELS_PER_REQUEST = 3;
+
 function openRouterEngine(apiKey: string, models: string[]): Engine {
   return {
     name: `openrouter/${models[0]}`,
@@ -136,11 +148,12 @@ function openRouterEngine(apiKey: string, models: string[]): Engine {
             "X-Title": "SudAgri",
           },
           body: JSON.stringify({
-            // OpenRouter routes down this list itself, so one request covers the
-            // whole free pool: a model that is unavailable, retired or rate
-            // limited is passed over server-side without another round trip.
+            // OpenRouter routes down this list itself, so one request covers
+            // several models: one that is unavailable, retired or rate limited
+            // is passed over server-side without another round trip. The list
+            // is capped at three by the API — see OPENROUTER_MODELS_PER_REQUEST.
             model: models[0],
-            models: models.slice(1),
+            models: models.slice(1, OPENROUTER_MODELS_PER_REQUEST),
             messages: [
               { role: "system", content: system },
               { role: "user", content: user },
@@ -189,17 +202,25 @@ export function buildEngines(env: EngineEnv): Engine[] {
   if (env.geminiKey) engines.push(geminiEngine(env.geminiKey));
 
   if (env.openRouterKey) {
-    const models = (env.openRouterModels ?? "")
+    const configured = (env.openRouterModels ?? "")
       .split(",")
       .map((m) => m.trim())
       .filter(Boolean);
 
-    engines.push(
-      openRouterEngine(
-        env.openRouterKey,
-        models.length > 0 ? models : DEFAULT_OPENROUTER_MODELS,
-      ),
-    );
+    const pool =
+      configured.length > 0 ? configured : DEFAULT_OPENROUTER_MODELS;
+
+    // Split rather than truncate: OpenRouter caps one request's routing list at
+    // three, so a pool of five becomes two engines the chain falls through
+    // instead of two models nobody can reach.
+    for (let i = 0; i < pool.length; i += OPENROUTER_MODELS_PER_REQUEST) {
+      engines.push(
+        openRouterEngine(
+          env.openRouterKey,
+          pool.slice(i, i + OPENROUTER_MODELS_PER_REQUEST),
+        ),
+      );
+    }
   }
 
   return engines;

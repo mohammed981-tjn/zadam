@@ -48,19 +48,36 @@ ok(
   "gemini alone is a one-engine chain",
 );
 ok(
-  buildEngines({ openRouterKey: "k" }).length === 1,
+  buildEngines({ openRouterKey: "k" }).length >= 1,
   "openrouter alone is a valid chain — gemini is not required",
 );
 
 const both = buildEngines({ geminiKey: "k", openRouterKey: "k" });
-ok(both.length === 2, "both keys give a two-engine chain");
 ok(
   both[0].name.startsWith("gemini/"),
   "gemini leads, since the prompt was tuned against it",
 );
 ok(
-  both[1].name.startsWith("openrouter/"),
+  both.slice(1).every((e) => e.name.startsWith("openrouter/")),
   "openrouter stands by behind it",
+);
+
+// OpenRouter answers 400 to a routing list longer than three, which fails the
+// whole request rather than routing to the first three. A five-model pool sent
+// as one call silently disabled the entire standby.
+const five = buildEngines({
+  openRouterKey: "k",
+  openRouterModels: "a:free,b:free,c:free,d:free,e:free",
+});
+ok(five.length === 2, "a five-model pool becomes two engines, not one");
+ok(
+  five[0].name === "openrouter/a:free" && five[1].name === "openrouter/d:free",
+  "split in order, so every model in the pool is still reachable",
+);
+ok(
+  buildEngines({ openRouterKey: "k", openRouterModels: "a:free,b:free,c:free" })
+    .length === 1,
+  "exactly three still fits in one request",
 );
 
 const overridden = buildEngines({
