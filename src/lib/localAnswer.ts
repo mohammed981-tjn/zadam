@@ -400,21 +400,35 @@ function resolveKnowledge(input: LocalAnswerInput): LocalAnswer | null {
 export function bestEffortAnswer(
   question: string,
   entries: RetrievableEntry[],
+  /**
+   * The fused lexical+semantic ranking, when the caller has one.
+   *
+   * Without it this falls back to lexical scoring, and lexical scoring is
+   * exactly what fails on the questions that reach this path: a visitor asking
+   * why water "dries fast in the sand" got an entry about stabilising desert
+   * dunes, because it shares the word "sand", while the entry on irrigating
+   * sandy soils — which answers them — shares no term at all and sat unranked.
+   */
+  ranked?: RetrievableEntry[],
 ): LocalAnswer | null {
-  const ranked = scoreEntries(question, entries)
-    .filter((s) => s.score > 0)
-    .slice(0, 3);
-  if (ranked.length === 0) return null;
+  const top = (ranked && ranked.length > 0
+    ? ranked
+    : scoreEntries(question, entries)
+        .filter((s) => s.score > 0)
+        .map((s) => s.entry)
+  ).slice(0, 3);
 
-  const blocks = ranked.map((s) => {
-    const credit = attribution(s.entry);
-    return `${s.entry.title}\n${s.entry.content}${credit ? `\n(${credit})` : ""}`;
+  if (top.length === 0) return null;
+
+  const blocks = top.map((entry) => {
+    const credit = attribution(entry);
+    return `${entry.title}\n${entry.content}${credit ? `\n(${credit})` : ""}`;
   });
 
   return {
     source: "knowledge",
     confidence: 0,
-    usedTitles: ranked.map((s) => s.entry.title),
+    usedTitles: top.map((e) => e.title),
     answer: [
       "لم أستطع الوصول لمحرك المعرفة العامة الآن، وهذه أقرب المواد في قاعدة سودجري لسؤالك — قد لا تجيبه مباشرة:",
       "",

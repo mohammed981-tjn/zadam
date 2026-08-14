@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { retrieveRelevant, type RetrievableEntry } from "@/lib/retrieval";
+import {
+  fuseRankings,
+  retrieveRelevant,
+  type RetrievableEntry,
+  type SemanticMatch,
+} from "@/lib/retrieval";
+import { embedQuestion } from "@/lib/embedding";
+import { buildEngines, generateWithFallback } from "@/lib/engines";
 import { answerLocally, bestEffortAnswer } from "@/lib/localAnswer";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { INVESTMENT_LIVE } from "@/lib/config";
@@ -40,12 +47,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "سؤال غير صالح" }, { status: 400 });
   }
 
-  // Note there is no early return when GEMINI_API_KEY is missing. The assistant
+  // Note there is no early return when no model is configured. The assistant
   // no longer depends on the model being reachable: the platform answers what it
   // can from its own engines and knowledge base first, and only what survives
-  // that is sent out. A missing key now costs the general-knowledge answers, not
+  // that is sent out. Missing keys now cost the general-knowledge answers, not
   // the assistant.
+  //
+  // Embeddings are Gemini's alone — no free chat pool serves them — so the key
+  // is read separately from the chain it also heads.
   const apiKey = process.env.GEMINI_API_KEY;
+  const engines = buildEngines({
+    geminiKey: apiKey,
+    openRouterKey: process.env.OPENROUTER_API_KEY,
+    openRouterModels: process.env.OPENROUTER_MODELS,
+  });
 
   try {
     const supabase = await createClient();
@@ -105,9 +120,13 @@ export async function POST(req: NextRequest) {
     // Send only the entries that bear on the question. Sending the whole base
     // cost about 18,000 prompt tokens per question and buried the two entries
     // that answered it among forty-five that did not.
+    //
+    // This is the lexical pass. It is free and instant, so it runs for every
+    // question and feeds both the local resolvers below and the gap metric.
+    // Semantic retrieval is deferred to just before the model call — see there
+    // for why.
     const allKnowledge = (knowledge ?? []) as RetrievableEntry[];
     const matched = retrieveRelevant(question, allKnowledge, 12);
-    const knowledgeContext = JSON.stringify(matched);
 
     // A question the retriever could not match is a gap in the base. Logging it
     // turns visitor questions into the list of what to write next. Never allowed
@@ -155,8 +174,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ answer: cached, source: "cache" });
     }
 
-    if (!apiKey) {
+    if (engines.length === 0) {
       await logQuestion(false);
+
+      // No key configured is the same predicament as every engine being down,
+      // and it had a worse answer: the degraded path below was only reachable
+      // after an engine failed, so a deployment that simply had no key sent the
+      // visitor away with an apology while the entries that half-answered them
+      // sat unread. Show those entries here too — a near miss under an honest
+      // heading beats nothing.
+      const degraded = bestEffortAnswer(question, allKnowledge);
+      if (degraded) {
+        return NextResponse.json({
+          answer: degraded.answer,
+          source: "knowledge",
+        });
+      }
+
       return NextResponse.json(
         {
           error:
@@ -166,36 +200,65 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text: `المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
-                },
-              ],
-            },
-          ],
-          generationConfig: { maxOutputTokens: 3072, temperature: 0.3 },
-        }),
-      },
+    /*
+     * Semantic retrieval, deliberately placed here rather than beside the
+     * lexical pass.
+     *
+     * Everything above this line answers without touching the network — that is
+     * the point of the local resolvers and the cache, and embedding the question
+     * earlier would spend a network round trip on questions that never needed
+     * one. By this line the platform has already declined to answer and the
+     * model call is certain, so one more request costs latency that was going to
+     * be spent anyway.
+     *
+     * The floor keeps the fusion honest: below it a "nearest" entry is merely
+     * the least unrelated one, and feeding that to the model invites it to
+     * answer from something that does not bear on the question.
+     */
+    const questionVector = apiKey
+      ? await embedQuestion(question, apiKey)
+      : null;
+    let semantic: SemanticMatch[] = [];
+
+    if (questionVector) {
+      const { data: nearest, error: matchError } = await supabase.rpc(
+        "match_knowledge_entries",
+        {
+          p_query_embedding: questionVector,
+          p_match_count: 12,
+          p_min_similarity: 0.45,
+        },
+      );
+
+      if (matchError) {
+        // Ranking degrades to lexical-only. Not worth failing the answer over.
+        console.error("assistant: semantic match failed", matchError);
+      } else {
+        semantic = (nearest ?? []) as SemanticMatch[];
+      }
+    }
+
+    // Falls back to the lexical ranking on its own when the semantic side came
+    // back empty, so an unembedded base or an unreachable embedding service
+    // costs ranking quality and nothing else.
+    const ranked = fuseRankings(question, allKnowledge, semantic, 12);
+    const knowledgeContext = JSON.stringify(ranked);
+
+    const { result, attempts } = await generateWithFallback(
+      engines,
+      SYSTEM_PROMPT,
+      `المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
     );
 
-    if (!geminiRes.ok) {
-      const bodyText = await geminiRes.text();
-      console.error("assistant: gemini error", geminiRes.status, bodyText);
+    if (!result) {
+      console.error("assistant: every engine failed", attempts);
       await logQuestion(false);
 
-      // The model being down is not a reason to send the visitor away empty
-      // handed. Show the nearest entries, labelled as approximate.
-      const degraded = bestEffortAnswer(question, allKnowledge);
+      // Every engine being down is not a reason to send the visitor away empty
+      // handed. Show the nearest entries, labelled as approximate — and use the
+      // fused ranking, since by this line the question has already been
+      // embedded and semantic order is strictly better than lexical.
+      const degraded = bestEffortAnswer(question, allKnowledge, ranked);
       if (degraded) {
         return NextResponse.json({
           answer: degraded.answer,
@@ -203,7 +266,10 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      if (geminiRes.status === 429) {
+      // Worth naming separately only when every engine hit its quota: that is
+      // temporary and waiting genuinely fixes it, which is not true of the
+      // other failures.
+      if (attempts.every((a) => a.reason.includes("HTTP 429"))) {
         return NextResponse.json(
           {
             error:
@@ -215,37 +281,27 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json(
         {
-          error: `تعذّر الاتصال بمحرك سودجري الذكي (HTTP ${geminiRes.status}): ${bodyText.slice(0, 300)}`,
+          error: `تعذّر الاتصال بمحركات سودجري الذكية (${attempts.length} محاولة): ${attempts.map((a) => `${a.engine} — ${a.reason}`).join(" | ").slice(0, 300)}`,
         },
         { status: 502 },
       );
     }
 
-    const data = await geminiRes.json();
-
-    /*
-     * Join every part rather than reading the first. The model may split an
-     * answer across parts, and it can emit a reasoning part before the reply —
-     * taking parts[0] blindly returns a thought or nothing at all. Parts
-     * flagged as thoughts are dropped; they are not for the reader.
-     */
-    type Part = { text?: string; thought?: boolean };
-    const parts: Part[] = data.candidates?.[0]?.content?.parts ?? [];
-    const rawAnswer = parts
-      .filter((p) => !p.thought && typeof p.text === "string")
-      .map((p) => p.text)
-      .join("")
-      .trim();
+    if (attempts.length > 0) {
+      console.warn(
+        `assistant: answered by ${result.engine} after ${attempts.length} failed engine(s)`,
+      );
+    }
 
     const answer =
-      rawAnswer.replace(/[*#_`]+/g, "").trim() ||
+      result.text.replace(/[*#_`]+/g, "").trim() ||
       "لم أتمكن من صياغة إجابة هذه المرة، أعد المحاولة أو اسأل بصيغة أخرى.";
 
     await logQuestion(true);
 
-    if (rawAnswer) setCachedAnswer(question, answer);
+    setCachedAnswer(question, answer);
 
-    return NextResponse.json({ answer, source: "model" });
+    return NextResponse.json({ answer, source: "model", engine: result.engine });
   } catch (err) {
     console.error("assistant: unhandled error", err);
     const message = err instanceof Error ? err.message : String(err);

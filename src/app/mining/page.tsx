@@ -16,6 +16,7 @@ export default async function MiningPage() {
     .from("knowledge_entries")
     .select("*")
     .eq("crop", "تعدين")
+    .eq("assistant_only", false)
     .order("created_at", { ascending: false });
 
   const entries = (data ?? []) as KnowledgeEntry[];

@@ -1,0 +1,161 @@
+/// Talking to the same backend the website talks to.
+///
+/// Two different endpoints for two different reasons. Knowledge entries come
+/// straight from Supabase over PostgREST, because they are world-readable by
+/// policy and going through the web app would only add a hop. The assistant
+/// goes through the Next.js route instead of calling any model directly,
+/// because that route is where the retrieval, the rate limit, the answer cache
+/// and the local resolvers live — duplicating that here would mean maintaining
+/// the assistant twice and getting a worse one.
+///
+/// Configuration comes from --dart-define at build time. Nothing here is a
+/// secret: the anon key is publishable by design and every table it can reach
+/// is protected by row-level security on the server, which is the only place
+/// protection means anything.
+library;
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+class ApiConfig {
+  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  /// Where the deployed Next.js app lives, for the assistant route.
+  static const siteUrl = String.fromEnvironment('SITE_URL');
+
+  static bool get isConfigured =>
+      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+
+  static bool get hasAssistant => siteUrl.isNotEmpty;
+}
+
+class KnowledgeEntry {
+  const KnowledgeEntry({
+    required this.crop,
+    required this.topic,
+    required this.title,
+    required this.content,
+    this.sourceCountry,
+    this.sourceNote,
+  });
+
+  final String crop;
+  final String topic;
+  final String title;
+  final String content;
+  final String? sourceCountry;
+  final String? sourceNote;
+
+  factory KnowledgeEntry.fromJson(Map<String, dynamic> json) => KnowledgeEntry(
+        crop: json['crop'] as String? ?? '',
+        topic: json['topic'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        content: json['content'] as String? ?? '',
+        sourceCountry: json['source_country'] as String?,
+        sourceNote: json['source_note'] as String?,
+      );
+}
+
+/// Raised for anything the caller should show the user rather than swallow.
+class ApiException implements Exception {
+  ApiException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
+class SudagriApi {
+  SudagriApi({http.Client? client}) : _client = client ?? http.Client();
+
+  final http.Client _client;
+
+  static const _timeout = Duration(seconds: 30);
+
+  /// The published knowledge entries.
+  ///
+  /// Deliberately mirrors the website's filter: assistant_only entries are
+  /// regional reference material for the assistant to read, not a reading list
+  /// to put in front of a farmer, and showing them here would bury the
+  /// Sudan-specific ones under thirty foreign entries.
+  Future<List<KnowledgeEntry>> knowledge({String? search}) async {
+    if (!ApiConfig.isConfigured) {
+      throw ApiException('التطبيق غير مضبوط للاتصال بالخادم.');
+    }
+
+    final params = <String, String>{
+      'select': 'crop,topic,title,content,source_country,source_note',
+      'assistant_only': 'eq.false',
+      'order': 'created_at.desc',
+      'limit': '200',
+    };
+
+    if (search != null && search.trim().isNotEmpty) {
+      // PostgREST treats a comma as the or() separator, so a comma inside the
+      // pattern would be read as another condition and silently change the
+      // query. Stripping it is enough here because the rest of the pattern is
+      // percent-encoded by Uri.
+      final safe = search.trim().replaceAll(',', ' ');
+      params['or'] = '(title.ilike.*$safe*,content.ilike.*$safe*,crop.ilike.*$safe*)';
+    }
+
+    final uri = Uri.parse('${ApiConfig.supabaseUrl}/rest/v1/knowledge_entries')
+        .replace(queryParameters: params);
+
+    late final http.Response res;
+    try {
+      res = await _client.get(uri, headers: {
+        'apikey': ApiConfig.supabaseAnonKey,
+        'authorization': 'Bearer ${ApiConfig.supabaseAnonKey}',
+      }).timeout(_timeout);
+    } catch (_) {
+      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+    }
+
+    if (res.statusCode != 200) {
+      throw ApiException('تعذّر تحميل قاعدة المعرفة (${res.statusCode}).');
+    }
+
+    final decoded = jsonDecode(utf8.decode(res.bodyBytes)) as List<dynamic>;
+    return decoded
+        .map((e) => KnowledgeEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Asks the assistant, returning its answer and which engine produced it.
+  Future<({String answer, String source})> ask(String question) async {
+    if (!ApiConfig.hasAssistant) {
+      throw ApiException('المساعد غير مضبوط في هذه النسخة من التطبيق.');
+    }
+
+    late final http.Response res;
+    try {
+      res = await _client
+          .post(
+            Uri.parse('${ApiConfig.siteUrl}/api/assistant'),
+            headers: {'content-type': 'application/json'},
+            body: jsonEncode({'question': question}),
+          )
+          .timeout(_timeout);
+    } catch (_) {
+      throw ApiException('تعذّر الوصول للمساعد. تحقّق من الشبكة.');
+    }
+
+    final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+
+    // The route answers 429 and 503 with a message written for the reader, so
+    // showing its text beats replacing it with a status code.
+    if (res.statusCode != 200) {
+      throw ApiException(
+        body['error'] as String? ?? 'تعذّر الحصول على إجابة (${res.statusCode}).',
+      );
+    }
+
+    return (
+      answer: body['answer'] as String? ?? '',
+      source: body['source'] as String? ?? 'model',
+    );
+  }
+
+  void dispose() => _client.close();
+}

@@ -19,6 +19,10 @@ export default async function Home() {
       .from("knowledge_entries")
       .select("*")
       .neq("crop", "تعدين")
+      // Regional reference material the assistant reads but the pages do not
+      // show. Without this the newest foreign entries would displace every
+      // Sudan-specific one a visitor came here for.
+      .eq("assistant_only", false)
       .order("created_at", { ascending: false })
       .limit(6),
   ]);
