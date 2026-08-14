@@ -227,7 +227,10 @@ export async function POST(req: NextRequest) {
         {
           p_query_embedding: questionVector,
           p_match_count: 12,
-          p_min_similarity: 0.45,
+          // The provider's own floor, not a constant. Cosine scales differ
+          // enough between models that one number rejects everything from the
+          // other — see EmbeddingProvider.minSimilarity.
+          p_min_similarity: embedder.minSimilarity,
           // Only rows this same model embedded. Cosine across models is noise
           // shaped like a score, and a provider switch leaves the base
           // half-migrated for as long as the backfill takes.

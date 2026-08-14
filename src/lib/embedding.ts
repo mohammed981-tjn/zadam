@@ -62,6 +62,22 @@ export interface EmbeddingProvider {
    * comparing against, and what tells the backfill which rows are stale.
    */
   readonly model: string;
+
+  /**
+   * The cosine below which a "nearest" entry is merely the least unrelated one.
+   *
+   * Model-specific, and not by a little. Measured on the same question and the
+   * same entry, gemini-embedding-001 scored 0.74 where jina-embeddings-v5 scored
+   * 0.41 — both correct, both ranking the right entry first, on completely
+   * different scales. A threshold hardcoded against one model silently rejects
+   * every result from another, with no error and no empty-list warning: just
+   * semantic retrieval quietly contributing nothing.
+   *
+   * Which is exactly what a single hardcoded 0.45 did the moment the provider
+   * changed. The number belongs to the model, so it lives with the model.
+   */
+  readonly minSimilarity: number;
+
   embed(texts: string[], kind: EmbeddingKind): Promise<number[][]>;
 }
 
@@ -123,6 +139,10 @@ const DEFAULT_JINA_MODEL = "jina-embeddings-v5-text-small";
 function jinaProvider(apiKey: string, model: string): EmbeddingProvider {
   return {
     model,
+    // Measured against this knowledge base: a correct match lands near 0.41 and
+    // an unrelated entry near 0.30, so the floor sits just under the band where
+    // real answers live.
+    minSimilarity: 0.32,
     async embed(texts, kind) {
       const res = await fetch("https://api.jina.ai/v1/embeddings", {
         method: "POST",
@@ -182,6 +202,9 @@ function geminiProvider(apiKey: string): EmbeddingProvider {
 
   return {
     model: GEMINI_MODEL,
+    // Gemini's scores run far higher on the same content — 0.74 for a match
+    // that Jina scores 0.41 — so its floor is correspondingly higher.
+    minSimilarity: 0.45,
     async embed(texts, kind) {
       const taskType =
         kind === "query" ? "RETRIEVAL_QUERY" : "RETRIEVAL_DOCUMENT";
