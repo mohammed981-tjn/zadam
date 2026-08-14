@@ -149,14 +149,35 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(report, { status: 429 });
     }
 
+    /*
+     * A realistic payload, not a token.
+     *
+     * The probe used to send "say: ok", which passed while the assistant itself
+     * failed — and that gap is worse than no probe at all, because it points
+     * confidently at the wrong half of the system. A one-word prompt exercises
+     * authentication and nothing else: not the context length a free model will
+     * accept, not the per-day token allowance, not whatever the router picks
+     * when the request is large.
+     *
+     * So the probe now sends roughly what a real question sends: the assistant's
+     * own system prompt plus a knowledge-sized block. If the real path fails,
+     * this fails the same way and says why.
+     */
+    const filler = "مُدخَل معرفي عن الري والتربة والمحاصيل في السودان. ".repeat(
+      120,
+    );
+
     const { result, attempts } = await generateWithFallback(
       engines,
-      "أجب بكلمة واحدة فقط.",
-      "قل: تمام",
+      "أنت مساعد زراعي يجيب بالعربية باختصار شديد.",
+      `قاعدة المعرفة الزراعية (نموذج بحجم واقعي):\n${filler}\n\nسؤال الزائر: قل كلمة تمام فقط.`,
     );
 
     report.probe = {
       ran: true,
+      // Roughly what a real question weighs, so a limit that only bites at size
+      // is visible here rather than only in production.
+      approxPromptChars: filler.length,
       answeredBy: result ? redact(result.engine) : null,
       // Provider error text quotes back whatever it was sent, so a
       // misconfigured value arrives here verbatim. Masked on the way out.
