@@ -191,6 +191,12 @@ export interface KnowledgeEntry {
   content: string;
   source_country: string | null;
   source_note: string | null;
+  /**
+   * Withheld from the public listings and served only through the assistant.
+   * A presentation choice, not access control — the table is world-readable
+   * either way, so nothing confidential belongs in it.
+   */
+  assistant_only: boolean;
   created_by: string | null;
   created_at: string;
 }
