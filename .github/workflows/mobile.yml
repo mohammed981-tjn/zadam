@@ -7,10 +7,11 @@ name: Mobile app
 # a change to the mobile app is actually proven to compile. A green analyze on
 # a laptop is not evidence the thing installs.
 #
-# The APK is a debug build. Publishing to a store needs an upload key, which is
-# a secret that belongs to whoever owns the listing, not to this file — so this
-# stops at "installable by hand", which is the useful artefact while there is no
-# listing yet.
+# The APK is a release build, obfuscated, signed with the fixed key in the
+# repository so each one installs over the last. Publishing to a store needs an
+# upload key that belongs to whoever owns the listing rather than to this
+# repository, so this stops at "installable by hand" — the useful artefact while
+# there is no listing yet.
 
 on:
   push:
@@ -75,11 +76,28 @@ jobs:
             echo "::warning::Set it under Settings > Secrets and variables > Actions > Variables."
           fi
 
+          # Release, not debug. A debug APK ships the Dart kernel plus debugging
+          # metadata and reads almost like source; a release build AOT-compiles
+          # Dart to native ARM, which is a different order of difficulty to
+          # inspect — and is also several times smaller and much faster to start.
+          #
+          # --obfuscate renames symbols on top of that, and needs
+          # --split-debug-info to put the mapping somewhere. That mapping is what
+          # turns a future crash report back into readable frames, so it is
+          # uploaded as its own artifact rather than discarded.
+          #
+          # None of this makes the binary secret, and nothing is stored here as
+          # though it were: the Supabase key it carries is publishable by design
+          # and every table behind it is guarded by row-level security on the
+          # server, which is the only place a guard survives being on someone
+          # else's device.
+          #
           # The build number climbs with the run number. Android will not install
           # a build whose versionCode is lower than the one already present, and
           # a version pinned in pubspec.yaml never moves — so without this every
           # build after the first looks like a downgrade to the device.
-          flutter build apk --debug \
+          flutter build apk --release \
+            --obfuscate --split-debug-info=build/symbols \
             --build-number=${{ github.run_number }} \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
@@ -88,6 +106,16 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: sudagri-apk
-          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 30
+
+      # Without these a crash report from an obfuscated build is unreadable
+      # noise. They are only useful next to the exact APK they came from, hence
+      # the run number in the name.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sudagri-symbols-${{ github.run_number }}
+          path: mobile/build/symbols
+          if-no-files-found: warn
+          retention-days: 90
