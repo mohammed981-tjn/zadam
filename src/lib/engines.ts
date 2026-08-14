@@ -103,22 +103,25 @@ function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
  * The free models the standby pool draws on, best-first.
  *
  * Which models carry a `:free` tag changes on OpenRouter's schedule, not ours,
- * so this list is a default rather than a fixture: set OPENROUTER_MODELS to
- * override it without touching code. Check the current pool at
- * https://openrouter.ai/models?max_price=0 — an id that no longer exists is
- * skipped by the routing below rather than breaking the chain, but a list where
- * *every* id is stale leaves no standby at all.
+ * and this list has already gone stale once in production: every model in it
+ * answered 404 "this model is unavailable for free", which took the entire
+ * standby chain out while the key and the wiring were both fine.
  *
- * Chosen for Arabic competence rather than benchmark averages, since every
- * question this serves is in Arabic.
+ * So the list now leads with a router rather than a model. Set
+ * OPENROUTER_MODELS to override it without touching code, and check the live
+ * pool at https://openrouter.ai/models?max_price=0.
  */
 const DEFAULT_OPENROUTER_MODELS = [
-  "deepseek/deepseek-chat-v3-0324:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "qwen/qwen-2.5-72b-instruct:free",
-  "google/gemma-3-27b-it:free",
-  "mistralai/mistral-small-3.2-24b-instruct:free",
-];
+  // A router, not a model. OpenRouter picks from whatever is actually free at
+  // the moment of the request, which is the only entry in this list that cannot
+  // go stale — and staleness is the failure that has bitten this pool twice.
+  // The named models behind it are a hedge in case the router itself changes.
+  "openrouter/free",
+  "openai/gpt-oss-120b:free",
+  "google/gemma-4-26b:free",
+  "nvidia/nemotron-3-nano-30b:free",
+  "openai/gpt-oss-20b:free",
+]
 
 /**
  * OpenRouter rejects a routing list longer than this — "'models' array must
