@@ -75,7 +75,12 @@ jobs:
             echo "::warning::Set it under Settings > Secrets and variables > Actions > Variables."
           fi
 
+          # The build number climbs with the run number. Android will not install
+          # a build whose versionCode is lower than the one already present, and
+          # a version pinned in pubspec.yaml never moves — so without this every
+          # build after the first looks like a downgrade to the device.
           flutter build apk --debug \
+            --build-number=${{ github.run_number }} \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
             --dart-define=SITE_URL="$SITE_URL"

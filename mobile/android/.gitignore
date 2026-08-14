@@ -12,3 +12,15 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# …except this one, deliberately.
+#
+# Android refuses to install a build over one signed with a different key, and
+# Gradle's default debug key is generated per machine — so every CI run produced
+# a signature the previous install rejected. Committing one fixed key makes
+# every build installable over the last.
+#
+# It is not a secret and is not treated as one: it signs hand-installed builds
+# only. An upload key for a store listing is a different key, belongs to
+# whoever owns the listing, and must stay out of this repository.
+!app/sudagri-debug.keystore

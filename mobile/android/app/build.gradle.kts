@@ -29,10 +29,33 @@ android {
         versionName = flutter.versionName
     }
 
+    /*
+     * A signing key that lives in the repository, so every build signs the same.
+     *
+     * Android identifies an app by package name *and* signature, and refuses to
+     * install a build signed differently over one already on the device —
+     * "package conflicts with an existing package". Gradle's default debug key
+     * is generated per machine, so every CI run produced a new signature and
+     * every update meant uninstalling first.
+     *
+     * This key is deliberately not a secret, and its password sits in this file
+     * on purpose: it signs hand-installed builds and nothing else. Publishing to
+     * a store needs an upload key that belongs to whoever owns the listing, and
+     * that one must never be committed — point `release` at it when there is a
+     * listing to own.
+     */
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("sudagri-debug.keystore")
+            storePassword = "sudagri"
+            keyAlias = "sudagri"
+            keyPassword = "sudagri"
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // TODO: replace with a real upload key before publishing to a store.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
