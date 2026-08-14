@@ -241,9 +241,8 @@ export async function POST(req: NextRequest) {
     // Falls back to the lexical ranking on its own when the semantic side came
     // back empty, so an unembedded base or an unreachable embedding service
     // costs ranking quality and nothing else.
-    const knowledgeContext = JSON.stringify(
-      fuseRankings(question, allKnowledge, semantic, 12),
-    );
+    const ranked = fuseRankings(question, allKnowledge, semantic, 12);
+    const knowledgeContext = JSON.stringify(ranked);
 
     const { result, attempts } = await generateWithFallback(
       engines,
@@ -256,8 +255,10 @@ export async function POST(req: NextRequest) {
       await logQuestion(false);
 
       // Every engine being down is not a reason to send the visitor away empty
-      // handed. Show the nearest entries, labelled as approximate.
-      const degraded = bestEffortAnswer(question, allKnowledge);
+      // handed. Show the nearest entries, labelled as approximate — and use the
+      // fused ranking, since by this line the question has already been
+      // embedded and semantic order is strictly better than lexical.
+      const degraded = bestEffortAnswer(question, allKnowledge, ranked);
       if (degraded) {
         return NextResponse.json({
           answer: degraded.answer,
