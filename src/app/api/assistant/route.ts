@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { retrieveRelevant, type RetrievableEntry } from "@/lib/retrieval";
+import {
+  fuseRankings,
+  retrieveRelevant,
+  type RetrievableEntry,
+  type SemanticMatch,
+} from "@/lib/retrieval";
+import { embedQuestion } from "@/lib/embedding";
 import { answerLocally, bestEffortAnswer } from "@/lib/localAnswer";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { INVESTMENT_LIVE } from "@/lib/config";
@@ -105,9 +111,13 @@ export async function POST(req: NextRequest) {
     // Send only the entries that bear on the question. Sending the whole base
     // cost about 18,000 prompt tokens per question and buried the two entries
     // that answered it among forty-five that did not.
+    //
+    // This is the lexical pass. It is free and instant, so it runs for every
+    // question and feeds both the local resolvers below and the gap metric.
+    // Semantic retrieval is deferred to just before the model call — see there
+    // for why.
     const allKnowledge = (knowledge ?? []) as RetrievableEntry[];
     const matched = retrieveRelevant(question, allKnowledge, 12);
-    const knowledgeContext = JSON.stringify(matched);
 
     // A question the retriever could not match is a gap in the base. Logging it
     // turns visitor questions into the list of what to write next. Never allowed
@@ -165,6 +175,49 @@ export async function POST(req: NextRequest) {
         { status: 503 },
       );
     }
+
+    /*
+     * Semantic retrieval, deliberately placed here rather than beside the
+     * lexical pass.
+     *
+     * Everything above this line answers without touching the network — that is
+     * the point of the local resolvers and the cache, and embedding the question
+     * earlier would spend a network round trip on questions that never needed
+     * one. By this line the platform has already declined to answer and the
+     * model call is certain, so one more request costs latency that was going to
+     * be spent anyway.
+     *
+     * The floor keeps the fusion honest: below it a "nearest" entry is merely
+     * the least unrelated one, and feeding that to the model invites it to
+     * answer from something that does not bear on the question.
+     */
+    const questionVector = await embedQuestion(question, apiKey);
+    let semantic: SemanticMatch[] = [];
+
+    if (questionVector) {
+      const { data: nearest, error: matchError } = await supabase.rpc(
+        "match_knowledge_entries",
+        {
+          p_query_embedding: questionVector,
+          p_match_count: 12,
+          p_min_similarity: 0.45,
+        },
+      );
+
+      if (matchError) {
+        // Ranking degrades to lexical-only. Not worth failing the answer over.
+        console.error("assistant: semantic match failed", matchError);
+      } else {
+        semantic = (nearest ?? []) as SemanticMatch[];
+      }
+    }
+
+    // Falls back to the lexical ranking on its own when the semantic side came
+    // back empty, so an unembedded base or an unreachable embedding service
+    // costs ranking quality and nothing else.
+    const knowledgeContext = JSON.stringify(
+      fuseRankings(question, allKnowledge, semantic, 12),
+    );
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
