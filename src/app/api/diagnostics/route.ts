@@ -22,6 +22,45 @@ import { buildEngines, generateWithFallback } from "@/lib/engines";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+/**
+ * Patterns that are credentials wherever they appear.
+ *
+ * This endpoint exists to be pasted into a chat or an issue, which makes it the
+ * last place a secret should ever surface. It already withholds the values it
+ * reads deliberately — but a misconfiguration can route a key somewhere this
+ * code never meant it to go, and that is exactly what happened: an OpenRouter
+ * key pasted into OPENROUTER_MODELS became a "model id", travelled into the
+ * engine name and the provider's error text, and was published in full by the
+ * very report meant to be safe to share.
+ *
+ * So nothing is trusted to be non-secret because of where it came from. Every
+ * string on the way out is scanned for credential shapes and masked.
+ */
+const CREDENTIAL_PATTERNS = [
+  /sk-or-v1-[A-Za-z0-9]{16,}/g, // OpenRouter
+  /sk-[A-Za-z0-9]{20,}/g, // OpenAI-style
+  /AIza[A-Za-z0-9_-]{20,}/g, // Google API key
+  /AQ\.[A-Za-z0-9._-]{20,}/g, // Google short-lived token
+  /sb_(?:secret|publishable)_[A-Za-z0-9_-]{10,}/g, // Supabase
+  /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/g, // JWT
+];
+
+function looksLikeCredential(text: string | undefined): boolean {
+  if (!text) return false;
+  return CREDENTIAL_PATTERNS.some((p) => {
+    p.lastIndex = 0; // the patterns are /g, so their cursor has to be reset
+    return p.test(text);
+  });
+}
+
+function redact(text: string): string {
+  let safe = text;
+  for (const pattern of CREDENTIAL_PATTERNS) {
+    safe = safe.replace(pattern, (match) => `[محجوب:${match.length} حرفاً]`);
+  }
+  return safe;
+}
+
 function describe(name: string, raw: string | undefined) {
   if (!raw) return { name, configured: false };
 
@@ -63,7 +102,15 @@ export async function GET(req: NextRequest) {
       describe("GEMINI_API_KEY", geminiKey),
       describe("OPENROUTER_API_KEY", openRouterKey),
     ],
-    engineChain: engines.map((e) => e.name),
+    engineChain: engines.map((e) => redact(e.name)),
+    // Named rather than merely masked: a key sitting in OPENROUTER_MODELS
+    // produces "not a valid model ID" from the provider, which reads like a
+    // stale model name and sends you looking in the wrong place entirely.
+    warnings: looksLikeCredential(process.env.OPENROUTER_MODELS)
+      ? [
+          "OPENROUTER_MODELS يحتوي ما يشبه مفتاحاً. المفتاح مكانه OPENROUTER_API_KEY، وهذا المتغيّر لمعرّفات النماذج فقط — احذفه أو ضع فيه معرّفات مثل deepseek/deepseek-chat-v3-0324:free. واعتبر المفتاح مكشوفاً وأبطِله.",
+        ]
+      : [],
     probe: null as unknown,
   };
 
@@ -100,10 +147,13 @@ export async function GET(req: NextRequest) {
 
     report.probe = {
       ran: true,
-      answeredBy: result?.engine ?? null,
-      // Reasons are provider error text; they carry status codes and messages,
-      // never the key itself.
-      failures: attempts,
+      answeredBy: result ? redact(result.engine) : null,
+      // Provider error text quotes back whatever it was sent, so a
+      // misconfigured value arrives here verbatim. Masked on the way out.
+      failures: attempts.map((a) => ({
+        engine: redact(a.engine),
+        reason: redact(a.reason),
+      })),
     };
   }
 
