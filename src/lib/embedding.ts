@@ -97,16 +97,27 @@ function checkShape(values: unknown, index: number): number[] {
  * Jina
  * ------------------------------------------------------------------ */
 
-const JINA_MODEL = "jina-embeddings-v3";
+/**
+ * Jina ships new embedding models faster than this file changes, and their
+ * dashboard already defaults to a newer one than this. Pinning the name here
+ * and overriding it by env means a model retirement is a variable, not a
+ * deploy — the same lesson OPENROUTER_MODELS exists for.
+ *
+ * v3 is the default because its request shape is the plain one: `input` is an
+ * array of strings. The omni models are multimodal and take `[{text: "..."}]`
+ * instead, so switching to one is not only a name change.
+ */
+const DEFAULT_JINA_MODEL = "jina-embeddings-v3";
 
 /**
- * Jina's free tier carries a million tokens a month, which at this base's size
- * is more than a year of questions. It is reachable where Google is not, which
- * is the reason it leads.
+ * Jina's free allowance is generous enough that this base's whole backfill is a
+ * rounding error against it, and the same key covers their reranker — which is
+ * the next thing this retrieval needs. It leads because it is reachable where
+ * Google's API is not.
  */
-function jinaProvider(apiKey: string): EmbeddingProvider {
+function jinaProvider(apiKey: string, model: string): EmbeddingProvider {
   return {
-    model: JINA_MODEL,
+    model,
     async embed(texts, kind) {
       const res = await fetch("https://api.jina.ai/v1/embeddings", {
         method: "POST",
@@ -115,9 +126,14 @@ function jinaProvider(apiKey: string): EmbeddingProvider {
           authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: JINA_MODEL,
+          model,
           task: kind === "query" ? "retrieval.query" : "retrieval.passage",
           dimensions: EMBEDDING_DIMENSIONS,
+          // Jina normalises server-side when asked, which makes the client-side
+          // pass below a no-op rather than a correction. Both stay: a provider
+          // that quietly stops honouring the flag would otherwise skew every
+          // stored vector by its own constant, silently.
+          normalized: true,
           input: texts,
         }),
         signal: AbortSignal.timeout(kind === "query" ? 6000 : 60000),
@@ -227,6 +243,8 @@ function geminiProvider(apiKey: string): EmbeddingProvider {
 
 export interface EmbeddingEnv {
   jinaKey?: string;
+  /** Overrides the pinned Jina model when their catalogue moves on. */
+  jinaModel?: string;
   geminiKey?: string;
 }
 
@@ -243,7 +261,9 @@ export interface EmbeddingEnv {
 export function embeddingProvider(
   env: EmbeddingEnv,
 ): EmbeddingProvider | null {
-  if (env.jinaKey) return jinaProvider(env.jinaKey);
+  if (env.jinaKey) {
+    return jinaProvider(env.jinaKey, env.jinaModel || DEFAULT_JINA_MODEL);
+  }
   if (env.geminiKey) return geminiProvider(env.geminiKey);
   return null;
 }
@@ -252,6 +272,7 @@ export function embeddingProvider(
 export function activeProvider(): EmbeddingProvider | null {
   return embeddingProvider({
     jinaKey: process.env.JINA_API_KEY,
+    jinaModel: process.env.JINA_MODEL,
     geminiKey: process.env.GEMINI_API_KEY,
   });
 }
