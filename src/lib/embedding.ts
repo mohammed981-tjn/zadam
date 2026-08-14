@@ -2,71 +2,45 @@
  * Embeddings for the assistant's retrieval.
  *
  * The lexical retriever ranks entries by the words they share with the
- * question. That is exact when the visitor happens to use the vocabulary the
- * entry was written in, and blind when they do not: a farmer who asks
- * "الجروف عطشانة" shares no term with an entry titled "الإجهاد المائي", so the
- * entry that answers them is never sent. Embeddings compare meaning rather than
- * spelling, which is the half the lexical ranker cannot do.
+ * question. That is exact when the visitor uses an entry's vocabulary and blind
+ * when they do not, which is what the dialect layer in retrieval.ts and these
+ * embeddings each attack from a different side.
  *
- * They do not replace it. A vector model blurs exactly what the lexical ranker
- * is best at — a cultivar name, a village, "بونجرو" — so both run and their
- * rankings are fused. See fuseRankings() in retrieval.ts.
+ * ── Why there is a provider abstraction here ──────────────────────────────
+ *
+ * This file used to call Gemini directly. Then Google denied the project access
+ * — 403 PERMISSION_DENIED, an account-level block that no new key can fix — and
+ * the semantic half of retrieval died with it. The fault was never Gemini's
+ * quality; it was that Gemini was the only option, so one provider's decision
+ * took the feature out.
+ *
+ * So a provider is a choice, made by which key is present, and the vectors it
+ * produces are stored with its name beside them. Adding a third — or moving to
+ * a self-hosted BGE-M3 with no provider at all — is a function and an env var,
+ * not a rewrite.
+ *
+ * ── What is actually owned ────────────────────────────────────────────────
+ *
+ * The vectors, in the platform's own database. The ranking, the fusion, the
+ * dialect layer, the knowledge base. A provider computes a vector and is then
+ * out of the loop; nothing about retrieval depends on it staying reachable
+ * except the ability to embed *new* questions.
  */
 
 /**
- * Vectors from different models are not comparable. The name is written next to
- * every stored vector so a model change is detectable rather than silently
- * scoring nonsense against the old rows.
- */
-export const EMBEDDING_MODEL = "gemini-embedding-001";
-
-/**
- * The model emits 3072 dimensions and supports Matryoshka truncation to shorter
- * prefixes. At 109 entries the extra dimensions buy nothing measurable and cost
- * four times the storage and index, so the column is vector(768). Changing this
- * requires a migration and a full re-embed — the stored vectors carry no
- * dimension tag beyond the column type.
+ * All providers are asked for 768 dimensions, so the `vector(768)` column and
+ * its HNSW index survive a provider change untouched. Both models here support
+ * Matryoshka truncation to this length, which is the reason it is possible.
  */
 export const EMBEDDING_DIMENSIONS = 768;
 
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}`;
-
 /**
  * Asymmetric retrieval: a question and the passage answering it are not the
- * same kind of text, and the model is trained to place them in the same region
- * only when told which is which. Embedding both as RETRIEVAL_DOCUMENT measurably
- * degrades the match, so the two task types must stay paired with their callers.
+ * same kind of text, and both providers are trained to place them in the same
+ * region only when told which is which. Embedding both as a passage measurably
+ * degrades the match.
  */
-type TaskType = "RETRIEVAL_QUERY" | "RETRIEVAL_DOCUMENT";
-
-/**
- * Truncated Matryoshka vectors come back unnormalised — the 768-prefix of a
- * 3072-vector measured an L2 norm of 0.59, not 1. Cosine distance in Postgres
- * still works on unnormalised input, but every similarity threshold and every
- * fused score would be scaled by an arbitrary per-vector constant. Normalising
- * once here makes `1 - (a <=> b)` a true cosine and keeps the stored rows
- * comparable with each other.
- */
-function normalise(values: number[]): number[] {
-  let sumOfSquares = 0;
-  for (const v of values) sumOfSquares += v * v;
-
-  const norm = Math.sqrt(sumOfSquares);
-  // A zero vector cannot be normalised; returning it unchanged keeps the caller
-  // from producing NaNs that would poison every comparison downstream.
-  if (norm === 0) return values;
-
-  return values.map((v) => v / norm);
-}
-
-function requestBody(text: string, taskType: TaskType) {
-  return {
-    model: `models/${EMBEDDING_MODEL}`,
-    content: { parts: [{ text }] },
-    taskType,
-    outputDimensionality: EMBEDDING_DIMENSIONS,
-  };
-}
+export type EmbeddingKind = "query" | "document";
 
 export class EmbeddingError extends Error {
   constructor(
@@ -78,96 +52,228 @@ export class EmbeddingError extends Error {
   }
 }
 
-/**
- * Embeds one question.
- *
- * The timeout is deliberately short. This sits in the path of a visitor waiting
- * for an answer, and the pipeline degrades to lexical-only retrieval when it
- * returns null — a slightly worse ranking is a far better outcome than a request
- * that hangs, so a slow embedding service is treated as an absent one.
- */
-export async function embedQuestion(
-  question: string,
-  apiKey: string,
-  timeoutMs = 4000,
-): Promise<number[] | null> {
-  try {
-    const res = await fetch(`${ENDPOINT}:embedContent?key=${apiKey}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(requestBody(question, "RETRIEVAL_QUERY")),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-
-    if (!res.ok) {
-      console.error(
-        "embedding: query embed failed",
-        res.status,
-        (await res.text()).slice(0, 300),
-      );
-      return null;
-    }
-
-    const data = await res.json();
-    const values: unknown = data?.embedding?.values;
-    if (!Array.isArray(values) || values.length !== EMBEDDING_DIMENSIONS) {
-      console.error("embedding: unexpected query embed shape");
-      return null;
-    }
-
-    return normalise(values as number[]);
-  } catch (err) {
-    console.error("embedding: query embed threw", err);
-    return null;
-  }
+export interface EmbeddingProvider {
+  /**
+   * Written into knowledge_entries.embedding_model beside every vector.
+   *
+   * Vectors from different models are not comparable — the cosine between a
+   * Gemini vector and a Jina one is noise that looks like a score. The name is
+   * what lets a query refuse to compare against rows it has no business
+   * comparing against, and what tells the backfill which rows are stale.
+   */
+  readonly model: string;
+  embed(texts: string[], kind: EmbeddingKind): Promise<number[][]>;
 }
 
 /**
- * Embeds a batch of passages.
- *
- * Unlike embedQuestion this throws rather than returning null: its only caller
- * is the backfill script, where a silent partial result would leave the base in
- * a state nobody notices — half the entries semantically searchable and half
- * not, with no error to explain why.
+ * Truncated Matryoshka vectors come back unnormalised — Gemini's 768-prefix
+ * measured an L2 norm of 0.59, not 1. Cosine distance still works on
+ * unnormalised input, but every similarity threshold would be scaled by an
+ * arbitrary per-vector constant. Normalising once here makes `1 - (a <=> b)` a
+ * true cosine and keeps rows comparable with each other.
  */
-export async function embedDocuments(
-  texts: string[],
-  apiKey: string,
-  timeoutMs = 30000,
-): Promise<number[][]> {
-  if (texts.length === 0) return [];
+function normalise(values: number[]): number[] {
+  let sumOfSquares = 0;
+  for (const v of values) sumOfSquares += v * v;
 
-  const res = await fetch(`${ENDPOINT}:batchEmbedContents?key=${apiKey}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      requests: texts.map((t) => requestBody(t, "RETRIEVAL_DOCUMENT")),
-    }),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  const norm = Math.sqrt(sumOfSquares);
+  // A zero vector cannot be normalised; returning it unchanged keeps the caller
+  // from producing NaNs that poison every comparison downstream.
+  if (norm === 0) return values;
 
-  if (!res.ok) {
-    const body = await res.text();
+  return values.map((v) => v / norm);
+}
+
+function checkShape(values: unknown, index: number): number[] {
+  if (!Array.isArray(values) || values.length !== EMBEDDING_DIMENSIONS) {
     throw new EmbeddingError(
-      `batch embed failed (HTTP ${res.status}): ${body.slice(0, 300)}`,
-      res.status,
+      `vector ${index} has the wrong shape (expected ${EMBEDDING_DIMENSIONS})`,
     );
   }
+  return normalise(values as number[]);
+}
 
-  const data = await res.json();
-  const embeddings: unknown = data?.embeddings;
-  if (!Array.isArray(embeddings) || embeddings.length !== texts.length) {
-    throw new EmbeddingError(
-      `batch embed returned ${Array.isArray(embeddings) ? embeddings.length : "no"} vectors for ${texts.length} inputs`,
-    );
-  }
+/* ------------------------------------------------------------------ *
+ * Jina
+ * ------------------------------------------------------------------ */
 
-  return embeddings.map((e: { values?: number[] }, i) => {
-    if (!Array.isArray(e?.values) || e.values.length !== EMBEDDING_DIMENSIONS) {
-      throw new EmbeddingError(`vector ${i} has the wrong shape`);
-    }
-    return normalise(e.values);
+const JINA_MODEL = "jina-embeddings-v3";
+
+/**
+ * Jina's free tier carries a million tokens a month, which at this base's size
+ * is more than a year of questions. It is reachable where Google is not, which
+ * is the reason it leads.
+ */
+function jinaProvider(apiKey: string): EmbeddingProvider {
+  return {
+    model: JINA_MODEL,
+    async embed(texts, kind) {
+      const res = await fetch("https://api.jina.ai/v1/embeddings", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: JINA_MODEL,
+          task: kind === "query" ? "retrieval.query" : "retrieval.passage",
+          dimensions: EMBEDDING_DIMENSIONS,
+          input: texts,
+        }),
+        signal: AbortSignal.timeout(kind === "query" ? 6000 : 60000),
+      });
+
+      if (!res.ok) {
+        throw new EmbeddingError(
+          `jina embed failed (HTTP ${res.status}): ${(await res.text()).slice(0, 200)}`,
+          res.status,
+        );
+      }
+
+      const body = await res.json();
+      const rows: { index?: number; embedding?: number[] }[] = body?.data ?? [];
+
+      if (rows.length !== texts.length) {
+        throw new EmbeddingError(
+          `jina returned ${rows.length} vectors for ${texts.length} inputs`,
+        );
+      }
+
+      // The response carries an explicit index. Trusting array order instead
+      // would silently attach the wrong vector to the wrong entry if the API
+      // ever reordered — a corruption that produces no error, only bad answers.
+      const ordered = [...rows].sort(
+        (a, b) => (a.index ?? 0) - (b.index ?? 0),
+      );
+      return ordered.map((r, i) => checkShape(r.embedding, i));
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Gemini
+ * ------------------------------------------------------------------ */
+
+const GEMINI_MODEL = "gemini-embedding-001";
+
+function geminiProvider(apiKey: string): EmbeddingProvider {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}`;
+
+  return {
+    model: GEMINI_MODEL,
+    async embed(texts, kind) {
+      const taskType =
+        kind === "query" ? "RETRIEVAL_QUERY" : "RETRIEVAL_DOCUMENT";
+
+      const request = (text: string) => ({
+        model: `models/${GEMINI_MODEL}`,
+        content: { parts: [{ text }] },
+        taskType,
+        outputDimensionality: EMBEDDING_DIMENSIONS,
+      });
+
+      // One text goes through the single endpoint; the batch endpoint exists
+      // for the backfill and is pointless for a single question.
+      if (texts.length === 1) {
+        const res = await fetch(`${endpoint}:embedContent?key=${apiKey}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(request(texts[0])),
+          signal: AbortSignal.timeout(kind === "query" ? 6000 : 60000),
+        });
+
+        if (!res.ok) {
+          throw new EmbeddingError(
+            `gemini embed failed (HTTP ${res.status}): ${(await res.text()).slice(0, 200)}`,
+            res.status,
+          );
+        }
+
+        const data = await res.json();
+        return [checkShape(data?.embedding?.values, 0)];
+      }
+
+      const res = await fetch(`${endpoint}:batchEmbedContents?key=${apiKey}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ requests: texts.map(request) }),
+        signal: AbortSignal.timeout(60000),
+      });
+
+      if (!res.ok) {
+        throw new EmbeddingError(
+          `gemini batch embed failed (HTTP ${res.status}): ${(await res.text()).slice(0, 200)}`,
+          res.status,
+        );
+      }
+
+      const data = await res.json();
+      const rows: { values?: number[] }[] = data?.embeddings ?? [];
+
+      if (rows.length !== texts.length) {
+        throw new EmbeddingError(
+          `gemini returned ${rows.length} vectors for ${texts.length} inputs`,
+        );
+      }
+
+      return rows.map((r, i) => checkShape(r.values, i));
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Choosing one
+ * ------------------------------------------------------------------ */
+
+export interface EmbeddingEnv {
+  jinaKey?: string;
+  geminiKey?: string;
+}
+
+/**
+ * The provider in use, or null when none is configured.
+ *
+ * Jina leads because it is reachable from more places than Google's API is —
+ * which, after an account-level block took the feature out entirely, is worth
+ * more than any benchmark difference between the two.
+ *
+ * Returning null is a normal state, not an error: retrieval falls back to
+ * lexical ranking, which is exactly what it does today.
+ */
+export function embeddingProvider(
+  env: EmbeddingEnv,
+): EmbeddingProvider | null {
+  if (env.jinaKey) return jinaProvider(env.jinaKey);
+  if (env.geminiKey) return geminiProvider(env.geminiKey);
+  return null;
+}
+
+/** Reads the environment directly, for callers that have no reason to care. */
+export function activeProvider(): EmbeddingProvider | null {
+  return embeddingProvider({
+    jinaKey: process.env.JINA_API_KEY,
+    geminiKey: process.env.GEMINI_API_KEY,
   });
+}
+
+/**
+ * Embeds one question, returning null rather than throwing.
+ *
+ * This sits in the path of a visitor waiting for an answer and the pipeline
+ * degrades to lexical-only retrieval without it, so a failing or slow embedding
+ * service is treated as an absent one. A worse ranking beats a hung request.
+ */
+export async function embedQuestion(
+  provider: EmbeddingProvider,
+  question: string,
+): Promise<number[] | null> {
+  try {
+    const [vector] = await provider.embed([question], "query");
+    return vector ?? null;
+  } catch (err) {
+    console.error("embedding: query embed failed", err);
+    return null;
+  }
 }
 
 /**
@@ -176,7 +282,7 @@ export async function embedDocuments(
  * Shared by the backfill and anything that re-embeds later, because a stored
  * vector is only comparable with a query if it was built from the same fields
  * in the same order. Title, crop and topic lead: they carry the entry's subject
- * in the fewest words, and the model weights early tokens more heavily.
+ * in the fewest words, and these models weight early tokens more heavily.
  */
 export function entryEmbeddingText(entry: {
   crop: string;

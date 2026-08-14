@@ -2,26 +2,26 @@
  * Writes the embedding for every knowledge entry that does not have a current
  * one.
  *
- * Run it after adding entries to the knowledge base. An entry with no embedding
- * is not broken — it stays reachable by lexical search — but it is invisible to
- * the semantic half of retrieval, which is the half that finds it when the
- * visitor does not happen to use its vocabulary.
+ * Run it after adding entries, and after changing embedding provider. An entry
+ * with no embedding is not broken — it stays reachable by lexical search — but
+ * it is invisible to the semantic half of retrieval, which is the half that
+ * finds it when the visitor does not use its vocabulary.
  *
- *   SUPABASE_SERVICE_ROLE_KEY=... GEMINI_API_KEY=... \
+ *   JINA_API_KEY=... SUPABASE_SERVICE_ROLE_KEY=... \
  *     npx tsx scripts/backfill-embeddings.ts [--force] [--dry-run]
  *
- * --force re-embeds everything, which is what a change to EMBEDDING_MODEL,
- * EMBEDDING_DIMENSIONS or entryEmbeddingText() requires: vectors built by
- * different models or from different text are not comparable, and mixing them
- * silently degrades every ranking rather than failing.
+ * Which provider runs is decided the same way the assistant decides: Jina if
+ * its key is present, otherwise Gemini. Whichever it is, its name is written
+ * beside every vector, and rows carrying a different name are treated as stale
+ * — so switching provider is this script plus a wait, not a migration.
+ *
+ * --force re-embeds everything, which is what a change to EMBEDDING_DIMENSIONS
+ * or entryEmbeddingText() requires: vectors built from different text are not
+ * comparable, and mixing them degrades every ranking rather than failing.
  */
 
 import { createClient } from "@supabase/supabase-js";
-import {
-  EMBEDDING_MODEL,
-  embedDocuments,
-  entryEmbeddingText,
-} from "../src/lib/embedding";
+import { activeProvider, entryEmbeddingText } from "../src/lib/embedding";
 
 interface Row {
   id: string;
@@ -34,8 +34,8 @@ interface Row {
 }
 
 /**
- * Small enough that one failure re-costs little, large enough that 109 entries
- * take a handful of round trips rather than a hundred.
+ * Small enough that one failure re-costs little, large enough that a base this
+ * size takes a handful of round trips rather than a hundred.
  */
 const BATCH_SIZE = 20;
 
@@ -58,7 +58,15 @@ async function main() {
 
   const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
   const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-  const geminiKey = requireEnv("GEMINI_API_KEY");
+
+  const provider = activeProvider();
+  if (!provider) {
+    console.error("No embedding provider configured.");
+    console.error("Set JINA_API_KEY (jina.ai/embeddings) or GEMINI_API_KEY.");
+    process.exit(1);
+  }
+
+  console.log(`Provider: ${provider.model}`);
 
   const supabase = createClient(url, serviceKey, {
     auth: { persistSession: false },
@@ -75,13 +83,14 @@ async function main() {
 
   const rows = (data ?? []) as Row[];
 
-  // A row is stale when it has no vector at all, or when the vector came from a
-  // model other than the one in use. Both cases are invisible at query time —
-  // the first ranks nowhere, the second ranks wrongly — so both are refreshed.
+  // A row is stale when it has no vector at all, or when the vector came from
+  // another model. Both are invisible at query time — the first ranks nowhere,
+  // the second is filtered out by match_knowledge_entries — so both are
+  // refreshed.
   const pending = force
     ? rows
     : rows.filter(
-        (r) => r.embedding === null || r.embedding_model !== EMBEDDING_MODEL,
+        (r) => r.embedding === null || r.embedding_model !== provider.model,
       );
 
   console.log(`${rows.length} entries, ${pending.length} to embed.`);
@@ -91,7 +100,9 @@ async function main() {
   }
 
   if (dryRun) {
-    for (const row of pending) console.log(`  would embed: ${row.title}`);
+    for (const row of pending) {
+      console.log(`  would embed: ${row.title} (was ${row.embedding_model ?? "none"})`);
+    }
     return;
   }
 
@@ -103,30 +114,34 @@ async function main() {
 
     let vectors: number[][];
     try {
-      vectors = await embedDocuments(batch.map(entryEmbeddingText), geminiKey);
+      vectors = await provider.embed(
+        batch.map(entryEmbeddingText),
+        "document",
+      );
     } catch (err) {
       // Report and continue: one bad batch should not cost the ones after it,
       // and a partial backfill is resumable by re-running.
       console.error(
-        `  batch ${i / BATCH_SIZE + 1} failed:`,
+        `  batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`,
         err instanceof Error ? err.message : err,
       );
       failed += batch.length;
       continue;
     }
 
-    const updates = batch.map((row, j) =>
-      supabase
-        .from("knowledge_entries")
-        .update({
-          embedding: JSON.stringify(vectors[j]),
-          embedding_model: EMBEDDING_MODEL,
-          embedding_updated_at: new Date().toISOString(),
-        })
-        .eq("id", row.id),
+    const results = await Promise.all(
+      batch.map((row, j) =>
+        supabase
+          .from("knowledge_entries")
+          .update({
+            embedding: JSON.stringify(vectors[j]),
+            embedding_model: provider.model,
+            embedding_updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id),
+      ),
     );
 
-    const results = await Promise.all(updates);
     results.forEach((res, j) => {
       if (res.error) {
         console.error(`  ${batch[j].title}: ${res.error.message}`);
