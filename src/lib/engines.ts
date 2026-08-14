@@ -100,28 +100,26 @@ function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
  * ------------------------------------------------------------------ */
 
 /**
- * The free models the standby pool draws on, best-first.
+ * One entry, and it is a router rather than a model: OpenRouter picks from
+ * whatever is actually free at request time.
  *
- * Which models carry a `:free` tag changes on OpenRouter's schedule, not ours,
- * and this list has already gone stale once in production: every model in it
- * answered 404 "this model is unavailable for free", which took the entire
- * standby chain out while the key and the wiring were both fine.
+ * Naming free models was tried twice and failed twice in production. First the
+ * named models were retired — 404, "this model is unavailable for free" — which
+ * took the whole standby chain out while the key and the wiring were fine. Then
+ * the router was added with the named models kept behind it as a hedge, and
+ * that failed too, for a reason worth writing down:
  *
- * So the list now leads with a router rather than a model. Set
- * OPENROUTER_MODELS to override it without touching code, and check the live
- * pool at https://openrouter.ai/models?max_price=0.
+ *   OpenRouter validates every id in the `models` array before it routes
+ *   anywhere. One bad id answers 400 for the entire request. A fallback list is
+ *   therefore only as reliable as its *worst* entry — the opposite of what a
+ *   fallback is for.
+ *
+ * So the hedge was the bug. The router alone already does inside one request
+ * what the list was trying to do across several, and it cannot go stale.
+ * OPENROUTER_MODELS still overrides this without touching code; the live pool
+ * is at https://openrouter.ai/models?max_price=0.
  */
-const DEFAULT_OPENROUTER_MODELS = [
-  // A router, not a model. OpenRouter picks from whatever is actually free at
-  // the moment of the request, which is the only entry in this list that cannot
-  // go stale — and staleness is the failure that has bitten this pool twice.
-  // The named models behind it are a hedge in case the router itself changes.
-  "openrouter/free",
-  "openai/gpt-oss-120b:free",
-  "google/gemma-4-26b:free",
-  "nvidia/nemotron-3-nano-30b:free",
-  "openai/gpt-oss-20b:free",
-]
+const DEFAULT_OPENROUTER_MODELS = ["openrouter/free"]
 
 /**
  * OpenRouter rejects a routing list longer than this — "'models' array must

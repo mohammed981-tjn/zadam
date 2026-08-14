@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildEngines, generateWithFallback } from "@/lib/engines";
+import { activeProvider } from "@/lib/embedding";
 
 /**
  * What the deployment actually sees.
@@ -83,6 +84,7 @@ export async function GET(req: NextRequest) {
   const geminiKey = process.env.GEMINI_API_KEY;
   const openRouterKey = process.env.OPENROUTER_API_KEY;
 
+  const embedder = activeProvider();
   const engines = buildEngines({
     geminiKey,
     openRouterKey,
@@ -99,9 +101,17 @@ export async function GET(req: NextRequest) {
       environment: process.env.VERCEL_ENV ?? null,
     },
     keys: [
+      // Embeddings and generation are configured separately, so the report has
+      // to name both. Leaving JINA_API_KEY out made a correctly configured
+      // embedding provider look absent, which is the exact confusion this
+      // endpoint exists to end.
+      describe("JINA_API_KEY", process.env.JINA_API_KEY),
       describe("GEMINI_API_KEY", geminiKey),
       describe("OPENROUTER_API_KEY", openRouterKey),
     ],
+    embeddings: embedder
+      ? { provider: embedder.model, minSimilarity: embedder.minSimilarity }
+      : null,
     engineChain: engines.map((e) => redact(e.name)),
     // Named rather than merely masked: a key sitting in OPENROUTER_MODELS
     // produces "not a valid model ID" from the provider, which reads like a
