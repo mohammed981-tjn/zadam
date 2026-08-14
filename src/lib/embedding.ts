@@ -98,16 +98,21 @@ function checkShape(values: unknown, index: number): number[] {
  * ------------------------------------------------------------------ */
 
 /**
- * Jina ships new embedding models faster than this file changes, and their
- * dashboard already defaults to a newer one than this. Pinning the name here
- * and overriding it by env means a model retirement is a variable, not a
- * deploy — the same lesson OPENROUTER_MODELS exists for.
+ * Jina ships models faster than this file changes, so the name is pinned here
+ * and overridable by env: a retirement becomes a variable rather than a deploy,
+ * the same reason OPENROUTER_MODELS exists.
  *
- * v3 is the default because its request shape is the plain one: `input` is an
- * array of strings. The omni models are multimodal and take `[{text: "..."}]`
- * instead, so switching to one is not only a name change.
+ * v5-text-small over the older v3 — newer, a 32K context against 8K, and
+ * task-specific adapters, which is exactly the retrieval.query / retrieval.passage
+ * split this code depends on.
+ *
+ * Text, deliberately, not one of the omni models. This base is prose; paying
+ * for image, audio and video capability buys nothing here, and the omni request
+ * shape differs — `input` becomes `[{text: "..."}]` rather than an array of
+ * strings — so switching to one is not only a name change. If JINA_MODEL is
+ * ever pointed at an omni model, that shape has to be handled too.
  */
-const DEFAULT_JINA_MODEL = "jina-embeddings-v3";
+const DEFAULT_JINA_MODEL = "jina-embeddings-v5-text-small";
 
 /**
  * Jina's free allowance is generous enough that this base's whole backfill is a

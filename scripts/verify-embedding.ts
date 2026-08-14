@@ -78,14 +78,22 @@ ok(
   embeddingProvider({ geminiKey: "k" })?.model === "gemini-embedding-001",
   "gemini alone is used when it is all there is",
 );
+// Asserted by provider rather than by version: the model name is pinned in one
+// place and expected to move as Jina's catalogue does, and a test that fails
+// every time it moves teaches people to edit the test without reading it.
 ok(
-  embeddingProvider({ jinaKey: "k" })?.model === "jina-embeddings-v3",
+  embeddingProvider({ jinaKey: "k" })?.model.startsWith("jina-") === true,
   "jina alone is a complete configuration — gemini is not required",
 );
 ok(
-  embeddingProvider({ jinaKey: "k", geminiKey: "k" })?.model ===
-    "jina-embeddings-v3",
+  embeddingProvider({ jinaKey: "k", geminiKey: "k" })?.model.startsWith("jina-") ===
+    true,
   "jina wins when both are present, being reachable from more places",
+);
+ok(
+  embeddingProvider({ jinaKey: "k", jinaModel: "jina-embeddings-v3" })?.model ===
+    "jina-embeddings-v3",
+  "JINA_MODEL overrides the pinned name without a deploy",
 );
 
 // The model name is what stops a query being compared against vectors from a
