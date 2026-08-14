@@ -1,6 +1,8 @@
 import {
   retrieveRelevant,
   normalizeArabic,
+  questionTerms,
+  scoreEntries,
   type RetrievableEntry,
 } from "../src/lib/retrieval";
 
@@ -190,6 +192,85 @@ ok(
     e.content.includes("بونجرو"),
   ),
   "the one relevant entry survives the cut",
+);
+
+console.log("\n" + "=".repeat(74));
+console.log("E) Sudanese colloquial reaches entries written in formal Arabic");
+console.log("=".repeat(74));
+
+/*
+ * Every question below is copied verbatim from the assistant's own log. Nine of
+ * the first twenty-three real questions used "الواطة" and not one matched a
+ * single entry — a third of everything the platform was asked, falling through
+ * on vocabulary alone.
+ */
+const formal: RetrievableEntry[] = [
+  E(
+    "تربة",
+    "ملوحة التربة في الأراضي المروية",
+    "تتراكم الأملاح في التربة الطينية الثقيلة حين يرتفع منسوب الماء الأرضي بلا صرف كاف",
+  ),
+  E(
+    "ري",
+    "ري الأراضي الرملية بنبضات قصيرة متكررة",
+    "التربة الرملية قليلة السعة التخزينية للماء فالرية الغزيرة تنزل تحت منطقة الجذور وتفقد",
+  ),
+  E(
+    "قطن",
+    "الإجهاد المائي في القطن",
+    "الجفاف عند التزهير يسقط اللوز ويخفض المحصول بشدة ويصيب الأرض بالعطش",
+  ),
+  E(
+    "مانجو",
+    "زراعة المانجو",
+    "تحتاج المانجو تربة عميقة جيدة الصرف وريا منتظما طوال الموسم",
+  ),
+  E(
+    "دواجن",
+    "تربية الدواجن",
+    "التهوية والكثافة هما ما يحسم نجاح العنبر في الحر الشديد",
+  ),
+];
+
+for (const question of [
+  "الواطة عطشانه",
+  "الواطة العطشانة علاجه شنو",
+  "المي بتنشف سريع في الواطة",
+  "بتنشف بسرعة في الرملة",
+  "مراحل زراعة المنقة",
+]) {
+  const hits = scoreEntries(question, formal).filter((s) => s.score > 0);
+  ok(hits.length > 0, `«${question}» — لم تكن تطابق شيئاً، والآن تطابق`);
+}
+
+ok(
+  scoreEntries("مراحل زراعة المنقة", formal).filter((s) => s.score > 0)[0]
+    ?.entry.title === "زراعة المانجو",
+  "«المنقة» تصل إلى «المانجو» في المقدمة",
+);
+
+// The stemmer will not strip an article that leaves fewer than three letters,
+// so "المي" never reaches the bare form the map would otherwise catch.
+ok(
+  questionTerms("المي").includes("ماء"),
+  "«المي» تُفهم رغم أن التجذيع لا يجرّدها",
+);
+
+// The deliberate collapse: a question phrased with one word must reach entries
+// phrased with the other.
+ok(
+  scoreEntries("ملوحة الأرض", formal).some(
+    (s) => s.score > 0 && s.entry.title.includes("ملوحة"),
+  ),
+  "«أرض» تصل إلى مُدخل مكتوب بـ«تربة»",
+);
+
+// Folding must widen recall, not dissolve every distinction.
+ok(
+  !scoreEntries("الواطة عطشانه", formal)
+    .filter((s) => s.score > 0)
+    .some((s) => s.entry.title === "تربية الدواجن"),
+  "الطيّ لا يخلط «تربة» بـ«تربية»",
 );
 
 console.log(
