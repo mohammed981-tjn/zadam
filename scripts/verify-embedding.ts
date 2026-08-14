@@ -16,7 +16,11 @@ import {
   type RetrievableEntry,
   type SemanticMatch,
 } from "../src/lib/retrieval";
-import { entryEmbeddingText, EMBEDDING_DIMENSIONS } from "../src/lib/embedding";
+import {
+  entryEmbeddingText,
+  embeddingProvider,
+  EMBEDDING_DIMENSIONS,
+} from "../src/lib/embedding";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -62,6 +66,35 @@ ok(
   "empty fields are dropped rather than leaving blank lines",
 );
 ok(EMBEDDING_DIMENSIONS === 768, "dimensions match the vector(768) column");
+
+/* ------------------------------------------------------------------ */
+section("A2) Choosing a provider");
+
+// An account-level block on the Google project once took the semantic half of
+// retrieval out entirely, and no new key could fix it. The lesson was not that
+// Gemini is unreliable — it is that a single provider is.
+ok(embeddingProvider({}) === null, "no key means no provider, not a crash");
+ok(
+  embeddingProvider({ geminiKey: "k" })?.model === "gemini-embedding-001",
+  "gemini alone is used when it is all there is",
+);
+ok(
+  embeddingProvider({ jinaKey: "k" })?.model === "jina-embeddings-v3",
+  "jina alone is a complete configuration — gemini is not required",
+);
+ok(
+  embeddingProvider({ jinaKey: "k", geminiKey: "k" })?.model ===
+    "jina-embeddings-v3",
+  "jina wins when both are present, being reachable from more places",
+);
+
+// The model name is what stops a query being compared against vectors from a
+// different model, which produces noise shaped exactly like a similarity score.
+ok(
+  embeddingProvider({ jinaKey: "k" })!.model !==
+    embeddingProvider({ geminiKey: "k" })!.model,
+  "the two providers are distinguishable by name",
+);
 
 /* ------------------------------------------------------------------ */
 section("B) Fusion keeps what each ranker alone would lose");

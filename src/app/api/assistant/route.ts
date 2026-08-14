@@ -6,7 +6,7 @@ import {
   type RetrievableEntry,
   type SemanticMatch,
 } from "@/lib/retrieval";
-import { embedQuestion } from "@/lib/embedding";
+import { activeProvider, embedQuestion } from "@/lib/embedding";
 import { buildEngines, generateWithFallback } from "@/lib/engines";
 import { answerLocally, bestEffortAnswer } from "@/lib/localAnswer";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
@@ -53,11 +53,12 @@ export async function POST(req: NextRequest) {
   // that is sent out. Missing keys now cost the general-knowledge answers, not
   // the assistant.
   //
-  // Embeddings are Gemini's alone — no free chat pool serves them — so the key
-  // is read separately from the chain it also heads.
-  const apiKey = process.env.GEMINI_API_KEY;
+  // Embeddings and generation are configured independently: no free chat pool
+  // serves embeddings, and the provider that embeds may not be the one that
+  // answers. Either being absent costs its own half and nothing more.
+  const embedder = activeProvider();
   const engines = buildEngines({
-    geminiKey: apiKey,
+    geminiKey: process.env.GEMINI_API_KEY,
     openRouterKey: process.env.OPENROUTER_API_KEY,
     openRouterModels: process.env.OPENROUTER_MODELS,
   });
@@ -215,18 +216,22 @@ export async function POST(req: NextRequest) {
      * the least unrelated one, and feeding that to the model invites it to
      * answer from something that does not bear on the question.
      */
-    const questionVector = apiKey
-      ? await embedQuestion(question, apiKey)
+    const questionVector = embedder
+      ? await embedQuestion(embedder, question)
       : null;
     let semantic: SemanticMatch[] = [];
 
-    if (questionVector) {
+    if (questionVector && embedder) {
       const { data: nearest, error: matchError } = await supabase.rpc(
         "match_knowledge_entries",
         {
           p_query_embedding: questionVector,
           p_match_count: 12,
           p_min_similarity: 0.45,
+          // Only rows this same model embedded. Cosine across models is noise
+          // shaped like a score, and a provider switch leaves the base
+          // half-migrated for as long as the backfill takes.
+          p_model: embedder.model,
         },
       );
 
