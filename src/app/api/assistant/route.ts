@@ -7,6 +7,7 @@ import {
   type SemanticMatch,
 } from "@/lib/retrieval";
 import { embedQuestion } from "@/lib/embedding";
+import { buildEngines, generateWithFallback } from "@/lib/engines";
 import { answerLocally, bestEffortAnswer } from "@/lib/localAnswer";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { INVESTMENT_LIVE } from "@/lib/config";
@@ -46,12 +47,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "سؤال غير صالح" }, { status: 400 });
   }
 
-  // Note there is no early return when GEMINI_API_KEY is missing. The assistant
+  // Note there is no early return when no model is configured. The assistant
   // no longer depends on the model being reachable: the platform answers what it
   // can from its own engines and knowledge base first, and only what survives
-  // that is sent out. A missing key now costs the general-knowledge answers, not
+  // that is sent out. Missing keys now cost the general-knowledge answers, not
   // the assistant.
+  //
+  // Embeddings are Gemini's alone — no free chat pool serves them — so the key
+  // is read separately from the chain it also heads.
   const apiKey = process.env.GEMINI_API_KEY;
+  const engines = buildEngines({
+    geminiKey: apiKey,
+    openRouterKey: process.env.OPENROUTER_API_KEY,
+    openRouterModels: process.env.OPENROUTER_MODELS,
+  });
 
   try {
     const supabase = await createClient();
@@ -165,7 +174,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ answer: cached, source: "cache" });
     }
 
-    if (!apiKey) {
+    if (engines.length === 0) {
       await logQuestion(false);
       return NextResponse.json(
         {
@@ -191,7 +200,9 @@ export async function POST(req: NextRequest) {
      * the least unrelated one, and feeding that to the model invites it to
      * answer from something that does not bear on the question.
      */
-    const questionVector = await embedQuestion(question, apiKey);
+    const questionVector = apiKey
+      ? await embedQuestion(question, apiKey)
+      : null;
     let semantic: SemanticMatch[] = [];
 
     if (questionVector) {
@@ -219,34 +230,17 @@ export async function POST(req: NextRequest) {
       fuseRankings(question, allKnowledge, semantic, 12),
     );
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text: `المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
-                },
-              ],
-            },
-          ],
-          generationConfig: { maxOutputTokens: 3072, temperature: 0.3 },
-        }),
-      },
+    const { result, attempts } = await generateWithFallback(
+      engines,
+      SYSTEM_PROMPT,
+      `المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
     );
 
-    if (!geminiRes.ok) {
-      const bodyText = await geminiRes.text();
-      console.error("assistant: gemini error", geminiRes.status, bodyText);
+    if (!result) {
+      console.error("assistant: every engine failed", attempts);
       await logQuestion(false);
 
-      // The model being down is not a reason to send the visitor away empty
+      // Every engine being down is not a reason to send the visitor away empty
       // handed. Show the nearest entries, labelled as approximate.
       const degraded = bestEffortAnswer(question, allKnowledge);
       if (degraded) {
@@ -256,7 +250,10 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      if (geminiRes.status === 429) {
+      // Worth naming separately only when every engine hit its quota: that is
+      // temporary and waiting genuinely fixes it, which is not true of the
+      // other failures.
+      if (attempts.every((a) => a.reason.includes("HTTP 429"))) {
         return NextResponse.json(
           {
             error:
@@ -268,37 +265,27 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json(
         {
-          error: `تعذّر الاتصال بمحرك سودجري الذكي (HTTP ${geminiRes.status}): ${bodyText.slice(0, 300)}`,
+          error: `تعذّر الاتصال بمحركات سودجري الذكية (${attempts.length} محاولة): ${attempts.map((a) => `${a.engine} — ${a.reason}`).join(" | ").slice(0, 300)}`,
         },
         { status: 502 },
       );
     }
 
-    const data = await geminiRes.json();
-
-    /*
-     * Join every part rather than reading the first. The model may split an
-     * answer across parts, and it can emit a reasoning part before the reply —
-     * taking parts[0] blindly returns a thought or nothing at all. Parts
-     * flagged as thoughts are dropped; they are not for the reader.
-     */
-    type Part = { text?: string; thought?: boolean };
-    const parts: Part[] = data.candidates?.[0]?.content?.parts ?? [];
-    const rawAnswer = parts
-      .filter((p) => !p.thought && typeof p.text === "string")
-      .map((p) => p.text)
-      .join("")
-      .trim();
+    if (attempts.length > 0) {
+      console.warn(
+        `assistant: answered by ${result.engine} after ${attempts.length} failed engine(s)`,
+      );
+    }
 
     const answer =
-      rawAnswer.replace(/[*#_`]+/g, "").trim() ||
+      result.text.replace(/[*#_`]+/g, "").trim() ||
       "لم أتمكن من صياغة إجابة هذه المرة، أعد المحاولة أو اسأل بصيغة أخرى.";
 
     await logQuestion(true);
 
-    if (rawAnswer) setCachedAnswer(question, answer);
+    setCachedAnswer(question, answer);
 
-    return NextResponse.json({ answer, source: "model" });
+    return NextResponse.json({ answer, source: "model", engine: result.engine });
   } catch (err) {
     console.error("assistant: unhandled error", err);
     const message = err instanceof Error ? err.message : String(err);
