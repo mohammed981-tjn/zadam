@@ -100,6 +100,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    /*
+     * Do not chain .select() onto this insert.
+     *
+     * It reads as a harmless way to get the new row's id back, and it breaks
+     * the form completely. `.select()` makes PostgREST add RETURNING, and
+     * RETURNING is filtered through the SELECT policy — which on this table is
+     * `leads_select_admin USING (is_admin())`. An anonymous visitor is not an
+     * admin, so Postgres refuses the row it just accepted and reports it as
+     * "new row violates row-level security policy": the write succeeded, the
+     * read back did not, and the whole statement is rolled back. Verified
+     * against the live database — the same insert passes without RETURNING and
+     * fails with it.
+     *
+     * If the id is ever genuinely needed here, generate it client-side and send
+     * it in the payload rather than reading it back.
+     */
     const { error } = await supabase.from("leads").insert(capped);
 
     if (error) {
