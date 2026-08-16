@@ -22,6 +22,7 @@ const KIND_ICON: Record<string, string> = {
   opportunity_submitted: "🗂️",
   opportunity_approved: "✅",
   opportunity_rejected: "📝",
+  lead_received: "📞",
 };
 
 function timeAgo(iso: string): string {
