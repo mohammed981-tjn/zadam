@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { submitLead } from "@/app/leads/actions";
+import { sendLead } from "@/lib/leads";
 import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { useDraggable } from "@/lib/useDraggable";
 
@@ -69,6 +69,16 @@ export default function AssistantWidget() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question }),
+        /*
+         * A deadline, because the alternative has no end.
+         *
+         * The answer travels through a model call, and on a weak connection a
+         * fetch with no timeout can stay open until the page is reloaded —
+         * "يكتب الآن..." forever, the send button disabled, the conversation
+         * dead with no error to show for it. Forty-five seconds is longer than
+         * any answer has taken and short enough to still be waiting for.
+         */
+        signal: AbortSignal.timeout(45_000),
       });
       const data = await res.json();
       const userTurns = messages.filter((m) => m.role === "user").length + 1;
@@ -84,16 +94,37 @@ export default function AssistantWidget() {
     } catch {
       setMessages((m) => [
         ...m,
-        { role: "assistant", text: "تعذّر الاتصال بالمساعد، حاول مرة أخرى." },
+        {
+          role: "assistant",
+          text: "انقطع الاتصال قبل أن تصل الإجابة. تحقّق من الشبكة وأعد إرسال سؤالك.",
+        },
       ]);
+      // Hand the question back to the box so a retry is one press rather than
+      // retyping it. Only on failure — a delivered question must not reappear.
+      setInput(question);
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleLeadSubmit(formData: FormData) {
+  /*
+   * onSubmit rather than a form action, on purpose.
+   *
+   * React resets an uncontrolled form once its action resolves — so a failed
+   * send used to wipe the name and the phone number along with it, and asking
+   * someone to type their number a second time after it already vanished once
+   * is how a contact form stops receiving contacts. Handling submit ourselves
+   * leaves the fields exactly as written, and a retry is one press.
+   */
+  async function handleLeadSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (leadSubmitting) return;
+
+    const formData = new FormData(e.currentTarget);
     setLeadSubmitting(true);
-    const result = await submitLead(formData);
+    // sendLead never rejects, so the button is always released and the visitor
+    // is always told something.
+    const result = await sendLead(formData);
     setLeadResult(result);
     setLeadSubmitting(false);
     if (result.ok) setShowLeadForm(false);
@@ -172,7 +203,7 @@ export default function AssistantWidget() {
                 <p className="mb-2 text-sm font-medium">
                   هل تريد أن يتواصل معك فريق سودجري مباشرة؟
                 </p>
-                <form action={handleLeadSubmit} className="flex flex-col gap-2">
+                <form onSubmit={handleLeadSubmit} className="flex flex-col gap-2">
                   <input
                     name="full_name"
                     placeholder="الاسم"
