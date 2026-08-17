@@ -10,6 +10,7 @@ import { activeProvider, embedQuestion } from "@/lib/embedding";
 import { buildEngines, generateWithFallback } from "@/lib/engines";
 import { answerLocally, bestEffortAnswer } from "@/lib/localAnswer";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
+import { pageContextLine } from "@/lib/pageHelp";
 import { INVESTMENT_LIVE } from "@/lib/config";
 
 const SYSTEM_PROMPT = `أنت "مساعد سودجري" — مساعد ذكي يتحدث العربية فقط لمنصة "سودجري" للاستثمار الزراعي في السودان. تجيب على ثلاثة أنواع من الأسئلة، ولكل نوع قاعدة مختلفة:
@@ -42,8 +43,9 @@ const SYSTEM_PROMPT = `أنت "مساعد سودجري" — مساعد ذكي ي
 
 export async function POST(req: NextRequest) {
   let question: unknown;
+  let path: unknown;
   try {
-    ({ question } = await req.json());
+    ({ question, path } = await req.json());
   } catch {
     return NextResponse.json({ error: "طلب غير صالح" }, { status: 400 });
   }
@@ -55,6 +57,23 @@ export async function POST(req: NextRequest) {
   ) {
     return NextResponse.json({ error: "سؤال غير صالح" }, { status: 400 });
   }
+
+  /*
+   * Which page the question was asked from.
+   *
+   * This is what lets the assistant stand in for a help page on every screen
+   * rather than sitting next to one. "ما هذا؟" typed on the contract builder is
+   * a different question from the same three words typed on the home page, and
+   * until now both got the same general answer.
+   *
+   * The path only ever selects a fixed entry from pageHelp; an unknown or
+   * crafted value matches nothing and yields an empty string, so this field
+   * cannot be used to push text of the caller's choosing into the prompt.
+   */
+  const pageContext =
+    typeof path === "string" && path.startsWith("/") && path.length < 200
+      ? pageContextLine(path)
+      : "";
 
   // Note there is no early return when no model is configured. The assistant
   // no longer depends on the model being reachable: the platform answers what it
@@ -264,7 +283,10 @@ export async function POST(req: NextRequest) {
     const { result, attempts } = await generateWithFallback(
       engines,
       SYSTEM_PROMPT,
-      `المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
+      // The page context goes first when there is one: a vague question is
+      // resolved against the screen the visitor is looking at before anything
+      // else is considered.
+      `${pageContext ? `${pageContext}\n\n` : ""}المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
     );
 
     if (!result) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { sendLead } from "@/lib/leads";
 import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { useDraggable } from "@/lib/useDraggable";
@@ -25,6 +26,7 @@ const SOURCE_LABEL: Record<string, string> = {
 };
 
 export default function AssistantWidget() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -68,7 +70,10 @@ export default function AssistantWidget() {
       const res = await fetch("/api/assistant", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question }),
+        // The page the question was asked from, so the assistant can answer a
+        // vague "ما هذا؟" about the screen in front of the visitor. This is why
+        // the platform needs no help page per screen.
+        body: JSON.stringify({ question, path: pathname }),
         /*
          * A deadline, because the alternative has no end.
          *

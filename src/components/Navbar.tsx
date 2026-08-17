@@ -32,6 +32,7 @@ export default async function Navbar() {
       items: [
         { href: "/", label: "الرئيسية" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
+        { href: "/services", label: "الخدمات التعاقدية" },
         { href: "/guide", label: "دليل الاستخدام" },
       ],
     },
@@ -50,6 +51,7 @@ export default async function Navbar() {
       items: [
         { href: "/lands", label: "أراضيّ" },
         { href: "/seasons", label: "مواسمي" },
+        { href: "/contracts", label: "عقود الخدمات" },
         { href: "/opportunities/new", label: "ارفع فرصة" },
       ],
     });
