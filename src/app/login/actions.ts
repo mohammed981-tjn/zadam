@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -186,4 +187,148 @@ export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");
+}
+
+/**
+ * Sends the confirmation email again.
+ *
+ * The gap this closes is small and traps people completely. Signing up with an
+ * email leaves the account unconfirmed until a link is clicked, and a visitor
+ * who closes the tab, loses the mail to a spam folder, or simply tries to log
+ * in before the message arrives is told "لم يتم تفعيل بريدك الإلكتروني بعد" —
+ * true, and with no way out of it on the page. There was no button anywhere on
+ * the platform to send that mail a second time.
+ *
+ * The response never says whether the address is registered. "If an account
+ * exists, a message has been sent" is not evasion for its own sake: a form that
+ * answers differently for known and unknown addresses is a way to test whether
+ * someone has an account here, and on a platform that will hold land records
+ * that is worth denying.
+ */
+export async function resendConfirmation(formData: FormData) {
+  const email = str(formData, "email");
+
+  if (!email || !email.includes("@")) {
+    redirect(
+      `/login?method=email&error=${encodeURIComponent("أدخل بريداً إلكترونياً صحيحاً.")}`,
+    );
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({ type: "signup", email });
+
+  // Logged, not shown. A rate-limit or a provider outage is our problem to
+  // read in the logs; to the visitor the answer is the same either way.
+  if (error) console.error("resendConfirmation:", error.message);
+
+  redirect(
+    `/login?method=email&message=${encodeURIComponent(
+      "إن كان لهذا البريد حساب، أُرسلت رسالة التفعيل إليه. افتح الرسالة واضغط الرابط ثم عد وسجّل الدخول.",
+    )}`,
+  );
+}
+
+/**
+ * Starts a password reset.
+ *
+ * Email only, and the page says so rather than leaving a phone user pressing a
+ * button that cannot help them. An account registered by phone has its number
+ * folded into an internal @phone.invalid address that reaches no inbox, so
+ * there is nowhere to send a link — those users have to be reset by an admin
+ * until a real SMS route exists. Offering them a form that silently does
+ * nothing would be worse than saying it plainly.
+ */
+export async function requestPasswordReset(formData: FormData) {
+  const email = str(formData, "email");
+
+  if (!email || !email.includes("@")) {
+    redirect(
+      `/reset?error=${encodeURIComponent("أدخل بريداً إلكترونياً صحيحاً.")}`,
+    );
+  }
+
+  const supabase = await createClient();
+
+  /*
+   * Where the link lands.
+   *
+   * Taken from the request's own host rather than a constant, so a preview
+   * deployment sends its links back to that preview. A reset link that always
+   * jumped to production is how a test on a branch ends up changing a live
+   * account's password.
+   *
+   * Supabase only honours redirect URLs on its allow-list, so an attacker
+   * cannot point this anywhere by forging a Host header — an unlisted origin is
+   * refused by Supabase and the link falls back to the project's Site URL.
+   */
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const redirectTo = host ? `${proto}://${host}/reset/confirm` : undefined;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  if (error) console.error("requestPasswordReset:", error.message);
+
+  redirect(
+    `/reset?message=${encodeURIComponent(
+      "إن كان لهذا البريد حساب، أُرسل إليه رابط إعادة التعيين. الرابط صالح لفترة قصيرة.",
+    )}`,
+  );
+}
+
+/**
+ * Completes a reset, for a visitor arriving on the link from their email.
+ *
+ * Supabase turns the token in that link into a real session before this runs,
+ * so the update below is an ordinary authenticated password change. That is
+ * also why the session check matters: without a valid recovery session there is
+ * nobody to change the password of, and the request must be refused rather than
+ * silently doing nothing.
+ */
+export async function completePasswordReset(formData: FormData) {
+  const password = str(formData, "password");
+  const confirm = str(formData, "confirm");
+
+  if (password.length < 6) {
+    redirect(
+      `/reset/confirm?error=${encodeURIComponent("كلمة المرور يجب أن تكون ٦ أحرف على الأقل.")}`,
+    );
+  }
+  if (password !== confirm) {
+    redirect(
+      `/reset/confirm?error=${encodeURIComponent("كلمتا المرور غير متطابقتين.")}`,
+    );
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(
+      `/reset?error=${encodeURIComponent(
+        "انتهت صلاحية رابط إعادة التعيين أو استُخدم من قبل. اطلب رابطاً جديداً.",
+      )}`,
+    );
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    redirect(
+      `/reset/confirm?error=${encodeURIComponent(
+        translateAuthError(error.message, "email"),
+      )}`,
+    );
+  }
+
+  redirect(
+    `/login?method=email&message=${encodeURIComponent(
+      "تم تغيير كلمة المرور. سجّل الدخول بكلمتك الجديدة.",
+    )}`,
+  );
 }
