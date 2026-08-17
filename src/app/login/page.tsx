@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { login } from "./actions";
+import { login, resendConfirmation } from "./actions";
 import PhoneField from "@/components/PhoneField";
 
 export default async function LoginPage({
@@ -61,6 +61,44 @@ export default async function LoginPage({
         </button>
       </form>
 
+      {/*
+        The way out of the confirmation trap.
+
+        Signing up by email leaves the account unconfirmed until a link is
+        clicked, and someone who lost the message or tried to log in before it
+        arrived was told "لم يتم تفعيل بريدك الإلكتروني بعد" with nothing on the
+        page to do about it. Shown only on the email tab, because a phone
+        account has no inbox and no confirmation to resend.
+      */}
+      {byEmail && (
+        <form action={resendConfirmation} className="mt-4">
+          <details className="rounded-lg border border-border bg-card px-3 py-2 text-sm">
+            <summary className="cursor-pointer text-muted">
+              لم تصلك رسالة التفعيل؟
+            </summary>
+            <div className="mt-3 flex flex-col gap-2">
+              <input
+                type="email"
+                name="email"
+                required
+                placeholder="بريدك الإلكتروني"
+                className={field}
+              />
+              <button
+                type="submit"
+                className="rounded-lg border border-primary px-3 py-1.5 text-sm font-medium text-primary"
+              >
+                أعد إرسال رسالة التفعيل
+              </button>
+              <span className="text-xs text-muted">
+                تحقّق من مجلد الرسائل غير المرغوبة أيضاً — الرسالة تصل باسم
+                مزوّد الخدمة لا باسم سودجري.
+              </span>
+            </div>
+          </details>
+        </form>
+      )}
+
       <p className="mt-4 text-center text-sm">
         {byEmail ? (
           <Link href="/login" className="text-primary underline">
@@ -71,6 +109,12 @@ export default async function LoginPage({
             الدخول بالبريد الإلكتروني
           </Link>
         )}
+      </p>
+
+      <p className="mt-3 text-center text-sm">
+        <Link href="/reset" className="text-muted underline">
+          نسيت كلمة المرور؟
+        </Link>
       </p>
 
       <p className="mt-6 text-sm text-muted">

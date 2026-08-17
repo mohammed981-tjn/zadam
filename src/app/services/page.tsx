@@ -9,6 +9,7 @@ import {
   type ProductionKind,
   type ServiceKey,
 } from "@/lib/services";
+import { ECONOMIC_FACTS } from "@/lib/economics";
 import type { ProviderService, ServiceProvider } from "@/types/database";
 
 export const metadata = { title: "الخدمات التعاقدية — سودجري" };
@@ -67,6 +68,28 @@ export default async function ServicesPage({
         الكمية في كل بند <strong>تُشتق</strong> من موسمك أو قطيعك — لا تُكتب
         يدوياً — فيمكن لطرفَي العقد إعادة حسابها.
       </p>
+
+      {/*
+        Why the sector, before what the services are.
+
+        Every figure names its publication and year. "الاستثمار الزراعي مهم" is
+        a slogan; a sourced number is an argument, and the difference is whether
+        a reader can go and check it.
+      */}
+      <section className="mb-8 rounded-2xl border border-border bg-card p-5">
+        <h2 className="mb-3 text-sm font-bold">لماذا هذا القطاع</h2>
+        <ul className="flex flex-col gap-3">
+          {ECONOMIC_FACTS.map((f) => (
+            <li key={f.key} className="border-b border-border pb-3 last:border-0 last:pb-0">
+              <p className="text-sm font-medium">{f.headline}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{f.detail}</p>
+              <p className="mt-1 text-[11px] text-muted">
+                المصدر: {f.source} — {f.year}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <nav className="mb-8 flex flex-wrap gap-2 text-sm">
         {(

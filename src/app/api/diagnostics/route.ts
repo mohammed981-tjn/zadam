@@ -137,7 +137,23 @@ export async function GET(req: NextRequest) {
       describe("JINA_API_KEY", process.env.JINA_API_KEY),
       describe("GEMINI_API_KEY", geminiKey),
       describe("OPENROUTER_API_KEY", openRouterKey),
+      /*
+       * Not an AI key, and reported here anyway.
+       *
+       * This is the one whose absence breaks a user-facing feature silently:
+       * without it the admin API is unreachable, phone signup cannot create a
+       * confirmed account, and every visitor registering by number is turned
+       * away. It is also the variable most likely to be set for one Vercel
+       * environment and not another, which is exactly the failure this endpoint
+       * exists to make visible in a single request rather than by testing the
+       * signup form on each deployment.
+       */
+      describe("SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY),
     ],
+    // Stated as the capability rather than left to be inferred from the key.
+    features: {
+      phoneSignup: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    },
     embeddings: embedder
       ? { provider: embedder.model, minSimilarity: embedder.minSimilarity }
       : null,

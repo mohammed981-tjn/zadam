@@ -33,7 +33,10 @@ export type ServiceKind =
   | "laboratory"
   | "logistics"
   | "legal"
-  | "procurement";
+  | "procurement"
+  | "storage"
+  | "security"
+  | "insurance";
 
 export const SERVICE_KIND_LABEL: Record<ServiceKind, string> = {
   engineering_office: "مكتب هندسة زراعية",
@@ -46,6 +49,9 @@ export const SERVICE_KIND_LABEL: Record<ServiceKind, string> = {
   logistics: "النقل والتخزين",
   legal: "التوثيق والتصاريح",
   procurement: "التوريد والتخليص",
+  storage: "التجفيف والتخزين",
+  security: "الحماية والأمن",
+  insurance: "التأمين وإدارة المخاطر",
 };
 
 export type ServiceUnit =
@@ -100,7 +106,23 @@ export type ServiceKey =
   | "water_permit"
   | "machinery_rental"
   | "machinery_procurement"
-  | "customs_clearance";
+  | "customs_clearance"
+  | "preharvest_assessment"
+  | "threshing_cleaning"
+  | "drying"
+  | "hermetic_storage"
+  | "cold_storage"
+  | "haulage"
+  | "soil_conservation"
+  | "windbreak"
+  | "machinery_maintenance"
+  | "fire_protection"
+  | "perimeter_fencing"
+  | "site_guarding"
+  | "locust_response"
+  | "rodent_control"
+  | "flood_protection"
+  | "crop_insurance";
 
 /**
  * How the billable quantity follows from the thing being served.
@@ -458,6 +480,209 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: true,
     note: "تكلفة الإرسالية الواحدة لا تتغيّر بمساحة المشروع، فتُسعَّر بالإرسالية. الرسوم الجمركية نفسها تُدفع للدولة لا للمخلّص.",
+  },
+  /* -------------------------------------------------------------------------
+   * ما قبل الحصاد وما بعده — حيث يُفقد المحصول بعد أن دُفعت كلفته كاملة.
+   *
+   * Sub-Saharan Africa loses grain worth about US$4 billion a year, and the
+   * published loss range is 20–40%, with smallholders above 30%. Every pound of
+   * that was already spent: seed, water, labour and the harvest itself are all
+   * paid for by the time the loss happens, which makes this the cheapest yield
+   * increase available anywhere on the platform. Hermetic storage is documented
+   * taking losses from over 30% to under 2%.
+   * ---------------------------------------------------------------------- */
+  {
+    key: "preharvest_assessment",
+    name: "تقدير المحصول قبل الحصاد",
+    kind: "engineering_office",
+    unit: "feddan",
+    production: "plant",
+    phase: "maturity",
+    basis: "feddans",
+    precondition: false,
+    note: "تقدير الكمية المتوقّعة يحدّد حجم النقل والتخزين المطلوب — والتقدير الخاطئ هنا يعني محصولاً ينتظر في العراء.",
+  },
+  {
+    key: "threshing_cleaning",
+    name: "دراس وتنظيف",
+    kind: "mechanization",
+    unit: "feddan",
+    production: "plant",
+    phase: "harvest",
+    basis: "feddans",
+    precondition: false,
+    note: "أول خطوة بعد الحصاد مباشرة، وتقاس بالمساحة المحصودة.",
+  },
+  {
+    key: "drying",
+    name: "تجفيف",
+    kind: "storage",
+    unit: "feddan",
+    production: "plant",
+    phase: "harvest",
+    basis: "feddans",
+    precondition: false,
+    note: "الرطوبة هي ما يفسد الحبوب في المخزن — التجفيف قبل التخزين لا بعده، وإلا حفظ المخزنُ المشكلةَ لا المحصول.",
+  },
+  {
+    key: "hermetic_storage",
+    name: "تخزين محكم",
+    kind: "storage",
+    unit: "month",
+    production: "plant",
+    phase: null,
+    basis: "months",
+    precondition: false,
+    note: "أكياس أو صوامع محكمة تخنق الحشرات بلا مبيد. موثّق أنها تخفض الفاقد من أكثر من ٣٠٪ إلى أقل من ٢٪ — أعلى عائد إلى تكلفة في الكتالوج كله.",
+  },
+  {
+    key: "cold_storage",
+    name: "تخزين مبرّد",
+    kind: "storage",
+    unit: "month",
+    production: "both",
+    phase: null,
+    basis: "months",
+    precondition: false,
+    note: "للخضر والألبان واللحوم. يُسعَّر بالشهر لأن التكلفة تشغيلية مستمرة لا حدث واحد.",
+  },
+  {
+    key: "haulage",
+    name: "ترحيل المحصول",
+    kind: "logistics",
+    unit: "feddan",
+    production: "both",
+    phase: "harvest",
+    basis: "feddans",
+    precondition: false,
+    note: "من الحقل إلى المخزن أو السوق. يقاس بالمساحة لأن الكمية تتبعها؛ والمسافة تدخل في السعر لا في الكمية.",
+  },
+  /* -------------------------------------------------------------------------
+   * الصيانة — للتربة وللآلة.
+   *
+   * Both are the same kind of spending: money laid out in one season to protect
+   * an asset that has to serve several. A season that skips them looks cheaper
+   * and is not — the cost simply lands later, on eroded land or on a machine
+   * that fails at harvest.
+   * ---------------------------------------------------------------------- */
+  {
+    key: "soil_conservation",
+    name: "صيانة التربة",
+    kind: "engineering_office",
+    unit: "feddan",
+    production: "plant",
+    phase: "land_prep",
+    basis: "feddans",
+    precondition: false,
+    note: "مصدّات ومدرّجات وحرث كنتوري ضد الانجراف. إنفاق موسم يحمي أصلاً يخدم مواسم — والأرض المنجرفة لا تُستعاد بموسم.",
+  },
+  {
+    key: "windbreak",
+    name: "مصدّات رياح",
+    kind: "engineering_office",
+    unit: "feddan",
+    production: "both",
+    phase: "land_prep",
+    basis: "feddans",
+    precondition: false,
+    note: "أحزمة شجرية تقلّل زحف الرمال والبخر معاً — تخدم التربة والاحتياج المائي في آن.",
+  },
+  {
+    key: "machinery_maintenance",
+    name: "صيانة الآليات",
+    kind: "mechanization",
+    unit: "month",
+    production: "both",
+    phase: null,
+    basis: "months",
+    precondition: false,
+    note: "برنامج صيانة دورية بالشهر. الجرار الذي يتعطّل في ذروة الحصاد يكلّف المحصول لا قطعة الغيار.",
+  },
+  /* -------------------------------------------------------------------------
+   * إدارة المخاطر — تكلفة معلومة مقابل خسارة مجهولة.
+   *
+   * Priced as contract lines rather than left as unbudgeted contingency,
+   * because that is the only way a per-phase feasibility study can carry them.
+   * The scale is not hypothetical: one square kilometre of locust swarm eats in
+   * a day what 35,000 people eat, and the 2020 upsurge across East Africa and
+   * Yemen caused damages estimated up to US$8.5 billion.
+   * ---------------------------------------------------------------------- */
+  {
+    key: "fire_protection",
+    name: "الوقاية من الحرائق ومكافحتها",
+    kind: "security",
+    unit: "feddan",
+    production: "both",
+    phase: null,
+    basis: "feddans",
+    precondition: false,
+    note: "خطوط نار ومعدات إطفاء وتدريب. الحريق في محصول ناضج يمحو موسماً كاملاً في ساعة.",
+  },
+  {
+    key: "perimeter_fencing",
+    name: "التسوير والحماية",
+    kind: "security",
+    unit: "feddan",
+    production: "both",
+    phase: "land_prep",
+    basis: "feddans",
+    precondition: false,
+    note: "السياج يمنع السطو ودخول الحيوان السائب معاً. يقاس بالمساحة تقريباً، والمحيط الفعلي يدخل في السعر.",
+  },
+  {
+    key: "site_guarding",
+    name: "حراسة الموقع",
+    kind: "security",
+    unit: "month",
+    production: "both",
+    phase: null,
+    basis: "months",
+    precondition: false,
+    note: "حراسة بالشهر طوال الدورة — تكلفة مستمرة لا حدث واحد، وتُدرَج في الميزانية بهذه الصفة.",
+  },
+  {
+    key: "locust_response",
+    name: "الاستجابة لأسراب الجراد",
+    kind: "security",
+    unit: "feddan",
+    production: "plant",
+    phase: null,
+    basis: "feddans",
+    precondition: false,
+    note: "استجابة طارئة لا مرحلة مجدوَلة: سرب بمساحة كيلومتر مربع يأكل في يوم ما يأكله ٣٥ ألف إنسان، فالتعاقد على الجاهزية لا على موعد.",
+  },
+  {
+    key: "rodent_control",
+    name: "مكافحة القوارض",
+    kind: "security",
+    unit: "feddan",
+    production: "both",
+    phase: null,
+    basis: "feddans",
+    precondition: false,
+    note: "خطر على الحقل والمخزن معاً — والمخزن أخطر، لأن الفاقد فيه يقع بعد دفع كل تكاليف الإنتاج.",
+  },
+  {
+    key: "flood_protection",
+    name: "الحماية من السيول والفيضان",
+    kind: "engineering_office",
+    unit: "feddan",
+    production: "both",
+    phase: "land_prep",
+    basis: "feddans",
+    precondition: false,
+    note: "تروس وقنوات تصريف تُبنى قبل الموسم لا أثناءه — والسيل غير المتوقّع موسمياً هو بالضبط ما لا يمهل لبنائها.",
+  },
+  {
+    key: "crop_insurance",
+    name: "وساطة تأمين زراعي",
+    kind: "insurance",
+    unit: "lump",
+    production: "both",
+    phase: null,
+    basis: "fixed",
+    precondition: true,
+    note: "ترتيب وثيقة تأمين قبل بدء الموسم. شرط مسبق لأن وثيقة تُطلب بعد وقوع الضرر لا تغطّيه — والتأمين يقوم مقام الضمانة التي يطلبها المموّل.",
   },
 ];
 
