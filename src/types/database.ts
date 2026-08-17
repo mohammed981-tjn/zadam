@@ -1,3 +1,10 @@
+import type {
+  ServiceKind,
+  ServiceKey,
+  ServiceUnit,
+  ProductionKind,
+} from "@/lib/services";
+
 export type UserRole = "investor" | "admin" | "field_agent";
 export type ProjectStatus =
   | "draft"
@@ -246,6 +253,232 @@ export interface Database {
         Insert: Partial<Lead>;
         Update: Partial<Lead>;
       };
+      service_providers: {
+        Row: ServiceProvider;
+        Insert: Partial<ServiceProvider>;
+        Update: Partial<ServiceProvider>;
+      };
+      services: {
+        Row: ProviderService;
+        Insert: Partial<ProviderService>;
+        Update: Partial<ProviderService>;
+      };
+      service_contracts: {
+        Row: ServiceContract;
+        Insert: Partial<ServiceContract>;
+        Update: Partial<ServiceContract>;
+      };
+      contract_milestones: {
+        Row: ContractMilestone;
+        Insert: Partial<ContractMilestone>;
+        Update: Partial<ContractMilestone>;
+      };
+      milestone_evidence: {
+        Row: MilestoneEvidence;
+        Insert: Partial<MilestoneEvidence>;
+        Update: Partial<MilestoneEvidence>;
+      };
+      contract_payments: {
+        Row: ContractPayment;
+        Insert: Partial<ContractPayment>;
+        Update: Partial<ContractPayment>;
+      };
+      herds: {
+        Row: Herd;
+        Insert: Partial<Herd>;
+        Update: Partial<Herd>;
+      };
+      herd_stages: {
+        Row: HerdStage;
+        Insert: Partial<HerdStage>;
+        Update: Partial<HerdStage>;
+      };
     };
   };
+}
+
+/* -------------------------------------------------------------------------
+ * الرافعة الخدمية — providers, contracts, and the animal side.
+ *
+ * The service vocabulary itself (keys, units, and how a billable quantity is
+ * derived from a season) lives in src/lib/services.ts, next to the catalogue
+ * that describes the work. What follows is only the row shapes.
+ * ---------------------------------------------------------------------- */
+
+export interface ServiceProvider {
+  id: string;
+  owner_id: string;
+  name: string;
+  kind: ServiceKind;
+  bio: string | null;
+  phone: string | null;
+  regions: string[];
+  /** Null until an admin verifies. Unverified providers are not contractable. */
+  verified_at: string | null;
+  verified_by: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+/**
+ * A priced offer in one provider's catalogue.
+ *
+ * Named ProviderService rather than Service because the row belongs to a
+ * provider — the abstract description of the work is ServiceDefinition in
+ * lib/services.ts, and the two are easy to confuse if both are called Service.
+ */
+export interface ProviderService {
+  id: string;
+  provider_id: string;
+  service_key: ServiceKey;
+  title: string;
+  description: string | null;
+  unit: ServiceUnit;
+  price_per_unit: number;
+  min_units: number;
+  production_kind: ProductionKind;
+  lead_time_days: number;
+  active: boolean;
+  created_at: string;
+}
+
+export type ContractStatus =
+  | "draft"
+  | "proposed"
+  | "active"
+  | "completed"
+  | "cancelled"
+  | "disputed";
+
+export type MilestoneStatus =
+  | "pending"
+  | "in_progress"
+  | "submitted"
+  | "approved"
+  | "paid"
+  | "rejected";
+
+export interface ServiceContract {
+  id: string;
+  project_id: string | null;
+  /** Exactly one of season_id and herd_id is set — enforced by CHECK. */
+  season_id: string | null;
+  herd_id: string | null;
+  /** Set to scope the contract to a single production phase. */
+  stage_id: string | null;
+  provider_id: string;
+  client_id: string;
+  title: string;
+  status: ContractStatus;
+  currency: string;
+  /** Maintained by trigger from the milestones; never write it directly. */
+  total_amount: number;
+  signed_at: string | null;
+  created_at: string;
+}
+
+export interface ContractMilestone {
+  id: string;
+  contract_id: string;
+  seq: number;
+  title: string;
+  service_id: string | null;
+  unit: ServiceUnit;
+  quantity: number;
+  /** Frozen at agreement time so a catalogue price change cannot reprice it. */
+  unit_price: number;
+  /** Generated column: quantity × unit_price. */
+  amount: number;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  status: MilestoneStatus;
+  /** Per-phase feasibility, mostly derived from the FAO-56 season plan. */
+  feasibility: Record<string, unknown> | null;
+  requires_evidence: boolean;
+  approved_by: string | null;
+  approved_at: string | null;
+  note: string | null;
+}
+
+export interface MilestoneEvidence {
+  id: string;
+  milestone_id: string;
+  kind: "photo" | "invoice" | "inspection" | "report" | "note";
+  storage_path: string | null;
+  caption: string | null;
+  /** Read from EXIF before compression, exactly like stage evidence. */
+  captured_at: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface ContractPayment {
+  id: string;
+  milestone_id: string;
+  kind: "advance" | "release" | "retention" | "refund";
+  amount: number;
+  status: "scheduled" | "released" | "held";
+  released_at: string | null;
+  released_by: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export type LivestockSpecies =
+  | "cattle"
+  | "sheep"
+  | "goat"
+  | "camel"
+  | "poultry"
+  | "fish";
+
+export type HerdPurpose = "meat" | "dairy" | "eggs" | "breeding" | "fattening";
+
+export type HerdStageKey =
+  | "acquisition"
+  | "quarantine"
+  | "conditioning"
+  | "breeding"
+  | "gestation"
+  | "rearing"
+  | "fattening"
+  | "production"
+  | "offtake";
+
+/** The animal-side counterpart of a season. */
+export interface Herd {
+  id: string;
+  owner_id: string;
+  project_id: string | null;
+  land_id: string | null;
+  name: string;
+  species: LivestockSpecies;
+  breed: string | null;
+  head_count: number;
+  purpose: HerdPurpose;
+  start_date: string;
+  end_date: string | null;
+  status: "active" | "completed" | "cancelled";
+  created_at: string;
+}
+
+export interface HerdStage {
+  id: string;
+  herd_id: string;
+  stage_key: HerdStageKey;
+  stage_order: number;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  /** Feed is to a herd what water is to a crop: the dominant input. */
+  planned_feed_kg: number | null;
+  budget: number | null;
+  completed: boolean;
+  completed_at: string | null;
+  note: string | null;
 }

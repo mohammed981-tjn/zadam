@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import 'mining_screen.dart';
+import 'services_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -251,6 +252,35 @@ class _SectionChoice extends StatelessWidget {
               Text(
                 'قسم منفصل: السلامة في الحفر، والاستخلاص بلا زئبق، وجيولوجيا '
                 'الذهب في السودان.',
+                style: TextStyle(
+                    fontSize: 13, color: mutedOn(context), height: 1.7),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Card(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ServicesScreen()),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('📋', style: TextStyle(fontSize: 26)),
+                  Icon(Icons.chevron_left, color: mutedOn(context)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text('الخدمات التعاقدية',
+                  style:
+                      TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(
+                'التصاريح وتوثيق العقود وإجراءات الآليات، والمسح والري '
+                'والحصاد والخدمات البيطرية — ووحدة قياس كل خدمة.',
                 style: TextStyle(
                     fontSize: 13, color: mutedOn(context), height: 1.7),
               ),

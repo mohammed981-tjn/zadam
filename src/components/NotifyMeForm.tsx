@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { submitLead } from "@/app/leads/actions";
+import { sendLead } from "@/lib/leads";
 
 /**
  * Shown in place of the invest form while the money flow is closed. Turns a
@@ -14,9 +14,17 @@ export default function NotifyMeForm({ interest }: { interest: string }) {
   );
   const [pending, setPending] = useState(false);
 
-  async function handleSubmit(formData: FormData) {
+  // onSubmit, so a failed send leaves the typed name and number in place for a
+  // one-press retry instead of clearing the form under the visitor.
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (pending) return;
+
+    const formData = new FormData(e.currentTarget);
     setPending(true);
-    setResult(await submitLead(formData));
+    // sendLead never rejects, so `pending` is always cleared — the frozen
+    // "جارٍ الإرسال..." button was the whole bug.
+    setResult(await sendLead(formData));
     setPending(false);
   }
 
@@ -29,7 +37,7 @@ export default function NotifyMeForm({ interest }: { interest: string }) {
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <input type="hidden" name="interest" value={interest} />
       <input type="hidden" name="role" value="investor" />
       <label className="flex flex-col gap-1 text-sm">

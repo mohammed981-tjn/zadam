@@ -194,3 +194,9 @@ if (effBad) fail++;
 console.log(
   "\n" + (fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK GROUP(S) FAILED`),
 );
+
+// The other ten verifiers end on this line and this one did not: it printed
+// FAIL and exited 0. On a laptop that is a harmless inconsistency. Wired into
+// CI it is worse than having no check at all, because a failing check reports
+// success and the build is trusted on the strength of it.
+process.exit(fail === 0 ? 0 : 1);
