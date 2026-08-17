@@ -81,6 +81,35 @@ function describe(name: string, raw: string | undefined) {
 }
 
 export async function GET(req: NextRequest) {
+  /*
+   * Closed, and closed by default — unlike /api/health next door.
+   *
+   * That route makes its secret optional and says why: it exposes counts and
+   * nothing else, so serving it openly costs little. This one is different in
+   * kind. It reports which providers are configured, the first characters and
+   * length of each key, the embedding model in use, and the exact commit and
+   * branch serving the request. None of that is a credential, and all of it
+   * tells someone probing the platform precisely where to aim.
+   *
+   * So the asymmetry is deliberate rather than copied: a missing CRON_SECRET
+   * closes this endpoint instead of opening it. A diagnostics route that fails
+   * open is a diagnostics route for whoever finds it first, and the whole
+   * reason this file exists — the OpenRouter key that leaked through a provider
+   * error message into a report meant to be safe to share — is an argument
+   * about exactly this: reports about configuration deserve more care than the
+   * configuration they describe, not less.
+   */
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return NextResponse.json(
+      { error: "التشخيص مغلق — لم يُضبط CRON_SECRET" },
+      { status: 503 },
+    );
+  }
+  if (req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
+  }
+
   const geminiKey = process.env.GEMINI_API_KEY;
   const openRouterKey = process.env.OPENROUTER_API_KEY;
 

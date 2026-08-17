@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "verify": "for f in scripts/verify-*.ts; do echo \"── $f\" && tsx \"$f\" || exit 1; done",
+    "test": "npm run typecheck && npm run lint && npm run verify"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -23,6 +26,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

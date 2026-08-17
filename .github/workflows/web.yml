@@ -1,0 +1,60 @@
+name: Web app
+
+# The check the platform did not have.
+#
+# mobile.yml already argues the principle for the Flutter app — "a green
+# analyze on a laptop is not evidence the thing installs" — and then runs only
+# on mobile/**. The 16,000 lines of TypeScript that are the actual product had
+# nothing at all: no typecheck, no lint, no build, and eleven verification
+# scripts totalling 2,400 lines that nothing ever executed.
+#
+# Note the order below. Typecheck first because it is the fastest way to fail,
+# then lint, then the verifiers, and the production build last because it is
+# the slowest. A contributor watching the run sees the cheapest failure first.
+
+on:
+  push:
+    paths-ignore:
+      - "mobile/**"
+      - "docs/**"
+      - "**/*.md"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # The engines, the FAO-56 water model, the risk and trust scorers, the
+      # EXIF handling, the retrieval ranking — all checked against expected
+      # ranges by scripts that already existed and were never run in CI.
+      - name: Verify engines
+        run: npm run verify
+
+      # Last because it is the slowest, and because a build that compiles while
+      # the water model returns nonsense is not the reassuring result.
+      #
+      # The Supabase values are placeholders: the build only needs them to be
+      # present and well-formed, since no request is made at build time. Real
+      # secrets are deliberately absent — a CI run should never be able to read
+      # or write the production database.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build-only
