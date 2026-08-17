@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "verify": "for f in scripts/verify-*.ts; do echo \"── $f\" && tsx \"$f\" || exit 1; done",
     "test": "npm run typecheck && npm run lint && npm run verify"
   },

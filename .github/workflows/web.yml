@@ -34,6 +34,18 @@ jobs:
 
       - run: npm ci
 
+      # `npm run typecheck` runs `next typegen` first, and that is not
+      # incidental. Next writes its route types — LayoutProps, PageProps — into
+      # .next/types, and src/app/layout.tsx uses them. On a developer's machine
+      # they are already there from the last build, so tsc passes; on a fresh
+      # checkout they do not exist and it fails with "Cannot find name
+      # 'LayoutProps'".
+      #
+      # That is exactly what the first run of this workflow caught, and exactly
+      # what no local run could: nobody here starts from an empty .next.
+      # Generating them takes about a second, so the cheap checks still come
+      # before the slow build instead of the build being run to produce types
+      # as a side effect.
       - name: Typecheck
         run: npm run typecheck
 
