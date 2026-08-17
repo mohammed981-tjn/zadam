@@ -51,7 +51,9 @@ export default async function Navbar() {
       items: [
         { href: "/lands", label: "أراضيّ" },
         { href: "/seasons", label: "مواسمي" },
+        { href: "/herds", label: "دورات الإنتاج الحيواني" },
         { href: "/contracts", label: "عقود الخدمات" },
+        { href: "/services/mine", label: "جهتي كمقدّم خدمة" },
         { href: "/opportunities/new", label: "ارفع فرصة" },
       ],
     });
