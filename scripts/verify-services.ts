@@ -133,10 +133,20 @@ console.log("\nPreconditions are scheduled before dated field work");
   check("an undated non-precondition does not jump ahead of the permit",
     withTransport[0]?.serviceKey === "land_permit",
     `first = ${withTransport[0]?.serviceKey}`);
+  /*
+   * What may carry the flag, stated as a rule rather than a list of keys.
+   *
+   * Permits and clearances gate the work legally; procurement and customs gate
+   * it physically, since the machine has to arrive before it can be used; and
+   * insurance gates it financially — a policy bought after the damage does not
+   * cover it, which is the whole reason it belongs at the front rather than
+   * wherever it is convenient. A feasibility study is the odd one out and is
+   * named, because it precedes the contract that pays for everything else.
+   */
+  const mayPrecede = new Set(["legal", "procurement", "insurance"]);
   check("only true preconditions are flagged as such",
     SERVICE_CATALOGUE.filter((s) => s.precondition).every(
-      (s) => s.kind === "legal" || s.kind === "procurement"
-             || s.key === "feasibility_study"),
+      (s) => mayPrecede.has(s.kind) || s.key === "feasibility_study"),
     `${SERVICE_CATALOGUE.filter((s) => s.precondition).length} flagged`);
   check("sequence numbers are 1..n with no gaps",
     plan.every((m, i) => m.seq === i + 1), `n=${plan.length}`);
