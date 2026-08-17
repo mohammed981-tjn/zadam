@@ -142,10 +142,26 @@ export async function signup(formData: FormData) {
    */
   const admin = createAdminClient();
   if (!admin) {
-    console.error("signup: SUPABASE_SERVICE_ROLE_KEY is not set");
+    /*
+     * Reached only if the key vanished between the page rendering and this
+     * submission — /signup checks the same capability first and does not offer
+     * the phone form without it. Kept as a real branch rather than an assertion
+     * because a deployment can change under an open tab, which is precisely how
+     * this platform's other silent failures have happened.
+     *
+     * The log names the variable and the fix. "not configured" in a log at 2am
+     * tells whoever is reading it nothing they can act on.
+     */
+    console.error(
+      "signup: phone registration unavailable — SUPABASE_SERVICE_ROLE_KEY is not set " +
+        "for this deployment. Set it in the Vercel project's environment " +
+        "variables for every environment that serves signups (Production, " +
+        "Preview and Development), then redeploy. Value: Supabase dashboard → " +
+        "Project Settings → API → service_role key.",
+    );
     redirect(
-      `/signup?error=${encodeURIComponent(
-        "التسجيل برقم الجوال غير مُهيّأ على الخادم حالياً. سجّل بالبريد الإلكتروني، أو تواصل معنا.",
+      `/signup?method=email&error=${encodeURIComponent(
+        "التسجيل برقم الجوال غير متاح على هذه النسخة من الموقع. أكملنا لك التسجيل بالبريد الإلكتروني — الحساب واحد في الحالتين.",
       )}`,
     );
   }
