@@ -70,6 +70,23 @@ export async function createSeason(
       budget_per_feddan: num(formData, "budget_per_feddan"),
       planting_date: plan.plantingDate,
       harvest_date: plan.harvestDate,
+      /*
+       * The link that was never written.
+       *
+       * seasons.project_id and seasons.land_id have existed since the schema
+       * was created, are typed in src/types/database.ts, and were left out of
+       * this insert — so every season on the platform was created an orphan.
+       * The chain the whole product depends on is investor → project → season →
+       * stage: a farmer raises a season, an investor funds a project, and
+       * nothing has ever joined the two. That is not a missing feature, it is a
+       * column waiting to be written to, and until it is, a service contract
+       * scheduled against a season binds to nothing an investor can see.
+       *
+       * Both stay optional. A farmer planning next season before any investor
+       * exists is the normal case, not an error.
+       */
+      project_id: str(formData, "project_id") || null,
+      land_id: str(formData, "land_id") || null,
     })
     .select("id")
     .single();

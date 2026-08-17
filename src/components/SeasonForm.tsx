@@ -16,7 +16,23 @@ const field =
   "rounded-lg border border-border bg-background px-3 py-2 outline-none focus:border-primary";
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
-export default function SeasonForm({ today }: { today: string }) {
+export interface SeasonProjectOption {
+  id: string;
+  name: string;
+}
+
+export default function SeasonForm({
+  today,
+  projects = [],
+}: {
+  today: string;
+  /**
+   * Projects this season may be attached to. Empty is normal — a farmer
+   * planning ahead of any investor is the common case, and the field stays
+   * optional so the season can be raised either way.
+   */
+  projects?: SeasonProjectOption[];
+}) {
   const [state, formAction, pending] = useActionState<
     ActionResult | null,
     FormData
@@ -68,6 +84,24 @@ export default function SeasonForm({ today }: { today: string }) {
               placeholder="القرية والمحلية"
             />
           </label>
+
+          {projects.length > 0 && (
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              المشروع المرتبط
+              <select name="project_id" defaultValue="" className={field}>
+                <option value="">بدون مشروع</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-muted">
+                اربط الموسم بمشروع ليظهر تقدّمه للمستثمرين، وليمكن التعاقد على
+                خدماته بالمراحل.
+              </span>
+            </label>
+          )}
 
           <label className="flex flex-col gap-1 text-sm">
             المحصول
