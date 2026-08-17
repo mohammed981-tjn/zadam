@@ -31,7 +31,9 @@ export type ServiceKind =
   | "advisory"
   | "veterinary"
   | "laboratory"
-  | "logistics";
+  | "logistics"
+  | "legal"
+  | "procurement";
 
 export const SERVICE_KIND_LABEL: Record<ServiceKind, string> = {
   engineering_office: "مكتب هندسة زراعية",
@@ -42,6 +44,8 @@ export const SERVICE_KIND_LABEL: Record<ServiceKind, string> = {
   veterinary: "الخدمات البيطرية",
   laboratory: "تحاليل التربة والمياه",
   logistics: "النقل والتخزين",
+  legal: "التوثيق والتصاريح",
+  procurement: "التوريد والتخليص",
 };
 
 export type ServiceUnit =
@@ -89,7 +93,14 @@ export type ServiceKey =
   | "vet_program"
   | "feed_plan"
   | "herd_health"
-  | "transport";
+  | "transport"
+  | "land_permit"
+  | "local_clearance"
+  | "contract_notarization"
+  | "water_permit"
+  | "machinery_rental"
+  | "machinery_procurement"
+  | "customs_clearance";
 
 /**
  * How the billable quantity follows from the thing being served.
@@ -130,6 +141,20 @@ export interface ServiceDefinition {
    */
   phase: StageKey | null;
   basis: QuantityBasis;
+  /**
+   * Work that must complete before any field operation begins.
+   *
+   * An explicit flag rather than an inference from `phase === null`, which is
+   * what the ordering used to rest on. That inference was wrong in a way that
+   * was easy to miss: transport, extension visits and veterinary programmes
+   * also have no crop phase, and were being scheduled ahead of land
+   * preparation as if a monthly advisory visit had to finish before the
+   * ploughing could start.
+   *
+   * The real distinction is consequence. A refused permit ends a project; a
+   * late survey delays one. Only the first kind belongs at the front.
+   */
+  precondition: boolean;
   /** Why the basis is what it is — shown to both parties before signing. */
   note: string;
 }
@@ -143,6 +168,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "land_prep",
     basis: "feddans",
+    precondition: false,
     note: "المساحة الممسوحة هي مساحة الموسم نفسها، فالكمية تُشتق من الفدادين لا تُقدَّر.",
   },
   {
@@ -153,6 +179,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "land_prep",
     basis: "feddans",
+    precondition: false,
     note: "يسبق التسوية ويحدّد ميولها؛ يقاس بالمساحة.",
   },
   {
@@ -163,6 +190,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "both",
     phase: "land_prep",
     basis: "fixed",
+    precondition: false,
     note: "عدد العيّنات لا يتناسب طردياً مع المساحة؛ يُتعاقد عليه مقطوعية للموسم.",
   },
   {
@@ -173,6 +201,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "both",
     phase: "land_prep",
     basis: "fixed",
+    precondition: false,
     note: "عيّنة من المصدر تكفي الموسم ما لم يتغيّر المصدر.",
   },
   {
@@ -183,6 +212,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "land_prep",
     basis: "feddans",
+    precondition: false,
     note: "عمل ميكانيكي يقاس بالمساحة مباشرة.",
   },
   {
@@ -193,6 +223,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "land_prep",
     basis: "feddans",
+    precondition: false,
     note: "التسوية شرط كفاءة الري؛ تقاس بالمساحة.",
   },
   {
@@ -203,6 +234,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "land_prep",
     basis: "fixed",
+    precondition: false,
     note: "تصميم واحد للمشروع مهما اتّسع؛ التنفيذ هو ما يتوسّع لا التصميم.",
   },
   {
@@ -213,6 +245,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "land_prep",
     basis: "water_m3",
+    precondition: false,
     note: "الشبكة تُحجَّم بالطلب المائي الموسمي المحسوب بمعادلة FAO-56، لا بالمساحة وحدها — فدان بالتنقيط غير فدان بالغمر.",
   },
   {
@@ -223,6 +256,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "planting",
     basis: "feddans",
+    precondition: false,
     note: "تقاس بالمساحة المزروعة.",
   },
   {
@@ -233,6 +267,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "vegetative",
     basis: "feddans",
+    precondition: false,
     note: "الرش يقاس بالمساحة المعالَجة.",
   },
   {
@@ -243,6 +278,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "vegetative",
     basis: "feddans",
+    precondition: false,
     note: "تقاس بالمساحة؛ الجرعة تتبع تحليل التربة.",
   },
   {
@@ -253,6 +289,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "plant",
     phase: "harvest",
     basis: "feddans",
+    precondition: false,
     note: "تقاس بالمساحة المحصودة.",
   },
   {
@@ -263,6 +300,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "both",
     phase: null,
     basis: "months",
+    precondition: false,
     note: "زيارة شهرية طوال دورة الإنتاج — تقليل المخاطر يحتاج انتظاماً لا زيارة واحدة.",
   },
   {
@@ -273,6 +311,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "both",
     phase: null,
     basis: "fixed",
+    precondition: true,
     note: "دراسة لكل مرحلة، تسبق التعاقد عليها.",
   },
   {
@@ -283,6 +322,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "livestock",
     phase: null,
     basis: "head",
+    precondition: false,
     note: "التحصين والعلاج يقاسان بالرأس.",
   },
   {
@@ -293,6 +333,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "livestock",
     phase: null,
     basis: "head",
+    precondition: false,
     note: "العلف هو ما يقابل الماء في الإنتاج النباتي: أكبر بند في الميزانية، ويقاس بالرأس.",
   },
   {
@@ -303,6 +344,7 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "livestock",
     phase: null,
     basis: "months",
+    precondition: false,
     note: "متابعة دورية شهرية طوال الدورة.",
   },
   {
@@ -313,7 +355,109 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     production: "both",
     phase: null,
     basis: "fixed",
+    precondition: false,
     note: "يُسعَّر بالرحلة حسب المسافة؛ مقطوعية في العقد.",
+  },
+
+  /* -------------------------------------------------------------------------
+   * الخدمات التنظيمية — شروط مسبقة لا أعمال ميدانية.
+   *
+   * These carry `phase: null` deliberately, which puts them at the front of
+   * every generated plan. That ordering is not cosmetic: a survey that runs
+   * late costs days, a permit that is refused ends the project, so the work
+   * that can stop everything is the work that gets scheduled and paid first.
+   *
+   * Their proof is a document rather than a geotagged photograph, and the
+   * approval gate handles that unchanged — milestone_evidence already accepts
+   * 'report' and 'inspection'.
+   * ---------------------------------------------------------------------- */
+  {
+    key: "land_permit",
+    name: "تصريح استخدام الأرض",
+    kind: "legal",
+    unit: "lump",
+    production: "both",
+    phase: null,
+    basis: "fixed",
+    precondition: true,
+    note: "يُستخرَج مرة للمشروع لا لكل فدان، فيُسعَّر مقطوعية. بدونه لا يبدأ عمل ميداني أصلاً.",
+  },
+  {
+    key: "local_clearance",
+    name: "إجراءات المحلية والإدارة الأهلية",
+    kind: "legal",
+    unit: "lump",
+    production: "both",
+    phase: null,
+    basis: "fixed",
+    precondition: true,
+    note: "موافقات المحلية والإدارة الأهلية في الريف — تختلف من ولاية لأخرى، ومعرفة المسار المحلي هي الخدمة نفسها.",
+  },
+  {
+    key: "water_permit",
+    name: "تصريح استخدام المياه",
+    kind: "legal",
+    unit: "lump",
+    production: "both",
+    phase: null,
+    basis: "fixed",
+    precondition: true,
+    note: "سحب المياه من النيل أو الآبار يحتاج تصريحاً مستقلاً عن تصريح الأرض.",
+  },
+  {
+    key: "contract_notarization",
+    name: "توثيق العقد",
+    kind: "legal",
+    unit: "lump",
+    production: "both",
+    phase: null,
+    basis: "fixed",
+    precondition: true,
+    note: "توثيق قانوني يجعل العقد نافذاً أمام جهة قضائية — وهو ما يحمي الطرفين إن اختلفا لاحقاً.",
+  },
+
+  /* -------------------------------------------------------------------------
+   * الآليات — ثلاثة أشياء مختلفة يخلطها الناس.
+   *
+   * Hiring a machine with its operator is field work, and it scales with area.
+   * Arranging a purchase or an import is administrative, and it costs the same
+   * whatever the area. And the price of the machine itself is neither: it is an
+   * asset that outlives the season and does not belong on a service contract at
+   * all. Keeping the three apart stops a capital purchase being billed as a
+   * seasonal operation, which is how a season's books end up unreadable.
+   * ---------------------------------------------------------------------- */
+  {
+    key: "machinery_rental",
+    name: "تأجير آلية بمشغّل",
+    kind: "mechanization",
+    unit: "feddan",
+    production: "plant",
+    phase: "land_prep",
+    basis: "feddans",
+    precondition: false,
+    note: "استئجار جرار أو حصادة مع مشغّلها — عمل ميداني يقاس بالمساحة، لا إجراء إداري.",
+  },
+  {
+    key: "machinery_procurement",
+    name: "وساطة شراء أو استيراد آلية",
+    kind: "procurement",
+    unit: "lump",
+    production: "both",
+    phase: null,
+    basis: "fixed",
+    precondition: true,
+    note: "أتعاب الوساطة والإجراءات فقط. ثمن الآلية نفسها أصل رأسمالي يتجاوز الموسم ولا يُدرَج في عقد خدمات.",
+  },
+  {
+    key: "customs_clearance",
+    name: "التخليص الجمركي",
+    kind: "procurement",
+    unit: "lump",
+    production: "both",
+    phase: null,
+    basis: "fixed",
+    precondition: true,
+    note: "تكلفة الإرسالية الواحدة لا تتغيّر بمساحة المشروع، فتُسعَّر بالإرسالية. الرسوم الجمركية نفسها تُدفع للدولة لا للمخلّص.",
   },
 ];
 
@@ -438,9 +582,21 @@ export function buildMilestonePlan(
       };
     })
     .filter((m): m is Omit<MilestoneDraft, "seq"> => m !== null)
-    // Ordered by when the work is actually due. Undated services (a feasibility
-    // study, transport) sort first, because they are the ones that precede or
-    // span the season rather than sitting inside it.
-    .sort((a, b) => (a.plannedStart ?? "").localeCompare(b.plannedStart ?? ""))
+    /*
+     * Preconditions first, then everything else in calendar order.
+     *
+     * The sort used to key on plannedStart alone, which put every undated
+     * service at the front — including transport and monthly advisory visits,
+     * as though a routine extension call had to be finished before the
+     * ploughing could begin. Now the flag decides, and it means what it says:
+     * a refused permit ends the project, so it is scheduled and paid before
+     * anyone books a tractor.
+     */
+    .sort((a, b) => {
+      const aPre = SERVICE_BY_KEY[a.serviceKey].precondition;
+      const bPre = SERVICE_BY_KEY[b.serviceKey].precondition;
+      if (aPre !== bPre) return aPre ? -1 : 1;
+      return (a.plannedStart ?? "").localeCompare(b.plannedStart ?? "");
+    })
     .map((m, i) => ({ ...m, seq: i + 1 }));
 }
