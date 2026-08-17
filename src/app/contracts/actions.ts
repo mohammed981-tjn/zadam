@@ -29,6 +29,138 @@ export interface ActionResult {
  * trusting a hidden field, is how a platform ends up recording a hundred shares
  * at a hundred pounds instead of a hundred thousand.
  */
+/**
+ * The herd branch of createContract.
+ *
+ * Split out rather than branched inline because the two differ in exactly one
+ * respect that matters — where the quantities come from. A season derives them
+ * from FAO-56; a herd derives them from head count and cycle length. Everything
+ * after that, including the rule that no price is ever read from the request,
+ * is identical and lives in buildMilestonePlan.
+ */
+async function createHerdContract(args: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
+  herdId: string;
+  providerId: string;
+  title: string;
+  chosen: ServiceKey[];
+}): Promise<ActionResult> {
+  const { supabase, userId, herdId, providerId, title, chosen } = args;
+
+  if (chosen.length === 0) {
+    return { ok: false, message: "اختر خدمة واحدة على الأقل." };
+  }
+
+  // RLS limits herds to the caller's own, so a herd that is not theirs simply
+  // does not come back — the ownership check and the fetch are the same query.
+  const { data: herdRow } = await supabase
+    .from("herds")
+    .select("id, project_id, species, purpose, head_count, start_date, end_date")
+    .eq("id", herdId)
+    .single();
+
+  if (!herdRow) return { ok: false, message: "الدورة غير موجودة أو ليست لك." };
+
+  const herd = herdRow as {
+    id: string;
+    project_id: string | null;
+    head_count: number;
+    start_date: string;
+    end_date: string | null;
+  };
+
+  // Whole months of the cycle, which is the basis a per-visit service bills on.
+  const start = new Date(herd.start_date);
+  const end = herd.end_date ? new Date(herd.end_date) : null;
+  const months =
+    end && !Number.isNaN(end.getTime())
+      ? Math.max(1, Math.round((end.getTime() - start.getTime()) / 2_629_800_000))
+      : 1;
+
+  const { data: offerRows } = await supabase
+    .from("services")
+    .select("service_key, price_per_unit")
+    .eq("provider_id", providerId)
+    .eq("active", true)
+    .in("service_key", chosen);
+
+  const priceFor = new Map(
+    ((offerRows ?? []) as { service_key: ServiceKey; price_per_unit: number }[]).map(
+      (o) => [o.service_key, Number(o.price_per_unit)],
+    ),
+  );
+
+  const choices = chosen
+    .filter((k) => priceFor.has(k))
+    .map((k) => ({ serviceKey: k, unitPrice: priceFor.get(k)! }));
+
+  if (choices.length === 0) {
+    return { ok: false, message: "لا يقدّم هذا المزوّد أياً من الخدمات المختارة." };
+  }
+
+  // No phase windows: a herd's phases are not the crop calendar the service
+  // catalogue's `phase` field refers to, so milestones here carry no dates
+  // rather than dates borrowed from a plant's growth stages.
+  const milestones = buildMilestonePlan(
+    choices,
+    { headCount: herd.head_count, months },
+    [],
+  );
+
+  if (milestones.length === 0) {
+    return {
+      ok: false,
+      message:
+        "الخدمات المختارة لا تنطبق على دورة إنتاج حيواني — اختر خدمات بيطرية أو تغذوية أو إرشادية.",
+    };
+  }
+
+  const { data: contract, error: contractError } = await supabase
+    .from("service_contracts")
+    .insert({
+      project_id: herd.project_id,
+      herd_id: herd.id,
+      provider_id: providerId,
+      client_id: userId,
+      title: title.slice(0, 160),
+      status: "draft",
+    })
+    .select("id")
+    .single();
+
+  if (contractError || !contract) {
+    return { ok: false, message: `تعذّر إنشاء العقد: ${contractError?.message}` };
+  }
+
+  const contractId = (contract as { id: string }).id;
+
+  const { error: milestoneError } = await supabase
+    .from("contract_milestones")
+    .insert(
+      milestones.map((m) => ({
+        contract_id: contractId,
+        seq: m.seq,
+        title: m.title,
+        unit: m.unit,
+        quantity: m.quantity,
+        unit_price: m.unitPrice,
+        feasibility: {
+          basis: m.basis,
+          note: m.note,
+          derived_from: m.basis === "head" ? "herds.head_count" : m.basis,
+        },
+      })),
+    );
+
+  if (milestoneError) {
+    await supabase.from("service_contracts").delete().eq("id", contractId);
+    return { ok: false, message: `تعذّر حفظ المراحل: ${milestoneError.message}` };
+  }
+
+  redirect(`/contracts/${contractId}`);
+}
+
 export async function createContract(
   _prev: ActionResult | null,
   formData: FormData,
@@ -39,13 +171,36 @@ export async function createContract(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const seasonId = str(formData, "season_id");
+  /*
+   * A contract serves a crop season or an animal herd — the CHECK constraint
+   * refuses both and refuses neither. The form sends one field naming which,
+   * so the same builder covers both sides of production rather than the crop
+   * side having a contract path and the animal side having none.
+   */
+  const unit = str(formData, "unit_kind"); // "season" | "herd"
+  const unitId = str(formData, "unit_id");
   const providerId = str(formData, "provider_id");
   const title = str(formData, "title");
 
-  if (!seasonId) return { ok: false, message: "اختر الموسم." };
+  if (unit !== "season" && unit !== "herd") {
+    return { ok: false, message: "اختر موسماً أو دورة إنتاج حيواني." };
+  }
+  if (!unitId) return { ok: false, message: "اختر الموسم أو الدورة." };
   if (!providerId) return { ok: false, message: "اختر مقدّم الخدمة." };
   if (!title) return { ok: false, message: "اكتب عنواناً للعقد." };
+
+  if (unit === "herd") {
+    return createHerdContract({
+      supabase,
+      userId: user.id,
+      herdId: unitId,
+      providerId,
+      title,
+      chosen: formData.getAll("service_key").map(String) as ServiceKey[],
+    });
+  }
+
+  const seasonId = unitId;
 
   const chosen = formData.getAll("service_key").map(String) as ServiceKey[];
   if (chosen.length === 0) {

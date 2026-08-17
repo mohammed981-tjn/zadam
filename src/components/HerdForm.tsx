@@ -198,6 +198,20 @@ export default function HerdForm({
                 <span className="text-muted">إجمالي العلف التقديري</span>
                 <span className="font-medium">{n0(plan.totalFeedKg)} كجم</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-muted">وحدة الضأن الجافة (DSE)</span>
+                <span className="font-medium">{plan.dse}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">الوحدات الحيوانية (UA)</span>
+                <span className="font-medium">{plan.animalUnits}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">مرعى مطلوب</span>
+                <span className="font-medium">
+                  {plan.pastureHectares.low}–{plan.pastureHectares.high} هكتار
+                </span>
+              </div>
               {plan.totalBudget > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted">إجمالي الميزانية</span>
@@ -206,12 +220,30 @@ export default function HerdForm({
               )}
             </div>
 
+            {plan.breeds.length > 0 && (
+              <div className="border-t border-border pt-3">
+                <p className="mb-1 text-xs font-medium">سلالات سودانية</p>
+                <ul className="flex flex-col gap-1 text-xs text-muted">
+                  {plan.breeds.map((b) => (
+                    <li key={b.name}>
+                      <strong className="text-foreground">{b.name}</strong> —{" "}
+                      {b.region}. {b.note}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <Explain tone="warn">
-              {/* Said plainly rather than buried, because the crop side's numbers
-                  are derived from a published standard and these are not. */}
-              أرقام العلف هنا <strong>تقدير ابتدائي</strong> مبنٍ على متوسطات
-              معروفة لاستهلاك المادة الجافة كنسبة من وزن الحيوان — وليست حساباً
-              مرجعياً كاحتياج المحاصيل المائي. عدّلها على واقع قطيعك وجودة علفك.
+              {/* Named sources, because the crop side names FAO-56 and a figure
+                  whose provenance is not stated cannot be argued with. */}
+              الأرقام مشتقّة من مرجعيات منشورة: وحدة الضأن الجافة (DSE) من هيئة
+              اللحوم والثروة الحيوانية الأسترالية، والوحدة الحيوانية ٤٥٠ كجم
+              وحمولة المراعي المدارية من إمبرابا البرازيلية، وزيادة استهلاك
+              الحلوب ٣٥–٥٠٪ من NRC الأمريكي. وطاقة الإعاشة تتدرّج مع وزن الأيض
+              (W<sup>0.75</sup>) لا مع الوزن مباشرة. تبقى <strong>نقطة بداية</strong>{" "}
+              تُعايَر على قطيعك وجودة علفك — لا يوجد معيار تغذية سوداني منشور
+              بهذه الدقة.
             </Explain>
           </>
         )}

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ContractBuilder, {
+  type BuilderHerd,
   type BuilderOffer,
   type BuilderSeason,
 } from "@/components/ContractBuilder";
@@ -21,6 +22,12 @@ export default async function NewContractPage() {
     .select("id, name, crop_key, station_key, irrigation, feddans, budget_per_feddan, planting_date")
     .eq("status", "active")
     .order("planting_date", { ascending: false });
+
+  const { data: herdRows } = await supabase
+    .from("herds")
+    .select("id, name, head_count, start_date, end_date")
+    .eq("status", "active")
+    .order("start_date", { ascending: false });
 
   const { data: offerRows } = await supabase
     .from("services")
@@ -52,6 +59,7 @@ export default async function NewContractPage() {
 
       <ContractBuilder
         seasons={(seasonRows ?? []) as BuilderSeason[]}
+        herds={(herdRows ?? []) as BuilderHerd[]}
         offers={offers}
       />
     </div>

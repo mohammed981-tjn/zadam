@@ -34,11 +34,21 @@ export interface BuilderOffer {
   price_per_unit: number;
 }
 
+export interface BuilderHerd {
+  id: string;
+  name: string;
+  head_count: number;
+  start_date: string;
+  end_date: string | null;
+}
+
 export default function ContractBuilder({
   seasons,
+  herds,
   offers,
 }: {
   seasons: BuilderSeason[];
+  herds: BuilderHerd[];
   offers: BuilderOffer[];
 }) {
   const [state, formAction, pending] = useActionState<
@@ -46,11 +56,18 @@ export default function ContractBuilder({
     FormData
   >(createContract, null);
 
+  // Which side of production this contract serves. The database allows exactly
+  // one, so the form asks once rather than letting both be filled in.
+  const [unitKind, setUnitKind] = useState<"season" | "herd">(
+    seasons.length > 0 ? "season" : "herd",
+  );
   const [seasonId, setSeasonId] = useState(seasons[0]?.id ?? "");
+  const [herdId, setHerdId] = useState(herds[0]?.id ?? "");
   const [providerId, setProviderId] = useState(offers[0]?.provider_id ?? "");
   const [picked, setPicked] = useState<ServiceKey[]>([]);
 
   const season = seasons.find((s) => s.id === seasonId);
+  const herd = herds.find((h) => h.id === herdId);
   const providerOffers = offers.filter((o) => o.provider_id === providerId);
 
   const providers = useMemo(() => {
@@ -70,6 +87,35 @@ export default function ContractBuilder({
    * commit to a number they have not seen.
    */
   const preview = useMemo(() => {
+    const priceFor = new Map(
+      providerOffers.map((o) => [o.service_key, o.price_per_unit]),
+    );
+    const choices = picked
+      .filter((k) => priceFor.has(k))
+      .map((k) => ({ serviceKey: k, unitPrice: priceFor.get(k)! }));
+
+    if (unitKind === "herd") {
+      if (!herd) return [];
+      const start = new Date(herd.start_date);
+      const end = herd.end_date ? new Date(herd.end_date) : null;
+      const months =
+        end && !Number.isNaN(end.getTime())
+          ? Math.max(
+              1,
+              Math.round((end.getTime() - start.getTime()) / 2_629_800_000),
+            )
+          : 1;
+
+      // No phase windows: a herd's phases are not the crop calendar the
+      // catalogue's `phase` field names, so these lines carry no dates rather
+      // than dates borrowed from a plant's growth stages.
+      return buildMilestonePlan(
+        choices,
+        { headCount: herd.head_count, months },
+        [],
+      );
+    }
+
     if (!season) return [];
 
     const plan = planSeason(
@@ -82,14 +128,8 @@ export default function ContractBuilder({
     );
     if (!plan) return [];
 
-    const priceFor = new Map(
-      providerOffers.map((o) => [o.service_key, o.price_per_unit]),
-    );
-
     return buildMilestonePlan(
-      picked
-        .filter((k) => priceFor.has(k))
-        .map((k) => ({ serviceKey: k, unitPrice: priceFor.get(k)! })),
+      choices,
       { feddans: plan.feddans, waterM3: plan.totalWaterM3 },
       plan.stages.map((s) => ({
         key: s.key,
@@ -97,7 +137,7 @@ export default function ContractBuilder({
         endDate: s.endDate,
       })),
     );
-  }, [season, providerOffers, picked]);
+  }, [unitKind, season, herd, providerOffers, picked]);
 
   const total = preview.reduce((sum, m) => sum + m.amount, 0);
 
@@ -106,11 +146,12 @@ export default function ContractBuilder({
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
 
-  if (seasons.length === 0) {
+  if (seasons.length === 0 && herds.length === 0) {
     return (
-      <EmptyState title="لا يوجد موسم لتتعاقد عليه بعد">
-        العقد يُبنى على موسم قائم: منه تُؤخذ المساحة والاحتياج المائي وتواريخ
-        المراحل. أنشئ موسمك أولاً ثم عد إلى هنا.
+      <EmptyState title="لا يوجد موسم ولا دورة لتتعاقد عليها بعد">
+        العقد يُبنى على موسم زراعي أو دورة إنتاج حيواني قائمة: منها تُؤخذ
+        الكميات — المساحة والاحتياج المائي للموسم، وعدد الرؤوس وطول الدورة
+        للقطيع. أنشئ أحدهما أولاً ثم عد إلى هنا.
       </EmptyState>
     );
   }
@@ -133,28 +174,80 @@ export default function ContractBuilder({
         />
 
         <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-5">
-          <legend className="px-2 text-sm font-bold">على أي موسم؟</legend>
+          <legend className="px-2 text-sm font-bold">على أي إنتاج؟</legend>
 
-          <label className="flex flex-col gap-1 text-sm">
-            الموسم
-            <select
-              name="season_id"
-              value={seasonId}
-              onChange={(e) => setSeasonId(e.target.value)}
-              className={field}
-            >
-              {seasons.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} — {n0(s.feddans)} فدان
-                </option>
+          <input type="hidden" name="unit_kind" value={unitKind} />
+
+          {seasons.length > 0 && herds.length > 0 && (
+            <div className="flex gap-2 text-sm">
+              {(
+                [
+                  ["season", "موسم زراعي"],
+                  ["herd", "دورة إنتاج حيواني"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setUnitKind(value);
+                    setPicked([]);
+                  }}
+                  className={`rounded-full border px-4 py-1.5 ${
+                    unitKind === value
+                      ? "border-primary bg-primary/10 font-medium text-primary"
+                      : "border-border text-muted"
+                  }`}
+                >
+                  {label}
+                </button>
               ))}
-            </select>
-            <Explain tone="why">
-              الكميات في العقد تُحسب من هذا الموسم: المساحة بالفدان، والاحتياج
-              المائي المشتق بمعادلة FAO-56، وتواريخ المراحل. لا تُكتب يدوياً،
-              فيمكنك أنت والمزوّد إعادة حسابها.
-            </Explain>
-          </label>
+            </div>
+          )}
+
+          {unitKind === "season" ? (
+            <label className="flex flex-col gap-1 text-sm">
+              الموسم
+              <select
+                name="unit_id"
+                value={seasonId}
+                onChange={(e) => setSeasonId(e.target.value)}
+                className={field}
+              >
+                {seasons.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} — {n0(s.feddans)} فدان
+                  </option>
+                ))}
+              </select>
+              <Explain tone="why">
+                الكميات في العقد تُحسب من هذا الموسم: المساحة بالفدان، والاحتياج
+                المائي المشتق بمعادلة FAO-56، وتواريخ المراحل. لا تُكتب يدوياً،
+                فيمكنك أنت والمزوّد إعادة حسابها.
+              </Explain>
+            </label>
+          ) : (
+            <label className="flex flex-col gap-1 text-sm">
+              الدورة
+              <select
+                name="unit_id"
+                value={herdId}
+                onChange={(e) => setHerdId(e.target.value)}
+                className={field}
+              >
+                {herds.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name} — {n0(h.head_count)} رأس
+                  </option>
+                ))}
+              </select>
+              <Explain tone="why">
+                الكميات تُحسب من هذه الدورة: عدد الرؤوس للخدمات البيطرية
+                والتغذوية، وطول الدورة بالأشهر للمتابعة الدورية. الخدمات التي لا
+                تنطبق على الإنتاج الحيواني تُسقَط من الخطة ولا تُسعَّر بصفر.
+              </Explain>
+            </label>
+          )}
 
           <label className="flex flex-col gap-1 text-sm">
             مقدّم الخدمة

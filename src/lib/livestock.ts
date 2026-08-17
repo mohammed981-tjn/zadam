@@ -25,6 +25,7 @@
  */
 
 import type { HerdPurpose, HerdStageKey, LivestockSpecies } from "@/types/database";
+import { herdDemand, REFERENCE_BY_SPECIES } from "@/lib/reference";
 
 export const SPECIES_LABEL: Record<LivestockSpecies, string> = {
   cattle: "أبقار",
@@ -201,6 +202,14 @@ export interface HerdPlan {
   stages: PlannedHerdStage[];
   totalFeedKg: number;
   totalBudget: number;
+  /** Whole-herd feed demand in Dry Sheep Equivalents (MLA). */
+  dse: number;
+  /** The same herd in Brazilian animal units of 450 kg (Embrapa). */
+  animalUnits: number;
+  /** Tropical pasture the herd needs, at 2 and 0.5 UA/ha respectively. */
+  pastureHectares: { low: number; high: number };
+  /** Named Sudanese breeds of this species, for the operator to pick from. */
+  breeds: { name: string; region: string; note: string }[];
 }
 
 const DAY_MS = 86_400_000;
@@ -245,7 +254,28 @@ export function planHerd(
 
   if (phases.length === 0) return null;
 
-  const dailyFeedPerHead = species.entryWeightKg * species.intakeShare;
+  /*
+   * Feed now comes from lib/reference.ts rather than a flat share of body
+   * weight.
+   *
+   * The old line was `entryWeightKg × intakeShare` — 3.5% for a sheep whatever
+   * it was doing. Two things were wrong with it. Maintenance energy scales with
+   * W^0.75, not with W, so a flat share overstates large animals badly; and a
+   * lactating animal eats 35–50% more than a dry one of the same weight (NRC),
+   * which a single per-species constant cannot express at all. A dairy cycle
+   * and a fattening cycle came out identical per head, which is the one
+   * distinction the number exists to make.
+   */
+  const demand = herdDemand(
+    species.key,
+    purpose as HerdPurpose,
+    headCount,
+    1,
+    species.entryWeightKg,
+  );
+  if (!demand) return null;
+
+  const dailyFeedPerHead = demand.dailyPerHeadKg;
   const totalBudget = budgetPerHead * headCount;
 
   const feedByPhase = phases.map((p) => dailyFeedPerHead * headCount * p.days);
@@ -297,6 +327,17 @@ export function planHerd(
     };
   });
 
+  // The whole-cycle demand, on the international units, so a screen can show
+  // how much land this herd needs as well as how much feed.
+  const cycleDays = phases.reduce((sum, p) => sum + p.days, 0);
+  const cycle = herdDemand(
+    species.key,
+    purpose as HerdPurpose,
+    headCount,
+    cycleDays,
+    species.entryWeightKg,
+  );
+
   return {
     species,
     purpose: purpose as HerdPurpose,
@@ -306,5 +347,14 @@ export function planHerd(
     stages,
     totalFeedKg: Math.round(totalFeedKg),
     totalBudget,
+    dse: cycle ? Math.round(cycle.dse * 10) / 10 : 0,
+    animalUnits: cycle ? Math.round(cycle.animalUnits * 10) / 10 : 0,
+    pastureHectares: cycle
+      ? {
+          low: Math.round(cycle.pastureHectares.low * 10) / 10,
+          high: Math.round(cycle.pastureHectares.high * 10) / 10,
+        }
+      : { low: 0, high: 0 },
+    breeds: REFERENCE_BY_SPECIES[species.key]?.sudanBreeds ?? [],
   };
 }
