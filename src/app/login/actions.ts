@@ -94,10 +94,23 @@ export async function signup(formData: FormData) {
 
   if (method === "email") {
     const email = str(formData, "email");
+
+    // The confirmation link needs somewhere that can complete it, exactly as
+    // the reset link does. Left out, it lands on the project's Site URL — which
+    // for a preview deployment is not even this deployment.
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const proto = h.get("x-forwarded-proto") ?? "https";
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        ...(host
+          ? { emailRedirectTo: `${proto}://${host}/auth/callback` }
+          : {}),
+      },
     });
 
     if (error) {
@@ -231,7 +244,21 @@ export async function resendConfirmation(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.resend({ type: "signup", email });
+
+  // Same reason as the reset link: the confirmation has to land somewhere that
+  // can complete it. Without this it lands on the project's default Site URL,
+  // which has no route to finish the job.
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: host
+      ? { emailRedirectTo: `${proto}://${host}/auth/callback` }
+      : undefined,
+  });
 
   // Logged, not shown. A rate-limit or a provider outage is our problem to
   // read in the logs; to the visitor the answer is the same either way.
@@ -280,7 +307,20 @@ export async function requestPasswordReset(formData: FormData) {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "https";
-  const redirectTo = host ? `${proto}://${host}/reset/confirm` : undefined;
+
+  /*
+   * Pointed at /auth/callback, not at /reset/confirm.
+   *
+   * This was the bug. The link used to go straight to the form, which asked
+   * whether anyone was signed in, found nobody — because nothing had traded the
+   * link's one-time credential for a session — and reported the link as
+   * expired. The link was fine; the application had nowhere to put it.
+   *
+   * The callback does the exchange and then forwards here.
+   */
+  const redirectTo = host
+    ? `${proto}://${host}/auth/callback?next=${encodeURIComponent("/reset/confirm")}`
+    : undefined;
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo,
