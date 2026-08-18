@@ -43,9 +43,16 @@ const bad = (name: string, reason = "HTTP 429: quota"): Engine => ({
 section("A) The chain is built from whatever is configured");
 
 ok(buildEngines({}).length === 0, "no keys means no chain, not a crash");
+// Two entries: the "-latest" alias, then a pinned id behind it. They are
+// separate requests, so — unlike OpenRouter's pre-validated routing list — a
+// stale id fails only its own call. The names must differ: if the alias were
+// ever pointed at the pinned model the pair would collapse into one engine
+// tried twice, which looks like a standby and is not one.
+const geminiOnly = buildEngines({ geminiKey: "k" });
+ok(geminiOnly.length === 2, "gemini alone is an alias plus a pinned standby");
 ok(
-  buildEngines({ geminiKey: "k" }).length === 1,
-  "gemini alone is a one-engine chain",
+  new Set(geminiOnly.map((e) => e.name)).size === 2,
+  "and the two are distinct models, not the same one twice",
 );
 ok(
   buildEngines({ openRouterKey: "k" }).length >= 1,
@@ -58,8 +65,12 @@ ok(
   "gemini leads, since the prompt was tuned against it",
 );
 ok(
-  both.slice(1).every((e) => e.name.startsWith("openrouter/")),
-  "openrouter stands by behind it",
+  both.filter((e) => e.name.startsWith("gemini/")).length === 2,
+  "both gemini entries survive alongside openrouter",
+);
+ok(
+  both.slice(2).every((e) => e.name.startsWith("openrouter/")),
+  "openrouter stands by behind them",
 );
 
 // OpenRouter answers 400 to a routing list longer than three, which fails the

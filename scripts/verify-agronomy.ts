@@ -178,18 +178,130 @@ console.log(
 );
 if (bad) fail++;
 
-// drip must always need less delivered water than flood
+// Drip must need less delivered water than flood — wherever irrigation is
+// needed at all. The qualifier is not a weakening: adding Kurmuk, at 918 mm of
+// rain a year, made this check fail on sorghum and millet, and the engine was
+// right. Rain covers them outright, both methods deliver zero, and zero is not
+// less than zero. A check that forbids the correct answer is the broken party.
 let effBad = 0;
+let rainfed = 0;
 for (const c of CROPS)
   for (const s of STATIONS) {
     const f = waterRequirement(c, s, 5, "flood"),
       d = waterRequirement(c, s, 5, "drip");
+    if (f.totalGross === 0) {
+      rainfed++;
+      continue;
+    }
     if (d.totalGross >= f.totalGross) effBad++;
   }
 console.log(
-  `  ${effBad === 0 ? "PASS" : "FAIL"}  drip always below flood in delivered volume`,
+  `  ${effBad === 0 ? "PASS" : "FAIL"}  drip below flood wherever irrigation is needed ` +
+    `(${rainfed} crop/station pairs are fully rain-fed)`,
 );
 if (effBad) fail++;
+
+console.log("\n" + "=".repeat(78));
+console.log("G) Station table invariants");
+console.log("=".repeat(78));
+// The check that would have caught the mistake actually made while adding the
+// four NASA POWER stations: T2M_MAX/T2M_MIN are monthly *extremes*, and using
+// them handed El Fasher a 4 °C January and a diurnal range near 35 °C. ET0
+// scales with the square root of that range, so the error is silent and large.
+// A real inland Sudanese station sits between roughly 8 and 25 °C of range.
+let stBad = 0;
+for (const s of STATIONS) {
+  const arrays: [string, number[]][] = [
+    ["tmax", s.tmax],
+    ["tmin", s.tmin],
+    ["rainfall", s.rainfall],
+  ];
+  for (const [label, arr] of arrays)
+    if (arr.length !== 12) {
+      console.log(`  FAIL ${s.key}.${label} has ${arr.length} months`);
+      stBad++;
+    }
+  if (s.latitude < 3.5 || s.latitude > 22.5) {
+    console.log(`  FAIL ${s.key} latitude ${s.latitude} outside Sudan`);
+    stBad++;
+  }
+  if (s.longitude < 21.5 || s.longitude > 38.8) {
+    console.log(`  FAIL ${s.key} longitude ${s.longitude} outside Sudan`);
+    stBad++;
+  }
+  for (let m = 0; m < 12; m++) {
+    const range = s.tmax[m] - s.tmin[m];
+    if (range < 5 || range > 30) {
+      console.log(
+        `  FAIL ${s.key} month ${m + 1}: diurnal range ${range}°C — extremes mistaken for means?`,
+      );
+      stBad++;
+    }
+    if (s.rainfall[m] < 0) {
+      console.log(`  FAIL ${s.key} month ${m + 1}: negative rainfall`);
+      stBad++;
+    }
+  }
+  const annual = s.rainfall.reduce((a, b) => a + b, 0);
+  if (annual > 1200) {
+    console.log(
+      `  FAIL ${s.key} annual rainfall ${annual}mm — too wet for Sudan`,
+    );
+    stBad++;
+  }
+}
+console.log(
+  `  ${stBad === 0 ? "PASS" : "FAIL"}  ${STATIONS.length} stations, ${stBad} violations`,
+);
+if (stBad) fail++;
+
+console.log("\n" + "=".repeat(78));
+console.log("H) Crop table invariants, and the two crops added from FAO-56");
+console.log("=".repeat(78));
+let cropBad = 0;
+for (const c of CROPS) {
+  const total = c.stages.reduce((a, b) => a + b, 0);
+  // The upper bound is 400 and not 365 because virgin sugarcane genuinely
+  // stands 380 days in FAO-56 Table 11 — the first draft of this check said
+  // 370 and failed the crop rather than the bound.
+  if (total < 60 || total > 400) {
+    console.log(`  FAIL ${c.key} season length ${total} days`);
+    cropBad++;
+  }
+  const kcs: [string, number][] = [
+    ["kcInitial", c.kcInitial],
+    ["kcMid", c.kcMid],
+    ["kcEnd", c.kcEnd],
+  ];
+  for (const [label, kc] of kcs)
+    if (kc < 0.2 || kc > 1.35) {
+      console.log(`  FAIL ${c.key}.${label} = ${kc} outside the FAO-56 range`);
+      cropBad++;
+    }
+}
+console.log(
+  `  ${cropBad === 0 ? "PASS" : "FAIL"}  ${CROPS.length} crops, ${cropBad} violations`,
+);
+if (cropBad) fail++;
+
+// Read straight off FAO-56 Table 11 and Table 12.
+const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
+check("millet season length", sum(crop("millet").stages), 105, 105, " d");
+check("millet Kc mid", crop("millet").kcMid, 1.0, 1.0);
+check("millet Kc end", crop("millet").kcEnd, 0.3, 0.3);
+check("dates Kc mid", crop("dates").kcMid, 0.95, 0.95);
+check("dates cycle length", sum(crop("dates").stages), 365, 365, " d");
+
+// Millet is the short, drought-adapted cereal of the west: over its season it
+// must want less water than sorghum, which stands twenty-five days longer.
+check(
+  "sorghum minus millet, gross, El Fasher",
+  waterRequirement(crop("sorghum"), st("elfasher"), 6, "flood").totalGross -
+    waterRequirement(crop("millet"), st("elfasher"), 6, "flood").totalGross,
+  1,
+  1e9,
+  " m³/fd",
+);
 
 console.log(
   "\n" + (fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK GROUP(S) FAILED`),
