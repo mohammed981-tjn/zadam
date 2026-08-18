@@ -482,3 +482,28 @@ export interface HerdStage {
   completed_at: string | null;
   note: string | null;
 }
+
+/**
+ * One reviewed claim from the Arc Canal dossier.
+ *
+ * `basis` is not optional in the database and should not be treated as
+ * optional here either: a verdict without the arithmetic behind it is the
+ * habit the review exists to object to.
+ */
+export type ArcCanalVerdict =
+  | "sound"
+  | "self_corrected"
+  | "overstated"
+  | "unsupported";
+
+export interface ArcCanalFinding {
+  id: number;
+  axis: string;
+  claim: string;
+  study_figure: string | null;
+  verdict: ArcCanalVerdict;
+  platform_figure: string | null;
+  basis: string;
+  source_doc: string;
+  sort_order: number;
+}

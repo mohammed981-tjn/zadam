@@ -26,59 +26,101 @@ export default async function Navbar() {
     unread = count ?? 0;
   }
 
+  /*
+   * Grouped by what the reader is trying to do, not by which table the page
+   * reads. Two consequences worth naming, because both were the other way
+   * before:
+   *
+   * The contracted-services links now sit together. "عقود الخدمات" and "جهتي
+   * كمقدّم خدمة" used to live under the land section, one step away from the
+   * catalogue they belong to, because they happened to require a login. Sign-in
+   * is not a subject.
+   *
+   * And the sections a signed-in reader gains are inserted where they belong
+   * rather than appended. Ownership sections come after the public ones and
+   * before mining and administration, so the order does not reshuffle on
+   * login — the menu should look like the same menu with more in it.
+   */
   const groups: NavGroup[] = [
     {
-      title: "الزراعة",
+      title: "الرئيسية",
+      hint: "ابدأ من هنا",
       items: [
-        { href: "/", label: "الرئيسية" },
-        { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
-        { href: "/services", label: "الخدمات التعاقدية" },
+        { href: "/", label: "الصفحة الرئيسية" },
         { href: "/guide", label: "دليل الاستخدام" },
+        { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
       ],
     },
     {
-      title: "التعدين",
+      title: "الخدمات التعاقدية",
+      hint: "مسح ورَي وميكنة وإرشاد وخدمات بيطرية",
       items: [
-        { href: "/mining", label: "قسم التعدين" },
-        { href: "/mining/registry", label: "سجلّ إثبات المنشأ" },
+        { href: "/services", label: "كتالوج الخدمات" },
+        { href: "/services/register", label: "سجّل جهتك كمقدّم خدمة" },
+        ...(user
+          ? [
+              { href: "/contracts", label: "عقودي" },
+              { href: "/services/mine", label: "جهتي كمقدّم خدمة" },
+            ]
+          : []),
       ],
     },
   ];
 
   if (user) {
     groups.push({
-      title: "أرضي",
+      title: "مزرعتي",
+      hint: "الأرض والمواسم والقطيع",
       items: [
         { href: "/lands", label: "أراضيّ" },
         { href: "/seasons", label: "مواسمي" },
         { href: "/herds", label: "دورات الإنتاج الحيواني" },
-        { href: "/contracts", label: "عقود الخدمات" },
-        { href: "/services/mine", label: "جهتي كمقدّم خدمة" },
         { href: "/opportunities/new", label: "ارفع فرصة" },
       ],
     });
     groups.push({
       title: "استثماري",
+      hint: "محفظتك وخططك",
       items: [
         { href: "/dashboard", label: "محفظتي" },
         { href: "/plan", label: "خطط استثمارك" },
       ],
     });
-    if (role === "admin") {
-      groups.push({
-        title: "الإدارة",
-        items: [
-          { href: "/admin", label: "لوحة المشاريع" },
-          { href: "/admin/review", label: "مراجعة الفرص" },
-          { href: "/admin/analytics", label: "التحليلات" },
-          { href: "/admin/providers", label: "توثيق مقدّمي الخدمة" },
-          { href: "/admin/leads", label: "العملاء المحتملون" },
-        ],
-      });
-    }
-  } else {
+  }
+
+  groups.push({
+    title: "مشاريع ودراسات",
+    hint: "قراءات في أرقام المشاريع الكبرى",
+    items: [{ href: "/arc-canal", label: "القناة القوسية" }],
+  });
+
+  groups.push({
+    title: "التعدين",
+    hint: "قسم مستقل عن الزراعة",
+    items: [
+      { href: "/mining", label: "قسم التعدين" },
+      { href: "/mining/registry", label: "سجلّ إثبات المنشأ" },
+    ],
+  });
+
+  if (user && role === "admin") {
+    groups.push({
+      title: "الإدارة",
+      hint: "للمشرفين وحدهم",
+      items: [
+        { href: "/admin", label: "لوحة المشاريع" },
+        { href: "/admin/review", label: "مراجعة الفرص" },
+        { href: "/admin/analytics", label: "التحليلات" },
+        { href: "/admin/providers", label: "توثيق مقدّمي الخدمة" },
+        { href: "/admin/leads", label: "العملاء المحتملون" },
+      ],
+    });
+  }
+
+  if (!user) {
     groups.push({
       title: "حسابك",
+      hint: "الدخول أو التسجيل",
       items: [
         { href: "/login", label: "تسجيل الدخول" },
         { href: "/signup", label: "إنشاء حساب" },
