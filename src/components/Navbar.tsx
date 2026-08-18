@@ -71,6 +71,7 @@ export default async function Navbar() {
           { href: "/admin", label: "لوحة المشاريع" },
           { href: "/admin/review", label: "مراجعة الفرص" },
           { href: "/admin/analytics", label: "التحليلات" },
+          { href: "/admin/providers", label: "توثيق مقدّمي الخدمة" },
           { href: "/admin/leads", label: "العملاء المحتملون" },
         ],
       });
