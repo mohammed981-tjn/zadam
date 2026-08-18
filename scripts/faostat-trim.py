@@ -58,11 +58,15 @@ TRADE_AREAS = {
 # rather than CPC codes is the more fragile of the two choices, so the script
 # prints every item it kept — a silently empty slice is the failure mode worth
 # guarding against, and a printed list makes it visible in the run log.
+#
+# "natural gum" is spelled out rather than "gum": FAOSTAT calls gum arabic
+# "Natural gums", and the bare substring would also swallow "sorghum".
 TRADE_ITEM_KEYWORDS = (
     "sheep", "goat", "cattle", "camel", "meat of", "hides", "skins",
-    "sesame", "groundnut", "sorghum", "millet", "gum", "date", "cotton",
-    "onion", "watermelon", "sugar", "wheat", "maize", "sunflower",
+    "sesame", "groundnut", "sorghum", "millet", "natural gum", "date",
+    "cotton", "onion", "watermelon", "sugar", "wheat", "maize", "sunflower",
     "hibiscus", "bean", "milk", "cheese", "butter", "egg", "honey",
+    "mango", "guava", "banana", "citrus",
 )
 
 FIRST_YEAR = 2017
