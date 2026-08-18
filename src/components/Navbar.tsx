@@ -33,6 +33,7 @@ export default async function Navbar() {
         { href: "/", label: "الرئيسية" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
         { href: "/services", label: "الخدمات التعاقدية" },
+        { href: "/arc-canal", label: "القناة القوسية — قراءة في الأرقام" },
         { href: "/guide", label: "دليل الاستخدام" },
       ],
     },
