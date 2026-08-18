@@ -1,0 +1,70 @@
+name: FAOSTAT prices and trade
+
+# Fetches two FAOSTAT bulk downloads, trims them, and commits the result.
+#
+# It runs here rather than anywhere else for one reason: fao.org is not
+# reachable from the environment this repository is developed in, and the
+# 273 MB trade archive is not something to move by hand twice a year. A runner
+# has the network and the disk; the repository gets a small file it can load.
+#
+# Nothing about this touches the database. The commit is the deliverable; the
+# load is a separate, deliberate step so that a bad refresh is a diff to read
+# rather than a table to repair.
+
+on:
+  push:
+    # Only when the fetch itself changes. The data commit this job makes does
+    # not match these paths, so it cannot retrigger itself.
+    paths:
+      - ".github/workflows/faostat-refresh.yml"
+      - "scripts/faostat-trim.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the Producer Prices archive
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 \
+            -o prices.zip \
+            'https://bulks-faostat.fao.org/production/Prices_E_All_Data_(Normalized).zip'
+          ls -l prices.zip
+
+      - name: Download the Trade archive
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 \
+            -o trade.zip \
+            'https://bulks-faostat.fao.org/production/Trade_CropsLivestock_E_All_Data_(Normalized).zip'
+          ls -l trade.zip
+
+      - name: Trim prices
+        run: python3 scripts/faostat-trim.py --zip prices.zip --domain PP  --out data/faostat-prices.tsv
+
+      - name: Trim trade
+        run: python3 scripts/faostat-trim.py --zip trade.zip  --domain TCL --out data/faostat-trade.tsv
+
+      - name: Report what will be committed
+        run: |
+          wc -l data/faostat-prices.tsv data/faostat-trade.tsv
+          du -h data/faostat-prices.tsv data/faostat-trade.tsv
+          echo '--- first three rows of each ---'
+          head -3 data/faostat-prices.tsv
+          head -3 data/faostat-trade.tsv
+
+      - name: Commit
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/faostat-prices.tsv data/faostat-trade.tsv
+          if git diff --cached --quiet; then
+            echo 'FAOSTAT is unchanged since the last refresh.'
+            exit 0
+          fi
+          git commit -m 'Refresh the FAOSTAT price and trade slices'
+          git push origin HEAD:${GITHUB_REF_NAME}

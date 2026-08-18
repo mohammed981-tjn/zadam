@@ -3,6 +3,24 @@
  *
  *   SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/load-faostat.ts [--dry-run]
  *
+ * NO LONGER THE ONLY WAY IN, AND NO LONGER THE FIRST ONE TO REACH FOR.
+ *
+ * This needs a machine that can reach both the service role key and the
+ * Supabase host, and for a while nothing that could do both was at hand — so
+ * the table sat at six test rows while this file sat here, correct and unrun.
+ *
+ * The table is loaded by SQL now. Postgres has a route to the internet where
+ * the build environment does not: `create extension http`, an `http_get`
+ * against the pinned raw URL of a file in data/, one INSERT … ON CONFLICT, then
+ * `drop extension http`. The extension is dropped rather than kept, because it
+ * lets any role with USAGE on the extensions schema make outbound requests from
+ * inside the database, and the EXECUTE grant to PUBLIC is issued by
+ * supabase_admin — which our role cannot revoke.
+ *
+ * Keep this script for whoever has the key in hand and wants a dry run and a
+ * progress count. The two parsers were checked against each other row for row:
+ * 12,749 and 13,813, exactly.
+ *
  * WHY A SCRIPT AND NOT A MIGRATION
  *
  * Twenty-six thousand observations are data, not schema. Pasting them into a

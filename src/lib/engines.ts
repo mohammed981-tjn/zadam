@@ -200,7 +200,25 @@ export interface EngineEnv {
 export function buildEngines(env: EngineEnv): Engine[] {
   const engines: Engine[] = [];
 
-  if (env.geminiKey) engines.push(geminiEngine(env.geminiKey));
+  /*
+   * Two Gemini entries: the alias first, a pinned id behind it.
+   *
+   * "gemini-flash-latest" is an alias, chosen so that a model retirement does
+   * not take the assistant down — the failure that cost the OpenRouter chain
+   * twice, argued at length above. But an alias is Google's pointer, not ours.
+   * It has been repointed before, and when one goes it answers 404, which from
+   * outside the deployment is indistinguishable from a bad key.
+   *
+   * The pinned id costs nothing to carry, and note why it is safe here when the
+   * equivalent was the bug for OpenRouter: these are two separate requests, so
+   * a stale id fails only its own call. OpenRouter validates its whole `models`
+   * array before routing, which is what made a list there only as reliable as
+   * its worst entry.
+   */
+  if (env.geminiKey) {
+    engines.push(geminiEngine(env.geminiKey));
+    engines.push(geminiEngine(env.geminiKey, "gemini-2.5-flash"));
+  }
 
   if (env.openRouterKey) {
     const configured = (env.openRouterModels ?? "")
