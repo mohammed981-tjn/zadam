@@ -1,17 +1,33 @@
 name: Daily health check
 
-# A second, independent trigger for /api/health.
+# A second, independent trigger that keeps the database awake.
 #
-# Vercel Cron already calls the same endpoint daily. This exists because the
-# cost of the schedule silently stopping is a paused database and a platform
-# that appears broken to every visitor — and a scheduler that stops firing does
-# so quietly, by definition. Two unrelated systems on different clocks means one
+# Vercel Cron calls /api/health daily. This exists because the cost of that
+# schedule silently stopping is a paused Supabase project and a platform that
+# appears broken to every visitor — and a scheduler that stops firing does so
+# quietly, by definition. Two unrelated systems on different clocks means one
 # failing does not pause the project.
 #
-# Worth knowing about this one specifically: GitHub disables scheduled workflows
-# in a repository with no activity for 60 days, so it must not be the only
-# trigger. Scheduled runs can also be delayed under load, which is harmless here
-# — the requirement is a few requests a day, not a precise time.
+# WHY THE PUBLIC PAGE AND NOT ONLY THE HEALTH ENDPOINT
+#
+# It used to call /api/health and nothing else, which needed HEALTH_URL and
+# CRON_SECRET as repository secrets. Those were never set, so the job failed on
+# its first line every night from the day it was written — six scheduled runs,
+# six failures, and no second trigger at all. A backup that needs configuration
+# nobody has done is not a backup, and the failure looked like a broken workflow
+# rather than a missing safety net.
+#
+# So the step that matters now needs no credentials: /arc-canal is rendered on
+# demand and queries Supabase to build the page, which is exactly the "requests
+# via your connected application" that Supabase names as the way to prevent
+# pausing. The health endpoint is still called when the secret is available,
+# because its findings are worth having — but the project stays awake either
+# way.
+#
+# Worth knowing: GitHub disables scheduled workflows in a repository with no
+# activity for 60 days, so this must not be the only trigger either. Scheduled
+# runs can also be delayed under load, which is harmless here — the requirement
+# is a few requests a day, not a precise time.
 
 on:
   schedule:
@@ -21,25 +37,44 @@ on:
   # So it can be run by hand to confirm the wiring works.
   workflow_dispatch:
 
+env:
+  # Override with a repository variable if the site ever moves. It is the public
+  # address of the site, so it is a variable and not a secret.
+  SITE_URL: ${{ vars.SITE_URL || 'https://sudagri.vercel.app' }}
+
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Call the health endpoint
+      # The step that keeps the project alive. No credentials, so there is
+      # nothing anyone has to remember to configure.
+      - name: Fetch a page that reads the database
+        run: |
+          curl --fail-with-body --silent --show-error --location \
+               --max-time 45 \
+               --retry 3 --retry-delay 10 --retry-all-errors \
+               --output /dev/null \
+               --write-out 'arc-canal: HTTP %{http_code} in %{time_total}s\n' \
+               "$SITE_URL/arc-canal"
+
+      # The step that reports. Skipped rather than failed when the secret is
+      # absent, so a missing secret can never mask a real outage above.
+      - name: Run the system check
         env:
-          HEALTH_URL: ${{ secrets.HEALTH_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          if [ -z "$HEALTH_URL" ]; then
-            echo "HEALTH_URL secret is not set — nothing to call."
-            echo "Add it under Settings > Secrets and variables > Actions."
-            exit 1
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not set — skipping the authenticated check."
+            echo "Add it under Settings > Secrets and variables > Actions to"
+            echo "have this job report the system check as well as keep the"
+            echo "database awake."
+            exit 0
           fi
 
-          # --fail-with-body so a non-2xx fails the job but still prints what the
-          # endpoint said, which is where the diagnosis is.
+          # --fail-with-body so a non-2xx fails the job but still prints what
+          # the endpoint said, which is where the diagnosis is.
           curl --fail-with-body --silent --show-error --location \
                --max-time 30 \
                --retry 3 --retry-delay 10 --retry-all-errors \
                --header "Authorization: Bearer ${CRON_SECRET}" \
-               "$HEALTH_URL"
+               "$SITE_URL/api/health"
