@@ -226,3 +226,70 @@ export const SARURAB_TRANSECT: NileTransect[] = [
   { kmWestOfNile: 20, elevation: 426 },
   { kmWestOfNile: 30, elevation: 451 },
 ];
+
+/**
+ * The rivers, from OpenStreetMap rather than drawn by eye.
+ *
+ * Fetched from the Overpass API — `waterway=river` named Nile inside the box
+ * this map covers — and thinned to the points that carry the shape. A canal
+ * argued entirely in terms of distance from the Nile deserves a Nile that is
+ * actually where the Nile is; a hand-drawn curve would quietly move the one
+ * reference every reader checks the drawing against.
+ *
+ * © OpenStreetMap contributors, ODbL. The attribution is on the figure.
+ */
+export interface GeoPoint {
+  lat: number;
+  lon: number;
+}
+
+/** White Nile, flowing north from Jebel Aulia to the confluence. */
+export const WHITE_NILE: GeoPoint[] = [
+  { lat: 15.1922, lon: 32.463 },
+  { lat: 15.2831, lon: 32.4905 },
+  { lat: 15.4308, lon: 32.4582 },
+  { lat: 15.5043, lon: 32.4645 },
+  { lat: 15.5699, lon: 32.4865 },
+  { lat: 15.6124, lon: 32.4926 },
+  { lat: 15.6321, lon: 32.4958 },
+];
+
+/** Blue Nile, arriving from the south-east. */
+export const BLUE_NILE: GeoPoint[] = [
+  { lat: 15.4967, lon: 32.6731 },
+  { lat: 15.592, lon: 32.5894 },
+  { lat: 15.6147, lon: 32.4949 },
+  { lat: 15.6412, lon: 32.5064 },
+];
+
+/** The main Nile below the confluence, running north past Sarurab. */
+export const MAIN_NILE: GeoPoint[] = [
+  { lat: 15.6412, lon: 32.5064 },
+  { lat: 15.6676, lon: 32.5139 },
+  { lat: 15.7302, lon: 32.5338 },
+  { lat: 15.7981, lon: 32.5454 },
+  { lat: 15.8587, lon: 32.5524 },
+];
+
+export interface Place extends GeoPoint {
+  name: string;
+  /** Where the label sits relative to the dot, to keep it off the lines. */
+  side: "start" | "end";
+}
+
+export const PLACES: Place[] = [
+  { name: "خزان جبل أولياء", lat: 15.24, lon: 32.49, side: "start" },
+  { name: "أم درمان", lat: 15.65, lon: 32.48, side: "start" },
+  { name: "الخرطوم", lat: 15.6, lon: 32.53, side: "start" },
+  { name: "السروراب", lat: 15.78, lon: 32.56, side: "start" },
+];
+
+/**
+ * The stretch where the ground is at reservoir level.
+ *
+ * Samples 0–4, running from the dam to about twelve kilometres west, sit at
+ * 377–394 m against a reservoir at 377. This is the finding that replaced the
+ * pilot proposal this page originally published, so the map marks it rather
+ * than leaving the reader to infer it from the long-section.
+ */
+export const LOW_LIFT_SEGMENT = { from: 0, to: 4 };
