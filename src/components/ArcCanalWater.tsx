@@ -8,18 +8,18 @@ import {
   ROUTE_CLIMATE,
   END_CELL_RAINFALL,
   CORRIDOR_RAINFALL_MM,
-  STUDY_CROP_PLAN,
+  SCENARIO_CROP_PLAN,
 } from "@/lib/arcCanal";
 
 /**
  * What the corridor actually needs, run through the platform's own FAO-56
  * engine — the same one behind /tools/water and /tools/feasibility.
  *
- * The comparison this section exists for is one line long: the studies budget
- * water at flood-irrigation rates while setting a KPI of ≥75% efficiency, which
- * only pressurised irrigation reaches. Designing for what they promise removes
- * roughly 40% of the demand, and with it most of the Nile-share problem they
- * describe as having "zero margin".
+ * The number this section exists to produce is the water the scheme demands at
+ * each irrigation method, because everything downstream is a function of it:
+ * the canal's discharge, its cross-section, the pumping capacity, and most of
+ * the capital. Choosing drip over flood removes 39% of the demand, and that one
+ * choice is worth more than any other decision on this page.
  */
 
 const METHODS: IrrigationMethod[] = ["flood", "sprinkler", "pivot", "drip"];
@@ -28,9 +28,9 @@ const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
 const crop = (key: string) => CROPS.find((c) => c.key === key)!;
 
-/** Weighted demand for the studies' own crop plan, per feddan. */
+/** Weighted demand for the assumed crop mix, per feddan. */
 function planDemand(method: IrrigationMethod): number {
-  return STUDY_CROP_PLAN.reduce(
+  return SCENARIO_CROP_PLAN.reduce(
     (sum, p) =>
       sum +
       waterRequirement(crop(p.cropKey), ROUTE_CLIMATE, p.plantingMonth, method)
@@ -114,7 +114,7 @@ export default function ArcCanalWater() {
             <tbody>
               {CROPS.map((c) => {
                 const month =
-                  STUDY_CROP_PLAN.find((p) => p.cropKey === c.key)
+                  SCENARIO_CROP_PLAN.find((p) => p.cropKey === c.key)
                     ?.plantingMonth ?? 6;
                 return (
                   <tr key={c.key} className="border-b border-border last:border-0">
@@ -141,7 +141,7 @@ export default function ArcCanalWater() {
       {/* The comparison the section exists for. */}
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
         <h3 className="mb-3 font-semibold">
-          وعلى خطّة محاصيل الدراسة نفسها، لـ٥٠٠ ألف فدان
+          وعلى خليط المحاصيل المفترض، لنصف مليون فدان
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[26rem] text-start text-sm">
@@ -165,22 +165,18 @@ export default function ArcCanalWater() {
                   </td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-border text-muted">
-                <td className="py-2">ما تطلبه الدراسة</td>
-                <td className="py-2">٥٬٠٠٠–٧٬٠٠٠</td>
-                <td className="py-2">٢٫٥–٣٫٥ مليار م³</td>
-              </tr>
             </tbody>
           </table>
         </div>
 
         <p className="mt-3 leading-relaxed">
-          الدراسة <strong>تشترط في مؤشّراتها كفاءة ريّ ≥٧٥٪</strong> — وهي كفاءة
-          التنقيط والمحاور — <strong>ثم تحسب ميزانيتها المائية بأرقام
-          الغمر</strong>. تصميمُها لِما تَعِد به وحده يخفض الطلب من{" "}
+          <strong>الفرق بين الغمر والتنقيط هو أهمّ قرار على هذه الصفحة.</strong>{" "}
+          فهو يخفض الطلب من{" "}
           {((perFeddan.flood * 500_000) / 1e9).toFixed(2)} إلى{" "}
-          {((perFeddan.drip * 500_000) / 1e9).toFixed(2)} مليار م³ — ومعه تكاد
-          تختفي أزمة الحصة التي تصفها بـ«هامش صفر».
+          {((perFeddan.drip * 500_000) / 1e9).toFixed(2)} مليار م³ — أي{" "}
+          {Math.round((1 - perFeddan.drip / perFeddan.flood) * 100)}٪ — ومعه
+          تصغُر القناة والمحطّات والمصفوفة الشمسية والكلفة كلّها بالنسبة نفسها،
+          كما في قسم التصميم أدناه.
         </p>
         <p className="mt-2 leading-relaxed">
           <strong>وللنواة المقترحة:</strong> عشرون ألف فدان بالتنقيط تحتاج نحو{" "}

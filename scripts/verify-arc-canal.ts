@@ -7,7 +7,7 @@ import {
   ROUTE_CLIMATE,
   END_CELL_RAINFALL,
   CORRIDOR_RAINFALL_MM,
-  STUDY_CROP_PLAN,
+  SCENARIO_CROP_PLAN,
   distanceKm,
   summarise,
 } from "../src/lib/arcCanal";
@@ -16,6 +16,13 @@ import {
   waterRequirement,
   type IrrigationMethod,
 } from "../src/lib/agronomy";
+import { designCanal, PILOT_REACH } from "../src/lib/canalDesign";
+import {
+  SOIL_POINTS,
+  SOIL_SUMMARY,
+  SOIL_SAMPLES_REQUESTED,
+  IRRADIANCE_ANNUAL,
+} from "../src/lib/canalGround";
 import { GEOMETRY_SQL } from "./emit-arc-canal-geometry";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -53,11 +60,11 @@ ok(
   "وكل الارتفاعات ضمن نطاق التضاريس الحقيقي",
 );
 
-console.log("\nالهندسة — الطول الذي لا يتّفق مع الدراسات:");
+console.log("\nالهندسة — طول المسار:");
 near(ROUTE_LENGTH_KM, 94.2, 0.2, "طول نصف الدائرة π×٣٠");
 ok(
   ROUTE_LENGTH_KM < 100,
-  "أقصر من ١٠٠ كم — لا ٢٣٦ ولا ٢٩٥ كما تقول الدراسات",
+  "أقصر من ١٠٠ كم",
 );
 near(distanceKm(0), 0, 1e-9, "المسافة عند البداية صفر");
 near(distanceKm(40), ROUTE_LENGTH_KM, 1e-9, "وعند النهاية الطول الكامل");
@@ -67,11 +74,10 @@ const west = ROUTE.reduce((a, b) => (b.lon < a.lon ? b : a));
 near(west.lon, 32.23, 0.01, "أقصى الغرب عند ٣٢٫٢٣°ق — أي ٢٨ كم غرب أم درمان");
 ok(west.index === 20, "وهو منتصف القوس تماماً");
 
-console.log("\nما يقوله الارتفاع، وما تقوله الدراسات:");
-ok(s.peak.elevation === 441, `أعلى نقطة ${s.peak.elevation} م — لا ٤١٠–٤٣٠`);
+console.log("\nما يقوله الارتفاع:");
+ok(s.peak.elevation === 441, `أعلى نقطة ${s.peak.elevation} م`);
 ok(s.peak.index === 16, "وموضعها على الساق الجنوبية لا عند أقصى الغرب");
-ok(s.liftM === 64, `الرفع المطلوب ${s.liftM} م — لا ٤٠–٥٥`);
-ok(s.liftM > 55, "أكبر من أعلى تقدير في الدراسات");
+ok(s.liftM === 64, `الرفع الساكن ${s.liftM} م`);
 ok(s.ridgeCount === 2, `حاجزان لا حاجز واحد (${s.ridgeCount})`);
 
 console.log("\nالجاذبية — ولا وجود لها:");
@@ -156,20 +162,20 @@ ok(
   "والطرفان يحيطان بالممرّ: الجنوب أمطر والشمال أجفّ",
 );
 
-console.log("\nخطّة محاصيل الدراسة، والاحتياج المائي:");
-const shareSum = STUDY_CROP_PLAN.reduce((s2, p) => s2 + p.share, 0);
+console.log("\nخليط المحاصيل المفترض، والاحتياج المائي:");
+const shareSum = SCENARIO_CROP_PLAN.reduce((s2, p) => s2 + p.share, 0);
 near(shareSum, 1, 1e-9, "مجموع الحصص يساوي واحداً");
 ok(
-  STUDY_CROP_PLAN.every((p) => CROPS.some((c) => c.key === p.cropKey)),
+  SCENARIO_CROP_PLAN.every((p) => CROPS.some((c) => c.key === p.cropKey)),
   "وكل محصول في الخطة له معاملات FAO-56",
 );
 ok(
-  STUDY_CROP_PLAN.every((p) => p.plantingMonth >= 1 && p.plantingMonth <= 12),
+  SCENARIO_CROP_PLAN.every((p) => p.plantingMonth >= 1 && p.plantingMonth <= 12),
   "وكل شهر زراعة شهرٌ فعلي",
 );
 
 const planM3 = (method: IrrigationMethod) =>
-  STUDY_CROP_PLAN.reduce(
+  SCENARIO_CROP_PLAN.reduce(
     (s2, p) =>
       s2 +
       waterRequirement(
@@ -187,17 +193,87 @@ const drip = planM3("drip");
 near(flood * 500_000 / 1e9, 1.72, 0.05, "الغمر لـ٥٠٠ ألف فدان، مليار م³");
 near(drip * 500_000 / 1e9, 1.05, 0.05, "والتنقيط، مليار م³");
 ok(drip < flood, "والتنقيط أقلّ من الغمر — وإلا انهار منطق القسم كلّه");
-// The comparison the section is written to make: designing for the efficiency
-// the studies set as their own KPI removes about a third of the demand.
+// The single most consequential choice on the page: drip over flood removes
+// about a third of the demand, and with it a third of every downstream number.
 ok(
   1 - drip / flood > 0.3,
-  `التصميم بالكفاءة الموعودة يخفض الطلب ${Math.round((1 - drip / flood) * 100)}٪`,
+  `التنقيط بدل الغمر يخفض الطلب ${Math.round((1 - drip / flood) * 100)}٪`,
 );
 // And the pilot must stay small enough that it needs no sovereign allocation.
 ok(
   drip * 20_000 < 0.05e9,
   "ونواة العشرين ألف فدان دون خمسين مليون م³",
 );
+
+
+console.log("\nالمسح الأرضي — التربة والإشعاع:");
+ok(SOIL_POINTS.length >= 9, `${SOIL_POINTS.length} نقطة تربة عادت بقطاع كامل`);
+// Sample zero sits on the reservoir, so one fewer than requested is correct.
+ok(
+  SOIL_SAMPLES_REQUESTED - SOIL_POINTS.length === 1,
+  "ونقطة واحدة بلا تربة — وهي التي تقع على بحيرة الخزان",
+);
+ok(
+  SOIL_POINTS.every((p) => p.clay + p.sand + p.silt > 95 && p.clay + p.sand + p.silt < 105),
+  "ومجموع الطين والرمل والطمي مئة بالمئة في كل نقطة",
+);
+ok(
+  SOIL_POINTS.every((p) => p.ph > 4 && p.ph < 10),
+  "ودرجة الحموضة في نطاق ممكن",
+);
+ok(
+  IRRADIANCE_ANNUAL !== null && IRRADIANCE_ANNUAL > 4 && IRRADIANCE_ANNUAL < 9,
+  `الإشعاع السنوي ${IRRADIANCE_ANNUAL} ك.و.س/م²/يوم — نطاق معقول لهذا العرض`,
+);
+
+console.log("\nتصميم القناة — مانينغ والضخّ والكلفة:");
+{
+  const fullFlood = designCanal(500_000, "flood", SOIL_SUMMARY.clay, SOIL_SUMMARY.sand, IRRADIANCE_ANNUAL);
+  const fullDrip = designCanal(500_000, "drip", SOIL_SUMMARY.clay, SOIL_SUMMARY.sand, IRRADIANCE_ANNUAL);
+  const small = designCanal(20_000, "drip", SOIL_SUMMARY.clay, SOIL_SUMMARY.sand, IRRADIANCE_ANNUAL, PILOT_REACH);
+
+  // Manning solved by inversion rather than iteration: check it against the
+  // forward equation, which is the only thing that proves the algebra.
+  const y = fullFlood.depthM;
+  const b = 2 * y;
+  const a = y * (b + 1.5 * y);
+  const pWet = b + 2 * y * Math.sqrt(1 + 1.5 * 1.5);
+  const qForward = (1 / 0.025) * a * Math.pow(a / pWet, 2 / 3) * Math.sqrt(0.0001);
+  near(qForward, fullFlood.designQ, 0.5, "العمق المحسوب يعيد التصرّف نفسه في معادلة مانينغ");
+
+  ok(fullFlood.velocityOk, `السرعة ${fullFlood.velocityMS.toFixed(2)} م/ث داخل نطاق القناة الترابية`);
+  ok(small.velocityOk, `وسرعة النواة ${small.velocityMS.toFixed(2)} م/ث كذلك`);
+
+  ok(fullDrip.designQ < fullFlood.designQ, "التنقيط يصغّر التصرّف");
+  ok(fullDrip.peakPowerMW < fullFlood.peakPowerMW, "ويصغّر القدرة");
+  ok(fullDrip.capexHighM < fullFlood.capexHighM, "ويصغّر الكلفة");
+
+  // Every downstream number must fall with the reach, not only with the area.
+  ok(small.stations === 1, "النواة بمحطة رفع واحدة");
+  ok(
+    small.fixedCostPerFeddanHigh < fullFlood.fixedCostPerFeddanLow / 3,
+    "وكلفة مائها للفدان دون ثلث كلفة الحجم الكامل",
+  );
+  ok(
+    (small.pvMwp ?? 99) < 2,
+    `ومصفوفتها الشمسية ${small.pvMwp?.toFixed(1)} ميغاواط ذروة — لا قرار في الشبكة`,
+  );
+
+  // Seepage must be a real share and not a rounding artefact, and must not run
+  // away: a canal losing more than half of what enters it is a design error,
+  // not a finding.
+  for (const d of [fullFlood, fullDrip, small]) {
+    ok(
+      d.seepageShare > 0.01 && d.seepageShare < 0.5,
+      `التسرّب ${Math.round(d.seepageShare * 100)}٪ عند ${d.areaFeddan.toLocaleString("en-US")} فدان`,
+    );
+  }
+
+  ok(
+    fullFlood.totalHeadM > fullFlood.staticLiftM,
+    "والرفع الكلّي فوق الساكن — الاحتكاك محسوب لا مهمل",
+  );
+}
 
 console.log("\nالجدول والوحدة البرمجية — لا انحراف بينهما:");
 // The elevations now exist twice: in the module the charts render from, and in
