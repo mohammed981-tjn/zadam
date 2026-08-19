@@ -50,6 +50,7 @@ export default async function Navbar() {
         { href: "/guide", label: "دليل الاستخدام" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
         { href: "/tools/feasibility", label: "دراسة الجدوى المرحلية" },
+        { href: "/feedback", label: "ملاحظات واقتراحات" },
       ],
     },
     {
@@ -113,6 +114,7 @@ export default async function Navbar() {
         { href: "/admin/review", label: "مراجعة الفرص" },
         { href: "/admin/analytics", label: "التحليلات" },
         { href: "/admin/providers", label: "توثيق مقدّمي الخدمة" },
+        { href: "/admin/feedback", label: "ملاحظات الزوّار" },
         { href: "/admin/leads", label: "العملاء المحتملون" },
       ],
     });
