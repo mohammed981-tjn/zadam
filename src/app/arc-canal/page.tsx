@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import NotifyMeForm from "@/components/NotifyMeForm";
 import ArcCanalProfile from "@/components/ArcCanalProfile";
 import ArcCanalMap from "@/components/ArcCanalMap";
+import ArcCanalWater from "@/components/ArcCanalWater";
+import ArcCanalDossier from "@/components/ArcCanalDossier";
 import { summarise } from "@/lib/arcCanal";
 import type { ArcCanalFinding, ArcCanalVerdict } from "@/types/database";
 
@@ -193,6 +195,10 @@ export default async function ArcCanalPage() {
           </p>
         </div>
       </section>
+
+      <ArcCanalWater />
+
+      <ArcCanalDossier />
 
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">البنود، واحداً واحداً</h2>

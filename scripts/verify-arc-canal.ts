@@ -4,9 +4,21 @@ import {
   SARURAB_TRANSECT,
   ROUTE_LENGTH_KM,
   SOURCE_ELEVATION_M,
+  ROUTE_CLIMATE,
+  END_CELL_RAINFALL,
+  CORRIDOR_RAINFALL_MM,
+  STUDY_CROP_PLAN,
   distanceKm,
   summarise,
 } from "../src/lib/arcCanal";
+import {
+  CROPS,
+  waterRequirement,
+  type IrrigationMethod,
+} from "../src/lib/agronomy";
+import { GEOMETRY_SQL } from "./emit-arc-canal-geometry";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -106,6 +118,102 @@ ok(
   new Set(LANDMARKS.map((l) => l.index)).size === LANDMARKS.length,
   "ولا معلمان على النقطة نفسها",
 );
+
+console.log("\nمناخ الممرّ — وحدود الشبكة:");
+// The climate point must be on the thing it claims to describe.
+ok(
+  ROUTE_CLIMATE.latitude >= 15.2 &&
+    ROUTE_CLIMATE.latitude <= 15.8 &&
+    ROUTE_CLIMATE.longitude >= 32.2 &&
+    ROUTE_CLIMATE.longitude <= 32.52,
+  "نقطة المناخ داخل صندوق المسار نفسه",
+);
+ok(ROUTE_CLIMATE.source === "nasa-power", "ومصدرها مقيس لا تقديري");
+ok(
+  ROUTE_CLIMATE.tmax.length === 12 &&
+    ROUTE_CLIMATE.tmin.length === 12 &&
+    ROUTE_CLIMATE.rainfall.length === 12,
+  "اثنا عشر شهراً في كل سلسلة",
+);
+ok(
+  ROUTE_CLIMATE.tmax.every((t, i) => t > ROUTE_CLIMATE.tmin[i]),
+  "والعظمى فوق الصغرى في كل شهر",
+);
+// One number for the corridor's rainfall, and it is the one the water model
+// integrates — a card quoting POWER's annual total beside a table built from
+// the monthly series would differ by the rounding and read as a mistake.
+ok(
+  CORRIDOR_RAINFALL_MM ===
+    ROUTE_CLIMATE.rainfall.reduce((a, b) => a + b, 0),
+  `أمطار الممرّ ${CORRIDOR_RAINFALL_MM} ملم — مجموع السلسلة الشهرية نفسها`,
+);
+// The whole reason there is one profile and not five: the ends are different
+// cells, and the middle is one. If that stops being true the page's caveat is
+// wrong and must be rewritten.
+ok(
+  END_CELL_RAINFALL.south > CORRIDOR_RAINFALL_MM &&
+    CORRIDOR_RAINFALL_MM > END_CELL_RAINFALL.north,
+  "والطرفان يحيطان بالممرّ: الجنوب أمطر والشمال أجفّ",
+);
+
+console.log("\nخطّة محاصيل الدراسة، والاحتياج المائي:");
+const shareSum = STUDY_CROP_PLAN.reduce((s2, p) => s2 + p.share, 0);
+near(shareSum, 1, 1e-9, "مجموع الحصص يساوي واحداً");
+ok(
+  STUDY_CROP_PLAN.every((p) => CROPS.some((c) => c.key === p.cropKey)),
+  "وكل محصول في الخطة له معاملات FAO-56",
+);
+ok(
+  STUDY_CROP_PLAN.every((p) => p.plantingMonth >= 1 && p.plantingMonth <= 12),
+  "وكل شهر زراعة شهرٌ فعلي",
+);
+
+const planM3 = (method: IrrigationMethod) =>
+  STUDY_CROP_PLAN.reduce(
+    (s2, p) =>
+      s2 +
+      waterRequirement(
+        CROPS.find((c) => c.key === p.cropKey)!,
+        ROUTE_CLIMATE,
+        p.plantingMonth,
+        method,
+      ).m3PerFeddan *
+        p.share,
+    0,
+  );
+
+const flood = planM3("flood");
+const drip = planM3("drip");
+near(flood * 500_000 / 1e9, 1.72, 0.05, "الغمر لـ٥٠٠ ألف فدان، مليار م³");
+near(drip * 500_000 / 1e9, 1.05, 0.05, "والتنقيط، مليار م³");
+ok(drip < flood, "والتنقيط أقلّ من الغمر — وإلا انهار منطق القسم كلّه");
+// The comparison the section is written to make: designing for the efficiency
+// the studies set as their own KPI removes about a third of the demand.
+ok(
+  1 - drip / flood > 0.3,
+  `التصميم بالكفاءة الموعودة يخفض الطلب ${Math.round((1 - drip / flood) * 100)}٪`,
+);
+// And the pilot must stay small enough that it needs no sovereign allocation.
+ok(
+  drip * 20_000 < 0.05e9,
+  "ونواة العشرين ألف فدان دون خمسين مليون م³",
+);
+
+console.log("\nالجدول والوحدة البرمجية — لا انحراف بينهما:");
+// The elevations now exist twice: in the module the charts render from, and in
+// the migration the database is loaded from. This is the only thing keeping
+// them the same number.
+{
+  const file = readFileSync(
+    join(import.meta.dirname, "..", "supabase", "migrations",
+      "20260819100100_arc_canal_geometry_rows.sql"),
+    "utf8",
+  );
+  ok(
+    file === GEOMETRY_SQL,
+    "ملف الترحيل مطابق لما يولّده emit-arc-canal-geometry من القياسات",
+  );
+}
 
 console.log(`\n${fail === 0 ? "كل الفحوص نجحت" : `${fail} فحص فشل`}\n`);
 process.exit(fail === 0 ? 0 : 1);

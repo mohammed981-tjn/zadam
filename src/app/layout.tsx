@@ -33,14 +33,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
           A floating launcher was the obvious alternative and it is the wrong
           one here: the assistant already owns a draggable fixed launcher at
-          left-4, and it already overlaps its own panel when open. Adding
-          another permanently-visible circle to the same corner would make the
-          two compete on a phone, which is where nearly all of this traffic is.
-          A footer band is on every screen, needs no z-index argument with
-          anything, and is where a reader looks once they have finished reading.
+          left-4. Adding another permanently-visible circle to the same corner
+          would make the two compete on a phone, which is where nearly all of
+          this traffic is. A footer band is on every screen, needs no z-index
+          argument with anything, and is where a reader looks once they have
+          finished reading.
+
+          The extra bottom padding is for that launcher: it rests over the
+          bottom-left corner, and without room here it covers the last line of
+          the footer on a narrow screen.
         */}
         <footer className="mt-10 border-t border-border">
-          <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 py-8 text-center">
+          <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 pb-24 pt-8 text-center">
             <p className="text-base font-semibold">
               رأيك يبني هذه المنصة
             </p>

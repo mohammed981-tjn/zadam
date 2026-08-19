@@ -145,12 +145,21 @@ export default function AssistantWidget() {
      * it and pushed the panel off-screen when opened. Keeping them apart means
      * the reader can put the button anywhere while the conversation always
      * opens fully on-screen.
+     *
+     * And the launcher is not rendered while the panel is open. It used to
+     * stay, which meant a reader who had dragged it anywhere but the bottom
+     * corner found it sitting on top of the conversation it had just opened —
+     * the panel is fixed to the corner and the button is wherever they left it,
+     * so no amount of geometry keeps the two apart. The panel header already
+     * carries a close button, so nothing is lost; and with the launcher gone
+     * the panel can use the same bottom anchor instead of leaving a
+     * button-sized gap of page showing underneath itself.
      */
     <>
       {open && (
         <div
           className="fixed inset-x-4 z-[99] flex h-[28rem] max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl sm:right-auto sm:left-4 sm:w-80"
-          style={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
+          style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
         >
           <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
             <span className="font-bold">🌾 مساعد سودجري</span>
@@ -297,37 +306,37 @@ export default function AssistantWidget() {
       {/* A labelled pill rather than a bare icon — a lone circle reads as
           decoration and visitors were not finding the assistant at all.
           Draggable, because no fixed corner is free on every page. */}
-      <div
-        ref={dragRef}
-        suppressHydrationWarning
-        className="fixed left-4 z-[100]"
-        style={{
-          bottom: "calc(1.25rem + env(safe-area-inset-bottom))",
-          transform: `translate(${offset.x}px, ${offset.y}px)`,
-          touchAction: "none",
-        }}
-      >
-        <button
-          onPointerDown={onPointerDown}
-          onClick={() => {
-            // A drag must not also open the panel.
-            if (consumeDrag()) return;
-            setOpen((v) => !v);
+      {!open && (
+        <div
+          ref={dragRef}
+          suppressHydrationWarning
+          className="fixed left-4 z-[100]"
+          style={{
+            bottom: "calc(1.25rem + env(safe-area-inset-bottom))",
+            transform: `translate(${offset.x}px, ${offset.y}px)`,
+            touchAction: "none",
           }}
-          className={`flex touch-none items-center gap-2 rounded-full bg-primary py-3 pe-5 ps-4 text-primary-foreground shadow-xl ring-2 ring-primary/25 transition hover:opacity-90 ${
-            dragging ? "scale-105 cursor-grabbing" : "cursor-grab"
-          }`}
-          aria-label="افتح مساعد سودجري — يمكنك سحب الزر لتحريكه"
-          aria-expanded={open}
         >
-          <span className="text-2xl leading-none">💬</span>
-          {!open && (
+          <button
+            onPointerDown={onPointerDown}
+            onClick={() => {
+              // A drag must not also open the panel.
+              if (consumeDrag()) return;
+              setOpen((v) => !v);
+            }}
+            className={`flex touch-none items-center gap-2 rounded-full bg-primary py-3 pe-5 ps-4 text-primary-foreground shadow-xl ring-2 ring-primary/25 transition hover:opacity-90 ${
+              dragging ? "scale-105 cursor-grabbing" : "cursor-grab"
+            }`}
+            aria-label="افتح مساعد سودجري — يمكنك سحب الزر لتحريكه"
+            aria-expanded={open}
+          >
+            <span className="text-2xl leading-none">💬</span>
             <span className="whitespace-nowrap text-sm font-bold">
               اسأل سودجري
             </span>
-          )}
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
     </>
   );
 }
