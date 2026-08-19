@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import NotifyMeForm from "@/components/NotifyMeForm";
+import ArcCanalProfile from "@/components/ArcCanalProfile";
+import { summarise } from "@/lib/arcCanal";
 import type { ArcCanalFinding, ArcCanalVerdict } from "@/types/database";
 
 export const metadata = {
@@ -63,6 +65,7 @@ export default async function ArcCanalPage() {
     .order("sort_order");
 
   const findings = (data ?? []) as ArcCanalFinding[];
+  const summary = summarise();
   const counts = Object.fromEntries(
     ORDER.map((v) => [v, findings.filter((f) => f.verdict === v).length]),
   ) as Record<ArcCanalVerdict, number>;
@@ -109,6 +112,60 @@ export default async function ArcCanalPage() {
             <div className="mt-1 text-xs opacity-80">{VERDICT[v].note}</div>
           </div>
         ))}
+      </section>
+
+      {/* Measured ground, and the only section on this page that is ours. */}
+      <section className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-semibold">
+            الأرض نفسها — قياس لا نقل عن وثيقة
+          </h2>
+          <p className="leading-relaxed text-muted">
+            كل ما سبق مراجعةٌ لِما كُتب. هذا القسم مختلف: نزلنا على المسار
+            وقِسناه من قمر SRTM بدقّة ٣٠ متراً، ٤١ نقطة من جبل أولياء إلى
+            السروراب. وثلاثٌ من نتائجه تخالف كل وثيقة وصلتنا.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[
+            ["٩٤ كم", "طول المسار", "لا ٢٣٦–٢٩٥ كما تقول الدراسات"],
+            [`${summary.liftM} م`, "الرفع المطلوب", "لا ٤٠–٥٥"],
+            [
+              `${summary.terminusAboveSourceM} م`,
+              "السروراب فوق مصدره",
+              "فلا مقطع ينساب بالجاذبية",
+            ],
+          ].map(([big, label, note]) => (
+            <div
+              key={label}
+              className="rounded-xl border border-border bg-card p-4 text-center"
+            >
+              <div className="text-2xl font-bold">{big}</div>
+              <div className="text-sm font-medium">{label}</div>
+              <div className="mt-1 text-xs text-muted">{note}</div>
+            </div>
+          ))}
+        </div>
+
+        <ArcCanalProfile />
+
+        <div className="rounded-xl border border-amber-600/30 bg-amber-600/5 p-5">
+          <h3 className="mb-2 font-semibold">
+            وهذا القياس صحّح خطأً كتبناه نحن في هذه الصفحة
+          </h3>
+          <p className="leading-relaxed">
+            كنّا نقترح النواة الأولى «عند السروراب قرب النيل، فالرفع بضعة أمتار».
+            القياس يقول غير ذلك: النيل هناك على <strong>٣٨١ م</strong>، وعلى
+            بُعد خمسة كيلومترات غرباً تبلغ الأرض <strong>٤٠٩ م</strong> — أي{" "}
+            <strong>٢٨ متراً من الرفع خلال ٥ كم</strong>، و٤٥١ متراً عند الثلاثين.
+          </p>
+          <p className="mt-2 leading-relaxed">
+            الأرض المنخفضة في <strong>الجنوب لا الشمال</strong>: غرب خزان جبل
+            أولياء مباشرةً تقف الأرض على ٣٧٧–٣٩٠ متراً، بمنسوب الماء نفسه.
+            صحّحنا الاقتراح أدناه على هذا الأساس.
+          </p>
+        </div>
       </section>
 
       <section className="flex flex-col gap-4">
@@ -191,8 +248,10 @@ export default async function ArcCanalPage() {
 
         <ul className="flex list-disc flex-col gap-2 pr-5 leading-relaxed">
           <li>
-            <strong>عند الطرف الشمالي (السروراب)</strong>، قريباً من النيل —
-            فالرفع بضعة أمتار لا ٥٥، وتسقط معه محطة الـ٤٠٠ ميغاواط ومعضلتها.
+            <strong>عند الطرف الجنوبي، غرب خزان جبل أولياء مباشرةً</strong> —
+            حيث الأرض على ٣٧٧–٣٩٠ متراً، أي بمنسوب الماء نفسه، فالرفع يقارب
+            الصفر وتسقط معه محطة الـ٤٠٠ ميغاواط ومعضلتها. والصعود الجادّ لا يبدأ
+            قبل نحو ١٥ كم غرباً.
           </li>
           <li>
             <strong>ريّ بالتنقيط لا بالغمر.</strong> محرّك FAO-56 في المنصّة
