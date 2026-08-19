@@ -16,7 +16,11 @@ export const metadata = {
  * pay the next instalment".
  */
 export default async function FeasibilityPage() {
-  const markets = await loadCropMarkets();
+  // An unreachable view leaves every crop without a reference, and the study
+  // then shows dashes and asks for a price by hand. That is the right
+  // degradation: the cost and water sides are computed locally and stay
+  // useful, and no yield is invented to fill the gap.
+  const markets = (await loadCropMarkets()) ?? {};
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10">

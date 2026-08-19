@@ -40,8 +40,14 @@ import {
   scoreEntries,
   type RetrievableEntry,
 } from "@/lib/retrieval";
+import {
+  grossRevenue,
+  HECTARES_PER_FEDDAN,
+  PRICE_BASIS_LABEL,
+  type CropMarket,
+} from "@/lib/cropBenchmark";
 
-export type AnswerSource = "platform" | "calculator" | "knowledge";
+export type AnswerSource = "platform" | "calculator" | "knowledge" | "market";
 
 export interface LocalAnswer {
   answer: string;
@@ -58,6 +64,12 @@ export interface LocalAnswerInput {
   /** Non-draft projects. An empty list means nothing is on offer. */
   projectCount: number;
   investmentLive: boolean;
+  /**
+   * Yield and price per crop, from the crop_market view. Absent when the
+   * lookup failed — in which case the market resolver stands down rather than
+   * answering from memory.
+   */
+  markets?: Record<string, CropMarket>;
 }
 
 /* ------------------------------------------------------------------ *
@@ -126,10 +138,23 @@ const WATER_TERMS = [
   "سقي",
 ].map(normalizeArabic);
 
-/** Words a visitor is likely to use for a crop that are not the crop's name. */
+/**
+ * Words a visitor is likely to use for a crop that are not the crop's name.
+ *
+ * "دخن" was listed under sorghum, and it is not sorghum — it is millet. That
+ * was harmless while millet was not a crop the platform knew, because the
+ * nearest cereal beat no answer at all. It stopped being harmless the moment
+ * millet arrived with its own FAO-56 coefficients: a question about دخن was
+ * then answered with sorghum's water requirement, confidently and wrongly, with
+ * nothing on screen to reveal the substitution.
+ *
+ * Millet and dates joined the crop table and never reached this map. Adding a
+ * crop is two edits, and this is the second one.
+ */
 const CROP_ALIASES: Record<string, string[]> = {
   wheat: ["قمح", "حنطه"],
-  sorghum: ["ذره رفيعه", "رفيعه", "دخن", "فتريته", "طابت"],
+  sorghum: ["ذره رفيعه", "رفيعه", "فتريته", "طابت"],
+  millet: ["دخن"],
   maize: ["ذره شاميه", "شاميه"],
   cotton: ["قطن"],
   groundnut: ["فول سوداني", "سوداني", "فول"],
@@ -138,8 +163,21 @@ const CROP_ALIASES: Record<string, string[]> = {
   onion: ["بصل"],
   tomato: ["طماطم", "بندوره"],
   sugarcane: ["قصب سكر", "قصب"],
+  // "تمر" is deliberately not an alias: it is a substring of "مستمر", so
+  // "هل الإنتاج مستمر؟" would be answered as a question about date palms.
+  dates: ["تمور", "نخيل", "نخله", "بلح"],
 };
 
+/**
+ * Nine stations joined the climate table — all five Darfur states, two points
+ * on the Blue Nile, Sennar and the White Nile — and none could be named in a
+ * question until now, so a visitor in Nyala asking about their own area was
+ * silently answered for Khartoum.
+ *
+ * Gedaref still points at Kassala on purpose. It has no station of its own
+ * because the reanalysis diurnal range there runs at about half the observed
+ * figure, and Kassala is the nearest place with numbers worth quoting.
+ */
 const STATION_ALIASES: Record<string, string[]> = {
   khartoum: ["الخرطوم", "خرطوم", "بحري", "امدرمان", "ام درمان"],
   gezira: ["الجزيره", "جزيره", "ود مدني", "مدني"],
@@ -147,6 +185,15 @@ const STATION_ALIASES: Record<string, string[]> = {
   northern: ["الشماليه", "دنقلا", "الشمال", "مروي"],
   kordofan: ["كردفان", "الابيض", "بارا"],
   kassala: ["كسلا", "القضارف", "جدارف", "الفاو", "حلفا الجديده"],
+  nyala: ["نيالا", "جنوب دارفور"],
+  elfasher: ["الفاشر", "شمال دارفور"],
+  geneina: ["الجنينه", "غرب دارفور"],
+  zalingei: ["زالنجي", "وسط دارفور"],
+  eddaein: ["الضعين", "شرق دارفور"],
+  damazin: ["الدمازين", "النيل الازرق", "الروصيرص"],
+  kurmuk: ["الكرمك"],
+  kosti: ["كوستي", "النيل الابيض", "ربك"],
+  sennar: ["سنار", "سنجه"],
 };
 
 const METHOD_ALIASES: [IrrigationMethod, string[]][] = [
@@ -164,6 +211,7 @@ const METHOD_ALIASES: [IrrigationMethod, string[]][] = [
 const DEFAULT_PLANTING_MONTH: Record<string, number> = {
   wheat: 10, // نوفمبر
   sorghum: 6, // يوليو
+  millet: 5, // يونيو — FAO-56 Table 11 names June for millet
   maize: 6,
   cotton: 7, // أغسطس
   groundnut: 6,
@@ -172,6 +220,9 @@ const DEFAULT_PLANTING_MONTH: Record<string, number> = {
   onion: 10,
   tomato: 9, // أكتوبر
   sugarcane: 2, // مارس
+  // A date palm has no planting month; the cycle is the calendar year, and the
+  // near-flat Kc curve means the starting point barely moves the total.
+  dates: 0,
 };
 
 /** Substring match on the normalised question — aliases are multi-word. */
@@ -442,11 +493,135 @@ export function bestEffortAnswer(
 /** A knowledge match this strong outranks the platform notice. */
 const KB_OVERRIDE_CONFIDENCE = 0.8;
 
+/* ------------------------------------------------------------------ *
+ * 4. Market — yield and price, straight from the table
+ * ------------------------------------------------------------------ */
+
+const YIELD_TERMS = [
+  "غله",
+  "غلة",
+  "انتاجيه",
+  "انتاجية",
+  "الانتاجيه",
+  "كم ينتج",
+  "كم تنتج",
+  "طن للهكتار",
+  "كجم للهكتار",
+  "متوسط الانتاج",
+].map(normalizeArabic);
+
+/*
+ * Written without the definite article on purpose. The first draft listed
+ * "العائد" and "المردود", and "ما عائد فدان البصل؟" matched neither — the
+ * article is part of the term only when the visitor happens to use it, and
+ * "العائد" contains "عائد" while the reverse is false.
+ *
+ * "دخل" is deliberately absent despite being the obvious word for income: it
+ * is a substring of "دخلت" and "تدخل" and "مدخل", and the resolver would fire
+ * on "هل دخلت الطماطم السوق؟". "عائد" and "سعر" and "ربح" already cover the
+ * question without reaching for it.
+ */
+const PRICE_TERMS = [
+  "سعر",
+  "بكم",
+  "اسعار",
+  "قيمه الطن",
+  "يبيع",
+  "بيع",
+  "عائد",
+  "مردود",
+  "ايراد",
+  "مربح",
+  "ربح",
+].map(normalizeArabic);
+
+/**
+ * Answers "what does this crop yield, and what does it fetch" from the loaded
+ * FAOSTAT reference rather than from prose about it.
+ *
+ * Worth having as a deterministic resolver rather than prompt context for the
+ * same reason the water calculator is: these are measured numbers, and a model
+ * paraphrasing them can only make them worse. It also means the question is
+ * still answered when every generation engine is down.
+ *
+ * The revenue line is the one that changes minds. A visitor asking about
+ * sorghum is usually surprised that the national yield and the export price
+ * multiply out to under a hundred dollars a feddan, and that single figure
+ * reframes the rest of the conversation more than any paragraph.
+ */
+function resolveMarket(input: LocalAnswerInput): LocalAnswer | null {
+  if (!input.markets) return null;
+
+  const normalized = normalizeArabic(input.question);
+  const wantsYield = YIELD_TERMS.some((t) => normalized.includes(t));
+  const wantsPrice = PRICE_TERMS.some((t) => normalized.includes(t));
+  if (!wantsYield && !wantsPrice) return null;
+
+  const crop = findByAlias<CropCoefficients>(normalized, CROPS, CROP_ALIASES);
+  if (!crop) return null;
+
+  const market = input.markets[crop.key];
+  if (!market) return null;
+  if (market.sudanKgPerHa === null && market.usdPerTonne === null) return null;
+
+  const lines: string[] = [];
+
+  if (market.sudanKgPerHa !== null) {
+    lines.push(
+      `غلّة ${crop.name} في السودان: **${formatNumber(market.sudanKgPerHa)} كجم/هكتار**` +
+        (market.year ? ` (FAOSTAT ${market.year})` : ""),
+    );
+    const peer = market.nearestPeerKgPerHa;
+    if (peer !== null) {
+      lines.push(
+        `للمقارنة — مصر: ${formatNumber(peer)} كجم/هكتار` +
+          (market.peerMedianKgPerHa !== null
+            ? `، ووسيط الدول القاحلة النظيرة: ${formatNumber(market.peerMedianKgPerHa)}`
+            : ""),
+      );
+    }
+  }
+
+  if (market.usdPerTonne !== null) {
+    lines.push(
+      `السعر المعتمد: **${formatNumber(market.usdPerTonne)} دولاراً للطن** — ${PRICE_BASIS_LABEL[market.priceBasis]}.`,
+    );
+  }
+
+  // One feddan, so the figure is comparable with the cost of working one.
+  const perFeddan = grossRevenue(market.sudanKgPerHa, 1, market.usdPerTonne);
+  if (perFeddan !== null) {
+    lines.push(
+      `أي أن الفدان يعطي بالمتوسط الوطني نحو **${formatNumber(perFeddan)} دولاراً** إجمالاً قبل خصم أي تكلفة ` +
+        `(${formatNumber(market.sudanKgPerHa! * HECTARES_PER_FEDDAN)} كجم للفدان).`,
+    );
+    lines.push(
+      "قارِنه بتكلفة عملياتك في «دراسة الجدوى المرحلية» لتعرف عند أي مرحلة يتوقّف الاسترداد.",
+    );
+  }
+
+  if (market.sudanKgPerHa === null) {
+    lines.push("ولا تُنشر غلّة لهذا المحصول في السودان ضمن البيانات المحمَّلة.");
+  }
+
+  return {
+    answer: lines.join("\n"),
+    source: "market",
+    confidence: 1,
+    usedTitles: [],
+  };
+}
+
 export function answerLocally(input: LocalAnswerInput): LocalAnswer | null {
   // The calculator goes first: when a question names a crop and asks about
   // water, computed numbers beat any prose about it.
   const calculated = resolveCalculator(input);
   if (calculated) return calculated;
+
+  // Then the market, for the same reason: a measured yield and a realised
+  // export price are facts, and the table holding them is right here.
+  const market = resolveMarket(input);
+  if (market) return market;
 
   // A question landing squarely on a curated entry is a knowledge question even
   // when it contains the word "استثمار" — answering "nothing is on offer" to

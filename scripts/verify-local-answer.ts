@@ -240,6 +240,96 @@ console.log("\nذاكرة الإجابات:");
   );
 }
 
+console.log("\nالمحصول الصحيح — الأسماء التي تشابهت:");
+{
+  // "دخن" was an alias for sorghum. Once millet became a crop with its own
+  // FAO-56 coefficients, that alias answered millet questions with sorghum's
+  // water requirement — silently, with nothing on screen to reveal it. This is
+  // the check that stops it coming back.
+  const millet = answerLocally(base("كم يحتاج الدخن من الماء في الفاشر؟"));
+  ok(millet !== null, "سؤال عن الدخن يجد جواباً");
+  ok(
+    millet !== null && millet.answer.includes("دخن"),
+    "ويُجاب عن الدخن نفسه لا عن الذرة الرفيعة",
+  );
+  ok(
+    millet !== null && !millet.answer.includes("ذرة رفيعة"),
+    "ولا يُذكر فيه محصول آخر",
+  );
+
+  const sorghum = answerLocally(base("كم يحتاج الذرة الرفيعة من الماء؟"));
+  ok(
+    sorghum !== null && sorghum.answer.includes("ذرة رفيعة"),
+    "والذرة الرفيعة ما زالت تُجاب عن نفسها",
+  );
+
+  // Nine stations joined the climate table and none could be named until now.
+  const nyala = answerLocally(base("الاحتياج المائي للسمسم في نيالا"));
+  ok(
+    nyala !== null && nyala.answer.includes("نيالا"),
+    "ومحطات دارفور تُذكر بالاسم بدل الرد بالخرطوم",
+  );
+
+  // "مستمر" contains "تمر", which is why "تمر" is not an alias for dates.
+  const notDates = answerLocally(base("هل الدعم مستمر؟"));
+  ok(
+    notDates === null || !notDates.answer.includes("نخيل"),
+    "و«مستمر» لا تُقرأ سؤالاً عن النخيل",
+  );
+}
+
+console.log("\nمرجعية الغلة والسعر — من الجدول لا من النص:");
+{
+  const markets = {
+    sorghum: {
+      cropKey: "sorghum",
+      faostatItem: "Sorghum",
+      sudanKgPerHa: 633,
+      nearestPeerKgPerHa: 5200,
+      peerMedianKgPerHa: 2783,
+      usdPerTonne: 358,
+      priceBasis: "sudan_export" as const,
+      year: 2024,
+    },
+  };
+
+  const a = answerLocally({
+    ...base("كم غلة الذرة الرفيعة في السودان؟"),
+    markets,
+  });
+  ok(a !== null && a.source === "market", "سؤال الغلة يُجاب من المرجعية");
+  ok(a !== null && a.answer.includes("633"), "ويحمل الرقم المقيس نفسه");
+  ok(a !== null && a.answer.includes("5,200"), "ومعه غلة مصر للمقارنة");
+
+  const price = answerLocally({
+    ...base("بكم يباع طن الذرة الرفيعة؟"),
+    markets,
+  });
+  ok(price !== null && price.source === "market", "وسؤال السعر كذلك");
+  ok(price !== null && price.answer.includes("358"), "بالسعر من قيمة الصادر");
+
+  // The figure that reframes the conversation: 633 kg/ha at $358/t is under a
+  // hundred dollars a feddan, which is the whole argument of the phased study.
+  ok(
+    price !== null && /\b95\b/.test(price.answer),
+    "ويُحسب منه عائد الفدان — ٩٥ دولاراً، وهو بيت القصيد",
+  );
+
+  // Without the table the resolver must stand down, not recall a yield.
+  const noData = answerLocally(base("كم غلة الذرة الرفيعة في السودان؟"));
+  ok(
+    noData === null || noData.source !== "market",
+    "وبلا مرجعية لا يُجاب من الذاكرة",
+  );
+
+  // A market question about a crop with no row must not borrow another's.
+  const missing = answerLocally({ ...base("كم غلة القطن؟"), markets });
+  ok(
+    missing === null || missing.source !== "market",
+    "ومحصول بلا صفّ لا يستعير صفّ غيره",
+  );
+}
+
 console.log(
   `\n${fail === 0 ? "كل الفحوص نجحت" : `${fail} فحص فشل`}\n`,
 );

@@ -42,13 +42,30 @@ function resolvePrice(row: CropMarketRow): {
   return { usdPerTonne: null, priceBasis: "none" };
 }
 
-export async function loadCropMarkets(): Promise<Record<string, CropMarket>> {
+/**
+ * Returns null when the query itself failed.
+ *
+ * The distinction matters to the assistant. A view that answered with no rows
+ * and a view that could not be reached become the same shape once the rows are
+ * mapped, and only the second is a reason for the market resolver to stand
+ * down. Collapsing them would let a database outage read as "this crop has no
+ * reference", which is a statement about the crop rather than about us.
+ */
+export async function loadCropMarkets(): Promise<Record<
+  string,
+  CropMarket
+> | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("crop_market")
     .select(
       "item, year, sudan_kg_ha, egypt_kg_ha, peer_median_kg_ha, sudan_export_usd_per_tonne, regional_producer_usd_per_tonne",
     );
+
+  if (error) {
+    console.error("crop_market: read failed", error);
+    return null;
+  }
 
   const byItem = new Map<string, CropMarketRow>();
   for (const row of (data ?? []) as CropMarketRow[]) byItem.set(row.item, row);

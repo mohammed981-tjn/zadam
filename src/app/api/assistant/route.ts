@@ -9,6 +9,7 @@ import {
 import { activeProvider, embedQuestion } from "@/lib/embedding";
 import { buildEngines, generateWithFallback } from "@/lib/engines";
 import { answerLocally, bestEffortAnswer } from "@/lib/localAnswer";
+import { loadCropMarkets } from "@/lib/marketData";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { pageContextLine } from "@/lib/pageHelp";
 import { INVESTMENT_LIVE } from "@/lib/config";
@@ -123,6 +124,7 @@ export async function POST(req: NextRequest) {
     const [
       { data: projects, error: projectsError },
       { data: knowledge, error: knowledgeError },
+      marketsOrNull,
     ] = await Promise.all([
       supabase
         .from("projects")
@@ -133,7 +135,13 @@ export async function POST(req: NextRequest) {
       supabase
         .from("knowledge_entries")
         .select("crop, topic, title, content, source_country, source_note"),
+      // Not fatal if it fails. The reference makes answers better; the
+      // assistant worked without it for months and must keep working when the
+      // view is unreachable.
+      loadCropMarkets(),
     ]);
+
+    const markets = marketsOrNull ?? undefined;
 
     if (projectsError || knowledgeError) {
       const dbError = projectsError ?? knowledgeError;
@@ -145,6 +153,32 @@ export async function POST(req: NextRequest) {
     }
 
     const projectsContext = JSON.stringify(projects ?? []);
+
+    /*
+     * The reference the assistant was answering without.
+     *
+     * 63,150 FAOSTAT observations sit in this database, and until now the
+     * assistant could not see one of them: it read the projects table and the
+     * curated prose, so "كم غلة الذرة الرفيعة؟" was answered from an article
+     * rather than from the row holding the measurement.
+     *
+     * It is sent whole rather than matched to the question because whole is
+     * eleven rows. The aggregation happens in the view, so the crops the
+     * calculator offers reduce to a few hundred tokens — cheaper than deciding
+     * whether to include them, and with no failure mode where the retrieval
+     * misses and the model falls back to recalling a yield.
+     */
+    const marketContext = JSON.stringify(
+      Object.values(markets ?? {}).map((m) => ({
+        محصول: m.cropKey,
+        غلة_السودان_كجم_هكتار: m.sudanKgPerHa,
+        غلة_مصر: m.nearestPeerKgPerHa,
+        وسيط_النظراء: m.peerMedianKgPerHa,
+        سعر_الطن_دولار: m.usdPerTonne,
+        مصدر_السعر: m.priceBasis,
+        سنة: m.year,
+      })),
+    );
 
     // Send only the entries that bear on the question. Sending the whole base
     // cost about 18,000 prompt tokens per question and buried the two entries
@@ -188,6 +222,7 @@ export async function POST(req: NextRequest) {
       entries: allKnowledge,
       projectCount: projects?.length ?? 0,
       investmentLive: INVESTMENT_LIVE,
+      markets,
     });
 
     if (local) {
@@ -286,7 +321,7 @@ export async function POST(req: NextRequest) {
       // The page context goes first when there is one: a vague question is
       // resolved against the screen the visitor is looking at before anything
       // else is considered.
-      `${pageContext ? `${pageContext}\n\n` : ""}المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
+      `${pageContext ? `${pageContext}\n\n` : ""}المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nمرجعية الغلة والسعر من FAOSTAT — استعمل هذه الأرقام ولا تستحضر غيرها من الذاكرة (JSON):\n${marketContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
     );
 
     if (!result) {
