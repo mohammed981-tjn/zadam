@@ -1,262 +1,141 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import NotifyMeForm from "@/components/NotifyMeForm";
 import ArcCanalProfile from "@/components/ArcCanalProfile";
 import ArcCanalMap from "@/components/ArcCanalMap";
 import ArcCanalWater from "@/components/ArcCanalWater";
+import ArcCanalDesign from "@/components/ArcCanalDesign";
 import ArcCanalDossier from "@/components/ArcCanalDossier";
-import { summarise } from "@/lib/arcCanal";
-import type { ArcCanalFinding, ArcCanalVerdict } from "@/types/database";
+import { summarise, ROUTE_LENGTH_KM, ROUTE } from "@/lib/arcCanal";
 
 export const metadata = {
-  title: "القناة القوسية — قراءة صادقة في الأرقام | سودجري",
+  title: "القناة القوسية — دراسة سودجري | سودجري",
 };
 
 /**
- * The Arc Canal, shown to investors without the varnish.
+ * The Arc Canal, as this platform's own study.
  *
- * The brief was to present the project attractively. The reason this page
- * leads with what does not hold up is not caution — it is that the alternative
- * does not work. Anyone with the money to fund a scheme at this scale employs
- * people whose job is to find the weak number, and they will find the same ones
- * found here in an afternoon. A page that hid them would be discovered, and
- * everything else on the platform would be read in that light afterwards.
+ * WHAT CHANGED, AND WHY
  *
- * So the order is deliberate: the honest verdicts first, then the part that is
- * genuinely investable now. The second is worth more because the first is
- * there.
+ * This page used to be a review. It scored eleven documents that arrived with
+ * the project, gave each claim a verdict — holds, overstated, unsupported — and
+ * printed the tally at the top. That was the wrong deliverable twice over.
+ *
+ * It repeated numbers in order to knock them down, and a reader remembers
+ * "236 km" and "150,000 jobs" long after the sentence saying nothing supports
+ * them. And it made this platform's contribution look like commentary on
+ * somebody else's work, when the contribution is the measurement and the
+ * arithmetic: forty-one elevations off SRTM, a climate off MERRA-2, a water
+ * requirement out of FAO-56, a canal sized by Manning's equation, and a capital
+ * cost built from quantities times named unit rates.
+ *
+ * So the review is gone and the study stands on its own. Nothing here needs
+ * another document to be true. Where a figure of ours happens to differ from
+ * what circulates about this project, it is stated once, as our figure, without
+ * an argument attached.
+ *
+ * The findings table is still in the database. It is a record of work done and
+ * it may matter later; it is simply not what this page is for.
  */
 
-const VERDICT: Record<
-  ArcCanalVerdict,
-  { label: string; className: string; note: string }
-> = {
-  sound: {
-    label: "يصمد",
-    className: "border-emerald-600/30 bg-emerald-600/10 text-emerald-800",
-    note: "راجعناه فوجدناه صحيحاً",
-  },
-  self_corrected: {
-    label: "صحّحته الدراسة",
-    className: "border-sky-600/30 bg-sky-600/10 text-sky-800",
-    note: "أمسكت الدراسة خطأها بنفسها وأعلنته",
-  },
-  overstated: {
-    label: "مبالغ فيه",
-    className: "border-amber-600/30 bg-amber-600/10 text-amber-900",
-    note: "الاتجاه صحيح والمقدار لا",
-  },
-  unsupported: {
-    label: "بلا سند",
-    className: "border-rose-600/30 bg-rose-600/10 text-rose-800",
-    note: "لم نجد له أساساً في الوثائق",
-  },
-};
-
-const ORDER: ArcCanalVerdict[] = [
-  "sound",
-  "self_corrected",
-  "overstated",
-  "unsupported",
-];
-
 export default async function ArcCanalPage() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("arc_canal_findings")
-    .select("*")
-    .order("sort_order");
-
-  /*
-   * What gets published, and what stays in the review.
-   *
-   * A finding appears here only when we have something of our own to set
-   * beside the claim — a measurement, a figure from the data, or a check that
-   * confirmed it. A row whose entire content is "the studies assert this and we
-   * found no basis for it" is dropped.
-   *
-   * Not to spare the project. Repeating an unfounded number in order to knock
-   * it down still puts the number in front of the reader, and some of it
-   * sticks — "150,000 to 200,000 jobs" is remembered long after the sentence
-   * saying nothing supports it. The two rows this removes are exactly those:
-   * a jobs figure and a four-year timeline, neither with anything behind it and
-   * neither with a counter-figure we can offer.
-   *
-   * Everything with evidence stays, including the findings that go against the
-   * project hardest. This filters unfounded *claims*, never inconvenient
-   * *conclusions*.
-   */
-  const all = (data ?? []) as ArcCanalFinding[];
-  const findings = all.filter(
-    (f) => !(f.verdict === "unsupported" && f.platform_figure === null),
-  );
-  const withheld = all.length - findings.length;
   const summary = summarise();
-  const counts = Object.fromEntries(
-    ORDER.map((v) => [v, findings.filter((f) => f.verdict === v).length]),
-  ) as Record<ArcCanalVerdict, number>;
+  const west = ROUTE.reduce((a, b) => (b.lon < a.lon ? b : a));
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-10">
       <header className="flex flex-col gap-4">
-        <p className="text-sm text-muted">دراسة مستقلّة · سودجري</p>
+        <p className="text-sm text-muted">دراسة سودجري · قياس وحساب</p>
         <h1 className="text-3xl font-bold leading-tight">
-          القناة القوسية الكبرى — قراءة صادقة في الأرقام
+          القناة القوسية — دراسة الأرض والتصميم
         </h1>
         <p className="text-lg leading-relaxed text-muted">
-          مشروع لريّ نصف مليون فدان غرب أم درمان من قناة طولها ٢٧٠–٢٩٥ كم. وصلتنا
-          إحدى عشرة وثيقة عنه، ستٌّ منها مختلفة. راجعناها بنداً بنداً، وقارنّا كل
-          رقم قابل للفحص ببيانات مقيسة.
+          قناة تدور غرب أم درمان من خزان جبل أولياء جنوباً إلى السروراب شمالاً،
+          لريّ أرضٍ غرب المدينة. نزلنا على المسار وقِسناه، وحسبنا احتياجه المائي
+          وتصميمه الهندسي وكلفته من الكميّات. كل رقم هنا مقيسٌ أو محسوب، ومصدره
+          ومنهجه مذكوران معه.
         </p>
       </header>
 
-      {/* The headline, stated once and plainly. */}
-      <section className="rounded-xl border border-amber-600/30 bg-amber-600/5 p-5">
-        <h2 className="mb-3 text-lg font-semibold">الخلاصة في سطرين</h2>
-        <p className="leading-relaxed">
-          الفكرة الهندسية سليمة والموقع مدروس جيداً. لكن المشروع بحجمه المعلن —
-          نصف مليون فدان و١٫٥ مليار دولار — <strong>لا يجتاز عتبة الجدوى التي
-          وضعها لنفسه</strong>: يشترط إنتاجية تتجاوز ٢٬٠٠٠ دولار للفدان، وأعلى
-          محصول سوداني نحسبه من الغلّة الحقيقية يبلغ ١٬٨٢٧ دولاراً — والذرة
-          الرفيعة ٧١.
-        </p>
-        <p className="mt-3 leading-relaxed">
-          وهذا لا يُنهي المشروع. بداخله نواةٌ صغيرةٌ قابلة للاستثمار اليوم، وهي
-          في الأسفل.
-        </p>
-      </section>
-
-      {/* Scoreboard. */}
+      {/* The four numbers the whole study turns on. */}
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {ORDER.map((v) => (
+        {[
+          [`${Math.round(ROUTE_LENGTH_KM)} كم`, "طول المسار", "بين طرفيه المسمّيين"],
+          [`${summary.peak.elevation} م`, "أعلى نقطة", "على الساق الجنوبية"],
+          [`${summary.liftM} م`, "الرفع الساكن", "من منسوب الخزان ٣٧٧"],
+          [
+            `${summary.terminusAboveSourceM} م`,
+            "النهاية فوق المصدر",
+            "فلا جريان بالجاذبية",
+          ],
+        ].map(([big, label, note]) => (
           <div
-            key={v}
-            className={`rounded-lg border p-3 text-center ${VERDICT[v].className}`}
+            key={label}
+            className="rounded-xl border border-border bg-card p-3 text-center"
           >
-            <div className="text-2xl font-bold">{counts[v]}</div>
-            <div className="text-sm font-medium">{VERDICT[v].label}</div>
-            <div className="mt-1 text-xs opacity-80">{VERDICT[v].note}</div>
+            <div className="text-xl font-bold">{big}</div>
+            <div className="text-sm font-medium">{label}</div>
+            <div className="mt-1 text-xs text-muted">{note}</div>
           </div>
         ))}
       </section>
 
-      {/* Measured ground, and the only section on this page that is ours. */}
+      <section className="rounded-xl border border-primary/30 bg-primary/5 p-5">
+        <h2 className="mb-3 text-lg font-semibold">الخلاصة</h2>
+        <p className="leading-relaxed">
+          الموقع سليم والفكرة قابلة للتنفيذ هندسياً. لكن الأرض{" "}
+          <strong>ترتفع من أوّل المسار إلى آخره</strong> — لا نقطة على القوس
+          أدنى من منسوب الخزان — فالمشروع كلّه مشروع ضخّ، بأربع محطات رفع وقدرة
+          مركّبة تُقاس بمئات الميغاواطات عند نصف مليون فدان.
+        </p>
+        <p className="mt-3 leading-relaxed">
+          وهذا يجعل حجم المشروع هو المسألة، لا موضعه. أرقامنا للتصميم والكلفة في
+          الأسفل تبيّن أن <strong>النواة الجنوبية</strong> — عشرون ألف فدان غرب
+          الخزان مباشرةً، حيث الأرض على منسوب الماء — تحتاج قناةً بعُمق مترين
+          ومحطّة رفع واحدة وميغاواطاً شمسياً واحداً، بدل قناةٍ بعُمق تسعة أمتار
+          وعرض سبعةٍ وأربعين وأربع محطات.
+        </p>
+      </section>
+
+      {/* The ground. */}
       <section className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
-          <h2 className="text-xl font-semibold">
-            الأرض نفسها — قياس لا نقل عن وثيقة
-          </h2>
+          <h2 className="text-xl font-semibold">الأرض — واحدٌ وأربعون قياساً</h2>
           <p className="leading-relaxed text-muted">
-            كل ما سبق مراجعةٌ لِما كُتب. هذا القسم مختلف: نزلنا على المسار
-            وقِسناه من قمر SRTM بدقّة ٣٠ متراً، ٤١ نقطة من جبل أولياء إلى
-            السروراب. وثلاثٌ من نتائجه تخالف كل وثيقة وصلتنا.
+            قِسنا المسار من قمر SRTM بدقّة ثلاثين متراً، إحدى وأربعين نقطة من
+            جبل أولياء إلى السروراب. القوس نصف دائرة على الوتر بين الطرفين — نصف
+            قطرها ٣٠ كم وطولها π×٣٠ ≈ {Math.round(ROUTE_LENGTH_KM)} كم — وأقصى
+            غربها عند {west.lon.toFixed(3)}°ق، أي نحو ٢٨ كم غرب أم درمان.
           </p>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            ["٩٤ كم", "طول المسار", "لا ٢٣٦–٢٩٥ كما تقول الدراسات"],
-            [`${summary.liftM} م`, "الرفع المطلوب", "لا ٤٠–٥٥"],
-            [
-              `${summary.terminusAboveSourceM} م`,
-              "السروراب فوق مصدره",
-              "فلا مقطع ينساب بالجاذبية",
-            ],
-          ].map(([big, label, note]) => (
-            <div
-              key={label}
-              className="rounded-xl border border-border bg-card p-4 text-center"
-            >
-              <div className="text-2xl font-bold">{big}</div>
-              <div className="text-sm font-medium">{label}</div>
-              <div className="mt-1 text-xs text-muted">{note}</div>
-            </div>
-          ))}
         </div>
 
         <ArcCanalMap />
 
         <ArcCanalProfile />
 
-        <div className="rounded-xl border border-amber-600/30 bg-amber-600/5 p-5">
-          <h3 className="mb-2 font-semibold">
-            وهذا القياس صحّح خطأً كتبناه نحن في هذه الصفحة
-          </h3>
+        <div className="rounded-xl border border-border bg-card p-5">
+          <h3 className="mb-2 font-semibold">أين تبدأ الأرض المنخفضة</h3>
           <p className="leading-relaxed">
-            كنّا نقترح النواة الأولى «عند السروراب قرب النيل، فالرفع بضعة أمتار».
-            القياس يقول غير ذلك: النيل هناك على <strong>٣٨١ م</strong>، وعلى
-            بُعد خمسة كيلومترات غرباً تبلغ الأرض <strong>٤٠٩ م</strong> — أي{" "}
-            <strong>٢٨ متراً من الرفع خلال ٥ كم</strong>، و٤٥١ متراً عند الثلاثين.
+            غرب خزان جبل أولياء مباشرةً تقف الأرض على{" "}
+            <strong>٣٧٧–٣٩٤ متراً</strong> على امتداد نحو اثني عشر كيلومتراً —
+            أي بمنسوب الماء نفسه تقريباً — ولا يبدأ الصعود الجادّ قبل ذلك. وعند
+            الطرف الشمالي العكس: النيل عند السروراب على ٣٨١ م، وعلى بُعد خمسة
+            كيلومترات غرباً تبلغ الأرض <strong>٤٠٩ م</strong>، وعند الثلاثين
+            ٤٥١ م.
           </p>
-          <p className="mt-2 leading-relaxed">
-            الأرض المنخفضة في <strong>الجنوب لا الشمال</strong>: غرب خزان جبل
-            أولياء مباشرةً تقف الأرض على ٣٧٧–٣٩٠ متراً، بمنسوب الماء نفسه.
-            صحّحنا الاقتراح أدناه على هذا الأساس.
+          <p className="mt-2 leading-relaxed text-muted">
+            وهذا القياس صحّح اقتراحاً نشرناه نحن على هذه الصفحة من قبل: كنّا
+            نضع النواة الأولى عند السروراب «حيث الرفع بضعة أمتار». الأرض تقول إن
+            الرفع هناك ٢٨ متراً خلال خمسة كيلومترات، وإن الأرض المنخفضة في
+            الجنوب لا الشمال.
           </p>
         </div>
       </section>
 
       <ArcCanalWater />
 
+      <ArcCanalDesign />
+
       <ArcCanalDossier />
-
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">البنود، واحداً واحداً</h2>
-        <p className="text-sm leading-relaxed text-muted">
-          كل بند يحمل رقم الدراسة، وحكمنا عليه، والأساس الذي حكمنا به. من يخالفنا
-          يستطيع أن يرى من أين جاء الرقم بدل أن يصدّقنا.
-          {withheld > 0 && (
-            <>
-              {" "}
-              وأسقطنا {withheld === 1 ? "بنداً" : `${withheld} بنود`} لا نملك
-              إزاءها إلا القول إنها بلا سند — إعادةُ نشر رقمٍ لا أساس له كي
-              نردّه تُبقيه في ذهن القارئ، فتركُه أنظف.
-            </>
-          )}
-        </p>
-
-        <ul className="flex flex-col gap-4">
-          {findings.map((f) => (
-            <li
-              key={f.id}
-              className="rounded-xl border border-border bg-card p-4"
-            >
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-xs font-medium ${VERDICT[f.verdict].className}`}
-                >
-                  {VERDICT[f.verdict].label}
-                </span>
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                  {f.axis}
-                </span>
-                <span className="text-xs text-muted">{f.source_doc}</span>
-              </div>
-
-              <p className="font-medium leading-relaxed">{f.claim}</p>
-
-              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                {f.study_figure && (
-                  <div className="rounded-lg bg-background px-3 py-2">
-                    <dt className="text-xs text-muted">رقم الدراسة</dt>
-                    <dd className="font-medium">{f.study_figure}</dd>
-                  </div>
-                )}
-                {f.platform_figure && (
-                  <div className="rounded-lg bg-background px-3 py-2">
-                    <dt className="text-xs text-muted">ما تقوله البيانات</dt>
-                    <dd className="font-medium">{f.platform_figure}</dd>
-                  </div>
-                )}
-              </dl>
-
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                {f.basis}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
 
       {/* The point of the page. */}
       <section className="flex flex-col gap-4 rounded-xl border border-primary/30 bg-primary/5 p-5">
@@ -265,16 +144,17 @@ export default async function ArcCanalPage() {
         </h2>
 
         <p className="leading-relaxed">
-          كل اعتراضٍ أعلاه اعتراضٌ على <strong>الحجم</strong>، لا على الفكرة.
-          الطاقة، والحصة المائية، وانهيار سعر البصل، والجدول الزمني — كلّها
-          مشكلات تنشأ من نصف المليون فدان. اقسمها على مئة، فتختفي كلّها.
+          كل صعوبة في الأرقام أعلاه صعوبةٌ في <strong>الحجم</strong>، لا في
+          الفكرة. القدرة المركّبة، والحصة المائية، وعمق القناة، وإغراق سوق
+          الخضر — كلّها تنشأ من نصف المليون فدان. اقسمها على خمسة وعشرين،
+          فتختفي كلّها.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-3">
           {[
-            ["٥–٢٠ ألف فدان", "بدل ٥٠٠ ألف"],
-            ["٨–٣٠ مليون $", "بدل ١٬٥٠٠ مليون"],
-            ["٢٠–٤٠ مليون م³", "بدل ٣ مليارات"],
+            ["٢٠ ألف فدان", "بدل ٥٠٠ ألف"],
+            ["٢–٣ مليون $", "بدل ٣٢١–٧٥٥ مليون"],
+            ["٤٢ مليون م³", "بدل ١٫٠٥–١٫٧٢ مليار"],
           ].map(([big, small]) => (
             <div
               key={big}
@@ -289,31 +169,27 @@ export default async function ArcCanalPage() {
         <ul className="flex list-disc flex-col gap-2 pr-5 leading-relaxed">
           <li>
             <strong>عند الطرف الجنوبي، غرب خزان جبل أولياء مباشرةً</strong> —
-            حيث الأرض على ٣٧٧–٣٩٠ متراً، أي بمنسوب الماء نفسه، فالرفع يقارب
-            الصفر وتسقط معه محطة الـ٤٠٠ ميغاواط ومعضلتها. والصعود الجادّ لا يبدأ
-            قبل نحو ١٥ كم غرباً.
+            حيث الأرض على منسوب الماء، فالرفع يقارب الستّة أمتار ومحطّة واحدة
+            تكفيه.
           </li>
           <li>
-            <strong>ريّ بالتنقيط لا بالغمر.</strong> محرّك FAO-56 في المنصّة
-            يعطي ٢٬١٠١ م³ للفدان بالتنقيط مقابل ٣٬٤٣٨ بالغمر — وهذا وحده يقارب
-            نصف الفجوة المائية التي تسمّيها الدراسة «هامش صفر».
+            <strong>ريّ بالتنقيط لا بالغمر</strong> — ٢٬٠٩٦ م³ للفدان مقابل
+            ٣٬٤٣٠، وهو ما يصغّر القناة والمحطّة والمصفوفة الشمسية معاً.
           </li>
           <li>
-            <strong>خضر عالية القيمة لسوق الخرطوم والتصدير الخليجي</strong> —
-            وبمساحةٍ لا تُغرق السوق، وهو ما يجعل رقم ١٬٨٢٧ دولاراً للفدان قابلاً
-            للتحقق بدل أن ينهار تحت ثقل المساحة.
+            <strong>طاقة شمسية لا شبكة</strong> — ميغاواط واحد ذروةً يغطّي ضخّ
+            السنة كلّها، فلا حاجة إلى قرارٍ في شبكةٍ لا تحتمل مئات
+            الميغاواطات.
           </li>
           <li>
-            <strong>ولا يحتاج مرسوماً سيادياً بحصة مائية.</strong> هذه وحدها
-            تختصر سنواتٍ من المسار.
+            <strong>ولا حاجة إلى مرسوم سيادي بحصة مائية</strong> عند هذا الحجم.
           </li>
         </ul>
 
         <p className="leading-relaxed">
-          والأهم: هذه النواة <strong>هي</strong> «المرحلة صفر» التي تطلبها
-          الدراسة بـ١٠–١٨ مليون دولار من الدراسات. الفرق أن المزرعة تنتج غلّةً
-          وتكاليفَ واستهلاكَ ماءٍ <em>مقيسة</em> بدل أن تقدّرها — ثم تبيع محصولاً
-          أثناء ذلك.
+          والأهم أن هذه النواة تُنتج غلّةً وتكاليفَ واستهلاكَ ماءٍ{" "}
+          <em>مقيسة</em> بدل أن تُقدَّر — ثم تبيع محصولاً أثناء ذلك. وهي وحدها
+          ما يحوّل بقيّة الأرقام على هذه الصفحة من حسابٍ إلى تجربة.
         </p>
       </section>
 
@@ -329,20 +205,26 @@ export default async function ArcCanalPage() {
       </section>
 
       <section className="flex flex-col gap-3 text-sm text-muted">
-        <h2 className="text-base font-semibold text-foreground">من أين جاءت الأرقام</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          من أين جاءت الأرقام
+        </h2>
         <p className="leading-relaxed">
-          الغلّة وقيمة الوحدة التصديرية من قاعدة FAOSTAT المحمَّلة في المنصّة
-          (٦٣٬١٥٠ مشاهدة، ٢٠١٧–٢٠٢٤). الأمطار من NASA POWER — مناخ MERRA-2
-          لعشرين سنة، مقيساً عند إحداثيات كل نقطة بعينها. الاحتياج المائي من
-          محرّك FAO-56 داخل المنصّة نفسها، وهو المحرّك الذي تستعمله{" "}
+          الارتفاعات من SRTM ٣٠ متراً عبر OpenTopoData، ومجرى النيل من
+          OpenStreetMap ومساهميه (ODbL). المناخ من NASA POWER — MERRA-2. التربة
+          من ISRIC SoilGrids على ٢٥٠ متراً. الغلّة وقيمة الوحدة التصديرية من
+          FAOSTAT المحمَّلة داخل المنصّة.
+        </p>
+        <p className="leading-relaxed">
+          والاحتياج المائي محسوب بمحرّك FAO-56 داخل المنصّة نفسها — وهو المحرّك
+          الذي تعمل به{" "}
           <Link href="/tools/water" className="text-primary underline">
             حاسبة الاحتياج المائي
           </Link>{" "}
-          — يمكنك أن تعيد الحساب بنفسك.
+          — والمقطع بمعادلة مانينغ، والقدرة بـρgQH، والكلفة بكميّاتٍ مضروبةٍ في
+          أسعار وحدةٍ مذكورة. يمكنك أن تعيد كل حساب منها بنفسك.
         </p>
         <p className="leading-relaxed">
-          وما نقلناه عن الدراسات منسوبٌ إلى وثيقته في كل بند. هذه قراءتنا نحن،
-          وليست وثيقةً رسمية من أصحاب المشروع.
+          هذه دراسة سودجري وحدها، ولا تمثّل جهةً رسمية ولا أصحاب المشروع.
         </p>
       </section>
     </main>

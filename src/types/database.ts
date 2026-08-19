@@ -520,7 +520,7 @@ export interface ArcCanalFinding {
 export type ArcCanalFactStatus =
   | "measured"
   | "derived"
-  | "study_claim"
+  | "assumption"
   | "unknown";
 
 export type ArcCanalFactCategory =

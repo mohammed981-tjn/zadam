@@ -358,7 +358,7 @@ export const CORRIDOR_RAINFALL_MM = ROUTE_CLIMATE.rainfall.reduce(
  * 1.05 under drip, and the studies budget for the first while promising the
  * efficiency of the second.
  */
-export const STUDY_CROP_PLAN: {
+export const SCENARIO_CROP_PLAN: {
   cropKey: string;
   share: number;
   plantingMonth: number;

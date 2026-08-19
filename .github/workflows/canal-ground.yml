@@ -1,0 +1,65 @@
+name: Canal ground survey
+
+# Fetches soil and solar data for the Arc Canal alignment and commits it.
+#
+# It runs here because rest.isric.org and power.larc.nasa.gov are not reachable
+# from the environment this repository is developed in. A runner has the
+# network; the repository gets a small JSON file. Nothing here touches the
+# database — the commit is the deliverable, so a bad fetch is a diff to read.
+#
+# The job takes about three minutes, nearly all of it waiting: SoilGrids rate
+# limits at roughly five queries a minute and the script sleeps fourteen seconds
+# between points rather than getting itself throttled.
+
+on:
+  push:
+    paths:
+      - ".github/workflows/canal-ground.yml"
+      - "scripts/fetch-canal-ground.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  survey:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Fetch soil and irradiance
+        run: npx tsx scripts/fetch-canal-ground.ts
+
+      - name: Report what will be committed
+        run: |
+          wc -c data/canal-ground.json
+          node -e "
+            const d = require('./data/canal-ground.json');
+            console.log('points:', d.soil.length, 'fetched:', d.fetchedAt);
+            for (const p of d.soil) {
+              const c = p.properties.clay?.['0-5cm'];
+              const s = p.properties.sand?.['0-5cm'];
+              const ph = p.properties.phh2o?.['0-5cm'];
+              console.log(\`  km \${p.chainageKm}: clay \${c}%  sand \${s}%  pH \${ph}\`);
+            }
+            console.log('irradiance JAN/JUL:', d.irradiance?.JAN, d.irradiance?.JUL);
+          "
+
+      - name: Commit
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/canal-ground.json
+          if git diff --cached --quiet; then
+            echo 'The ground survey is unchanged since the last fetch.'
+            exit 0
+          fi
+          git commit -m 'Refresh the Arc Canal ground survey (SoilGrids, NASA POWER)'
+          git push origin HEAD:${GITHUB_REF_NAME}
