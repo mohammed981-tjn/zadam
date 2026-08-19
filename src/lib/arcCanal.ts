@@ -1,3 +1,5 @@
+import type { StationClimate } from "@/lib/agronomy";
+
 /**
  * القناة القوسية — المسار كما قاسته الأقمار، لا كما وصفته الدراسات.
  *
@@ -293,3 +295,77 @@ export const PLACES: Place[] = [
  * than leaving the reader to infer it from the long-section.
  */
 export const LOW_LIFT_SEGMENT = { from: 0, to: 4 };
+
+/**
+ * المناخ على طول المسار — وحدود ما تستطيع الشبكة قوله.
+ *
+ * The intention was a climate profile per segment: five stretches of the arc,
+ * five sets of monthly normals, five water requirements. The data refused.
+ *
+ * Sampling NASA POWER at the midpoint of each of the five segments returned
+ * *byte-identical* normals for four of them, and walking north along the arc's
+ * own longitudes showed why: the variation is by longitude, not latitude, and
+ * the whole western arc — from the first climb to the northern ridge — sits
+ * inside a single MERRA-2 cell. Its grid is 0.5° of latitude by 0.625° of
+ * longitude, which is roughly 55 by 67 km. The canal is 94 km long and never
+ * more than 30 km from its own centre. It fits inside the pixel.
+ *
+ * The two readings that *do* differ are the ends, where the arc touches the
+ * Nile: 204 mm in the south and 96 mm in the north. Those are neighbouring
+ * cells, not a gradient — 60 km apart along the same river, a real rainfall
+ * halving would be remarkable, and nothing in the terrain between them
+ * explains it.
+ *
+ * So the honest answer is one climate for the corridor, stated as one, with the
+ * resolution limit stated too. Publishing five segment profiles would have
+ * invented precision the source does not have — and four of the five would have
+ * been the same numbers under different headings.
+ */
+export const ROUTE_CLIMATE: StationClimate = {
+  key: "arc-corridor",
+  name: "ممرّ القناة القوسية",
+  latitude: 15.5,
+  longitude: 32.28,
+  source: "nasa-power",
+  tmax: [31, 34, 37, 40, 42, 42, 39, 36, 39, 39, 35, 32],
+  tmin: [13, 16, 19, 22, 26, 27, 26, 25, 25, 25, 19, 15],
+  rainfall: [0, 0, 0, 1, 3, 5, 44, 58, 20, 9, 0, 0],
+};
+
+/**
+ * What the grid says at the two ends, kept so the limit can be shown.
+ *
+ * The corridor's own figure is not listed here: it is the sum of the monthly
+ * series above, so the page quotes one number rather than two. POWER's annual
+ * total for the cell is 139 mm and the twelve rounded months add to 140 — a
+ * rounding artefact, and publishing both would invite the reader to work out
+ * which one is the rainfall.
+ */
+export const END_CELL_RAINFALL = { south: 204, north: 96 } as const;
+
+/** Annual rainfall on the corridor, from the series the water model uses. */
+export const CORRIDOR_RAINFALL_MM = ROUTE_CLIMATE.rainfall.reduce(
+  (a, b) => a + b,
+  0,
+);
+
+/**
+ * The studies' own crop plan (feasibility study §8.1), as area shares.
+ *
+ * Used rather than a plan of our own so the water figure answers the project as
+ * proposed. Changing the crops changes the answer, and that is the point of the
+ * comparison: the same 500,000 feddan wants 1.72 billion m³ under flood and
+ * 1.05 under drip, and the studies budget for the first while promising the
+ * efficiency of the second.
+ */
+export const STUDY_CROP_PLAN: {
+  cropKey: string;
+  share: number;
+  plantingMonth: number;
+}[] = [
+  { cropKey: "sorghum", share: 180 / 550, plantingMonth: 6 },
+  { cropKey: "wheat", share: 120 / 550, plantingMonth: 10 },
+  { cropKey: "alfalfa", share: 150 / 550, plantingMonth: 10 },
+  { cropKey: "tomato", share: 80 / 550, plantingMonth: 9 },
+  { cropKey: "onion", share: 20 / 550, plantingMonth: 10 },
+];

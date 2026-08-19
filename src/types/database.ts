@@ -508,6 +508,45 @@ export interface ArcCanalFinding {
   sort_order: number;
 }
 
+/**
+ * The canal dossier: one row per attribute of the scheme, blanks included.
+ *
+ * `value` is nullable and `status` is `"unknown"` exactly when it is null —
+ * the database enforces the pair with a check constraint. Rendering must
+ * therefore handle the null branch; there is no fallback string, because a
+ * dash standing in for "nobody has established this" is the reading the whole
+ * table was built to prevent.
+ */
+export type ArcCanalFactStatus =
+  | "measured"
+  | "derived"
+  | "study_claim"
+  | "unknown";
+
+export type ArcCanalFactCategory =
+  | "terrain"
+  | "engineering"
+  | "area"
+  | "climate"
+  | "water"
+  | "energy"
+  | "operations"
+  | "permits"
+  | "cost";
+
+export interface ArcCanalFact {
+  id: number;
+  category: ArcCanalFactCategory;
+  key: string;
+  label: string;
+  value: string | null;
+  unit: string | null;
+  status: ArcCanalFactStatus;
+  source: string;
+  note: string | null;
+  sort_order: number;
+}
+
 export type FeedbackStatus = "new" | "planned" | "done" | "declined";
 
 /**
