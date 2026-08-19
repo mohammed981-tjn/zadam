@@ -507,3 +507,29 @@ export interface ArcCanalFinding {
   source_doc: string;
   sort_order: number;
 }
+
+export type FeedbackStatus = "new" | "planned" | "done" | "declined";
+
+/**
+ * A visitor's note, and the administrator's reply to it.
+ *
+ * `author_id` is null for the anonymous case, which is the majority case and
+ * the point of the feature: the person seeing the platform for the first time
+ * is the one worth hearing from, and asking them to register first is asking
+ * them not to bother.
+ */
+export interface Feedback {
+  id: string;
+  author_id: string | null;
+  display_name: string | null;
+  contact: string | null;
+  page_path: string | null;
+  kind: string;
+  body: string;
+  status: FeedbackStatus;
+  admin_reply: string | null;
+  replied_at: string | null;
+  replied_by: string | null;
+  published: boolean;
+  created_at: string;
+}
