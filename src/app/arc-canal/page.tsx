@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import NotifyMeForm from "@/components/NotifyMeForm";
 import ArcCanalProfile from "@/components/ArcCanalProfile";
+import ArcCanalMap from "@/components/ArcCanalMap";
 import { summarise } from "@/lib/arcCanal";
 import type { ArcCanalFinding, ArcCanalVerdict } from "@/types/database";
 
@@ -64,7 +65,30 @@ export default async function ArcCanalPage() {
     .select("*")
     .order("sort_order");
 
-  const findings = (data ?? []) as ArcCanalFinding[];
+  /*
+   * What gets published, and what stays in the review.
+   *
+   * A finding appears here only when we have something of our own to set
+   * beside the claim — a measurement, a figure from the data, or a check that
+   * confirmed it. A row whose entire content is "the studies assert this and we
+   * found no basis for it" is dropped.
+   *
+   * Not to spare the project. Repeating an unfounded number in order to knock
+   * it down still puts the number in front of the reader, and some of it
+   * sticks — "150,000 to 200,000 jobs" is remembered long after the sentence
+   * saying nothing supports it. The two rows this removes are exactly those:
+   * a jobs figure and a four-year timeline, neither with anything behind it and
+   * neither with a counter-figure we can offer.
+   *
+   * Everything with evidence stays, including the findings that go against the
+   * project hardest. This filters unfounded *claims*, never inconvenient
+   * *conclusions*.
+   */
+  const all = (data ?? []) as ArcCanalFinding[];
+  const findings = all.filter(
+    (f) => !(f.verdict === "unsupported" && f.platform_figure === null),
+  );
+  const withheld = all.length - findings.length;
   const summary = summarise();
   const counts = Object.fromEntries(
     ORDER.map((v) => [v, findings.filter((f) => f.verdict === v).length]),
@@ -148,6 +172,8 @@ export default async function ArcCanalPage() {
           ))}
         </div>
 
+        <ArcCanalMap />
+
         <ArcCanalProfile />
 
         <div className="rounded-xl border border-amber-600/30 bg-amber-600/5 p-5">
@@ -170,9 +196,17 @@ export default async function ArcCanalPage() {
 
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">البنود، واحداً واحداً</h2>
-        <p className="text-sm text-muted">
+        <p className="text-sm leading-relaxed text-muted">
           كل بند يحمل رقم الدراسة، وحكمنا عليه، والأساس الذي حكمنا به. من يخالفنا
           يستطيع أن يرى من أين جاء الرقم بدل أن يصدّقنا.
+          {withheld > 0 && (
+            <>
+              {" "}
+              وأسقطنا {withheld === 1 ? "بنداً" : `${withheld} بنود`} لا نملك
+              إزاءها إلا القول إنها بلا سند — إعادةُ نشر رقمٍ لا أساس له كي
+              نردّه تُبقيه في ذهن القارئ، فتركُه أنظف.
+            </>
+          )}
         </p>
 
         <ul className="flex flex-col gap-4">
