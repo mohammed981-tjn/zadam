@@ -11,6 +11,12 @@ import {
   clearAnswerCache,
 } from "../src/lib/answerCache";
 import type { RetrievableEntry } from "../src/lib/retrieval";
+import {
+  DEFAULT_CROP,
+  TAW_MM_PER_M,
+  irrigationInterval,
+} from "../src/lib/soilWater";
+import { STATIONS } from "../src/lib/agronomy";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -414,6 +420,88 @@ console.log("\nالمناخ:");
   ok(
     answerLocally(withData("كم الحرارة في مكان ما؟"))?.source !== "climate",
     "وبلا محطة مسمّاة لا يخترع موقعاً",
+  );
+}
+
+
+console.log("\nالتربة والمياه بالعامية — أكبر فجوة في السجلّ:");
+{
+  /*
+   * These are not invented phrasings. Every string below was typed by a real
+   * visitor and logged in assistant_questions, misspellings included — twenty
+   * of the twenty-six such questions went unanswered before this resolver
+   * existed. Testing against the log rather than against tidy Arabic is the
+   * whole point: «واسطة» and «عطسانة» are what people actually wrote.
+   */
+  const fromTheLog = [
+    "الواطة العطشانة",
+    "الواطة عطشانه",
+    "الواطة عطسانة",
+    "الواسطة الرويانة",
+    "الواطة الرويانة",
+    "المويه بتنشف بسرعة في الرملة",
+    "بتنشف بسرعة في الرملة",
+    "المي بتنشف سريع في الواطة",
+    "الواطة العطشانة علاجه شنو",
+    "الواطة العطشانة دحين كيف اعالجها",
+    "تعمل شنو لو واطاطي عطشت شديد",
+    "الموية عطشانه",
+    "الرويانة العطشانة",
+  ];
+  const answered = fromTheLog.filter((q) => answerLocally(base(q)) !== null);
+  ok(
+    answered.length === fromTheLog.length,
+    `${answered.length}/${fromTheLog.length} من أسئلة السجلّ الحقيقية تُجاب بلا نموذج`,
+  );
+
+  const a = answerLocally(base("الواطة العطشانة"));
+  ok(
+    a?.answer.includes("لا تحتاج ماءً أكثر") === true,
+    "والجواب يبدأ بالنتيجة المضادّة للحدس: الكمية نفسها بوتيرة أقرب",
+  );
+  ok(
+    /ريّة كل \d/.test(a?.answer ?? ""),
+    "ويحمل فترةً محسوبة بالأيام لا نصيحة عامة",
+  );
+
+  // The finding only holds if the two intervals really differ by roughly the
+  // ratio of what the two soils hold. If that stops being true the answer's
+  // whole argument is wrong.
+  const sand = irrigationInterval(DEFAULT_CROP, STATIONS[0], 6, "flood", "sand");
+  const clay = irrigationInterval(DEFAULT_CROP, STATIONS[0], 6, "flood", "clay loam");
+  ok(
+    sand !== null && clay !== null && clay.days > sand.days * 2,
+    `الطينية تصبر ${clay!.days.toFixed(1)} يوماً والرملية ${sand!.days.toFixed(1)} — الفارق أكثر من الضعف`,
+  );
+  const ratio = clay!.days / sand!.days;
+  const holdRatio = TAW_MM_PER_M["clay loam"] / TAW_MM_PER_M["sand"];
+  ok(
+    Math.abs(ratio - holdRatio) < 0.01,
+    `ونسبة الفترتين ${ratio.toFixed(2)} هي نسبة ما تمسكه التربتان ${holdRatio.toFixed(2)}`,
+  );
+
+  // A bare noun is not a question, and guessing at it would be worse than
+  // passing it on.
+  ok(
+    answerLocally(base("الواطة")) === null,
+    "و«الواطة» وحدها لا تُجاب — اسمٌ بلا سؤال",
+  );
+}
+
+console.log("\nماذا يستطيع المساعد:");
+{
+  const a = answerLocally(base("ماهي إمكانياتك"));
+  ok(a?.source === "platform", "سؤال القدرات يُجاب من المنصّة");
+  ok(
+    a?.answer.includes("FAO-56") === true,
+    "بقائمة مبنيّة على ما تفعله المُجيبات فعلاً",
+  );
+
+  // The one that used to be answered with a menu instead of an answer.
+  const trap = answerLocally(base("تعمل شنو لو واطاطي عطشت شديد"));
+  ok(
+    trap?.source === "calculator",
+    "و«تعمل شنو لو واطاطي عطشت» سؤال تربة لا سؤال قدرات",
   );
 }
 
