@@ -1,7 +1,9 @@
 import {
   answerLocally,
   bestEffortAnswer,
+  type CanalFactRow,
   type LocalAnswerInput,
+  type MarketRow,
 } from "../src/lib/localAnswer";
 import {
   getCachedAnswer,
@@ -156,8 +158,14 @@ console.log("\nالحاسبة (FAO-56):");
     "حين يُذكر كل شيء لا تُطبع افتراضات",
   );
 
+  // Not "no resolver answers this" any more — the crop calendar does, and
+  // should. What must still hold is that it is not answered with a water
+  // figure, which is what this check was guarding.
   const noWater = answerLocally(base("متى يُحصد القمح؟"));
-  ok(noWater?.source !== "calculator", "سؤال غير مائي لا يذهب للحاسبة");
+  ok(
+    noWater?.answer.includes("متر مكعب للفدان") !== true,
+    "سؤال غير مائي لا يُجاب برقم ريّ",
+  );
 
   const noCrop = answerLocally(base("كم يبلغ استهلاك المياه عموماً؟"));
   ok(noCrop?.source !== "calculator", "سؤال مائي بلا محصول لا يذهب للحاسبة");
@@ -237,6 +245,175 @@ console.log("\nذاكرة الإجابات:");
   ok(
     getCachedAnswer("سؤال رقم 249", t0) === "جواب 249",
     "الأحدث باقٍ بعد الطرد",
+  );
+}
+
+
+/* ------------------------------------------------------------------ *
+ * The resolvers added to keep questions away from the model
+ * ------------------------------------------------------------------ */
+
+const CANAL_FACTS: CanalFactRow[] = [
+  {
+    key: "route_length",
+    label: "طول المسار",
+    value: "94",
+    unit: "كم",
+    status: "derived",
+    source: "هندسة الطرفين",
+    note: "نصف دائرة على الوتر بين الطرفين.",
+  },
+  {
+    key: "static_lift",
+    label: "الرفع الساكن من الخزان إلى القمّة",
+    value: "64",
+    unit: "م",
+    status: "derived",
+    source: "قياس SRTM ٣٠ م",
+    note: null,
+  },
+  {
+    key: "terminus_above_source",
+    label: "ارتفاع النهاية فوق المصدر",
+    value: "32",
+    unit: "م",
+    status: "derived",
+    source: "قياس SRTM ٣٠ م",
+    note: null,
+  },
+  {
+    key: "pilot_design",
+    label: "تصميم النواة الجنوبية",
+    value: "قناة ١٫٩ م × محطة واحدة",
+    unit: null,
+    status: "derived",
+    source: "حساب سودجري",
+    note: null,
+  },
+  {
+    key: "soil_survey",
+    label: "مسح التربة وتصنيفها الزراعي",
+    value: "طميية طينية · طين ٣٣٪",
+    unit: null,
+    status: "measured",
+    source: "ISRIC SoilGrids",
+    note: "عشر نقاط على طول المسار.",
+  },
+  {
+    key: "water_permit",
+    label: "إذن المياه من وزارة الري",
+    value: null,
+    unit: null,
+    status: "unknown",
+    source: "—",
+    note: "قرارٌ لا قياس.",
+  },
+];
+
+const MARKET: MarketRow[] = [
+  {
+    item: "Sorghum",
+    year: 2024,
+    sudan_kg_ha: "632.7",
+    egypt_kg_ha: "5200",
+    peer_median_kg_ha: 2783.4,
+    sudan_export_usd_per_tonne: "357.78",
+    regional_producer_usd_per_tonne: "321.13",
+  },
+];
+
+/** The same base, plus the two tables the new resolvers read. */
+const withData = (question: string): LocalAnswerInput => ({
+  ...base(question),
+  canalFacts: CANAL_FACTS,
+  market: MARKET,
+});
+
+console.log("\nملفّ القناة:");
+{
+  const a = answerLocally(withData("كم طول القناة القوسية؟"));
+  ok(a?.source === "canal", "سؤال عن القناة يُجاب من الملفّ");
+  ok(a?.answer.includes("94") === true, "ويحمل الرقم نفسه من الجدول");
+
+  // The blank rows are the ones a model would most confidently invent.
+  const permit = answerLocally(withData("هل عندكم إذن المياه للقناة القوسية؟"));
+  ok(
+    permit?.answer.includes("لم يُحدَّد بعد") === true,
+    "وسؤالٌ عن بندٍ فارغ يُجاب بأنه غير محدَّد، لا بصمت",
+  );
+  ok(
+    permit?.answer.includes("غير معروف") === true,
+    "وحالة البند معروضة مع الإجابة",
+  );
+
+  const vague = answerLocally(withData("حدثني عن القناة القوسية"));
+  ok(
+    vague?.source === "canal" && vague.answer.includes("أربعة أرقام"),
+    "وسؤال عام عن القناة يُجاب بالخلاصة لا بصفوف عشوائية",
+  );
+
+  // Without the table the resolver must stand down rather than half-answer.
+  ok(
+    answerLocally(base("كم طول القناة القوسية؟"))?.source !== "canal",
+    "وبلا جدول لا يجيب هذا المُجيب إطلاقاً",
+  );
+}
+
+console.log("\nالسوق — الغلّة والسعر:");
+{
+  const a = answerLocally(withData("كم غلة الذرة الرفيعة في السودان؟"));
+  ok(a?.source === "market", "سؤال عن الغلّة يُجاب من FAOSTAT");
+  ok(a?.answer.includes("633") === true, "بالرقم المنشور لا بتقدير");
+  ok(a?.answer.includes("2024") === true, "ومعه سنته");
+  ok(
+    a?.answer.includes("4.4") === true,
+    "ونسبة وسيط الأقران إلى غلّة السودان محسوبة",
+  );
+
+  // A water question about the same crop must still reach the calculator.
+  const water = answerLocally(withData("كم يحتاج فدان الذرة الرفيعة من الماء؟"));
+  ok(
+    water?.source === "calculator",
+    "وسؤال الماء عن المحصول نفسه يبقى للحاسبة",
+  );
+
+  ok(
+    answerLocally(base("كم غلة الذرة الرفيعة؟"))?.source !== "market",
+    "وبلا بيانات سوق لا يجيب",
+  );
+}
+
+console.log("\nالتقويم الزراعي:");
+{
+  const a = answerLocally(withData("متى أزرع القمح؟"));
+  ok(a?.source === "calculator", "سؤال الموعد يُجاب من جدول المحاصيل");
+  ok(a?.answer.includes("نوفمبر") === true, "بشهر الزراعة المعتاد");
+  ok(
+    a?.answer.includes("يوماً") === true && a.answer.includes("الحصاد"),
+    "وبطول الموسم وشهر الحصاد",
+  );
+
+  // The harvest month must come from walking real month lengths.
+  const cane = answerLocally(withData("متى أزرع قصب السكر وكم يستغرق؟"));
+  ok(cane?.answer.includes("مارس") === true, "والقصب يُزرع في مارس");
+}
+
+console.log("\nالمناخ:");
+{
+  const a = answerLocally(withData("كم درجة الحرارة في دنقلا؟"));
+  ok(a?.source === "climate", "سؤال المناخ يُجاب من المحطات");
+  ok(a?.answer.includes("المطر السنوي") === true, "ومعه المطر السنوي");
+
+  const month = answerLocally(withData("كم الحرارة في الخرطوم في يونيو؟"));
+  ok(
+    month?.answer.includes("يونيو") === true,
+    "وشهرٌ مسمّى يُجاب بشهره",
+  );
+
+  // A place with no station name in it is not a climate question this can answer.
+  ok(
+    answerLocally(withData("كم الحرارة في مكان ما؟"))?.source !== "climate",
+    "وبلا محطة مسمّاة لا يخترع موقعاً",
   );
 }
 

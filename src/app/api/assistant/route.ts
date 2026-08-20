@@ -8,7 +8,12 @@ import {
 } from "@/lib/retrieval";
 import { activeProvider, embedQuestion } from "@/lib/embedding";
 import { buildEngines, generateWithFallback } from "@/lib/engines";
-import { answerLocally, bestEffortAnswer } from "@/lib/localAnswer";
+import {
+  answerLocally,
+  bestEffortAnswer,
+  type CanalFactRow,
+  type MarketRow,
+} from "@/lib/localAnswer";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { pageContextLine } from "@/lib/pageHelp";
 import { INVESTMENT_LIVE } from "@/lib/config";
@@ -123,6 +128,8 @@ export async function POST(req: NextRequest) {
     const [
       { data: projects, error: projectsError },
       { data: knowledge, error: knowledgeError },
+      { data: canalFacts },
+      { data: market },
     ] = await Promise.all([
       supabase
         .from("projects")
@@ -133,6 +140,23 @@ export async function POST(req: NextRequest) {
       supabase
         .from("knowledge_entries")
         .select("crop, topic, title, content, source_country, source_note"),
+      /*
+       * Two more tables the deterministic layer answers from.
+       *
+       * Both are small — forty-five canal attributes and one row per crop — and
+       * both are read in the same round trip as the other two rather than
+       * lazily, because the resolvers run before anything else and a second
+       * round trip would cost more than the rows do.
+       *
+       * Neither is destructured with an error: a failure here means those two
+       * resolvers stand down and the question falls through to the model, which
+       * is the pre-existing behaviour. Failing the whole request because the
+       * canal dossier was unreachable would be worse than answering without it.
+       */
+      supabase
+        .from("arc_canal_facts")
+        .select("key, label, value, unit, status, source, note"),
+      supabase.from("crop_market").select("*"),
     ]);
 
     if (projectsError || knowledgeError) {
@@ -188,6 +212,8 @@ export async function POST(req: NextRequest) {
       entries: allKnowledge,
       projectCount: projects?.length ?? 0,
       investmentLive: INVESTMENT_LIVE,
+      canalFacts: (canalFacts ?? []) as CanalFactRow[],
+      market: (market ?? []) as MarketRow[],
     });
 
     if (local) {
