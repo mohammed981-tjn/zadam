@@ -41,6 +41,12 @@ import {
   type RetrievableEntry,
 } from "@/lib/retrieval";
 import { FAOSTAT_ITEM, HECTARES_PER_FEDDAN } from "@/lib/cropBenchmark";
+import {
+  DEFAULT_CROP,
+  SOIL_LABEL,
+  TAW_MM_PER_M,
+  irrigationInterval,
+} from "@/lib/soilWater";
 
 export type AnswerSource =
   | "platform"
@@ -837,6 +843,232 @@ function resolveCanal(input: LocalAnswerInput): LocalAnswer | null {
   };
 }
 
+
+/* ------------------------------------------------------------------ *
+ * 8. Soil and water, in Sudanese colloquial
+ * ------------------------------------------------------------------ */
+
+/*
+ * THE LARGEST GAP IN THE LOG, BY A WIDE MARGIN.
+ *
+ * Of the first fifty questions the assistant recorded, twenty-six were this one
+ * intent and twenty of those went unanswered: "the ground is thirsty", "the
+ * water dries fast in the sand", "where is the ground that holds water". The
+ * dialect was understood only by the language model, and the model is the part
+ * that fails — so the most-asked question on the platform was also its
+ * worst-served.
+ *
+ * The words below are taken from the log verbatim, misspellings included.
+ * «واسطة» for «واطة» and «عطسانة» for «عطشانة» are not hypothetical typos: they
+ * are what people actually typed, more than once each, and a resolver that
+ * matched only correct spelling would miss the questions it exists for.
+ */
+
+/** The ground itself — including the two misspellings the log shows. */
+const SOIL_WORDS = [
+  // "واط" rather than "واطه", because the log carries "واطاطي" — a possessive
+  // the exact form misses. Safe only because a dry-or-wet word is required
+  // alongside it, so an unrelated word containing the same letters cannot
+  // trigger this on its own.
+  "واط",
+  "واسطه",
+  "تربه",
+  "الارض",
+  "ارضي",
+  "رمله",
+  "رمليه",
+].map(normalizeArabic);
+
+/** Water, and the state of running short of it. */
+const DRY_WORDS = [
+  "عطشانه",
+  "عطشان",
+  "عطسانه",
+  "بتنشف",
+  "تنشف",
+  "ينشف",
+  "نشفت",
+  "عطشت",
+  "جفاف",
+  "بسرعه",
+].map(normalizeArabic);
+
+/** The opposite state — ground that holds its water. */
+const WET_WORDS = ["رويانه", "رويان", "خصبه", "بتمسك المويه"].map(
+  normalizeArabic,
+);
+
+const WATER_WORDS = ["مويه", "مي", "ماء", "الماء"].map(normalizeArabic);
+
+const n1 = (v: number) => v.toFixed(1);
+
+/**
+ * Answers the thirsty-soil question with an interval, not with advice.
+ *
+ * The finding a farmer needs here is counter-intuitive and a model will not
+ * reliably produce it: sandy ground does not need *more* water over the season,
+ * it needs the *same* water more often and in smaller doses. Stated as two
+ * numbers from the same engine — every 3.7 days on sand against every 10.3 on
+ * clay loam — it is checkable and it is actionable.
+ */
+function resolveSoilWater(input: LocalAnswerInput): LocalAnswer | null {
+  const normalized = normalizeArabic(input.question);
+
+  const mentionsSoil = SOIL_WORDS.some((w) => normalized.includes(w));
+  const mentionsWater = WATER_WORDS.some((w) => normalized.includes(w));
+  const isDry = DRY_WORDS.some((w) => normalized.includes(w));
+  const isWet = WET_WORDS.some((w) => normalized.includes(w));
+
+  /*
+   * Needs a subject and a state — "الواطة" alone is not a question, and
+   * answering it would be guessing at what was meant.
+   *
+   * Except that «عطشانة» and «رويانة» are themselves soil adjectives in this
+   * dialect: nobody calls anything else thirsty or well-watered. So when both
+   * appear with no noun at all — the log has «الرويانة العطشانة» — the subject
+   * is not missing, it is implied.
+   */
+  const impliedSoil = isDry && isWet;
+  if (!(mentionsSoil || mentionsWater || impliedSoil) || !(isDry || isWet)) {
+    return null;
+  }
+
+  const crop =
+    findByAlias<CropCoefficients>(normalized, CROPS, CROP_ALIASES) ??
+    DEFAULT_CROP;
+  const station =
+    findByAlias<StationClimate>(normalized, STATIONS, STATION_ALIASES) ??
+    STATIONS[0];
+  const month = DEFAULT_PLANTING_MONTH[crop.key] ?? 6;
+
+  const light = irrigationInterval(crop, station, month, "flood", "sand");
+  const heavy = irrigationInterval(crop, station, month, "flood", "clay loam");
+  if (!light || !heavy) return null;
+
+  if (isWet && !isDry) {
+    // "Where is the ground that holds water" — the same table read the other
+    // way. No place names: which soils hold water is physics, where those soils
+    // are is a survey nobody on this platform has done.
+    const ordered = Object.entries(TAW_MM_PER_M).sort((a, b) => b[1] - a[1]);
+    return {
+      source: "calculator",
+      confidence: 1,
+      usedTitles: [],
+      answer: [
+        "الأرض التي «ترويان» هي التي تمسك أكبر عمق من الماء في منطقة الجذور.",
+        "",
+        "الماء المتاح الكلّي لكل متر من عمق الجذور:",
+        ...ordered.map(([soil, taw]) => `  ${SOIL_LABEL[soil]}: ${taw} مم`),
+        "",
+        `والفرق عملي لا نظري: ${crop.name} على تربة طينية طميية يصبر ` +
+          `${n1(heavy.days)} يوماً بين ريّة وريّة، وعلى الرملية ` +
+          `${n1(light.days)} أيام فقط — بالماء نفسه والمناخ نفسه.`,
+        "",
+        "ولا أستطيع أن أقول لك أين تقع كل تربة في السودان: ذلك مسحٌ ميداني " +
+          "لم تُجرِه هذه المنصّة. لكن فحص قوام تربتك بسيط — بلّها واعصرها بيدك: " +
+          "إن تماسكت خيطاً فهي طينية، وإن تفتّتت فهي رملية.",
+      ].join("\n"),
+    };
+  }
+
+  return {
+    source: "calculator",
+    confidence: 1,
+    usedTitles: [],
+    answer: [
+      "الأرض الرملية لا تحتاج ماءً أكثر — تحتاج الماء نفسه على دفعات أقرب.",
+      "",
+      `السبب أنها تمسك ثلث ما تمسكه الطينية: ${TAW_MM_PER_M["sand"]} مم لكل متر ` +
+        `من عمق الجذور مقابل ${TAW_MM_PER_M["clay loam"]} مم. فالخزّان أصغر، ` +
+        "والمحصول يسحب منه بالمعدّل نفسه، فيفرغ أسرع.",
+      "",
+      `وبحساب FAO-56 على ${crop.name} في ${station.name}، عند ذروة الموسم:`,
+      `  تربة رملية: ريّة كل ${n1(light.days)} أيام، ` +
+        `بعمق ${Math.round(light.doseMm)} مم (${Math.round(light.doseM3PerFeddan)} م³ للفدان).`,
+      `  تربة طينية طميية: ريّة كل ${n1(heavy.days)} أيام، ` +
+        `بعمق ${Math.round(heavy.doseMm)} مم (${Math.round(heavy.doseM3PerFeddan)} م³ للفدان).`,
+      "",
+      "أي أنك تروي نحو ثلاثة أضعاف عدد المرّات، وبثلث الكمية في كل مرّة. " +
+        "والريّة الكبيرة على الرملية تنزل تحت الجذور ولا يستفيد منها المحصول.",
+      "",
+      "وما يوسّع الفترة فعلاً ثلاثة:",
+      "  التنقيط بدل الغمر — يوصل الماء للجذر ولا يبلّل ما بين الخطوط.",
+      "  التغطية بالمخلّفات النباتية — تقطع البخر من سطح التربة.",
+      "  المادة العضوية والسماد البلدي — ترفع ما تمسكه التربة الرملية سنةً بعد سنة.",
+      "",
+      "اسألني عن احتياج محصولك المائي بالتفصيل، أو جرّب حاسبة المياه في المنصّة.",
+    ].join("\n"),
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 9. What the assistant can actually do
+ * ------------------------------------------------------------------ */
+
+const CAPABILITY_TERMS = [
+  "امكانيات",
+  "امكانياتك",
+  "تفعل",
+  "تعمل شنو",
+  "بتعمل شنو",
+  "قدراتك",
+  "تساعدني في شنو",
+  "وش تسوي",
+].map(normalizeArabic);
+
+/**
+ * Seven visitors asked what this assistant can do, and four got nothing.
+ *
+ * A model answering it improvises a list, and the list is wrong the moment a
+ * resolver is added or removed. This one is written from what the resolvers
+ * above actually do, so it goes stale only when they do.
+ */
+function resolveCapability(input: LocalAnswerInput): LocalAnswer | null {
+  const normalized = normalizeArabic(input.question);
+  if (!CAPABILITY_TERMS.some((t) => normalized.includes(t))) return null;
+
+  // A question that names a crop is a question about that crop, however it is
+  // phrased. Only the bare "what can you do" reaches here.
+  if (findByAlias<CropCoefficients>(normalized, CROPS, CROP_ALIASES)) return null;
+
+  /*
+   * And "تعمل شنو لو واطاطي عطشت شديد" is not a capability question — it opens
+   * with the same three words and is about thirsty ground. Standing down when
+   * a soil or water state is described is what keeps this resolver from
+   * answering the platform's most-asked question with a menu.
+   */
+  if (
+    [...DRY_WORDS, ...WET_WORDS].some((w) => normalized.includes(w)) &&
+    [...SOIL_WORDS, ...WATER_WORDS].some((w) => normalized.includes(w))
+  ) {
+    return null;
+  }
+
+  return {
+    source: "platform",
+    confidence: 1,
+    usedTitles: [],
+    answer: [
+      "أجيب من بيانات سودجري نفسها قبل أن ألجأ إلى أي نموذج لغوي. ما أحسبه بنفسي:",
+      "",
+      `الاحتياج المائي لأي من ${CROPS.length} محاصيل، بمنهجية FAO-56، على مناخ ` +
+        `${STATIONS.length} محطة سودانية وبأربع طرق ريّ — بالمتر المكعّب للفدان ` +
+        "وبشهر الذروة.",
+      "الفترة بين ريّة وأخرى بحسب قوام تربتك: كم يوماً تصبر أرضك قبل أن يعطش المحصول.",
+      "موعد الزراعة وطول الموسم ومراحله وشهر الحصاد لكل محصول.",
+      "المناخ: المطر السنوي وأغزر شهوره وأحرّ الشهور في أي محطة.",
+      "الغلّة والأسعار من قاعدة FAOSTAT المحمَّلة داخل المنصّة، مع مقارنة السودان بالدول المشابهة.",
+      "ملفّ القناة القوسية: التضاريس والتربة والتصميم والكلفة، كل بند بحالته ومصدره.",
+      "",
+      "وما عدا ذلك أجيبه من قاعدة المعرفة المراجَعة، وأذكر لك دولة كل مصدر. " +
+        "وإن لم تكفِ، أقول لك ذلك بدل أن أختلق جواباً.",
+      "",
+      "جرّب: «كم يحتاج فدان القمح من الماء في الجزيرة؟» أو «متى أزرع السمسم؟» " +
+        "أو «الواطة عطشانة كيف أعالجها؟»",
+    ].join("\n"),
+  };
+}
+
 /* ------------------------------------------------------------------ *
  * Entry point
  * ------------------------------------------------------------------ */
@@ -930,6 +1162,20 @@ export function answerLocally(input: LocalAnswerInput): LocalAnswer | null {
 
   const climate = resolveClimate(input);
   if (climate) return climate;
+
+  /*
+   * Soil-and-water comes after the crop resolvers and before prose, and the
+   * log says why it has to exist at all: it is the single largest intent the
+   * assistant receives and was its worst-served. It sits below the calculator
+   * so that a question naming both a crop and its water still gets the seasonal
+   * figure, and above the knowledge base so that an entry merely mentioning
+   * sand cannot outrank a computed irrigation interval.
+   */
+  const soil = resolveSoilWater(input);
+  if (soil) return soil;
+
+  const capability = resolveCapability(input);
+  if (capability) return capability;
 
   // A question landing squarely on a curated entry is a knowledge question even
   // when it contains the word "استثمار" — answering "nothing is on offer" to
