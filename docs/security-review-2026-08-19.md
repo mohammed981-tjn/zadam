@@ -291,6 +291,12 @@ fetch('https://<project>.supabase.co/rest/v1/service_providers?id=eq.<معرّف
 
 ### 🟠 ص-1 · مخزن `evidence` وسياساته خارج المستودع
 
+> **تحقّق جزئي (20 أغسطس):** نُفّذ الاستعلام على قاعدة الإنتاج والنتيجة
+> **`evidence · public = false`**. فالمخزن **خاص**، وأسوأ الاحتمالات — أن تكون صور
+> المزارعين مقروءة لمن يملك الرابط — **مستبعد**. يبقى نصف السؤال: سياسات
+> `storage.objects` نفسها ما زالت خارج المستودع، وهي التي تحدّد إن كان مزارع يستطيع
+> قراءة أدلة مزارع آخر. راجع «ما بقي» في آخر هذا البند.
+
 `EvidenceUpload.tsx:148` يرفع إلى مخزن اسمه `evidence`، والتعليق فوقه يقول إن
 «سياسة التخزين تفحص أول مقطع من المسار مقابل المستدعي». لكن **لا وجود لهذا المخزن ولا
 لسياساته في أي هجرة** — الهجرات تعرّف مخزناً واحداً فقط هو `media` (عام للقراءة، الكتابة
@@ -302,13 +308,26 @@ fetch('https://<project>.supabase.co/rest/v1/service_providers?id=eq.<معرّف
 هذه أخطر حالة من فئة ع-4، لأن الفارق بين `public: true` و`public: false` هنا هو الفارق بين
 صور أراضٍ محميّة وصور متاحة لمن يملك الرابط.
 
-**افحصها أولاً:**
+**ما بقي — سياسات `storage.objects`:**
+
 ```sql
-select id, public, file_size_limit, allowed_mime_types from storage.buckets;
-select policyname, cmd, qual, with_check from pg_policies
+select policyname, cmd, roles, qual, with_check
+  from pg_policies
  where schemaname = 'storage' and tablename = 'objects';
 ```
-ثم `supabase db pull` لتثبيتها في المستودع.
+
+المطلوب أن تكون سياسة `SELECT` على مخزن `evidence` محصورة بصاحب الملف، بصيغة قريبة من:
+
+```sql
+bucket_id = 'evidence' and (storage.foldername(name))[1] = auth.uid()::text
+```
+
+فالمسار مبنيّ هكذا (`<user_id>/<folder>/<uuid>.<ext>`) والتعليق في `EvidenceUpload.tsx`
+يقول إن السياسة تفحص أول مقطع منه. إن كانت السياسة أوسع — `bucket_id = 'evidence'` وحدها
+مثلاً — فأي مستخدم مسجَّل يقرأ أدلة الجميع، وخصوصية المخزن لا تمنع ذلك لأن المنع يقع على
+مستوى السياسة لا على مستوى المخزن.
+
+ثم `supabase db pull` لتثبيت المخزن وسياساته في المستودع.
 
 ### 🟡 ص-2 · «وجود دليل» يُصدَّق ولا يُتحقَّق منه
 
