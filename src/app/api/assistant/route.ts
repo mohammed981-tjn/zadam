@@ -184,7 +184,18 @@ export async function POST(req: NextRequest) {
     // A question the retriever could not match is a gap in the base. Logging it
     // turns visitor questions into the list of what to write next. Never allowed
     // to break the answer the visitor is waiting for.
-    const logQuestion = (answered: boolean) =>
+    /*
+     * `source` is what makes the log worth reading now.
+     *
+     * The deterministic layer grew from three resolvers to seven, each built on
+     * the claim that the platform answers some class of question better and
+     * cheaper than a model does. Nothing in this table could confirm or refute
+     * that — `answered` is true whether FAO-56 computed it or the model wrote
+     * it. With the layer named, the share answered without a model is a number,
+     * and the questions that still reach the model are the list of what to
+     * build next.
+     */
+    const logQuestion = (answered: boolean, source: string) =>
       supabase
         .rpc("log_assistant_question", {
           p_question: question,
@@ -193,6 +204,7 @@ export async function POST(req: NextRequest) {
               ? allKnowledge.length
               : matched.length,
           p_answered: answered,
+          p_source: source,
         })
         .then(
           () => undefined,
@@ -217,7 +229,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (local) {
-      await logQuestion(true);
+      await logQuestion(true, local.source);
       return NextResponse.json({ answer: local.answer, source: local.source });
     }
 
@@ -225,12 +237,16 @@ export async function POST(req: NextRequest) {
     // quota for questions nobody has asked yet.
     const cached = getCachedAnswer(question);
     if (cached) {
-      await logQuestion(true);
+      // A cached answer is a model answer served twice, and it is counted as
+      // its own layer rather than as either: filing it under "model" would
+      // overstate what the model is still being paid for, and under the local
+      // layer would overstate what the platform can answer itself.
+      await logQuestion(true, "cache");
       return NextResponse.json({ answer: cached, source: "cache" });
     }
 
     if (engines.length === 0) {
-      await logQuestion(false);
+      await logQuestion(false, "no_engine");
 
       // No key configured is the same predicament as every engine being down,
       // and it had a worse answer: the degraded path below was only reachable
@@ -317,7 +333,7 @@ export async function POST(req: NextRequest) {
 
     if (!result) {
       console.error("assistant: every engine failed", attempts);
-      await logQuestion(false);
+      await logQuestion(false, "engine_failed");
 
       // Every engine being down is not a reason to send the visitor away empty
       // handed. Show the nearest entries, labelled as approximate — and use the
@@ -362,7 +378,7 @@ export async function POST(req: NextRequest) {
       result.text.replace(/[*#_`]+/g, "").trim() ||
       "لم أتمكن من صياغة إجابة هذه المرة، أعد المحاولة أو اسأل بصيغة أخرى.";
 
-    await logQuestion(true);
+    await logQuestion(true, "model");
 
     setCachedAnswer(question, answer);
 

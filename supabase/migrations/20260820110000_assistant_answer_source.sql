@@ -61,10 +61,37 @@ begin
   );
 end $$;
 
--- Same grants the dropped function carried; dropping a function takes its
--- grants with it, and the assistant is anonymous.
+-- ─────────────────────────── الصلاحيات ───────────────────────────
+--
+-- Dropping a function takes its grants with it, and CREATE FUNCTION does not
+-- restore them — it applies the default, which in PostgreSQL is EXECUTE to
+-- PUBLIC. So a migration that drops and recreates silently *widens* access
+-- unless it says otherwise, and narrows it unless it names every grantee.
+--
+-- Both were wrong in the first draft of this file. The live ACL is
+--
+--   {postgres=X/postgres, anon=X/postgres, authenticated=X/postgres,
+--    service_role=X/postgres}
+--
+-- with no PUBLIC entry — PUBLIC was deliberately revoked on this function and
+-- on run_system_check, unlike is_admin and check_assistant_rate_limit which do
+-- carry it. The draft granted only anon and authenticated, which would have
+-- dropped service_role, and left the fresh PUBLIC grant in place, which would
+-- have handed EXECUTE to every role on the instance.
+--
+-- Reproduced exactly, no wider and no narrower.
+
+revoke all on function public.log_assistant_question(text, integer, boolean, text)
+  from public;
+
 grant execute on function public.log_assistant_question(text, integer, boolean, text)
-  to anon, authenticated;
+  to anon, authenticated, service_role;
+
+-- PostgREST caches the schema, and an RPC whose signature just changed is
+-- resolved against that cache. Without this the first calls after deploy fail
+-- to find the function — and this logger swallows its own errors, so the
+-- failure would be invisible.
+notify pgrst, 'reload schema';
 
 create index if not exists assistant_questions_source
   on public.assistant_questions (answer_source, created_at desc);
