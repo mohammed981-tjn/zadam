@@ -5,7 +5,11 @@ import Explain from "@/components/Explain";
 import MilestoneProof from "@/components/MilestoneProof";
 import { setMilestoneStatus } from "@/app/contracts/actions";
 import { SERVICE_UNIT_LABEL } from "@/lib/services";
-import type { ContractMilestone, MilestoneStatus } from "@/types/database";
+import type {
+  ContractMilestone,
+  MilestoneEvidence,
+  MilestoneStatus,
+} from "@/types/database";
 
 export const metadata = { title: "عقد خدمات | سودجري" };
 
@@ -35,6 +39,34 @@ const STATUS: Record<MilestoneStatus, { label: string; className: string }> = {
  * and a form POSTed directly still has to get past the trigger. The two must
  * agree or the reader is told one thing and the database enforces another.
  */
+/** What each kind of proof is, in words a client reads rather than a column name. */
+const EVIDENCE_KIND_LABEL: Record<string, string> = {
+  photo: "صورة",
+  invoice: "فاتورة",
+  inspection: "معاينة",
+  report: "تقرير",
+  note: "ملاحظة",
+};
+
+/**
+ * The capture date, in Khartoum time.
+ *
+ * Rendered with an explicit time zone rather than the server's. The date a
+ * photograph was taken is the whole point of storing it, and a proof taken at
+ * nine in the evening in Khartoum must not read as the following day because
+ * the page was rendered in UTC.
+ */
+function captured(iso: string): string {
+  return new Date(iso).toLocaleString("ar-EG", {
+    timeZone: "Africa/Khartoum",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 type MilestoneActor = "provider" | "client";
 
 const NEXT: Partial<
@@ -131,9 +163,24 @@ export default async function ContractPage({
     .select("id, milestone_id, kind, caption, latitude, longitude, captured_at")
     .in("milestone_id", milestones.map((m) => m.id));
 
-  const proofCount = new Map<string, number>();
-  for (const p of (proofRows ?? []) as { milestone_id: string }[]) {
-    proofCount.set(p.milestone_id, (proofCount.get(p.milestone_id) ?? 0) + 1);
+  /*
+   * The evidence itself, not just how much of it there is.
+   *
+   * These four columns — kind, caption, captured_at, latitude/longitude — were
+   * already being selected and then thrown away: the page counted the rows and
+   * rendered "٣ إثبات مرفوع". That is the one number that cannot tell a
+   * reviewer anything, and it made the whole EXIF path pointless. The uploader
+   * reads the date and the coordinates off the original *before* compressing,
+   * precisely because compression destroys them and because they are what makes
+   * a photograph evidence rather than a picture — and then nobody saw them.
+   *
+   * It matters more now that approval belongs to the client. The party being
+   * asked to agree that work was done is the party that needs to see when and
+   * where the proof of it was taken.
+   */
+  const proofs = new Map<string, MilestoneEvidence[]>();
+  for (const p of (proofRows ?? []) as MilestoneEvidence[]) {
+    proofs.set(p.milestone_id, [...(proofs.get(p.milestone_id) ?? []), p]);
   }
 
   const paid = milestones
@@ -183,7 +230,7 @@ export default async function ContractPage({
 
       <ol className="mt-6 flex flex-col gap-4">
         {milestones.map((m) => {
-          const proofs = proofCount.get(m.id) ?? 0;
+          const evidence = proofs.get(m.id) ?? [];
           const next = NEXT[m.status];
           // A person can be both sides at once — a provider contracting a
           // season they own. Checking the entitled side rather than the
@@ -191,7 +238,8 @@ export default async function ContractPage({
           const mine =
             next !== undefined &&
             (next.actor === "client" ? isClient : isProvider);
-          const blocked = m.status === "submitted" && m.requires_evidence && proofs === 0;
+          const blocked =
+            m.status === "submitted" && m.requires_evidence && evidence.length === 0;
 
           return (
             <li
@@ -219,13 +267,56 @@ export default async function ContractPage({
                 )}
               </p>
 
-              <p className="mt-2 text-xs text-muted">
-                {proofs > 0
-                  ? `${proofs} إثبات مرفوع`
-                  : m.requires_evidence
-                    ? "لا يوجد إثبات بعد"
-                    : "لا يتطلب إثباتاً"}
-              </p>
+              {evidence.length === 0 ? (
+                <p className="mt-2 text-xs text-muted">
+                  {m.requires_evidence ? "لا يوجد إثبات بعد" : "لا يتطلب إثباتاً"}
+                </p>
+              ) : (
+                <ul className="mt-3 flex flex-col gap-2">
+                  {evidence.map((p) => (
+                    <li
+                      key={p.id}
+                      className="rounded-lg bg-background px-3 py-2 text-xs"
+                    >
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="font-medium">
+                          {EVIDENCE_KIND_LABEL[p.kind] ?? p.kind}
+                        </span>
+                        {p.caption && <span>{p.caption}</span>}
+                      </div>
+
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted">
+                        <span>
+                          {p.captured_at
+                            ? `التُقط ${captured(p.captured_at)}`
+                            : "بلا تاريخ التقاط"}
+                        </span>
+
+                        {/*
+                          A link out rather than an embedded map: this is a
+                          check a reviewer makes occasionally, and it does not
+                          justify loading a map library into every contract
+                          page. Coordinates are also printed as text so the
+                          record survives without the link.
+                        */}
+                        {p.latitude !== null && p.longitude !== null ? (
+                          <a
+                            href={`https://www.openstreetmap.org/?mlat=${p.latitude}&mlon=${p.longitude}#map=15/${p.latitude}/${p.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline"
+                            dir="ltr"
+                          >
+                            {p.latitude.toFixed(4)}, {p.longitude.toFixed(4)}
+                          </a>
+                        ) : (
+                          <span>بلا إحداثيات</span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               {(m.status === "in_progress" || m.status === "submitted") && (
                 <div className="mt-4">
