@@ -126,3 +126,59 @@ export async function addServiceOffer(
   revalidatePath("/services/mine");
   return { ok: true, message: `أُضيفت «${definition.name}» إلى عروضك.` };
 }
+
+/**
+ * The provider's own "closed for now" switch.
+ *
+ * Deliberately not `active`: that column is administrative standing, and once
+ * the verification guard locks it to admins a provider with an honest reason to
+ * step out of the catalogue — fully booked, between seasons, short a driver —
+ * would have to ask and wait. Two meanings, two switches.
+ *
+ * No ownership check here. providers_own is
+ * `for all using (owner_id = auth.uid() or is_admin())`, so a request for
+ * somebody else's row matches nothing. The outcome is checked instead of the
+ * permission: an UPDATE that row-level security filters out returns no error
+ * and zero rows, so without reading the returned rows a refusal and a success
+ * are the same value — and the caller would be told its listing was paused when
+ * nothing moved.
+ */
+export async function setProviderPaused(formData: FormData) {
+  const supabase = await createClient();
+
+  const id = String(formData.get("provider_id") ?? "").trim();
+  if (!id) redirect("/services/mine");
+
+  const paused = formData.get("paused") === "true";
+
+  const { data, error } = await supabase
+    .from("service_providers")
+    .update({ paused_by_owner: paused })
+    .eq("id", id)
+    .select("id");
+
+  revalidatePath("/services/mine");
+  revalidatePath("/services");
+
+  if (error) {
+    console.error("services: pause toggle failed", error);
+    redirect(
+      `/services/mine?error=${encodeURIComponent("تعذّر تنفيذ العملية. حاول مرة أخرى.")}`,
+    );
+  }
+  if (!data?.length) {
+    redirect(
+      `/services/mine?error=${encodeURIComponent(
+        "لم يتغيّر شيء — تأكّد أنك ما زلت مسجّل الدخول بالحساب المالك للجهة.",
+      )}`,
+    );
+  }
+
+  redirect(
+    `/services/mine?message=${encodeURIComponent(
+      paused
+        ? "أُخفيت جهتك من الدليل. تظهر لك وحدك حتى تعيد تفعيلها."
+        : "عادت جهتك إلى الدليل.",
+    )}`,
+  );
+}

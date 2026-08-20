@@ -316,7 +316,19 @@ export interface ServiceProvider {
   /** Null until an admin verifies. Unverified providers are not contractable. */
   verified_at: string | null;
   verified_by: string | null;
+  /**
+   * Administrative standing. Admin only — a suspended provider must not be able
+   * to put itself back in the catalogue.
+   */
   active: boolean;
+  /**
+   * The provider's own availability switch: "we are closed for now".
+   *
+   * Separate from `active` on purpose. "We suspended you" and "we are closed
+   * this season" must not be the same flag, or locking one to administrators
+   * takes the other away from the provider that legitimately needs it.
+   */
+  paused_by_owner: boolean;
   created_at: string;
 }
 
