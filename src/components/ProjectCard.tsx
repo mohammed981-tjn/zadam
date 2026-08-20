@@ -18,7 +18,7 @@ export default function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       href={`/projects/${project.slug}`}
-      className="flex flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card p-5 pt-0 transition hover:-translate-y-0.5 hover:shadow-md"
+      className="reveal flex flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card p-5 pt-0 shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-float"
     >
       <div
         className={`-mx-5 flex h-24 items-center justify-center bg-gradient-to-br ${gradient} text-5xl`}
