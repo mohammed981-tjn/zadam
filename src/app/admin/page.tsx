@@ -45,7 +45,10 @@ export default async function AdminPage() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">لوحة إدارة المشاريع</h1>
-        <div className="flex items-center gap-3">
+        {/* Wraps, because the list of admin screens has outgrown one line on a
+            phone — and a row that overflows hides whichever screen was added
+            last, which is always the one nobody knows about yet. */}
+        <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/admin/analytics"
             className="text-sm text-primary underline"
@@ -57,6 +60,18 @@ export default async function AdminPage() {
           </Link>
           <Link href="/admin/leads" className="text-sm text-primary underline">
             العملاء المحتملون
+          </Link>
+          <Link
+            href="/admin/feedback"
+            className="text-sm text-primary underline"
+          >
+            ملاحظات الزوّار
+          </Link>
+          <Link
+            href="/admin/canal-images"
+            className="text-sm text-primary underline"
+          >
+            صور القناة
           </Link>
           <Link
             href="/admin/projects/new"

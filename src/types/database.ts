@@ -547,6 +547,28 @@ export interface ArcCanalFact {
   sort_order: number;
 }
 
+/**
+ * An image on the Arc Canal page.
+ *
+ * `credit` is not nullable, and the database enforces that it is non-blank.
+ * The page publishes nothing without a basis; for a photograph the basis is who
+ * made it, and an optional credit field is an empty credit field.
+ *
+ * `published` defaults to false — uploading is not publishing.
+ */
+export interface ArcCanalImage {
+  id: number;
+  storage_path: string;
+  caption: string;
+  credit: string;
+  source_url: string | null;
+  taken_on: string | null;
+  sort_order: number;
+  published: boolean;
+  created_at: string;
+  created_by: string | null;
+}
+
 export type FeedbackStatus = "new" | "planned" | "done" | "declined";
 
 /**
