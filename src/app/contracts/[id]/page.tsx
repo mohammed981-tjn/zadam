@@ -20,14 +20,40 @@ const STATUS: Record<MilestoneStatus, { label: string; className: string }> = {
   rejected: { label: "مرفوضة", className: "text-danger" },
 };
 
-/** The one action that makes sense next, given where the phase has got to. */
-const NEXT: Partial<Record<MilestoneStatus, { status: string; label: string }>> =
-  {
-    pending: { status: "in_progress", label: "ابدأ التنفيذ" },
-    in_progress: { status: "submitted", label: "سلّم المرحلة" },
-    submitted: { status: "approved", label: "اعتمد المرحلة" },
-    approved: { status: "paid", label: "سجّل الدفع" },
-  };
+/**
+ * The one action that makes sense next — and whose it is.
+ *
+ * Approval is the single step that separates "claimed done" from "agreed done",
+ * so it belongs to the party being asked to agree. Until now this table did not
+ * mention the actor at all, and the page rendered the same button to both
+ * sides: a provider looking at its own submitted phase was offered "اعتمد
+ * المرحلة", and then "سجّل الدفع" — a contract walked to settled without the
+ * client ever acting.
+ *
+ * `actor` mirrors the database guard exactly rather than approximating it. This
+ * is a usability fix, not a boundary: hiding a button stops an honest mistake,
+ * and a form POSTed directly still has to get past the trigger. The two must
+ * agree or the reader is told one thing and the database enforces another.
+ */
+type MilestoneActor = "provider" | "client";
+
+const NEXT: Partial<
+  Record<
+    MilestoneStatus,
+    { status: string; label: string; actor: MilestoneActor }
+  >
+> = {
+  pending: { status: "in_progress", label: "ابدأ التنفيذ", actor: "provider" },
+  in_progress: { status: "submitted", label: "سلّم المرحلة", actor: "provider" },
+  submitted: { status: "approved", label: "اعتمد المرحلة", actor: "client" },
+  approved: { status: "paid", label: "سجّل الدفع", actor: "client" },
+};
+
+/** What the other side is waiting for, so a disabled screen still explains itself. */
+const WAITING_ON: Record<MilestoneActor, string> = {
+  provider: "بانتظار مقدّم الخدمة",
+  client: "بانتظار العميل",
+};
 
 export default async function ContractPage({
   params,
@@ -50,7 +76,9 @@ export default async function ContractPage({
   // that would confirm the contract exists.
   const { data: contractRow } = await supabase
     .from("service_contracts")
-    .select("id, title, status, currency, total_amount, season_id, signed_at, service_providers(name)")
+    .select(
+      "id, title, client_id, status, currency, total_amount, season_id, signed_at, service_providers(name, owner_id)",
+    )
     .eq("id", id)
     .single();
 
@@ -59,13 +87,36 @@ export default async function ContractPage({
   const contract = contractRow as unknown as {
     id: string;
     title: string;
+    client_id: string;
     status: string;
     currency: string;
     total_amount: number;
     season_id: string | null;
     signed_at: string | null;
-    service_providers: { name: string } | null;
+    service_providers: { name: string; owner_id: string } | null;
   };
+
+  /*
+   * Which side of this contract the viewer is on.
+   *
+   * An admin counts as the client here because the database guard lets an
+   * admin act on either side — dispute resolution is the whole reason that
+   * exemption exists, and a screen that hid the button from the one person
+   * brought in to unblock the dispute would defeat it.
+   *
+   * Anyone who is neither is not reading this page: row-level security returns
+   * the contract only to its two parties and to admins, so a stranger already
+   * landed on notFound above.
+   */
+  const { data: viewerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  const isAdmin = (viewerProfile as { role: string } | null)?.role === "admin";
+
+  const isClient = contract.client_id === user.id || isAdmin;
+  const isProvider = contract.service_providers?.owner_id === user.id;
 
   const { data: milestoneRows } = await supabase
     .from("contract_milestones")
@@ -134,6 +185,12 @@ export default async function ContractPage({
         {milestones.map((m) => {
           const proofs = proofCount.get(m.id) ?? 0;
           const next = NEXT[m.status];
+          // A person can be both sides at once — a provider contracting a
+          // season they own. Checking the entitled side rather than the
+          // excluded one keeps that case working.
+          const mine =
+            next !== undefined &&
+            (next.actor === "client" ? isClient : isProvider);
           const blocked = m.status === "submitted" && m.requires_evidence && proofs === 0;
 
           return (
@@ -182,7 +239,13 @@ export default async function ContractPage({
                 </p>
               )}
 
-              {next && (
+              {next && !mine && (
+                <p className="mt-4 text-xs text-muted">
+                  {WAITING_ON[next.actor]}: {next.label}.
+                </p>
+              )}
+
+              {next && mine && (
                 <form action={setMilestoneStatus} className="mt-4">
                   <input type="hidden" name="milestone_id" value={m.id} />
                   <input type="hidden" name="contract_id" value={contract.id} />

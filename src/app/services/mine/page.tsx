@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Explain, { EmptyState } from "@/components/Explain";
 import OfferForm from "@/components/OfferForm";
+import { setProviderPaused } from "../actions";
 import {
   SERVICE_KIND_LABEL,
   SERVICE_BY_KEY,
@@ -15,7 +16,16 @@ export const metadata = { title: "جهتي ومقدّم خدماتي | سودج�
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
-export default async function MyProviderPage() {
+export default async function MyProviderPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; message?: string }>;
+}) {
+  // The pause action redirects back here with its outcome. Without reading it
+  // the provider presses a button and nothing visibly happens — which is the
+  // same failure as reporting success on a refusal, one step earlier.
+  const { error: errorMessage, message } = await searchParams;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -67,6 +77,17 @@ export default async function MyProviderPage() {
       </p>
 
       <div className="flex flex-col gap-8">
+        {message && (
+          <p className="mb-4 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary">
+            {message}
+          </p>
+        )}
+        {errorMessage && (
+          <p className="mb-4 rounded-lg border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">
+            {errorMessage}
+          </p>
+        )}
+
         {providers.map((provider) => {
           const mine = offers.filter((o) => o.provider_id === provider.id);
 
@@ -88,6 +109,52 @@ export default async function MyProviderPage() {
                   {provider.regions.length > 0 &&
                     ` — ${provider.regions.join("، ")}`}
                 </p>
+
+                {/*
+                  Availability, and only once the provider is verified —
+                  offering to pause a listing that is not in the catalogue yet
+                  would be offering to change nothing.
+
+                  It is deliberately not the same control an administrator uses.
+                  `active` is administrative standing and stays with them; this
+                  is the provider saying it is closed for now, and the catalogue
+                  hides the entry either way while the two reasons stay
+                  distinguishable to everyone who has to act on them.
+                */}
+                {provider.verified_at && (
+                  <form
+                    action={setProviderPaused}
+                    className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-3"
+                  >
+                    <input
+                      type="hidden"
+                      name="provider_id"
+                      value={provider.id}
+                    />
+                    <input
+                      type="hidden"
+                      name="paused"
+                      value={provider.paused_by_owner ? "false" : "true"}
+                    />
+                    <span className="text-sm">
+                      {provider.paused_by_owner
+                        ? "جهتك مخفيّة من الدليل الآن."
+                        : provider.active
+                          ? "جهتك ظاهرة في الدليل."
+                          : "جهتك موقوفة إدارياً."}
+                    </span>
+                    {provider.active && (
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-background"
+                      >
+                        {provider.paused_by_owner
+                          ? "أعِدها إلى الدليل"
+                          : "أخفِها مؤقتاً"}
+                      </button>
+                    )}
+                  </form>
+                )}
               </header>
 
               {!provider.verified_at && (
