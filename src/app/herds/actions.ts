@@ -83,7 +83,18 @@ export async function createHerd(
   );
 
   if (stagesError) {
-    await supabase.from("herds").delete().eq("id", herdId);
+    await supabase
+      .from("herds")
+      .delete()
+      .eq("id", herdId)
+      .then(({ error: rollbackError }) => {
+        if (rollbackError) {
+          console.error("herd rollback failed — orphan left behind", {
+            herdId,
+            rollbackError,
+          });
+        }
+      });
     return { ok: false, message: `تعذّر حفظ مراحل الدورة: ${stagesError.message}` };
   }
 

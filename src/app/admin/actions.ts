@@ -70,8 +70,39 @@ export async function updateProjectStatus(formData: FormData) {
   const projectId = String(formData.get("project_id") ?? "");
   const status = String(formData.get("status") ?? "");
 
-  await supabase.from("projects").update({ status }).eq("id", projectId);
+  /*
+   * .select() so the result says whether a row actually changed.
+   *
+   * An UPDATE that RLS filters out returns no error and no rows. Without this
+   * the admin is redirected to a success page whether the status moved or the
+   * database refused — and a policy that starts refusing would never be
+   * noticed.
+   */
+  const { data: updated, error } = await supabase
+    .from("projects")
+    .update({ status })
+    .eq("id", projectId)
+    .select("id");
 
+  if (error) {
+    console.error("updateProjectStatus failed", error);
+    redirect(
+      `/admin/projects/${projectId}?error=${encodeURIComponent(
+        "تعذّر تحديث حالة المشروع.",
+      )}`,
+    );
+  }
+
+  if (!updated || updated.length === 0) {
+    console.error("updateProjectStatus: no row updated", { projectId });
+    redirect(
+      `/admin/projects/${projectId}?error=${encodeURIComponent(
+        "لم يتغيّر شيء — المشروع غير موجود أو لا تملك صلاحية تعديله.",
+      )}`,
+    );
+  }
+
+  revalidatePath(`/admin/projects/${projectId}`);
   revalidatePath("/admin");
   redirect("/admin");
 }
@@ -88,7 +119,14 @@ export async function addProjectUpdate(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/admin/projects/${projectId}?error=${encodeURIComponent(error.message)}`);
+    // Logged in full; the browser gets a fixed string. PostgREST messages name
+    // tables, columns, constraints and the policy that refused.
+    console.error("addProjectUpdate failed", error);
+    redirect(
+      `/admin/projects/${projectId}?error=${encodeURIComponent(
+        "تعذّر نشر التقرير.",
+      )}`,
+    );
   }
 
   revalidatePath(`/admin/projects/${projectId}`);
@@ -100,7 +138,28 @@ export async function confirmInvestment(formData: FormData) {
   const investmentId = String(formData.get("investment_id") ?? "");
   const projectId = String(formData.get("project_id") ?? "");
 
-  await supabase.rpc("confirm_investment", { p_investment_id: investmentId });
+  /*
+   * The result was discarded, so every way this can fail looked like success.
+   *
+   * The function raises distinct conditions and each one matters to the person
+   * clicking: 42501 not an administrator, 55000 the investment is no longer
+   * pending, 23514 the project has fewer shares left than the investment asks
+   * for, 40001 another confirmation won the race. Telling an admin "confirmed"
+   * when the database refused is how a share ledger and a spreadsheet drift
+   * apart without anyone noticing.
+   */
+  const { error } = await supabase.rpc("confirm_investment", {
+    p_investment_id: investmentId,
+  });
+
+  if (error) {
+    console.error("confirm_investment failed", { investmentId, error });
+    redirect(
+      `/admin/projects/${projectId}?error=${encodeURIComponent(
+        "تعذّر تأكيد الاستثمار. راجع سجل الخادم للسبب.",
+      )}`,
+    );
+  }
 
   revalidatePath(`/admin/projects/${projectId}`);
   redirect(`/admin/projects/${projectId}`);

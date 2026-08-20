@@ -154,7 +154,20 @@ async function createHerdContract(args: {
     );
 
   if (milestoneError) {
-    await supabase.from("service_contracts").delete().eq("id", contractId);
+    await supabase
+      .from("service_contracts")
+      .delete()
+      .eq("id", contractId)
+      .then(({ error: rollbackError }) => {
+        // If the rollback itself fails, an empty contract survives and looks
+        // agreed. Nothing else will notice it, so say so here.
+        if (rollbackError) {
+          console.error("contract rollback failed — orphan left behind", {
+            contractId,
+            rollbackError,
+          });
+        }
+      });
     return { ok: false, message: `تعذّر حفظ المراحل: ${milestoneError.message}` };
   }
 
@@ -334,7 +347,20 @@ export async function createContract(
   if (milestoneError) {
     // A contract with no phases is worse than no contract: it shows a total of
     // zero and looks agreed. Remove it rather than leave that behind.
-    await supabase.from("service_contracts").delete().eq("id", contractId);
+    await supabase
+      .from("service_contracts")
+      .delete()
+      .eq("id", contractId)
+      .then(({ error: rollbackError }) => {
+        // If the rollback itself fails, an empty contract survives and looks
+        // agreed. Nothing else will notice it, so say so here.
+        if (rollbackError) {
+          console.error("contract rollback failed — orphan left behind", {
+            contractId,
+            rollbackError,
+          });
+        }
+      });
     return { ok: false, message: `تعذّر حفظ المراحل: ${milestoneError.message}` };
   }
 
