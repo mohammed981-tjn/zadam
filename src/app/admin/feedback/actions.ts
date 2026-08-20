@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/adminGuard";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -22,7 +22,7 @@ const STATUSES = ["new", "planned", "done", "declined"];
  * Clearing the reply text clears the stamp with it.
  */
 export async function replyToFeedback(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
 
   const id = str(formData, "feedback_id");
   if (!id) redirect("/admin/feedback");
@@ -30,7 +30,7 @@ export async function replyToFeedback(formData: FormData) {
   const statusRaw = str(formData, "status");
   const reply = str(formData, "admin_reply");
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("feedback")
     .update({
       // Empty means "no reply yet", not an empty reply. The trigger reads null
@@ -39,13 +39,27 @@ export async function replyToFeedback(formData: FormData) {
       status: STATUSES.includes(statusRaw) ? statusRaw : "new",
       published: formData.get("published") === "on",
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
 
   revalidatePath("/admin/feedback");
   revalidatePath("/feedback");
 
   if (error) {
-    redirect(`/admin/feedback?error=${encodeURIComponent(error.message)}`);
+    console.error("replyToFeedback failed", { id, error });
+    redirect(
+      `/admin/feedback?error=${encodeURIComponent("تعذّر حفظ الردّ.")}`,
+    );
+  }
+
+  // No error and no rows means the write was filtered, not applied.
+  if (!data || data.length === 0) {
+    console.error("replyToFeedback: no row updated", { id });
+    redirect(
+      `/admin/feedback?error=${encodeURIComponent(
+        "لم يُحفظ شيء — الملاحظة غير موجودة أو لا تملك صلاحية تعديلها.",
+      )}`,
+    );
   }
 
   redirect(`/admin/feedback?message=${encodeURIComponent("حُفظ الردّ.")}`);
@@ -60,18 +74,34 @@ export async function replyToFeedback(formData: FormData) {
  * screen harder to work through.
  */
 export async function deleteFeedback(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
 
   const id = str(formData, "feedback_id");
   if (!id) redirect("/admin/feedback");
 
-  const { error } = await supabase.from("feedback").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("feedback")
+    .delete()
+    .eq("id", id)
+    .select("id");
 
   revalidatePath("/admin/feedback");
   revalidatePath("/feedback");
 
   if (error) {
-    redirect(`/admin/feedback?error=${encodeURIComponent(error.message)}`);
+    console.error("deleteFeedback failed", { id, error });
+    redirect(
+      `/admin/feedback?error=${encodeURIComponent("تعذّر حذف الملاحظة.")}`,
+    );
+  }
+
+  if (!data || data.length === 0) {
+    console.error("deleteFeedback: no row deleted", { id });
+    redirect(
+      `/admin/feedback?error=${encodeURIComponent(
+        "لم يُحذف شيء — الملاحظة غير موجودة أو لا تملك صلاحية حذفها.",
+      )}`,
+    );
   }
 
   redirect(`/admin/feedback?message=${encodeURIComponent("حُذفت الملاحظة.")}`);
