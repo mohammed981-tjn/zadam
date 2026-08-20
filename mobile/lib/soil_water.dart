@@ -1,5 +1,3 @@
-import 'agronomy.dart';
-
 /// كم يوماً تصبر أرضك بين ريّة وريّة.
 ///
 /// A port of `src/lib/soilWater.ts`. It is here rather than only on the web for
@@ -21,6 +19,8 @@ import 'agronomy.dart';
 /// `test/soil_water_test.dart` holds this file to values produced by the
 /// TypeScript engine. Move a number on either side and the build fails.
 library;
+
+import 'agronomy.dart';
 
 /// Total available water, mm per metre of root zone — FAO-56 Table 19
 /// midpoints.
