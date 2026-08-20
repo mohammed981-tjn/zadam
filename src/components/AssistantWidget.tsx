@@ -19,6 +19,9 @@ type Msg = { role: "user" | "assistant"; text: string; source?: string };
  */
 const SOURCE_LABEL: Record<string, string> = {
   calculator: "محسوبة داخل المنصة بمنهجية FAO-56",
+  canal: "من ملفّ القناة القوسية في قاعدة سودجري",
+  market: "من قاعدة FAOSTAT المحمَّلة في المنصّة",
+  climate: "متوسّطات مناخية مقيسة — NASA POWER",
   knowledge: "من قاعدة معرفة سودجري المراجَعة",
   platform: "من حالة المنصة الحالية",
   cache: "معرفة عامة خارج قاعدة سودجري المتحقَّقة",

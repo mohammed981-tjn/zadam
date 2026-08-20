@@ -40,8 +40,18 @@ import {
   scoreEntries,
   type RetrievableEntry,
 } from "@/lib/retrieval";
+import { FAOSTAT_ITEM, HECTARES_PER_FEDDAN } from "@/lib/cropBenchmark";
 
-export type AnswerSource = "platform" | "calculator" | "knowledge";
+export type AnswerSource =
+  | "platform"
+  | "calculator"
+  | "knowledge"
+  /** Answered from a row of arc_canal_facts, quoted with its own status. */
+  | "canal"
+  /** Answered from FAOSTAT via the crop_market view. */
+  | "market"
+  /** Measured climate normals read back, not computed from them. */
+  | "climate";
 
 export interface LocalAnswer {
   answer: string;
@@ -52,12 +62,37 @@ export interface LocalAnswer {
   usedTitles: string[];
 }
 
+/** One row of arc_canal_facts, as the assistant needs it. */
+export interface CanalFactRow {
+  key: string;
+  label: string;
+  value: string | null;
+  unit: string | null;
+  status: string;
+  source: string;
+  note: string | null;
+}
+
+/** One row of the crop_market view. */
+export interface MarketRow {
+  item: string;
+  year: number;
+  sudan_kg_ha: number | string | null;
+  egypt_kg_ha: number | string | null;
+  peer_median_kg_ha: number | string | null;
+  sudan_export_usd_per_tonne: number | string | null;
+  regional_producer_usd_per_tonne: number | string | null;
+}
+
 export interface LocalAnswerInput {
   question: string;
   entries: RetrievableEntry[];
   /** Non-draft projects. An empty list means nothing is on offer. */
   projectCount: number;
   investmentLive: boolean;
+  /** Empty when the caller did not load them; the resolver simply stands down. */
+  canalFacts?: CanalFactRow[];
+  market?: MarketRow[];
 }
 
 /* ------------------------------------------------------------------ *
@@ -376,6 +411,432 @@ function resolveKnowledge(input: LocalAnswerInput): LocalAnswer | null {
   };
 }
 
+
+/* ------------------------------------------------------------------ *
+ * 4. Crop calendar
+ * ------------------------------------------------------------------ */
+
+const CALENDAR_TERMS = [
+  "متى",
+  "امتى",
+  "موعد",
+  "ميعاد",
+  "شهر",
+  "ازرع",
+  "زراعه",
+  "ازرعه",
+  "زريعه",
+  "موسم",
+  "مده",
+  "طول",
+  "حصاد",
+  "اقلع",
+].map(normalizeArabic);
+
+const STAGE_NAMES = ["التأسيس", "النمو الخضري", "منتصف الموسم", "النضج والحصاد"];
+
+/**
+ * Answers "when do I plant X and how long does it take" from the crop table.
+ *
+ * The stage lengths are already in the platform — they are what the water
+ * engine integrates the Kc curve over — so the calendar is the same data read
+ * a different way rather than a second set of numbers that can drift from it.
+ *
+ * It deliberately does not fire when the question also asks about water: the
+ * calculator answers that better and already states the planting month it used.
+ */
+function resolveCalendar(input: LocalAnswerInput): LocalAnswer | null {
+  const normalized = normalizeArabic(input.question);
+  const terms = new Set(questionTerms(input.question));
+
+  const asksWater = WATER_TERMS.some(
+    (t) => terms.has(t) || normalized.includes(t),
+  );
+  if (asksWater) return null;
+
+  if (!CALENDAR_TERMS.some((t) => terms.has(t) || normalized.includes(t))) {
+    return null;
+  }
+
+  const crop = findByAlias<CropCoefficients>(normalized, CROPS, CROP_ALIASES);
+  if (!crop) return null;
+
+  const month = DEFAULT_PLANTING_MONTH[crop.key];
+  if (month === undefined) return null;
+
+  const seasonDays = crop.stages.reduce((a, b) => a + b, 0);
+
+  // Walking the calendar day by day rather than dividing by 30: harvest in the
+  // wrong month is the kind of error a farmer notices and nobody else does.
+  const DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  let m = month;
+  let left = seasonDays;
+  while (left > DAYS[m]) {
+    left -= DAYS[m];
+    m = (m + 1) % 12;
+  }
+
+  const stageLines = crop.stages.map(
+    (days, i) => `  ${STAGE_NAMES[i]}: ${days} يوماً`,
+  );
+
+  return {
+    source: "calculator",
+    confidence: 1,
+    usedTitles: [],
+    answer: [
+      `${crop.name} في السودان — الموعد وطول الموسم:`,
+      "",
+      `الزراعة المعتادة: ${MONTH_NAMES[month]}.`,
+      `طول الموسم: ${seasonDays} يوماً، فالحصاد نحو ${MONTH_NAMES[m]}.`,
+      "",
+      "مراحل الموسم:",
+      ...stageLines,
+      "",
+      "هذه المواعيد المعتادة في وادي النيل الأوسط، وتتقدّم أو تتأخّر بحسب " +
+        "الولاية وسنة المطر. اذكر موقعك أو اسألني عن احتياجه المائي وسأحسبه " +
+        "على مناخ منطقتك.",
+    ].join("\n"),
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 5. Climate
+ * ------------------------------------------------------------------ */
+
+const CLIMATE_TERMS = [
+  "حراره",
+  "حراره",
+  "درجه",
+  "مطر",
+  "امطار",
+  "خريف",
+  "مناخ",
+  "طقس",
+  "حار",
+  "بارد",
+].map(normalizeArabic);
+
+/**
+ * Answers "how hot / how much rain" for a station the platform already carries.
+ *
+ * Fifteen stations of twenty-year monthly normals sit in the agronomy module
+ * because the water engine needs them. A visitor asking how much rain El Fasher
+ * gets is asking for a number that is already loaded, exact, and attributed —
+ * and a model asked the same question will produce a plausible one instead.
+ */
+function resolveClimate(input: LocalAnswerInput): LocalAnswer | null {
+  const normalized = normalizeArabic(input.question);
+  const terms = new Set(questionTerms(input.question));
+
+  // A crop in the question means the water calculator or the calendar is the
+  // better resolver; this one answers about places.
+  if (findByAlias<CropCoefficients>(normalized, CROPS, CROP_ALIASES)) return null;
+
+  if (!CLIMATE_TERMS.some((t) => terms.has(t) || normalized.includes(t))) {
+    return null;
+  }
+
+  const station = findByAlias<StationClimate>(
+    normalized,
+    STATIONS,
+    STATION_ALIASES,
+  );
+  if (!station) return null;
+
+  let namedMonth = -1;
+  for (let i = 0; i < MONTH_NAMES.length; i++) {
+    if (normalized.includes(normalizeArabic(MONTH_NAMES[i]))) {
+      namedMonth = i;
+      break;
+    }
+  }
+
+  const annualRain = station.rainfall.reduce((a, b) => a + b, 0);
+  const hottest = station.tmax.indexOf(Math.max(...station.tmax));
+  const wettest = station.rainfall.indexOf(Math.max(...station.rainfall));
+  const rainyMonths = station.rainfall.filter((r) => r >= 10).length;
+
+  const lines: string[] = [];
+
+  if (namedMonth >= 0) {
+    lines.push(
+      `${station.name} في ${MONTH_NAMES[namedMonth]}:`,
+      "",
+      `العظمى ${station.tmax[namedMonth]}° والصغرى ${station.tmin[namedMonth]}°.`,
+      `المطر ${formatNumber(station.rainfall[namedMonth])} مم.`,
+      "",
+    );
+  } else {
+    lines.push(`${station.name} — المعدّلات المناخية:`, "");
+  }
+
+  lines.push(
+    `المطر السنوي: ${formatNumber(annualRain)} مم، أغزره في ${MONTH_NAMES[wettest]} ` +
+      `(${formatNumber(station.rainfall[wettest])} مم).`,
+    rainyMonths === 0
+      ? "ولا شهر فيه مطرٌ يُعتدّ به — الزراعة هنا ريّاً بحتاً."
+      : `وموسم المطر ${rainyMonths} ${rainyMonths <= 10 ? "أشهر" : "شهراً"} في السنة.`,
+    `أحرّ الشهور ${MONTH_NAMES[hottest]}: عظمى ${station.tmax[hottest]}° وصغرى ${station.tmin[hottest]}°.`,
+    `أبرد ليلة في المتوسّط ${Math.min(...station.tmin)}°.`,
+  );
+
+  lines.push(
+    "",
+    station.source === "nasa-power"
+      ? "المصدر: NASA POWER — متوسّطات MERRA-2 عند إحداثيات المحطة."
+      : "قيم استرشادية للمنطقة، لا قراءات محطة مقيسة.",
+  );
+
+  return {
+    source: "climate",
+    confidence: 1,
+    usedTitles: [],
+    answer: lines.join("\n"),
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 6. Market — yield and price from FAOSTAT
+ * ------------------------------------------------------------------ */
+
+const MARKET_TERMS = [
+  "غله",
+  "غلة",
+  "انتاجيه",
+  "انتاج",
+  "طن",
+  "كيلو",
+  "سعر",
+  "اسعار",
+  "بكم",
+  "يبيع",
+  "بيع",
+  "عائد",
+  "ايراد",
+  "تصدير",
+  "قيمه",
+].map(normalizeArabic);
+
+const num = (v: number | string | null | undefined): number | null => {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+/**
+ * Answers yield and price from FAOSTAT rather than from recollection.
+ *
+ * Every figure here is a published observation with a year on it, and the
+ * gap between Sudan and its peers is the single most useful thing this
+ * platform can tell someone deciding what to plant. A model asked the same
+ * question returns a number of the right magnitude and the wrong provenance.
+ *
+ * The revenue per feddan is computed rather than looked up, because that is the
+ * form the question is actually asked in — "بكم يطلع الفدان" — and the two
+ * prices are reported separately: an export unit value and a regional producer
+ * price are not the same money, and averaging them would hide which one the
+ * farmer at the gate actually sees.
+ */
+function resolveMarket(input: LocalAnswerInput): LocalAnswer | null {
+  const rows = input.market ?? [];
+  if (rows.length === 0) return null;
+
+  const normalized = normalizeArabic(input.question);
+  const terms = new Set(questionTerms(input.question));
+
+  if (!MARKET_TERMS.some((t) => terms.has(t) || normalized.includes(t))) {
+    return null;
+  }
+
+  const crop = findByAlias<CropCoefficients>(normalized, CROPS, CROP_ALIASES);
+  if (!crop) return null;
+
+  const item = FAOSTAT_ITEM[crop.key];
+  if (!item) return null;
+
+  const row = rows.find((r) => r.item === item);
+  if (!row) return null;
+
+  const sudan = num(row.sudan_kg_ha);
+  if (sudan === null) return null;
+
+  const egypt = num(row.egypt_kg_ha);
+  const peer = num(row.peer_median_kg_ha);
+  const exportPrice = num(row.sudan_export_usd_per_tonne);
+  const producerPrice = num(row.regional_producer_usd_per_tonne);
+
+  const perFeddanKg = sudan * HECTARES_PER_FEDDAN;
+
+  const lines = [
+    `${crop.name} — الغلّة والسعر من FAOSTAT (${row.year}):`,
+    "",
+    `غلّة السودان: ${formatNumber(sudan)} كجم/هكتار، أي ${formatNumber(perFeddanKg)} كجم للفدان.`,
+  ];
+
+  if (peer !== null) {
+    lines.push(
+      `وسيط الدول المشابهة: ${formatNumber(peer)} كجم/هكتار` +
+        (sudan > 0
+          ? ` — أي ${(peer / sudan).toFixed(1)} ضعف غلّة السودان.`
+          : "."),
+    );
+  }
+  if (egypt !== null) {
+    lines.push(`ومصر: ${formatNumber(egypt)} كجم/هكتار.`);
+  }
+
+  if (exportPrice !== null || producerPrice !== null) {
+    lines.push("", "السعر:");
+    if (exportPrice !== null) {
+      lines.push(
+        `  قيمة الوحدة التصديرية للسودان: ${formatNumber(exportPrice)} $/طن.`,
+      );
+    }
+    if (producerPrice !== null) {
+      lines.push(
+        `  سعر المنتِج في الدول المجاورة: ${formatNumber(producerPrice)} $/طن.`,
+      );
+    }
+
+    // The gross the farmer's own yield earns at each price. Break-even and cost
+    // are not here on purpose: they need the visitor's own budget, and the
+    // feasibility tool asks for it.
+    const best = producerPrice ?? exportPrice;
+    if (best !== null) {
+      lines.push(
+        "",
+        `فالفدان بغلّة السودان يبيع بنحو ${formatNumber(
+          (perFeddanKg / 1000) * best,
+        )} دولاراً إجمالاً قبل أي تكلفة.`,
+      );
+    }
+  }
+
+  lines.push(
+    "",
+    "قيمة الوحدة التصديرية ليست سعر المزرعة: بينهما النقل والتنظيف والوسيط. " +
+      "استخدم حاسبة الجدوى في المنصّة لتضع تكاليفك ونرى الصافي.",
+  );
+
+  return {
+    source: "market",
+    confidence: 1,
+    usedTitles: [],
+    answer: lines.join("\n"),
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 7. The Arc Canal dossier
+ * ------------------------------------------------------------------ */
+
+const CANAL_TERMS = ["القناه القوسيه", "القوسيه", "قناه قوسيه"].map(
+  normalizeArabic,
+);
+
+const FACT_STATUS_LABEL: Record<string, string> = {
+  measured: "مقيس",
+  derived: "محسوب",
+  assumption: "فرضية",
+  unknown: "غير معروف",
+};
+
+/**
+ * Answers about the canal from the dossier table, not from prose.
+ *
+ * The whole point of putting forty-five attributes in a table with a status and
+ * a source on each was that anything could then answer from them. This is that
+ * anything: a question naming the canal is matched against the fact labels and
+ * notes, and the best matches are quoted with their status attached.
+ *
+ * Quoting the status is not decoration. "غير معروف" is the honest answer to
+ * several of the most natural questions about this project — the water permit,
+ * the tariff, the operator — and a resolver that skipped the blank rows would
+ * answer those questions with silence and let the model invent something.
+ */
+function resolveCanal(input: LocalAnswerInput): LocalAnswer | null {
+  const facts = input.canalFacts ?? [];
+  if (facts.length === 0) return null;
+
+  const normalized = normalizeArabic(input.question);
+  if (!CANAL_TERMS.some((t) => normalized.includes(t))) return null;
+
+  const terms = questionTerms(input.question).filter(
+    (t) => !normalized.startsWith(t) || t.length > 3,
+  );
+
+  const scored = facts
+    .map((f) => {
+      const haystack = normalizeArabic(
+        `${f.label} ${f.value ?? ""} ${f.unit ?? ""} ${f.note ?? ""}`,
+      );
+      let score = 0;
+      for (const t of terms) {
+        if (t.length < 3) continue;
+        // The label is what the fact is about; a hit there is worth more than a
+        // hit somewhere in a two-sentence note.
+        if (normalizeArabic(f.label).includes(t)) score += 3;
+        else if (haystack.includes(t)) score += 1;
+      }
+      return { fact: f, score };
+    })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const quoted = scored.slice(0, 4);
+
+  // Nothing matched beyond the canal's own name: answer with the study's
+  // headline rather than with four arbitrary rows.
+  if (quoted.length === 0 || quoted[0].score < 3) {
+    const headline = facts.filter((f) =>
+      ["route_length", "static_lift", "terminus_above_source", "pilot_design"].includes(
+        f.key,
+      ),
+    );
+    if (headline.length === 0) return null;
+    return {
+      source: "canal",
+      confidence: 1,
+      usedTitles: headline.map((f) => f.label),
+      answer: [
+        "دراسة سودجري للقناة القوسية، في أربعة أرقام:",
+        "",
+        ...headline.map(
+          (f) => `${f.label}: ${f.value ?? "لم يُحدَّد بعد"}${f.unit ? ` ${f.unit}` : ""}`,
+        ),
+        "",
+        "الدراسة كاملة على صفحة /arc-canal — الخريطة والمقطع الطولي والتصميم " +
+          "والكلفة. واسألني عن أي بند بعينه.",
+      ].join("\n"),
+    };
+  }
+
+  const blocks = quoted.map((s) => {
+    const f = s.fact;
+    const head =
+      f.value === null
+        ? `${f.label}: لم يُحدَّد بعد`
+        : `${f.label}: ${f.value}${f.unit ? ` ${f.unit}` : ""}`;
+    const tag = FACT_STATUS_LABEL[f.status] ?? f.status;
+    const src = f.status === "unknown" ? "" : ` · ${f.source}`;
+    return `${head}\n  [${tag}${src}]${f.note ? `\n  ${f.note}` : ""}`;
+  });
+
+  return {
+    source: "canal",
+    confidence: 1,
+    usedTitles: quoted.map((s) => s.fact.label),
+    answer: [
+      "من ملفّ القناة القوسية في قاعدة سودجري:",
+      "",
+      blocks.join("\n\n"),
+      "",
+      "الدراسة كاملة على صفحة /arc-canal.",
+    ].join("\n"),
+  };
+}
+
 /* ------------------------------------------------------------------ *
  * Entry point
  * ------------------------------------------------------------------ */
@@ -443,10 +904,32 @@ export function bestEffortAnswer(
 const KB_OVERRIDE_CONFIDENCE = 0.8;
 
 export function answerLocally(input: LocalAnswerInput): LocalAnswer | null {
-  // The calculator goes first: when a question names a crop and asks about
-  // water, computed numbers beat any prose about it.
+  /*
+   * ORDER MATTERS, AND IT IS BY SPECIFICITY.
+   *
+   * The canal resolver is first because naming the canal is unambiguous — no
+   * other resolver wants that question, and several would half-answer it. Then
+   * the computed resolvers, each of which requires a crop or a place plus a
+   * topic before it will fire, so none of them can swallow a question meant for
+   * another. Prose comes last: an entry that merely mentions sorghum should
+   * never outrank the arithmetic for how much water sorghum needs.
+   */
+  const canal = resolveCanal(input);
+  if (canal) return canal;
+
+  // The calculator goes first among the crop resolvers: when a question names a
+  // crop and asks about water, computed numbers beat any prose about it.
   const calculated = resolveCalculator(input);
   if (calculated) return calculated;
+
+  const market = resolveMarket(input);
+  if (market) return market;
+
+  const calendar = resolveCalendar(input);
+  if (calendar) return calendar;
+
+  const climate = resolveClimate(input);
+  if (climate) return climate;
 
   // A question landing squarely on a curated entry is a knowledge question even
   // when it contains the word "استثمار" — answering "nothing is on offer" to
