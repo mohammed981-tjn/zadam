@@ -9,8 +9,36 @@ interface QuestionRow {
   question: string;
   matched_entries: number;
   answered: boolean;
+  /**
+   * Which layer answered. Null for anything logged before the column existed,
+   * which is not the same as "the model answered" — see the split below.
+   */
+  answer_source: string | null;
   created_at: string;
 }
+
+/** The layers that cost nothing and cannot be hallucinated. */
+const LOCAL_SOURCES = new Set([
+  "canal",
+  "calculator",
+  "climate",
+  "market",
+  "knowledge",
+  "platform",
+]);
+
+const SOURCE_LABEL: Record<string, string> = {
+  canal: "ملفّ القناة",
+  calculator: "حاسبة FAO-56",
+  climate: "المحطات المناخية",
+  market: "FAOSTAT",
+  knowledge: "قاعدة المعرفة",
+  platform: "حالة المنصّة",
+  cache: "ذاكرة مؤقتة",
+  model: "نموذج لغوي",
+  no_engine: "بلا محرّك",
+  engine_failed: "أخفقت المحرّكات",
+};
 
 /** Words that carry no signal when counting what visitors ask about. */
 const NOISE = new Set(
@@ -129,6 +157,29 @@ export default async function AnalyticsPage() {
 
   const { recentQuestions, recentLeads } = countLastWeek(questions, leads);
 
+  /*
+   * How much of the assistant runs without a model.
+   *
+   * Measured over the questions that actually carry a source, not over all of
+   * them: rows logged before answer_source existed are null, and counting those
+   * as model answers would report the backlog as a running cost. The
+   * denominator says so.
+   */
+  const attributed = questions.filter((q) => q.answer_source !== null);
+  const localAnswers = attributed.filter((q) =>
+    LOCAL_SOURCES.has(q.answer_source!),
+  );
+  const localShare =
+    attributed.length === 0
+      ? null
+      : Math.round((localAnswers.length / attributed.length) * 100);
+
+  const bySource = new Map<string, number>();
+  for (const q of attributed) {
+    bySource.set(q.answer_source!, (bySource.get(q.answer_source!) ?? 0) + 1);
+  }
+  const sourceRows = [...bySource.entries()].sort((a, b) => b[1] - a[1]);
+
   const cropCounts = new Map<string, number>();
   for (const e of kb) cropCounts.set(e.crop, (cropCounts.get(e.crop) ?? 0) + 1);
 
@@ -139,6 +190,14 @@ export default async function AnalyticsPage() {
       s: `${recentQuestions} خلال أسبوع`,
     },
     { l: "بلا إجابة في القاعدة", v: gaps.length, s: "فجوات معرفية" },
+    {
+      l: "أُجيب بلا نموذج",
+      v: localShare === null ? "—" : `${localShare}٪`,
+      s:
+        attributed.length === 0
+          ? "لا قياس بعد"
+          : `من ${attributed.length} سؤالاً مسنداً`,
+    },
     { l: "عملاء محتملون", v: leads.length, s: `${recentLeads} خلال أسبوع` },
     { l: "مُدخلات المعرفة", v: kb.length, s: `${cropCounts.size} موضوعاً` },
   ];
@@ -163,6 +222,50 @@ export default async function AnalyticsPage() {
           </div>
         ))}
       </div>
+
+      {sourceRows.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-1 text-lg font-bold">من أجاب، ولكم مرّة</h2>
+          <p className="mb-4 text-sm leading-relaxed text-muted">
+            كل طبقة فوق «نموذج لغوي» تُجيب بلا كلفة وبلا احتمال هلوسة. وما
+            يصل إلى النموذج هو قائمة ما يستحقّ أن يُبنى له مُجيب — وهذه هي
+            الفائدة العملية من هذا الجدول.
+          </p>
+
+          <ul className="flex flex-col gap-2">
+            {sourceRows.map(([src, count]) => {
+              const share = Math.round((count / attributed.length) * 100);
+              return (
+                <li key={src} className="flex items-center gap-3 text-sm">
+                  <span className="w-32 shrink-0">
+                    {SOURCE_LABEL[src] ?? src}
+                  </span>
+                  {/* A bar rather than a chart library: one dimension, ten
+                      rows, and it has to render inside a server component. */}
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-background">
+                    <span
+                      className={`block h-full rounded-full ${
+                        LOCAL_SOURCES.has(src) ? "bg-primary" : "bg-muted"
+                      }`}
+                      style={{ width: `${Math.max(share, 2)}%` }}
+                    />
+                  </span>
+                  <span className="w-20 shrink-0 text-start text-xs text-muted">
+                    {count} · {share}٪
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {questions.length > attributed.length && (
+            <p className="mt-3 text-xs text-muted">
+              و{questions.length - attributed.length} سؤالاً بلا طبقة مسجّلة —
+              سُجّلت قبل إضافة العمود، ولا تُحتسب في النسبة أعلاه.
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="mt-10">
         <h2 className="mb-1 text-lg font-bold">
