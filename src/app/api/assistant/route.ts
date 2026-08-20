@@ -17,6 +17,10 @@ import {
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { pageContextLine } from "@/lib/pageHelp";
 import { INVESTMENT_LIVE } from "@/lib/config";
+import {
+  checkAssistantRateLimit,
+  clientAddress,
+} from "@/lib/assistantRateLimit";
 
 const SYSTEM_PROMPT = `أنت "مساعد سودجري" — مساعد ذكي يتحدث العربية فقط لمنصة "سودجري" للاستثمار الزراعي في السودان. تجيب على ثلاثة أنواع من الأسئلة، ولكل نوع قاعدة مختلفة:
 
@@ -99,29 +103,27 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // The leftmost x-forwarded-for entry is client-supplied and spoofable; the
-    // last entry is the one Vercel's edge appends for the real connecting IP.
-    const forwardedFor = req.headers.get("x-forwarded-for");
-    const ip =
-      req.headers.get("x-real-ip") ??
-      forwardedFor?.split(",").pop()?.trim() ??
-      "unknown";
-    const { data: allowed, error: rateLimitError } = await supabase.rpc(
-      "check_assistant_rate_limit",
-      {
-        p_ip: ip,
-      },
-    );
+    /*
+     * Throttle before any work. The limiter now runs through the service-role
+     * client, because check_assistant_rate_limit takes the address as an
+     * argument and is no longer callable by anon — published, it let anyone
+     * lock a chosen visitor out by naming their IP.
+     *
+     * It also fails CLOSED. The previous version logged the error and carried
+     * on to the model, which is the one outcome an unavailable limiter must
+     * not produce in front of a paid API.
+     */
+    const verdict = await checkAssistantRateLimit(clientAddress(req.headers));
 
-    if (rateLimitError) {
-      console.error("assistant: rate limit check failed", rateLimitError);
-    } else if (allowed === false) {
+    if (!verdict.allowed) {
       return NextResponse.json(
         {
           error:
-            "عدد كبير من الأسئلة خلال دقيقة قصيرة. انتظر قليلاً ثم أعد المحاولة.",
+            verdict.tier === "unavailable"
+              ? "المساعد غير متاح مؤقتاً. حاول بعد قليل."
+              : "عدد كبير من الأسئلة خلال دقيقة قصيرة. انتظر قليلاً ثم أعد المحاولة.",
         },
-        { status: 429 },
+        { status: verdict.tier === "unavailable" ? 503 : 429 },
       );
     }
 
@@ -162,8 +164,10 @@ export async function POST(req: NextRequest) {
     if (projectsError || knowledgeError) {
       const dbError = projectsError ?? knowledgeError;
       console.error("assistant: supabase error", dbError);
+      // The detail stays in the server log. PostgREST messages name tables,
+      // columns, constraints and the RLS policy that refused.
       return NextResponse.json(
-        { error: `تعذّر قراءة البيانات: ${dbError?.message}` },
+        { error: "تعذّر قراءة بيانات المنصة حالياً. حاول بعد قليل." },
         { status: 502 },
       );
     }

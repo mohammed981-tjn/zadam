@@ -54,10 +54,16 @@ function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
     name: `gemini/${model}`,
     async generate(system, user) {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            // Header rather than ?key=. A secret in a URL is copied into proxy
+            // logs, APM traces, and any error that echoes the request URL —
+            // including, once, a diagnostics report meant to be safe to paste.
+            "x-goog-api-key": apiKey,
+          },
           body: JSON.stringify({
             system_instruction: { parts: [{ text: system }] },
             contents: [{ role: "user", parts: [{ text: user }] }],

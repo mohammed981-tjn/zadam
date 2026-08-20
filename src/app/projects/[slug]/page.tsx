@@ -183,11 +183,12 @@ export default async function ProjectPage({
                     value={typedProject.id}
                   />
                   <input type="hidden" name="slug" value={typedProject.slug} />
-                  <input
-                    type="hidden"
-                    name="price_per_share"
-                    value={typedProject.price_per_share}
-                  />
+                  {/*
+                    No price field. invest() reads the price from the project
+                    row and ignores anything sent here — the field that used to
+                    sit in this spot is what made the forgery possible, and
+                    leaving it behind only invites someone to wire it back up.
+                  */}
                   <label className="flex flex-col gap-1 text-sm">
                     عدد الحصص (سعر الحصة{" "}
                     {formatUsd(typedProject.price_per_share)})
