@@ -5,6 +5,7 @@ import ArcCanalMap from "@/components/ArcCanalMap";
 import ArcCanalWater from "@/components/ArcCanalWater";
 import ArcCanalDesign from "@/components/ArcCanalDesign";
 import ArcCanalDossier from "@/components/ArcCanalDossier";
+import ArcCanalGallery from "@/components/ArcCanalGallery";
 import { summarise, ROUTE_LENGTH_KM, ROUTE } from "@/lib/arcCanal";
 
 export const metadata = {
@@ -130,6 +131,8 @@ export default async function ArcCanalPage() {
           </p>
         </div>
       </section>
+
+      <ArcCanalGallery />
 
       <ArcCanalWater />
 
