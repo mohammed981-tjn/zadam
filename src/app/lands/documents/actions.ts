@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sanitisePhotoMetadata } from "@/lib/exif";
+import { evidenceFileExists } from "@/lib/evidenceFile";
 
 const KINDS = ["tenure", "photo", "permit", "inspection"];
 
@@ -41,6 +42,15 @@ export async function addLandDocument(args: {
   }
   if (!args.storagePath.startsWith(`${user.id}/`)) {
     return { ok: false, message: "مسار ملف غير صالح." };
+  }
+
+  // The row must point at a file that is actually there. See lib/evidenceFile
+  // for why a failure to confirm is not treated as a failure to upload.
+  if (!(await evidenceFileExists(supabase, args.storagePath))) {
+    return {
+      ok: false,
+      message: "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+    };
   }
 
   const photo = sanitisePhotoMetadata(args.metadata);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 
 /**
  * Receiving a visitor's contact details.
@@ -70,11 +71,6 @@ export async function POST(req: NextRequest) {
 
     // The leftmost x-forwarded-for entry is client-supplied and spoofable; the
     // last entry is the one Vercel's edge appends for the real connecting IP.
-    const forwardedFor = req.headers.get("x-forwarded-for");
-    const ip =
-      req.headers.get("x-real-ip") ??
-      forwardedFor?.split(",").pop()?.trim() ??
-      "unknown";
 
     /*
      * The same limiter as the assistant, deliberately in its own bucket.
@@ -85,15 +81,11 @@ export async function POST(req: NextRequest) {
      * over their phone number. Prefixing the key keeps the spam protection and
      * removes that trap.
      */
-    const { data: allowed, error: rateLimitError } = await supabase.rpc(
-      "check_assistant_rate_limit",
-      { p_ip: `lead:${ip}` },
-    );
+    const verdict = await checkRateLimit("lead", clientAddress(req.headers));
 
-    if (rateLimitError) {
-      // A limiter that cannot be consulted must not block a lead. Log and pass.
-      console.error("leads: rate limit check failed", rateLimitError);
-    } else if (allowed === false) {
+    // A limiter that cannot be consulted must not block a lead — unchanged, and
+    // now explicit: only a real over-limit verdict turns someone away.
+    if (!verdict.allowed && verdict.tier !== "unavailable") {
       return NextResponse.json(
         { ok: false, message: "أرسلت الطلب عدة مرات. انتظر دقيقة ثم أعد المحاولة." },
         { status: 429 },

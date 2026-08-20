@@ -17,10 +17,7 @@ import {
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { pageContextLine } from "@/lib/pageHelp";
 import { INVESTMENT_LIVE } from "@/lib/config";
-import {
-  checkAssistantRateLimit,
-  clientAddress,
-} from "@/lib/assistantRateLimit";
+import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 
 const SYSTEM_PROMPT = `أنت "مساعد سودجري" — مساعد ذكي يتحدث العربية فقط لمنصة "سودجري" للاستثمار الزراعي في السودان. تجيب على ثلاثة أنواع من الأسئلة، ولكل نوع قاعدة مختلفة:
 
@@ -113,7 +110,7 @@ export async function POST(req: NextRequest) {
      * on to the model, which is the one outcome an unavailable limiter must
      * not produce in front of a paid API.
      */
-    const verdict = await checkAssistantRateLimit(clientAddress(req.headers));
+    const verdict = await checkRateLimit("assistant", clientAddress(req.headers));
 
     if (!verdict.allowed) {
       return NextResponse.json(

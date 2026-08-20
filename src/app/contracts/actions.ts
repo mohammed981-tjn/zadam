@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { planSeason } from "@/lib/season";
 import { buildMilestonePlan, type ServiceKey } from "@/lib/services";
 import type { IrrigationMethod } from "@/lib/agronomy";
+import { evidenceFileExists } from "@/lib/evidenceFile";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -399,6 +400,15 @@ export async function addMilestoneEvidence(args: {
   }
   if (!args.storagePath.startsWith(`${user.id}/`)) {
     return { ok: false, message: "مسار ملف غير صالح." };
+  }
+
+  // The row must point at a file that is actually there. See lib/evidenceFile
+  // for why a failure to confirm is not treated as a failure to upload.
+  if (!(await evidenceFileExists(supabase, args.storagePath))) {
+    return {
+      ok: false,
+      message: "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+    };
   }
 
   const { sanitisePhotoMetadata } = await import("@/lib/exif");

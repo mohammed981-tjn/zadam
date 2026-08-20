@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { safePagePath } from "@/lib/feedback";
+import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 
 /**
  * Receiving a note or suggestion from anyone on the site.
@@ -67,22 +68,19 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const forwardedFor = req.headers.get("x-forwarded-for");
-    const ip =
-      req.headers.get("x-real-ip") ??
-      forwardedFor?.split(",").pop()?.trim() ??
-      "unknown";
+    /*
+     * Its own bucket, like the lead form. Someone who just asked the assistant
+     * five questions is exactly the person most likely to then write a note.
+     *
+     * Routed through the service-role client: the limiter function takes the
+     * address as an argument, so it is no longer callable with a visitor's
+     * session. It still fails OPEN — a note the platform never receives is a
+     * worse outcome than a duplicate one, and there is no paid API behind this.
+     * Checking the tier keeps that a decision rather than an accident.
+     */
+    const verdict = await checkRateLimit("feedback", clientAddress(req.headers));
 
-    // Its own bucket, like the lead form. Someone who just asked the assistant
-    // five questions is exactly the person most likely to then write a note.
-    const { data: allowed, error: rateLimitError } = await supabase.rpc(
-      "check_assistant_rate_limit",
-      { p_ip: `feedback:${ip}` },
-    );
-
-    if (rateLimitError) {
-      console.error("feedback: rate limit check failed", rateLimitError);
-    } else if (allowed === false) {
+    if (!verdict.allowed && verdict.tier !== "unavailable") {
       return NextResponse.json(
         {
           ok: false,

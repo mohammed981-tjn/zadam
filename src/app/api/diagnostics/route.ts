@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { buildEngines, generateWithFallback } from "@/lib/engines";
 import { activeProvider } from "@/lib/embedding";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 /**
  * What the deployment actually sees.
@@ -176,20 +176,15 @@ export async function GET(req: NextRequest) {
       report.probe = { ran: false, reason: "لا يوجد محرك مضبوط أصلاً" };
       return NextResponse.json(report);
     }
-
-    const supabase = await createClient();
     const forwardedFor = req.headers.get("x-forwarded-for");
     const ip =
       req.headers.get("x-real-ip") ??
       forwardedFor?.split(",").pop()?.trim() ??
       "unknown";
 
-    const { data: allowed } = await supabase.rpc(
-      "check_assistant_rate_limit",
-      { p_ip: ip },
-    );
+    const verdict = await checkRateLimit("diagnostics", ip);
 
-    if (allowed === false) {
+    if (!verdict.allowed && verdict.tier !== "unavailable") {
       report.probe = { ran: false, reason: "تجاوزت حد الطلبات، انتظر دقيقة" };
       return NextResponse.json(report, { status: 429 });
     }
