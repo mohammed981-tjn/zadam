@@ -121,15 +121,6 @@ const INVESTMENT_TERMS = [
 // "there is nothing on offer" to someone asking how Indian smallholder credit
 // works.
 
-/**
- * Answers "can I invest / what is on offer" without the model.
- *
- * Deliberately narrow: it only fires while there is genuinely nothing to
- * describe — investment closed and no published project. In that state the
- * correct answer is one sentence and cannot be got wrong. The moment a real
- * offer exists there is something to summarise, and summarising is the model's
- * job, so this resolver stands down.
- */
 /*
  * "ماهي المشاريع المتاحة عندكم الان" was asked, and answered with nothing.
  *
@@ -153,6 +144,15 @@ const AVAILABILITY_WORDS = [
   "الان",
 ].map(normalizeArabic);
 
+/**
+ * Answers "can I invest / what is on offer" without the model.
+ *
+ * Deliberately narrow: it only fires while there is genuinely nothing to
+ * describe — investment closed and no published project. In that state the
+ * correct answer is one sentence and cannot be got wrong. The moment a real
+ * offer exists there is something to summarise, and summarising is the model's
+ * job, so this resolver stands down.
+ */
 function resolvePlatform(input: LocalAnswerInput): LocalAnswer | null {
   if (input.investmentLive || input.projectCount > 0) return null;
 
@@ -197,10 +197,28 @@ const WATER_TERMS = [
   "سقي",
 ].map(normalizeArabic);
 
-/** Words a visitor is likely to use for a crop that are not the crop's name. */
-const CROP_ALIASES: Record<string, string[]> = {
+/**
+ * Words a visitor is likely to use for a crop that are not the crop's name.
+ *
+ * A crop missing from this map is not merely unnamed — it is **unreachable**,
+ * because findByAlias walks the crop list and looks each key up here. That made
+ * the two failures below possible, and it is why `verify-local-answer` now
+ * fails the build when any crop or station has no entry.
+ */
+export const CROP_ALIASES: Record<string, string[]> = {
   wheat: ["قمح", "حنطه"],
-  sorghum: ["ذره رفيعه", "رفيعه", "دخن", "فتريته", "طابت"],
+  sorghum: ["ذره رفيعه", "رفيعه", "فتريته", "طابت"],
+  /*
+   * "دخن" used to live on sorghum, and while millet was not a crop this
+   * platform knew, that was defensible: the nearest cereal beats no answer.
+   *
+   * It stopped being defensible the moment millet was added with coefficients
+   * of its own. A millet question was then answered with sorghum's water
+   * requirement — confidently, and with nothing on screen calling it a
+   * substitution beyond the crop name in the header. Adding a crop is two
+   * edits; only one of them was made.
+   */
+  millet: ["دخن", "دخنه"],
   maize: ["ذره شاميه", "شاميه"],
   cotton: ["قطن"],
   groundnut: ["فول سوداني", "سوداني", "فول"],
@@ -209,15 +227,49 @@ const CROP_ALIASES: Record<string, string[]> = {
   onion: ["بصل"],
   tomato: ["طماطم", "بندوره"],
   sugarcane: ["قصب سكر", "قصب"],
+  /*
+   * "تمر" is deliberately absent, and this is not fussiness: it sits inside
+   * "مستمر", so "هل الدعم مستمر؟" would be read as a question about palms.
+   * The plural and the tree carry no such collision.
+   */
+  dates: ["تمور", "نخيل", "نخل", "بلح"],
 };
 
-const STATION_ALIASES: Record<string, string[]> = {
+/**
+ * Nine of the fifteen stations could not be named in a question — every Darfur
+ * state, both Blue Nile points, White Nile and Sennar. A visitor in Nyala
+ * asking about their own area was answered with Khartoum's climate, a thousand
+ * kilometres away.
+ *
+ * The answer does print the station it used, so the substitution was visible to
+ * anyone reading closely. It was still the wrong number for the person asking.
+ */
+export const STATION_ALIASES: Record<string, string[]> = {
   khartoum: ["الخرطوم", "خرطوم", "بحري", "امدرمان", "ام درمان"],
   gezira: ["الجزيره", "جزيره", "ود مدني", "مدني"],
   rivernile: ["نهر النيل", "عطبره", "شندي", "الدامر"],
   northern: ["الشماليه", "دنقلا", "الشمال", "مروي"],
   kordofan: ["كردفان", "الابيض", "بارا"],
+  // Gedaref has no station of its own yet, so it borrows Kassala's — the
+  // nearest normals the platform holds. Deliberate, and stated in the answer.
   kassala: ["كسلا", "القضارف", "جدارف", "الفاو", "حلفا الجديده"],
+
+  /*
+   * Bare "دارفور" is ambiguous across five states, so it is answered with
+   * Nyala rather than left to fall through. Falling through does not mean "no
+   * answer" — it means Khartoum, which is both wrong and far. Nyala is at
+   * least in Darfur, and the answer names it, so the reader sees at once which
+   * of the five was assumed.
+   */
+  nyala: ["نيالا", "جنوب دارفور", "دارفور"],
+  elfasher: ["الفاشر", "فاشر", "شمال دارفور"],
+  geneina: ["الجنينه", "جنينه", "غرب دارفور"],
+  zalingei: ["زالنجي", "وسط دارفور"],
+  eddaein: ["الضعين", "ضعين", "شرق دارفور"],
+  damazin: ["الدمازين", "دمازين", "النيل الازرق"],
+  kurmuk: ["الكرمك", "كرمك"],
+  kosti: ["كوستي", "النيل الابيض"],
+  sennar: ["سنار", "سنجه", "الدندر"],
 };
 
 const METHOD_ALIASES: [IrrigationMethod, string[]][] = [
@@ -232,7 +284,7 @@ const METHOD_ALIASES: [IrrigationMethod, string[]][] = [
  * not name one. The answer always says which month it assumed, because the
  * planting date moves the seasonal total substantially.
  */
-const DEFAULT_PLANTING_MONTH: Record<string, number> = {
+export const DEFAULT_PLANTING_MONTH: Record<string, number> = {
   wheat: 10, // نوفمبر
   sorghum: 6, // يوليو
   maize: 6,
@@ -243,6 +295,18 @@ const DEFAULT_PLANTING_MONTH: Record<string, number> = {
   onion: 10,
   tomato: 9, // أكتوبر
   sugarcane: 2, // مارس
+  // The same omission as the alias map, and it hid behind a `?? 6` fallback.
+  // July is in fact right for rain-fed millet, so this line changes no number —
+  // it removes a correct answer that was arrived at by accident.
+  millet: 6, // يوليو، مع الخريف
+  /*
+   * A perennial has no planting month. Its four "stages" sum to 365 days and
+   * exist only so the same engine can cost a palm, so what this field really
+   * chooses is where the year starts — and January is the plain convention.
+   * The default of July would have started the palm's year mid-summer for no
+   * reason anyone could have explained.
+   */
+  dates: 0, // يناير — بداية دورة سنوية، لا موعد غرس
 };
 
 /** Substring match on the normalised question — aliases are multi-word. */

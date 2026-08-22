@@ -1,10 +1,14 @@
 import {
   answerLocally,
   bestEffortAnswer,
+  CROP_ALIASES,
+  DEFAULT_PLANTING_MONTH,
+  STATION_ALIASES,
   type CanalFactRow,
   type LocalAnswerInput,
   type MarketRow,
 } from "../src/lib/localAnswer";
+import { CROPS, STATIONS } from "../src/lib/agronomy";
 import {
   getCachedAnswer,
   setCachedAnswer,
@@ -16,7 +20,6 @@ import {
   TAW_MM_PER_M,
   irrigationInterval,
 } from "../src/lib/soilWater";
-import { STATIONS } from "../src/lib/agronomy";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -107,6 +110,85 @@ const base = (question: string): LocalAnswerInput => ({
 
 console.log("\nالمُجيب المحلي — بلا نموذج لغوي\n");
 
+/*
+ * قابلية المناداة: كل محصول ومحطة يجب أن يكون له اسم يُنادى به.
+ *
+ * This block is here because the same mistake was made twice, in the same way,
+ * and neither time did anything fail.
+ *
+ * findByAlias walks CROPS and STATIONS and looks each key up in the alias map.
+ * A crop or station absent from that map is not merely awkward to reach — it is
+ * **unreachable**, and the resolver silently answers with something else: the
+ * first station in the list, or whichever crop still holds the borrowed alias.
+ * Millet was answered with sorghum's water requirement, and nine stations —
+ * every Darfur state, both Blue Nile points, White Nile and Sennar — were
+ * answered with Khartoum's climate.
+ *
+ * Adding a crop is three edits: the coefficients, an alias, a planting month.
+ * Only the first was ever enforced by anything. These three assertions are the
+ * durable half of that fix — the aliases below are the one-off half, and
+ * without these the next crop added would repeat it exactly.
+ */
+console.log("قابلية المناداة:");
+{
+  const cropsWithoutAlias = CROPS.filter(
+    (c) => (CROP_ALIASES[c.key] ?? []).length === 0,
+  );
+  ok(
+    cropsWithoutAlias.length === 0,
+    `كل المحاصيل (${CROPS.length}) لها اسم يُنادى به${
+      cropsWithoutAlias.length
+        ? " — الناقص: " + cropsWithoutAlias.map((c) => c.key).join("، ")
+        : ""
+    }`,
+  );
+
+  const stationsWithoutAlias = STATIONS.filter(
+    (s) => (STATION_ALIASES[s.key] ?? []).length === 0,
+  );
+  ok(
+    stationsWithoutAlias.length === 0,
+    `كل المحطات (${STATIONS.length}) لها اسم يُنادى به${
+      stationsWithoutAlias.length
+        ? " — الناقص: " + stationsWithoutAlias.map((s) => s.key).join("، ")
+        : ""
+    }`,
+  );
+
+  const cropsWithoutMonth = CROPS.filter(
+    (c) => DEFAULT_PLANTING_MONTH[c.key] === undefined,
+  );
+  ok(
+    cropsWithoutMonth.length === 0,
+    `كل المحاصيل لها شهر زراعة افتراضي معلَن${
+      cropsWithoutMonth.length
+        ? " — الناقص: " + cropsWithoutMonth.map((c) => c.key).join("، ")
+        : ""
+    }`,
+  );
+
+  /*
+   * And the other half of the same failure: an alias belonging to a crop that
+   * no longer wants it. "دخن" sat on sorghum long after millet arrived. This
+   * catches the reverse direction — an alias pointing at a key the crop list no
+   * longer contains — which would make it dead text that looks live.
+   */
+  const cropKeys = new Set(CROPS.map((c) => c.key));
+  const orphanCrops = Object.keys(CROP_ALIASES).filter((k) => !cropKeys.has(k));
+  const stationKeys = new Set(STATIONS.map((s) => s.key));
+  const orphanStations = Object.keys(STATION_ALIASES).filter(
+    (k) => !stationKeys.has(k),
+  );
+  ok(
+    orphanCrops.length === 0 && orphanStations.length === 0,
+    `ولا مرادف يشير إلى مفتاح غير موجود${
+      orphanCrops.length || orphanStations.length
+        ? " — " + [...orphanCrops, ...orphanStations].join("، ")
+        : ""
+    }`,
+  );
+}
+
 console.log("حالة المنصة:");
 {
   const a = answerLocally(base("هل أستطيع الاستثمار الآن؟"));
@@ -180,6 +262,49 @@ console.log("\nالحاسبة (FAO-56):");
   ok(
     alias?.answer.includes("ذرة شامية") === true,
     'الاسم الأطول يفوز: "الذرة الشامية" لا "الذرة"',
+  );
+
+  /*
+   * The two answers that were wrong on production, pinned so they stay fixed.
+   *
+   * Both were confident and both named their substitution in the header, which
+   * is the only reason they were survivable — the reader could see "ذرة رفيعة"
+   * when they had asked about millet. Visible is not the same as correct.
+   */
+  const millet = answerLocally(base("كم يحتاج الدخن من الماء؟"));
+  ok(
+    millet?.answer.includes("دخن") === true &&
+      millet?.answer.includes("ذرة رفيعة") === false,
+    "الدخن يُجاب بمعاملاته هو، لا بالذرة الرفيعة",
+  );
+
+  const nyala = answerLocally(base("كم يحتاج القمح من الماء في نيالا؟"));
+  ok(
+    nyala?.answer.includes("نيالا") === true,
+    "ونيالا تُجاب بمناخها هي، لا بمناخ الخرطوم",
+  );
+
+  const darfur = answerLocally(base("كم يحتاج السمسم من الماء في دارفور؟"));
+  ok(
+    darfur?.answer.includes("دارفور") === true,
+    "و«دارفور» وحدها تُجاب بمحطة داخل دارفور تُسمّى في الجواب",
+  );
+
+  /*
+   * The collisions that make each of these aliases a judgement call rather
+   * than a list. Each one was a live misfire in some earlier draft of this
+   * file, so each is kept as a test rather than as a comment.
+   */
+  const stillRunning = answerLocally(base("هل الدعم مستمر لصغار المزارعين؟"));
+  ok(
+    stillRunning?.answer.includes("نخيل") !== true,
+    '«مستمر» لا تُقرأ نخيلاً — ولهذا "تمر" ليست مرادفاً',
+  );
+
+  const palms = answerLocally(base("كم تحتاج التمور من الماء في الشمالية؟"));
+  ok(
+    palms?.source === "calculator" && palms.answer.includes("نخيل") === true,
+    "بينما «التمور» تصل النخيل وتُحسب في الشمالية",
   );
 }
 
