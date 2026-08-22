@@ -42,13 +42,34 @@ function resolvePrice(row: CropMarketRow): {
   return { usdPerTonne: null, priceBasis: "none" };
 }
 
-export async function loadCropMarkets(): Promise<Record<string, CropMarket>> {
+/**
+ * Returns null when the query itself failed — as distinct from succeeding with
+ * no rows.
+ *
+ * The two collapse into the same shape once the rows are mapped, and only one
+ * of them is true. The loop below is driven by the crop mapping rather than by
+ * what came back, which is right when the view is merely thin: a crop with no
+ * row still gets an entry saying so. But it meant a database outage produced a
+ * *complete* map in which every crop carried `priceBasis: "none"` — and the
+ * study then told its reader that no crop in Sudan has a price reference.
+ *
+ * That is a statement about the crops. The truth was a statement about us.
+ */
+export async function loadCropMarkets(): Promise<Record<
+  string,
+  CropMarket
+> | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("crop_market")
     .select(
       "item, year, sudan_kg_ha, egypt_kg_ha, peer_median_kg_ha, sudan_export_usd_per_tonne, regional_producer_usd_per_tonne",
     );
+
+  if (error) {
+    console.error("crop_market: read failed", error);
+    return null;
+  }
 
   const byItem = new Map<string, CropMarketRow>();
   for (const row of (data ?? []) as CropMarketRow[]) byItem.set(row.item, row);

@@ -16,6 +16,17 @@ export const metadata = {
  * pay the next instalment".
  */
 export default async function FeasibilityPage() {
+  /*
+   * null means the reference could not be read at all, which is not the same
+   * as a crop having no reference — and the difference has to reach the reader.
+   *
+   * Falling back to an empty map would render every crop as "no price
+   * reference", which is a claim about Sudanese agriculture rather than about
+   * an outage on our side. The tool itself still works either way: the cost and
+   * water sides are computed locally, and the study already accepts a price
+   * typed by hand. So the degradation is honest and usable — it just has to say
+   * which of the two happened.
+   */
   const markets = await loadCropMarkets();
 
   return (
@@ -46,7 +57,24 @@ export default async function FeasibilityPage() {
         </p>
       </section>
 
-      <FeasibilityStudy markets={markets} />
+      {markets === null && (
+        <section className="rounded-xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">
+          <h2 className="mb-2 font-semibold">
+            تعذّر الوصول إلى مرجعية FAOSTAT الآن
+          </h2>
+          <p>
+            الخلل عندنا لا في المحاصيل: المرجعية موجودة، ولم نستطع قراءتها في
+            هذه اللحظة. فلا تقرأ الشُّرَط أدناه على أنها «لا يوجد سعر مرجعي
+            لهذا المحصول».
+          </p>
+          <p className="mt-2">
+            وبقيّة الدراسة تعمل كما هي — التكلفة والاحتياج المائي محسوبان داخل
+            متصفحك — <strong>فأدخِل سعرك يدوياً</strong> وستكتمل النتيجة.
+          </p>
+        </section>
+      )}
+
+      <FeasibilityStudy markets={markets ?? {}} />
 
       <section className="flex flex-col gap-2 text-sm text-muted">
         <h2 className="text-base font-semibold text-foreground">
