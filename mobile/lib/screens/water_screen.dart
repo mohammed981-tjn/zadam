@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../agronomy.dart';
+import '../soil_water.dart';
 import '../theme.dart';
 
 class WaterScreen extends StatefulWidget {
@@ -25,14 +26,61 @@ class _WaterScreenState extends State<WaterScreen> {
   int _plantingMonth = 6;
   double _feddans = 1;
 
+  /// A middle-light texture rather than the lightest or the heaviest.
+  ///
+  /// There is no honest default here — the app cannot know the farmer's soil,
+  /// and the choice moves the answer by a factor of three. So the default sits
+  /// mid-range and the comparison panel below shows the whole spread, which
+  /// makes the cost of leaving it wrong visible instead of hiding it.
+  String _soil = 'sandy loam';
+
   WaterRequirement get _result =>
       waterRequirement(_crop, _station, _plantingMonth, _method);
 
+  IrrigationInterval? get _interval =>
+      irrigationInterval(_crop, _station, _plantingMonth, _method, _soil);
+
   String _n(double v, [int digits = 0]) => v.toStringAsFixed(digits);
+
+  /// The same crop and climate across all eight textures.
+  ///
+  /// This is the panel that carries the finding. A farmer on sand who reads
+  /// only the seasonal total concludes they need more water; what they need is
+  /// the same water more often, in smaller doses — and that is only visible
+  /// when the intervals sit next to each other.
+  ///
+  /// Ordered lightest-first rather than by interval, because the picker above
+  /// is in that order and a reader looking for their own row should find it in
+  /// the same place. Note the two are not the same ordering: clay holds less
+  /// available water than clay loam, so its bar is shorter despite being the
+  /// heavier soil.
+  List<Widget> _soilComparison() {
+    final rows = <MapEntry<String, IrrigationInterval>>[];
+    for (final soil in soilKeys) {
+      final r =
+          irrigationInterval(_crop, _station, _plantingMonth, _method, soil);
+      if (r != null) rows.add(MapEntry(soil, r));
+    }
+    if (rows.isEmpty) return const [];
+
+    final maxDays =
+        rows.map((e) => e.value.days).reduce((a, b) => a > b ? a : b);
+
+    return [
+      for (final e in rows)
+        _SoilBar(
+          label: soilLabel[e.key]!,
+          days: e.value.days,
+          fraction: maxDays > 0 ? e.value.days / maxDays : 0,
+          selected: e.key == _soil,
+        ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final r = _result;
+    final iv = _interval;
     final muted = mutedOn(context);
 
     return Scaffold(
@@ -68,6 +116,14 @@ class _WaterScreenState extends State<WaterScreen> {
                     items: IrrigationMethod.values,
                     nameOf: (m) => irrigationLabel[m]!,
                     onChanged: (v) => setState(() => _method = v),
+                  ),
+                  const SizedBox(height: 12),
+                  _Dropdown<String>(
+                    label: 'نوع التربة',
+                    value: _soil,
+                    items: soilKeys,
+                    nameOf: (s) => soilLabel[s]!,
+                    onChanged: (v) => setState(() => _soil = v),
                   ),
                   const SizedBox(height: 12),
                   _Dropdown<int>(
@@ -116,6 +172,85 @@ class _WaterScreenState extends State<WaterScreen> {
             highlight: true,
           ),
           const SizedBox(height: 16),
+
+          /*
+           * متى تروي — لا كم تروي.
+           *
+           * The seasonal total above answers a question the farmer did not ask.
+           * More than half the questions the assistant has been asked are this
+           * one instead: the ground is thirsty, the water dries fast in the
+           * sand, how often should I irrigate. Until now the only path that
+           * understood it was the language model, and the model needs a signal
+           * this screen deliberately does without.
+           */
+          if (iv != null) ...[
+            _ResultCard(
+              title: 'الفترة بين ريّة وريّة — تربة ${soilLabel[_soil]}',
+              primary: 'كل ${_n(iv.days, 1)} يوم',
+              secondary:
+                  'الجرعة ${_n(iv.doseMm)} مم — أي ${_n(iv.doseM3PerFeddan * _feddans)} م³ '
+                  '(${_n(iv.doseM3PerFeddan)} م³ للفدان) في كل ريّة، '
+                  'محسوبة على شهر الذروة لا على المتوسط',
+            ),
+            const SizedBox(height: 12),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('من أين جاء هذا الرقم',
+                        style: TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 12),
+                    _Row(
+                      'ما تمسكه التربة',
+                      '${_n(tawMmPerM[_soil]!)} مم لكل متر عمق',
+                    ),
+                    _Row('عمق جذور ${_crop.name}',
+                        '${rootDepthM[_crop.key]!.toStringAsFixed(1)} م'),
+                    _Row(
+                      'المتاح بيسر في منطقة الجذور',
+                      '${_n(iv.rawMm)} مم',
+                      bold: true,
+                    ),
+                    _Row('استهلاك المحصول في الذروة',
+                        '${_n(iv.peakMmPerDay, 1)} مم يومياً'),
+                    const Divider(height: 24),
+                    Text(
+                      'الخزّان مقسوماً على الاستهلاك اليومي: '
+                      '${_n(iv.rawMm)} ÷ ${_n(iv.peakMmPerDay, 1)} = '
+                      '${_n(iv.days, 1)} يوم.',
+                      style: TextStyle(color: muted, fontSize: 13, height: 1.6),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('ولو كانت أرضك غير ذلك',
+                        style: TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 6),
+                    Text(
+                      'نفس المحصول ونفس المناخ ونفس طريقة الريّ — '
+                      'التربة وحدها هي التي تغيّر الفترة.',
+                      style: TextStyle(color: muted, fontSize: 13, height: 1.5),
+                    ),
+                    const SizedBox(height: 12),
+                    ..._soilComparison(),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           Card(
             child: Padding(
@@ -173,7 +308,10 @@ class _WaterScreenState extends State<WaterScreen> {
 
           Text(
             'الحساب بمنهجية FAO-56 على متوسطات مناخية استرشادية للمنطقة، '
-            'وليست قراءات محطة مقيسة لأرضك. عاملها كتقدير تخطيطي.',
+            'وليست قراءات محطة مقيسة لأرضك. عاملها كتقدير تخطيطي.\n\n'
+            'والفترة بين الريّات مبنيّة على جداول FAO-56 لسعة التربة وعمق '
+            'الجذور، ونوع التربة فيها اختيارك أنت لا قياساً لأرضك — فإن جهلته '
+            'فانظر لوح المقارنة أعلاه قبل أن تعتمد رقماً.',
             style: TextStyle(color: muted, fontSize: 12, height: 1.6),
           ),
         ],
@@ -277,6 +415,57 @@ class _Row extends StatelessWidget {
         children: [
           Flexible(child: Text(label, style: TextStyle(fontWeight: weight))),
           Text(value, style: TextStyle(fontWeight: weight)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SoilBar extends StatelessWidget {
+  const _SoilBar({
+    required this.label,
+    required this.days,
+    required this.fraction,
+    required this.selected,
+  });
+
+  final String label;
+  final double days;
+  final double fraction;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final colour = selected ? accentOn(context) : primary;
+    final weight = selected ? FontWeight.w900 : FontWeight.w400;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label,
+                  style: TextStyle(fontSize: 13, fontWeight: weight)),
+              Text('كل ${days.toStringAsFixed(1)} يوم',
+                  style: TextStyle(
+                      fontSize: 13, fontWeight: weight, color: colour)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: fraction.clamp(0.0, 1.0),
+              minHeight: selected ? 8 : 6,
+              color: colour,
+              backgroundColor:
+                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+            ),
+          ),
         ],
       ),
     );

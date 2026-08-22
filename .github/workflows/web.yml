@@ -12,10 +12,16 @@ name: Web app
 # then lint, then the verifiers, and the production build last because it is
 # the slowest. A contributor watching the run sees the cheapest failure first.
 
+# `mobile/**` was ignored here, and that was correct until
+# `scripts/verify-mobile-parity.ts` existed. That verifier reads the Flutter
+# app's golden values and its texture tables and runs the web engines over
+# them — so a change under mobile/ is now a change to this workflow's inputs.
+# Skipping it would let a mobile-only push move a number and land green, then
+# fail on some unrelated web commit days later, where nobody would think to
+# look for the cause.
 on:
   push:
     paths-ignore:
-      - "mobile/**"
       - "docs/**"
       - "**/*.md"
   pull_request:
