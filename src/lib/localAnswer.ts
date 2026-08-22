@@ -130,11 +130,41 @@ const INVESTMENT_TERMS = [
  * offer exists there is something to summarise, and summarising is the model's
  * job, so this resolver stands down.
  */
+/*
+ * "ماهي المشاريع المتاحة عندكم الان" was asked, and answered with nothing.
+ *
+ * It is the investment question with the word "استثمار" left out, and while
+ * nothing is published it has the same single correct answer. But the plural
+ * alone must not trigger it: "اريد معلومات عن مشروع الجموعية" also names a
+ * project, and replying "there is nothing on offer" to that is a non sequitur —
+ * the visitor is asking about a scheme that exists, not about our catalogue.
+ *
+ * So it takes both halves: an offer noun AND a word that makes it a question
+ * about availability here. A named project carries the first and never the
+ * second.
+ */
+const OFFER_NOUNS = ["مشاريع", "فرص"].map(normalizeArabic);
+const AVAILABILITY_WORDS = [
+  "متاحه",
+  "مطروحه",
+  "متوفره",
+  "عندكم",
+  "لديكم",
+  "الان",
+].map(normalizeArabic);
+
 function resolvePlatform(input: LocalAnswerInput): LocalAnswer | null {
   if (input.investmentLive || input.projectCount > 0) return null;
 
   const terms = new Set(questionTerms(input.question));
-  if (!INVESTMENT_TERMS.some((t) => terms.has(t))) return null;
+  const normalized = normalizeArabic(input.question);
+  const asksWhatIsOnOffer =
+    OFFER_NOUNS.some((t) => normalized.includes(t)) &&
+    AVAILABILITY_WORDS.some((t) => normalized.includes(t));
+
+  if (!INVESTMENT_TERMS.some((t) => terms.has(t)) && !asksWhatIsOnOffer) {
+    return null;
+  }
 
   return {
     source: "platform",
@@ -883,7 +913,12 @@ const SOIL_WORDS = [
 const DRY_WORDS = [
   "عطشانه",
   "عطشان",
+  // Two spellings nobody would invent, both taken from the log: ط→س, and a
+  // transposition. Guessing at typos is overfitting; copying the ones people
+  // actually typed is the opposite — it is the only way a colloquial resolver
+  // meets the words as they arrive rather than as a dictionary imagines them.
   "عطسانه",
+  "عشةانه",
   "بتنشف",
   "تنشف",
   "ينشف",
@@ -1023,8 +1058,65 @@ const CAPABILITY_TERMS = [
  * resolver is added or removed. This one is written from what the resolvers
  * above actually do, so it goes stale only when they do.
  */
+/*
+ * "هل يمكنك إضافة اي معلومة هنا" — asked twice, answered neither time.
+ *
+ * It gets its own answer rather than the capability menu, because it is not
+ * "what can you do" but "can you write into this platform", and the honest
+ * answer is no. A model asked this says yes and offers, which would be a
+ * promise the platform cannot keep and — worse — would suggest the knowledge
+ * base accepts unreviewed text, which is the one thing it must never do.
+ */
+const AUTHORING_TERMS = [
+  "تضيف معلومه",
+  "اضافه اي معلومه",
+  "اضافه معلومه",
+  "تضيف معلومات",
+  "اضافه معلومات",
+].map(normalizeArabic);
+
+/*
+ * "هل المساعد العام يعمل" — someone checking whether the thing is alive at all.
+ * Answering it needs no model, and answering it *with* a model is exactly
+ * backwards: if the model is down, the question goes unanswered precisely when
+ * its answer matters.
+ */
+const LIVENESS_TERMS = ["المساعد يعمل", "المساعد العام يعمل", "المساعد شغال"].map(
+  normalizeArabic,
+);
+
 function resolveCapability(input: LocalAnswerInput): LocalAnswer | null {
   const normalized = normalizeArabic(input.question);
+
+  if (AUTHORING_TERMS.some((t) => normalized.includes(t))) {
+    return {
+      source: "platform",
+      confidence: 1,
+      usedTitles: [],
+      answer:
+        "لا. أنا أقرأ من قاعدة سودجري ولا أكتب فيها، وهذا قيد مقصود لا نقص: " +
+        "كل مُدخل في قاعدة المعرفة يمرّ بمراجعة بشرية ويُنشر بمصدره ودولته " +
+        "المرجعية، ومساعدٌ يضيف نصّاً بنفسه يفتح الباب لمعلومة بلا سند داخل " +
+        "المكان الذي يُفترض أن يكون كل ما فيه موثّقاً.\n\n" +
+        "وإن كانت لديك معلومة أو تصحيح، فأرسلها عبر نموذج الملاحظات — تصل " +
+        "الإدارة وتُراجَع، ثم تُنشر بمصدرها إن صحّت.",
+    };
+  }
+
+  if (LIVENESS_TERMS.some((t) => normalized.includes(t))) {
+    return {
+      source: "platform",
+      confidence: 1,
+      usedTitles: [],
+      answer:
+        "نعم، يعمل — وهذه الإجابة نفسها دليلها: وصلتك من داخل المنصّة بلا " +
+        "نموذج لغوي ولا اتصال خارجي.\n\n" +
+        "حسابات الريّ والمناخ والغلّة والمواعيد تُجاب هكذا دائماً. أمّا " +
+        "الأسئلة النثرية فتحتاج النموذج، وقد ينقطع — وحين ينقطع يظلّ ما سبق " +
+        "يُجاب كاملاً.",
+    };
+  }
+
   if (!CAPABILITY_TERMS.some((t) => normalized.includes(t))) return null;
 
   // A question that names a crop is a question about that crop, however it is

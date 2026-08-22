@@ -505,6 +505,53 @@ console.log("\nماذا يستطيع المساعد:");
   );
 }
 
+/*
+ * The three intents the corpus harvest exposed: each was asked through the live
+ * assistant, and each came back empty. Pinned here at the unit level so the
+ * coverage number in verify-question-corpus has something behind it beyond a
+ * count.
+ */
+console.log("\nما أظهره حصاد السجلّ:");
+{
+  const offer = answerLocally(base("ماهي المشاريع المتاحة عندكم الان"));
+  ok(
+    offer?.source === "platform",
+    "«ماهي المشاريع المتاحة عندكم الان» تُجاب من حالة المنصّة",
+  );
+  ok(
+    offer?.answer.includes("لا توجد") === true,
+    "بالجواب الوحيد الصحيح ما دام لم يُطرح شيء",
+  );
+
+  /*
+   * And the trap that made this resolver worth writing carefully: a named
+   * scheme also contains the word "مشروع", and answering it with "nothing is on
+   * offer" would be a non sequitur to someone asking about a scheme that has
+   * existed for decades.
+   */
+  const named = answerLocally(base("اريد معلومات عن مشروع الجموعية"));
+  ok(
+    named?.source !== "platform",
+    "بينما «مشروع الجموعية» لا تُجاب بـ«لا يوجد معروض» — مشروعٌ قائم لا عرضٌ عندنا",
+  );
+
+  const authoring = answerLocally(base("هل يمكنك إضافة اي معلومة هنا"));
+  ok(
+    authoring !== null && authoring.answer.startsWith("لا."),
+    "«هل يمكنك إضافة اي معلومة» تُجاب بالنفي صراحةً",
+  );
+  ok(
+    authoring?.answer.includes("مراجعة بشرية") === true,
+    "ومع سبب النفي: المراجعة البشرية شرط النشر",
+  );
+
+  const live = answerLocally(base("هل المساعد العام يعمل"));
+  ok(
+    live?.source === "platform",
+    "«هل المساعد العام يعمل» تُجاب بلا نموذج — وهو بيت القصيد",
+  );
+}
+
 console.log(
   `\n${fail === 0 ? "كل الفحوص نجحت" : `${fail} فحص فشل`}\n`,
 );
