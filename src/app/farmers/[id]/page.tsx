@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { CROPS } from "@/lib/agronomy";
 import { computeTrust, type SeasonRecord } from "@/lib/trust";
 
@@ -29,11 +30,26 @@ export default async function FarmerPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  // Both come from security-definer functions that return aggregates only —
-  // a visitor can judge the record without reading the farmer's invoices.
-  const [{ data: profileRows }, { data: seasonRows }] = await Promise.all([
+  /*
+   * The record is read with the service-role client, and the reason is the gap
+   * between what this page shows and what its source returned.
+   *
+   * The page displays a score. `farmer_season_records` returns the numbers the
+   * score is computed FROM — per-season planned budget, actual costs and
+   * revenue. One season's revenue is that farmer's income for that season; it
+   * is not an aggregate that protects anybody. And the function was
+   * SECURITY DEFINER with EXECUTE to PUBLIC, so anyone holding the anon key —
+   * which every browser on this site holds — could call it directly for any
+   * owner id and read the money this page deliberately never prints.
+   *
+   * The intent was always right; the endpoint contradicted it. Reading it
+   * server-side means the figures reach the scoring function and stop there.
+   */
+  const admin = createAdminClient();
+
+  const [{ data: profileRows }, seasonResponse] = await Promise.all([
     supabase.rpc("public_farmer_profile", { p_id: id }),
-    supabase.rpc("farmer_season_records", { p_id: id }),
+    admin ? admin.rpc("farmer_season_records", { p_id: id }) : null,
   ]);
 
   const profile = (
@@ -49,7 +65,21 @@ export default async function FarmerPage({
 
   if (!profile) notFound();
 
-  const seasons = (seasonRows ?? []) as SeasonRow[];
+  /*
+   * Unreadable is not the same as empty, and the page has to say which.
+   *
+   * With no service-role key configured, or with the call failing, an empty
+   * list would render as "this person has recorded no seasons" — a statement
+   * about them — and would feed computeTrust an empty record, which is a
+   * judgement drawn from nothing. Both are worse than saying we could not read
+   * it.
+   */
+  const recordUnavailable = seasonResponse === null || !!seasonResponse.error;
+  if (seasonResponse?.error) {
+    console.error("farmer_season_records: read failed", seasonResponse.error);
+  }
+
+  const seasons = (seasonResponse?.data ?? []) as SeasonRow[];
 
   const records: SeasonRecord[] = seasons.map((s) => ({
     status: s.status,
@@ -82,18 +112,38 @@ export default async function FarmerPage({
 
       <div className="mt-6 rounded-2xl border border-border bg-card p-6">
         <p className="text-xs text-muted">مؤشر الثقة</p>
-        {trust.score === null ? (
-          <p className="mt-1 text-3xl font-black text-muted">—</p>
+        {/*
+          A score is a judgement, and a judgement drawn from a record we failed
+          to read is a judgement drawn from nothing. When the record is
+          unavailable the index says so and stops — it does not fall back to
+          "no history", which reads as a verdict on the person.
+        */}
+        {recordUnavailable ? (
+          <>
+            <p className="mt-1 text-3xl font-black text-muted">—</p>
+            <p className="mt-2 text-sm text-muted">
+              لا يمكن حساب المؤشر قبل قراءة السجلّ. وغياب الرقم هنا لا يعني أن
+              السجلّ خالٍ.
+            </p>
+          </>
         ) : (
-          <p className={`mt-1 text-4xl font-black ${bandTone}`}>
-            {trust.score}
-            <span className="text-lg text-muted">/100</span>
-          </p>
+          <>
+            {trust.score === null ? (
+              <p className="mt-1 text-3xl font-black text-muted">—</p>
+            ) : (
+              <p className={`mt-1 text-4xl font-black ${bandTone}`}>
+                {trust.score}
+                <span className="text-lg text-muted">/100</span>
+              </p>
+            )}
+            <p className={`text-sm font-medium ${bandTone}`}>
+              {trust.bandLabel}
+            </p>
+            <p className="mt-2 text-sm text-muted">{trust.summary}</p>
+          </>
         )}
-        <p className={`text-sm font-medium ${bandTone}`}>{trust.bandLabel}</p>
-        <p className="mt-2 text-sm text-muted">{trust.summary}</p>
 
-        {trust.factors.length > 0 && (
+        {!recordUnavailable && trust.factors.length > 0 && (
           <div className="mt-5 flex flex-col gap-3">
             {trust.factors.map((f) => (
               <div key={f.key}>
@@ -123,8 +173,15 @@ export default async function FarmerPage({
       </div>
 
       <section className="mt-8">
-        <h2 className="mb-4 text-lg font-bold">المواسم ({seasons.length})</h2>
-        {seasons.length === 0 ? (
+        <h2 className="mb-4 text-lg font-bold">
+          المواسم{recordUnavailable ? "" : ` (${seasons.length})`}
+        </h2>
+        {recordUnavailable ? (
+          <p className="rounded-2xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">
+            تعذّر قراءة سجلّ المواسم الآن — <strong>والخلل عندنا</strong>، فلا
+            تقرأ هذا على أنه سجلّ فارغ. أعد المحاولة بعد قليل.
+          </p>
+        ) : seasons.length === 0 ? (
           <p className="rounded-2xl border border-border bg-card p-5 text-sm text-muted">
             لا توجد مواسم مسجّلة لهذا المنفّذ.
           </p>
