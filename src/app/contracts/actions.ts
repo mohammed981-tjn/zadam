@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { planSeason } from "@/lib/season";
 import { buildMilestonePlan, type ServiceKey } from "@/lib/services";
 import type { IrrigationMethod } from "@/lib/agronomy";
+import { evidenceFileExists } from "@/lib/evidenceFile";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -154,7 +155,20 @@ async function createHerdContract(args: {
     );
 
   if (milestoneError) {
-    await supabase.from("service_contracts").delete().eq("id", contractId);
+    await supabase
+      .from("service_contracts")
+      .delete()
+      .eq("id", contractId)
+      .then(({ error: rollbackError }) => {
+        // If the rollback itself fails, an empty contract survives and looks
+        // agreed. Nothing else will notice it, so say so here.
+        if (rollbackError) {
+          console.error("contract rollback failed — orphan left behind", {
+            contractId,
+            rollbackError,
+          });
+        }
+      });
     return { ok: false, message: `تعذّر حفظ المراحل: ${milestoneError.message}` };
   }
 
@@ -334,7 +348,20 @@ export async function createContract(
   if (milestoneError) {
     // A contract with no phases is worse than no contract: it shows a total of
     // zero and looks agreed. Remove it rather than leave that behind.
-    await supabase.from("service_contracts").delete().eq("id", contractId);
+    await supabase
+      .from("service_contracts")
+      .delete()
+      .eq("id", contractId)
+      .then(({ error: rollbackError }) => {
+        // If the rollback itself fails, an empty contract survives and looks
+        // agreed. Nothing else will notice it, so say so here.
+        if (rollbackError) {
+          console.error("contract rollback failed — orphan left behind", {
+            contractId,
+            rollbackError,
+          });
+        }
+      });
     return { ok: false, message: `تعذّر حفظ المراحل: ${milestoneError.message}` };
   }
 
@@ -373,6 +400,15 @@ export async function addMilestoneEvidence(args: {
   }
   if (!args.storagePath.startsWith(`${user.id}/`)) {
     return { ok: false, message: "مسار ملف غير صالح." };
+  }
+
+  // The row must point at a file that is actually there. See lib/evidenceFile
+  // for why a failure to confirm is not treated as a failure to upload.
+  if (!(await evidenceFileExists(supabase, args.storagePath))) {
+    return {
+      ok: false,
+      message: "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+    };
   }
 
   const { sanitisePhotoMetadata } = await import("@/lib/exif");

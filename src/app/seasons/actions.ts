@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { planSeason, type LedgerCategory } from "@/lib/season";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
 import { sanitisePhotoMetadata } from "@/lib/exif";
+import { evidenceFileExists } from "@/lib/evidenceFile";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -114,7 +115,18 @@ export async function createSeason(
 
   if (stagesError) {
     // Do not leave a season with no plan behind.
-    await supabase.from("seasons").delete().eq("id", seasonId);
+    await supabase
+      .from("seasons")
+      .delete()
+      .eq("id", seasonId)
+      .then(({ error: rollbackError }) => {
+        if (rollbackError) {
+          console.error("season rollback failed — orphan left behind", {
+            seasonId,
+            rollbackError,
+          });
+        }
+      });
     return {
       ok: false,
       message: `تعذّر حفظ مراحل الموسم: ${stagesError.message}`,
@@ -154,6 +166,15 @@ export async function addEvidence(args: {
   }
   if (!args.storagePath.startsWith(`${user.id}/`)) {
     return { ok: false, message: "مسار ملف غير صالح." };
+  }
+
+  // The row must point at a file that is actually there. See lib/evidenceFile
+  // for why a failure to confirm is not treated as a failure to upload.
+  if (!(await evidenceFileExists(supabase, args.storagePath))) {
+    return {
+      ok: false,
+      message: "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+    };
   }
 
   const photo = sanitisePhotoMetadata(args.metadata);
@@ -224,13 +245,27 @@ export async function addLedgerEntry(formData: FormData) {
   if (!seasonId || !valid.includes(category)) return;
   if (!Number.isFinite(amount) || amount < 0) return;
 
-  await supabase.from("ledger_entries").insert({
+  /*
+   * A ledger entry that fails silently is the worst of these: the page returns
+   * as though the cost was recorded, and the book is quietly short by one line.
+   * Nothing downstream can detect that later — there is no gap to find.
+   */
+  const { error } = await supabase.from("ledger_entries").insert({
     season_id: seasonId,
     category,
     amount,
     description: str(formData, "description") || null,
     created_by: user.id,
   });
+
+  if (error) {
+    console.error("addLedgerEntry failed", { seasonId, category, error });
+    redirect(
+      `/seasons/${seasonId}?error=${encodeURIComponent(
+        "تعذّر تسجيل القيد. لم يُحفظ شيء — أعد المحاولة.",
+      )}`,
+    );
+  }
 
   revalidatePath(`/seasons/${seasonId}`);
 }
@@ -240,10 +275,22 @@ export async function completeSeason(formData: FormData) {
   const supabase = await createClient();
   const seasonId = str(formData, "season_id");
 
-  await supabase
+  // Closing a season credits the operator's track record, so "did it close?"
+  // has to be answerable. RLS filtering returns no error and no rows.
+  const { data: closed, error } = await supabase
     .from("seasons")
     .update({ status: "completed" })
-    .eq("id", seasonId);
+    .eq("id", seasonId)
+    .select("id");
+
+  if (error || !closed || closed.length === 0) {
+    console.error("completeSeason failed", { seasonId, error });
+    redirect(
+      `/seasons/${seasonId}?error=${encodeURIComponent(
+        "تعذّر إقفال الموسم. تحقق من صلاحيتك ثم أعد المحاولة.",
+      )}`,
+    );
+  }
 
   revalidatePath(`/seasons/${seasonId}`);
   revalidatePath("/seasons");

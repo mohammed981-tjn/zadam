@@ -7,3 +7,25 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+<!-- Content below this line is maintained by hand and is outside the generated block above. -->
+
+# اقرأ لوح التنسيق قبل أن تبدأ
+
+قبل أي عمل على هذا المستودع، اقرأ **[`docs/coordination.md`](docs/coordination.md)**
+وسجّل فيه ما ستعمل عليه. فيه توزيع الأدوار، وجدول «العمل الجاري»، وقسم «رسائل» هو القناة
+بين من يعملون هنا.
+
+وإن كنت تبني ميزة تمسّ العقود أو مقدّمي الخدمة أو المساعد الذكي، اقرأ أيضاً
+**[`docs/handoff-2026-08-20.md`](docs/handoff-2026-08-20.md)** — فحرّاس هذه المناطق
+تغيّروا، وفيه ما يعنيه ذلك عملياً.
+
+المشروع يتحرك بسرعة، وأكثر من طرف يعمل عليه. مراجعة أمنية كاملة ضاعت في 19 أغسطس 2026
+لأنها بُنيت على نسخة عمرها أسبوع، وكانت كل الثغرات التي عالجتها قد عولجت بالفعل.
+
+**تحقق من تأخّر فرعك قبل أن تكتب سطراً:**
+
+```bash
+git fetch origin main && git rev-list --count HEAD..origin/main
+# 0 = محدَّث · رقم كبير = توقّف وأعد بناء فرعك على main أولاً
+```

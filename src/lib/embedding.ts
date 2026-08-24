@@ -219,9 +219,14 @@ function geminiProvider(apiKey: string): EmbeddingProvider {
       // One text goes through the single endpoint; the batch endpoint exists
       // for the backfill and is pointless for a single question.
       if (texts.length === 1) {
-        const res = await fetch(`${endpoint}:embedContent?key=${apiKey}`, {
+        const res = await fetch(`${endpoint}:embedContent`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          // Header rather than ?key=, so the secret never enters a URL that
+          // proxy logs and traces will keep.
+          headers: {
+            "content-type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
           body: JSON.stringify(request(texts[0])),
           signal: AbortSignal.timeout(kind === "query" ? 6000 : 60000),
         });
@@ -237,9 +242,12 @@ function geminiProvider(apiKey: string): EmbeddingProvider {
         return [checkShape(data?.embedding?.values, 0)];
       }
 
-      const res = await fetch(`${endpoint}:batchEmbedContents?key=${apiKey}`, {
+      const res = await fetch(`${endpoint}:batchEmbedContents`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
         body: JSON.stringify({ requests: texts.map(request) }),
         signal: AbortSignal.timeout(60000),
       });

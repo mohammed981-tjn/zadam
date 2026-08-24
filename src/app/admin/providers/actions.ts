@@ -2,9 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/adminGuard";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
+
+/**
+ * The guard triggers on this table raise with SQLSTATE P0001 and Arabic text
+ * written for the person reading it — "توثيق مقدّم الخدمة من صلاحية الإدارة
+ * وحدها" — so those are worth showing as-is.
+ *
+ * Everything else arriving here is a constraint name, a type error or an RLS
+ * refusal, which describes the schema to whoever asked. Those get a fixed
+ * string and the detail goes to the log.
+ */
+function providerError(error: { code?: string; message: string }) {
+  if (error.code === "P0001") return error.message;
+  console.error("provider action failed", error);
+  return "تعذّر تنفيذ العملية. حاول مرة أخرى.";
+}
 
 /**
  * Verifying a provider — the one act that puts it into the catalogue.
@@ -23,22 +38,30 @@ const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
  * whoever sends the form.
  */
 export async function verifyProvider(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
   const id = str(formData, "provider_id");
   if (!id) redirect("/admin/providers");
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("service_providers")
     .update({ verified_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
 
   revalidatePath("/admin/providers");
   revalidatePath("/services");
 
   if (error) {
-    // The trigger's message is written for a person and names the missing
-    // permission, so it is passed through rather than replaced.
-    redirect(`/admin/providers?error=${encodeURIComponent(error.message)}`);
+    redirect(`/admin/providers?error=${encodeURIComponent(providerError(error))}`);
+  }
+
+  if (!data || data.length === 0) {
+    console.error("verifyProvider: no row updated", { id });
+    redirect(
+      `/admin/providers?error=${encodeURIComponent(
+        "لم يتغيّر شيء — الجهة غير موجودة أو لا تملك صلاحية توثيقها.",
+      )}`,
+    );
   }
 
   redirect(
@@ -57,20 +80,30 @@ export async function verifyProvider(formData: FormData) {
  * stays readable by both of its parties.
  */
 export async function unverifyProvider(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
   const id = str(formData, "provider_id");
   if (!id) redirect("/admin/providers");
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("service_providers")
     .update({ verified_at: null, verified_by: null })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
 
   revalidatePath("/admin/providers");
   revalidatePath("/services");
 
   if (error) {
-    redirect(`/admin/providers?error=${encodeURIComponent(error.message)}`);
+    redirect(`/admin/providers?error=${encodeURIComponent(providerError(error))}`);
+  }
+
+  if (!data || data.length === 0) {
+    console.error("unverifyProvider: no row updated", { id });
+    redirect(
+      `/admin/providers?error=${encodeURIComponent(
+        "لم يتغيّر شيء — الجهة غير موجودة أو لا تملك صلاحية تعديلها.",
+      )}`,
+    );
   }
 
   redirect(
@@ -90,21 +123,31 @@ export async function unverifyProvider(formData: FormData) {
  * its verification being erased.
  */
 export async function setProviderActive(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
   const id = str(formData, "provider_id");
   const active = str(formData, "active") === "true";
   if (!id) redirect("/admin/providers");
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("service_providers")
     .update({ active })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
 
   revalidatePath("/admin/providers");
   revalidatePath("/services");
 
   if (error) {
-    redirect(`/admin/providers?error=${encodeURIComponent(error.message)}`);
+    redirect(`/admin/providers?error=${encodeURIComponent(providerError(error))}`);
+  }
+
+  if (!data || data.length === 0) {
+    console.error("setProviderActive: no row updated", { id, active });
+    redirect(
+      `/admin/providers?error=${encodeURIComponent(
+        "لم يتغيّر شيء — الجهة غير موجودة أو لا تملك صلاحية تعديلها.",
+      )}`,
+    );
   }
 
   redirect(
