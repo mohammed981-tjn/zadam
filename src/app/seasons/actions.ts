@@ -295,3 +295,43 @@ export async function completeSeason(formData: FormData) {
   revalidatePath(`/seasons/${seasonId}`);
   revalidatePath("/seasons");
 }
+
+/**
+ * نشر السجلّ أو إخفاؤه — بيد صاحبه وحده.
+ *
+ * The flag defaults to false, so this is the only path by which a record
+ * becomes public. It writes the caller's own row and nothing else: the id comes
+ * from the session, never from the form, because a provider id read off a
+ * submitted field is a provider id an attacker can change.
+ */
+export async function setPublishRecord(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const publish = str(formData, "publish") === "true";
+
+  // RLS refusal is not an error and returns no rows, so "did it change?" has to
+  // be read off the returned rows. Telling someone their record is now private
+  // when the update was filtered out would be the worst possible false report
+  // on this particular switch.
+  const { data: updated, error } = await supabase
+    .from("profiles")
+    .update({ publish_record: publish })
+    .eq("id", user.id)
+    .select("id");
+
+  if (error || !updated || updated.length === 0) {
+    console.error("setPublishRecord failed", { userId: user.id, error });
+    redirect(
+      `/seasons?error=${encodeURIComponent(
+        "تعذّر حفظ التغيير. حالة سجلّك لم تتغيّر — أعد المحاولة.",
+      )}`,
+    );
+  }
+
+  revalidatePath("/seasons");
+  revalidatePath(`/farmers/${user.id}`);
+}
