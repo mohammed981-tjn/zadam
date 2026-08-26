@@ -233,7 +233,7 @@ console.log();
  * Raise this number when the resolvers improve.  Never lower it to make a build
  * pass; lowering it is the bug.
  */
-const WEIGHTED_FLOOR = 74;
+const WEIGHTED_FLOOR = 78;
 const weighted = (100 * answeredAsks) / asked;
 ok(
   weighted >= WEIGHTED_FLOOR,

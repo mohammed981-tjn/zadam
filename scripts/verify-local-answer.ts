@@ -677,6 +677,80 @@ console.log("\nما أظهره حصاد السجلّ:");
   );
 }
 
+/*
+ * The comparison the harvest asked for, and the three ways it must not fire.
+ */
+console.log("\nالسودان مقابل مصر:");
+{
+  const withMarket = (q: string): LocalAnswerInput => ({
+    ...base(q),
+    market: [
+      {
+        item: "Sorghum",
+        year: 2024,
+        sudan_kg_ha: 632.7,
+        egypt_kg_ha: 5200,
+        peer_median_kg_ha: 2783.4,
+        sudan_export_usd_per_tonne: 357.8,
+        regional_producer_usd_per_tonne: 321.1,
+      },
+      {
+        item: "Wheat",
+        year: 2024,
+        sudan_kg_ha: 3146.5,
+        egypt_kg_ha: 6777.7,
+        peer_median_kg_ha: 3069.3,
+        sudan_export_usd_per_tonne: null,
+        regional_producer_usd_per_tonne: 404.8,
+      },
+      {
+        item: "Sesame seed",
+        year: 2024,
+        sudan_kg_ha: 279.2,
+        egypt_kg_ha: 965.5,
+        peer_median_kg_ha: 840.8,
+        sudan_export_usd_per_tonne: 1611.5,
+        regional_producer_usd_per_tonne: 324.3,
+      },
+    ],
+  });
+
+  const egypt = answerLocally(withMarket("هل هناك معلومات عن الزراعة في مصر"));
+  ok(egypt !== null, "«الزراعة في مصر» تُجاب — سُئلت مرتين ولم تُجَب مرة");
+  ok(
+    egypt?.answer.includes("5,200") === true,
+    "بأرقام مقيسة من FAOSTAT لا بوصف عام",
+  );
+  ok(
+    (egypt?.answer.indexOf("ذرة رفيعة") ?? -1) <
+      (egypt?.answer.indexOf("قمح") ?? -1),
+    "والمحصول الأوسع فارقاً أولاً، لا ترتيباً عشوائياً",
+  );
+  ok(
+    egypt?.answer.includes("مطرياً") === true,
+    "ومع سبب الفارق: نظام إنتاج لا خصوبة تربة",
+  );
+
+  /*
+   * Substituting Egypt for another country is the same failure as answering
+   * Nyala with Khartoum's climate — and that one reached production.
+   */
+  ok(
+    answerLocally(withMarket("ماهي الزراعة في اثيوبيا")) === null,
+    "وسؤالٌ عن إثيوبيا لا يُجاب بأرقام مصر",
+  );
+
+  ok(
+    answerLocally(withMarket("كم غلة القمح في مصر"))?.source === "market",
+    "وسؤالٌ يسمّي محصولاً يذهب لمُجيب السوق لا للجدول العام",
+  );
+
+  ok(
+    answerLocally(base("هل هناك معلومات عن الزراعة في مصر")) === null,
+    "وبلا صفوف سوق يقف المُجيب بدل أن يطبع جدولاً فارغاً",
+  );
+}
+
 console.log(
   `\n${fail === 0 ? "كل الفحوص نجحت" : `${fail} فحص فشل`}\n`,
 );

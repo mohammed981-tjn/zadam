@@ -1101,6 +1101,122 @@ function resolveSoilWater(input: LocalAnswerInput): LocalAnswer | null {
 }
 
 /* ------------------------------------------------------------------ *
+ * 8b. Sudan against a reference country
+ * ------------------------------------------------------------------ */
+
+/**
+ * «هل هناك معلومات عن الزراعة في مصر» — سُئل مرتين، ولم يُجَب مرة.
+ *
+ * The harvest of the logged questions named this one twice, and the platform
+ * has held the answer the whole time: `crop_market` carries Egypt's yield
+ * beside Sudan's for forty crops. Not an opinion about Egyptian agriculture —
+ * the measured gap, crop by crop.
+ *
+ * EGYPT ONLY, AND THAT IS DELIBERATE
+ *
+ * The observations table holds yields for twenty-eight countries, and a general
+ * resolver across all of them would need its own query and its own view. Egypt
+ * is already loaded on every request because the market resolver needs it, so
+ * this one costs nothing — and the twenty-seven others are questions nobody has
+ * asked. Building for them would be the guessing this whole exercise replaced.
+ *
+ * Naming another country stands down rather than substituting Egypt, because
+ * answering a question about Ethiopia with Egypt's numbers is the same failure
+ * as answering Nyala with Khartoum's climate.
+ */
+const COUNTRY_QUERY_TERMS = ["زراعه", "زراعي", "غله", "انتاج", "محاصيل", "فلاحه"].map(
+  normalizeArabic,
+);
+
+const EGYPT_TERMS = ["مصر", "المصريه", "المصري"].map(normalizeArabic);
+
+/**
+ * Countries the platform holds prose about but cannot compare numerically here.
+ * Named so the resolver stands down for them instead of answering with Egypt.
+ */
+const OTHER_COUNTRY_TERMS = [
+  "الهند",
+  "الصين",
+  "اثيوبيا",
+  "النيجر",
+  "العراق",
+  "المغرب",
+  "تونس",
+  "الجزائر",
+  "السعوديه",
+  "الامارات",
+  "اسرائيل",
+  "امريكا",
+  "استراليا",
+  "البرازيل",
+].map(normalizeArabic);
+
+function resolveCountryComparison(input: LocalAnswerInput): LocalAnswer | null {
+  const rows = input.market ?? [];
+  if (rows.length === 0) return null;
+
+  const normalized = normalizeArabic(input.question);
+
+  // Another country named means this is not our comparison to make.
+  if (OTHER_COUNTRY_TERMS.some((t) => normalized.includes(t))) return null;
+  if (!EGYPT_TERMS.some((t) => normalized.includes(t))) return null;
+  if (!COUNTRY_QUERY_TERMS.some((t) => normalized.includes(t))) return null;
+
+  /*
+   * A named crop belongs to the market resolver, which answers that crop
+   * precisely. Reaching here with one would mean the market resolver stood
+   * down — and a country-wide table is not the repair for that.
+   */
+  if (findByAlias<CropCoefficients>(normalized, CROPS, CROP_ALIASES)) return null;
+
+  // Driven by the crops the platform actually models, so the table never lists
+  // a crop the reader cannot then go and compute.
+  const compared: { name: string; sudan: number; egypt: number }[] = [];
+  for (const crop of CROPS) {
+    const item = FAOSTAT_ITEM[crop.key];
+    if (!item) continue;
+    const row = rows.find((r) => r.item === item);
+    if (!row) continue;
+    const sudan = num(row.sudan_kg_ha);
+    const egypt = num(row.egypt_kg_ha);
+    if (sudan === null || egypt === null || sudan <= 0) continue;
+    compared.push({ name: crop.name, sudan, egypt });
+  }
+
+  if (compared.length < 3) return null;
+
+  // Widest gap first: the question is about the difference, so the crops that
+  // carry it should not be buried under the ones that do not.
+  compared.sort((a, b) => b.egypt / b.sudan - a.egypt / a.sudan);
+
+  const year = rows.find((r) => r.year)?.year;
+
+  return {
+    source: "market",
+    confidence: 1,
+    usedTitles: [],
+    answer: [
+      `ما تملكه سودجري عن مصر رقمٌ لا رأي: غلّة ${compared.length} محاصيل ` +
+        `مقيسة من FAOSTAT${year ? ` (${year})` : ""}، إلى جانب غلّة السودان.`,
+      "",
+      ...compared.map(
+        (c) =>
+          `${c.name}: السودان ${formatNumber(c.sudan)} — مصر ${formatNumber(
+            c.egypt,
+          )} كجم/هكتار (×${(c.egypt / c.sudan).toFixed(1)})`,
+      ),
+      "",
+      "والفارق ليس خصوبة أرض: مصر تروي بالكامل وتزرع أصنافاً محسّنة وتسمّد " +
+        "بكثافة، والسودان يزرع أغلب حبوبه مطرياً. فالرقم يقيس نظام إنتاج لا " +
+        "تربة.",
+      "",
+      "وهذه غلّة فقط. أمّا تجارب مصر نفسها — توشكى واستصلاح الأراضي — ففي " +
+        "قاعدة المعرفة، واسألني عن أيٍّ منها بالاسم.",
+    ].join("\n"),
+  };
+}
+
+/* ------------------------------------------------------------------ *
  * 9. What the assistant can actually do
  * ------------------------------------------------------------------ */
 
@@ -1340,6 +1456,19 @@ export function answerLocally(input: LocalAnswerInput): LocalAnswer | null {
   if (knowledge && knowledge.confidence >= KB_OVERRIDE_CONFIDENCE) {
     return knowledge;
   }
+
+  /*
+   * The country comparison sits BELOW the knowledge base, unlike every other
+   * resolver here, and the position is the point.
+   *
+   * "هل هناك معلومات عن الزراعة في مصر" is a prose question, and the base holds
+   * curated entries on exactly that — Toshka, land reclamation. When one of
+   * them matches strongly it is the better answer, and a yield table would be a
+   * worse one dressed as precision. This catches only what the base drops,
+   * which in the log was both times it was asked.
+   */
+  const comparison = resolveCountryComparison(input);
+  if (comparison) return comparison;
 
   return resolvePlatform(input) ?? knowledge;
 }
