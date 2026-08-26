@@ -21,6 +21,11 @@ export interface Profile {
   role: UserRole;
   phone: string | null;
   country: string | null;
+  /**
+   * Whether this person's season history is visible to anyone holding their
+   * profile link. Defaults to false; only the owner can change it.
+   */
+  publish_record: boolean;
   created_at: string;
 }
 

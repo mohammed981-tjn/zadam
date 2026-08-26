@@ -2,11 +2,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CROPS } from "@/lib/agronomy";
+import PublishRecordToggle from "@/components/PublishRecordToggle";
 import type { Season } from "@/types/database";
 
 export const metadata = { title: "مواسمي | سودجري" };
 
-export default async function SeasonsPage() {
+export default async function SeasonsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: errorMessage } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,6 +42,16 @@ export default async function SeasonsPage() {
           موسم جديد
         </Link>
       </div>
+
+      {errorMessage && (
+        <p className="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm">
+          {errorMessage}
+        </p>
+      )}
+
+      {/* Placed above the list on purpose: the choice is made while looking at
+          exactly what it would publish. */}
+      <PublishRecordToggle seasonCount={seasons.length} />
 
       {seasons.length === 0 ? (
         <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted">
