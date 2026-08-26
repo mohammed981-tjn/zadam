@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
+import { alertRecipients, sendEmail } from "@/lib/email";
 
 /**
  * Receiving a visitor's contact details.
@@ -118,6 +119,47 @@ export async function POST(req: NextRequest) {
         { ok: false, message: "تعذّر حفظ بياناتك الآن، حاول مرة أخرى." },
         { status: 500 },
       );
+    }
+
+    /*
+     * The lead is saved. Everything below is the second-best copy.
+     *
+     * The in-app notification already fired from a trigger, and an
+     * administrator sees it whenever they next open the site — which may be
+     * days. This visitor left a phone number and expects to be called, so the
+     * whole value of a lead is how fast it is answered.
+     *
+     * Awaited rather than fired and forgotten: a serverless function that has
+     * returned may be frozen before a dangling promise ever resolves.
+     *
+     * And it cannot change the answer the visitor gets. Their details are
+     * recorded; telling them otherwise because our mail provider is down would
+     * be a statement about us dressed up as a statement about them.
+     */
+    const recipients = alertRecipients();
+    if (recipients.length > 0) {
+      const outcome = await sendEmail({
+        to: recipients,
+        subject: `سودجري — طلب تواصل جديد: ${capped.full_name}`,
+        // The contact goes in the body rather than only in reply-to, because it
+        // is as likely to be a phone number as an address.
+        text: [
+          `الاسم: ${capped.full_name}`,
+          `وسيلة التواصل: ${capped.contact}`,
+          `الصفة: ${capped.role}`,
+          capped.interest ? `الاهتمام: ${capped.interest}` : null,
+          "",
+          "وصل عبر نموذج التواصل في سودجري.",
+        ]
+          .filter((line) => line !== null)
+          .join("\n"),
+      });
+
+      if (!outcome.sent) {
+        // Logged loudly: the row is in the database either way, and a lead
+        // sitting unread is precisely the failure this alert exists to prevent.
+        console.error("leads: alert email not sent", outcome);
+      }
     }
 
     return NextResponse.json({
