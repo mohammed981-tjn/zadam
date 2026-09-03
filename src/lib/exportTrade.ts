@@ -39,10 +39,11 @@ const EC_EBA: Source = {
   label: "المفوضية الأوروبية — «كل شيء عدا السلاح»",
   url: "https://trade.ec.europa.eu/access-to-markets/en/content/everything-arms-eba",
 };
-const EC_GSP_2027: Source = {
-  label: "المفوضية الأوروبية — لائحة الأفضليات الجديدة، سارية 2027",
-  url: "https://policy.trade.ec.europa.eu/news/new-generalised-scheme-preferences-approved-application-2027-2026-04-28_en",
-};
+// A source for the 2027 GSP regulation stood here, cited by nothing. Removed
+// rather than kept for a fact someone might one day assert: a source without a
+// claim is clutter, and the reverse — a claim without a source — is what this
+// file exists to prevent. When the new arrangement has something to say about
+// Sudan's access, it comes back with the sentence it supports.
 const EC_ORIGIN: Source = {
   label: "الاتحاد الأوروبي — الضرائب والجمارك: إثبات المنشأ",
   url: "https://taxation-customs.ec.europa.eu/customs/rules-origin-goods/preferential-rules-origin/proof-origin_en",

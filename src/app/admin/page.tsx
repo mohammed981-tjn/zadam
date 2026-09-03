@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatUsd, statusLabel } from "@/lib/format";
+import { activeProvider } from "@/lib/embedding";
+import { countStale } from "@/lib/backfillEmbeddings";
+import EmbeddingBackfill from "@/components/EmbeddingBackfill";
 import type { Project } from "@/types/database";
 
 export default async function AdminPage() {
@@ -40,6 +43,23 @@ export default async function AdminPage() {
   } | null;
   const problems = check?.details?.problems ?? [];
   const scheduleStalled = check?.stale === true;
+
+  /*
+   * How many knowledge entries are waiting for a vector.
+   *
+   * Counted with the engine's own rule rather than a filter written here, and
+   * counted at all only when a provider is configured: without one there is no
+   * model to be stale against, and every row would count as pending against a
+   * button that could not do anything about it.
+   *
+   * A failed count returns null and the panel stays hidden. That is deliberate
+   * — the panel exists to report a number, and showing zero when the count did
+   * not run would report the opposite of the truth.
+   */
+  const embeddingProvider = activeProvider();
+  const pendingEmbeddings = embeddingProvider
+    ? await countStale(supabase, embeddingProvider.model)
+    : null;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -126,6 +146,10 @@ export default async function AdminPage() {
           </ul>
         )}
       </section>
+
+      {pendingEmbeddings !== null && (
+        <EmbeddingBackfill initialPending={pendingEmbeddings} />
+      )}
 
       {!projects || projects.length === 0 ? (
         <p className="text-sm text-muted">لا توجد مشاريع بعد.</p>

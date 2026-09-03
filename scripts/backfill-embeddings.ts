@@ -18,26 +18,24 @@
  * --force re-embeds everything, which is what a change to EMBEDDING_DIMENSIONS
  * or entryEmbeddingText() requires: vectors built from different text are not
  * comparable, and mixing them degrades every ranking rather than failing.
+ *
+ * THERE IS ALSO A BUTTON
+ *
+ * /admin does this without a terminal, for an operator who has a phone and no
+ * checkout. Both press the same engine — `src/lib/backfillEmbeddings.ts` — so
+ * neither can hold its own opinion about which rows are stale. The difference
+ * is only how much work each does at once: this script runs to the end, the
+ * button does one batch per press because a serverless request has a wall
+ * clock this does not.
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { activeProvider, entryEmbeddingText } from "../src/lib/embedding";
-
-interface Row {
-  id: string;
-  crop: string;
-  topic: string;
-  title: string;
-  content: string;
-  embedding_model: string | null;
-  embedding: unknown;
-}
-
-/**
- * Small enough that one failure re-costs little, large enough that a base this
- * size takes a handful of round trips rather than a hundred.
- */
-const BATCH_SIZE = 20;
+import { activeProvider } from "../src/lib/embedding";
+import {
+  backfillEmbeddings,
+  isStale,
+  type KnowledgeRowForEmbedding,
+} from "../src/lib/backfillEmbeddings";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -72,90 +70,49 @@ async function main() {
     auth: { persistSession: false },
   });
 
-  const { data, error } = await supabase
-    .from("knowledge_entries")
-    .select("id, crop, topic, title, content, embedding_model, embedding");
-
-  if (error) {
-    console.error("Could not read knowledge_entries:", error.message);
-    process.exit(1);
-  }
-
-  const rows = (data ?? []) as Row[];
-
-  // A row is stale when it has no vector at all, or when the vector came from
-  // another model. Both are invisible at query time — the first ranks nowhere,
-  // the second is filtered out by match_knowledge_entries — so both are
-  // refreshed.
-  const pending = force
-    ? rows
-    : rows.filter(
-        (r) => r.embedding === null || r.embedding_model !== provider.model,
-      );
-
-  console.log(`${rows.length} entries, ${pending.length} to embed.`);
-  if (pending.length === 0) {
-    console.log("Nothing to do.");
-    return;
-  }
-
+  // --dry-run wants the titles, which the engine does not return: it reports
+  // counts because that is what a button can show. Listing them is this
+  // script's own affair, and it reuses the engine's staleness rule rather than
+  // restating it.
   if (dryRun) {
+    const { data, error } = await supabase
+      .from("knowledge_entries")
+      .select("id, crop, topic, title, content, embedding_model, embedding");
+
+    if (error) {
+      console.error("Could not read knowledge_entries:", error.message);
+      process.exit(1);
+    }
+
+    const rows = (data ?? []) as KnowledgeRowForEmbedding[];
+    const pending = force
+      ? rows
+      : rows.filter((r) => isStale(r, provider.model));
+
+    console.log(`${rows.length} entries, ${pending.length} to embed.`);
     for (const row of pending) {
       console.log(`  would embed: ${row.title} (was ${row.embedding_model ?? "none"})`);
     }
     return;
   }
 
-  let done = 0;
-  let failed = 0;
+  const outcome = await backfillEmbeddings({
+    supabase,
+    provider,
+    force,
+    onProgress: (done, total) => console.log(`  ${done}/${total}`),
+  });
 
-  for (let i = 0; i < pending.length; i += BATCH_SIZE) {
-    const batch = pending.slice(i, i + BATCH_SIZE);
-
-    let vectors: number[][];
-    try {
-      vectors = await provider.embed(
-        batch.map(entryEmbeddingText),
-        "document",
-      );
-    } catch (err) {
-      // Report and continue: one bad batch should not cost the ones after it,
-      // and a partial backfill is resumable by re-running.
-      console.error(
-        `  batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`,
-        err instanceof Error ? err.message : err,
-      );
-      failed += batch.length;
-      continue;
-    }
-
-    const results = await Promise.all(
-      batch.map((row, j) =>
-        supabase
-          .from("knowledge_entries")
-          .update({
-            embedding: JSON.stringify(vectors[j]),
-            embedding_model: provider.model,
-            embedding_updated_at: new Date().toISOString(),
-          })
-          .eq("id", row.id),
-      ),
-    );
-
-    results.forEach((res, j) => {
-      if (res.error) {
-        console.error(`  ${batch[j].title}: ${res.error.message}`);
-        failed++;
-      } else {
-        done++;
-      }
-    });
-
-    console.log(`  ${done + failed}/${pending.length}`);
+  console.log(`${outcome.scanned} entries, ${outcome.pending} to embed.`);
+  if (outcome.pending === 0) {
+    console.log("Nothing to do.");
+    return;
   }
 
-  console.log(`\nEmbedded ${done}, failed ${failed}.`);
-  if (failed > 0) process.exit(1);
+  for (const problem of outcome.problems) console.error(`  ${problem}`);
+
+  console.log(`\nEmbedded ${outcome.embedded}, failed ${outcome.failed}.`);
+  if (outcome.failed > 0) process.exit(1);
 }
 
 main().catch((err) => {

@@ -78,6 +78,7 @@ export default async function Navbar() {
         { href: "/seasons", label: "مواسمي" },
         { href: "/herds", label: "دورات الإنتاج الحيواني" },
         { href: "/opportunities/new", label: "ارفع فرصة" },
+        { href: "/export/offers", label: "عروضي للتصدير" },
       ],
     });
     groups.push({
@@ -96,6 +97,7 @@ export default async function Navbar() {
     items: [
       { href: "/arc-canal", label: "القناة القوسية" },
       { href: "/export", label: "ممرّ الصادر السوداني" },
+      { href: "/export/market", label: "عروض التصدير المنشورة" },
     ],
   });
 
@@ -116,6 +118,7 @@ export default async function Navbar() {
         { href: "/admin", label: "لوحة المشاريع" },
         { href: "/admin/review", label: "مراجعة الفرص" },
         { href: "/admin/analytics", label: "التحليلات" },
+        { href: "/admin/export", label: "مراجعة الصادر" },
         { href: "/admin/providers", label: "توثيق مقدّمي الخدمة" },
         { href: "/admin/feedback", label: "ملاحظات الزوّار" },
         { href: "/admin/leads", label: "العملاء المحتملون" },
