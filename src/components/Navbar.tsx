@@ -97,6 +97,7 @@ export default async function Navbar() {
     items: [
       { href: "/arc-canal", label: "القناة القوسية" },
       { href: "/export", label: "ممرّ الصادر السوداني" },
+      { href: "/export/market", label: "عروض التصدير المنشورة" },
     ],
   });
 
