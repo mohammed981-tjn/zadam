@@ -93,7 +93,10 @@ export default async function Navbar() {
   groups.push({
     title: "مشاريع ودراسات",
     hint: "قراءات في أرقام المشاريع الكبرى",
-    items: [{ href: "/arc-canal", label: "القناة القوسية" }],
+    items: [
+      { href: "/arc-canal", label: "القناة القوسية" },
+      { href: "/export", label: "ممرّ الصادر السوداني" },
+    ],
   });
 
   groups.push({
