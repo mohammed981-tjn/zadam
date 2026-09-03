@@ -141,12 +141,33 @@ export interface SeasonStage {
   note: string | null;
 }
 
+/**
+ * Stage evidence, as the table actually is.
+ *
+ * This interface used to declare `url` — a column that does not exist — and to
+ * omit `storage_path`, `captured_at`, `latitude` and `longitude`, which do and
+ * which `addStageEvidence` writes on every upload.
+ *
+ * It was wrong in both directions at once, and `seasons/[id]/page.tsx` reads
+ * `select("*")` then casts the rows to this type, so the cast laundered the
+ * mistake: `evidence.url` type-checked while being `undefined` at runtime, and
+ * the coordinates that make a photo evidence rather than a picture were
+ * invisible to anyone reading the type.
+ *
+ * Latent rather than live — nothing reads `.url` today. But it is the kind of
+ * defect that stays harmless until someone trusts the type, and the coordinates
+ * are exactly what the export offer needs to carry.
+ */
 export interface StageEvidence {
   id: string;
   stage_id: string;
   kind: "photo" | "invoice" | "inspection" | "note";
-  url: string | null;
+  storage_path: string | null;
   caption: string | null;
+  /** Read from the photo's EXIF before compression re-encodes it away. */
+  captured_at: string | null;
+  latitude: number | null;
+  longitude: number | null;
   created_by: string | null;
   created_at: string;
 }
