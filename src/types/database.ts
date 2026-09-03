@@ -632,3 +632,127 @@ export interface Feedback {
   published: boolean;
   created_at: string;
 }
+
+/* ==========================================================================
+ * ممرّ الصادر — 20260903170000_export_offers.sql
+ * ========================================================================== */
+
+export interface ExportUom {
+  code: string;
+  name_ar: string;
+  kind: "mass" | "count" | "volume";
+  to_base: number;
+}
+
+export interface ExportCommodity {
+  id: string;
+  code: string;
+  name_ar: string;
+  hs_code: string | null;
+  /**
+   * The unit an offer gets when it names none — filled by a trigger, not by
+   * the screen. Deliberately a default and not a rule: the owner asked that a
+   * flock be sellable by head or by delivered weight without a release, so an
+   * offer may override this.
+   */
+  default_uom_code: string;
+  active: boolean;
+  created_at: string;
+}
+
+export interface ExportCommodityGrade {
+  id: string;
+  commodity_id: string;
+  code: string;
+  name_ar: string;
+}
+
+export interface ExportDestination {
+  id: string;
+  code: string;
+  name_ar: string;
+  active: boolean;
+}
+
+/** A commodity and a destination whose requirements someone has actually studied. */
+export interface ExportCorridor {
+  id: string;
+  commodity_id: string;
+  destination_id: string;
+  active: boolean;
+}
+
+export interface ExportOffer {
+  id: string;
+  reference: string;
+  owner_id: string;
+  season_id: string | null;
+  corridor_id: string;
+  grade_id: string | null;
+  /** Comes back from PostgREST as a decimal string — `numeric` is not a JS number. */
+  quantity: string;
+  uom_code: string;
+  unit_price_minor: number;
+  currency_code: string;
+  value_minor: number;
+  status: "draft" | "submitted" | "published" | "rejected" | "withdrawn";
+  shipment_date: string | null;
+  requirements_frozen_at: string | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  /** Never null on a rejected row: the constraint requires ten characters. */
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExportOfferOrigin {
+  id: string;
+  offer_id: string;
+  plot_ref: string;
+  area_hectares: string | null;
+  latitude: string;
+  longitude: string;
+  /** GeoJSON. Required at four hectares and above — the constraint sees to it. */
+  boundary: unknown | null;
+}
+
+export interface ExportOfferCustody {
+  id: number;
+  offer_id: string;
+  sequence: number;
+  occurred_at: string;
+  place_name: string;
+  latitude: string | null;
+  longitude: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface ExportOfferEvidence {
+  id: string;
+  offer_id: string;
+  kind: string;
+  captured_at: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  storage_path: string;
+  sha256: string | null;
+  created_at: string;
+}
+
+/**
+ * Written only by `export_offer_transition`, which runs SECURITY DEFINER and is
+ * the sole writer: the table grants no write policy to anyone, including
+ * administrators. A log its subject can write is a log its subject can forge.
+ */
+export interface ExportOfferEvent {
+  id: number;
+  offer_id: string;
+  from_status: string | null;
+  to_status: string;
+  actor_id: string | null;
+  reason: string | null;
+  occurred_at: string;
+}
