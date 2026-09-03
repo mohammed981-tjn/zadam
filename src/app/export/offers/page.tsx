@@ -144,6 +144,13 @@ export default async function ExportOffersPage() {
                 </p>
               )}
 
+              <Link
+                href={`/export/offers/${o.id}`}
+                className="mt-2 inline-block text-sm text-primary underline"
+              >
+                الأدلّة وسلسلة العهدة ←
+              </Link>
+
               <ExportOfferActions offerId={o.id} status={o.status} />
             </li>
           ))}

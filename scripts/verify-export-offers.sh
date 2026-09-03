@@ -34,6 +34,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATION="$ROOT/supabase/migrations/20260903170000_export_offers.sql"
+FREEZE="$ROOT/supabase/migrations/20260903190000_export_freeze_requirements.sql"
 CHECKS="$ROOT/scripts/verify-export-offers.sql"
 
 PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
@@ -89,8 +90,9 @@ SQL
 chmod 644 "$DATADIR/stubs.sql"
 
 cp "$MIGRATION" "$DATADIR/migration.sql"
+cp "$FREEZE"    "$DATADIR/freeze.sql"
 cp "$CHECKS"    "$DATADIR/checks.sql"
-chmod 644 "$DATADIR/migration.sql" "$DATADIR/checks.sql"
+chmod 644 "$DATADIR/migration.sql" "$DATADIR/freeze.sql" "$DATADIR/checks.sql"
 
 echo "── الأساس"
 su postgres -c "$PSQL -q -f $DATADIR/stubs.sql"
@@ -101,8 +103,12 @@ su postgres -c "$PSQL -q -f $DATADIR/migration.sql" 2>&1 | grep -v 'NOTICE' || t
 # Applying twice is not a nicety: a migration that cannot be re-run cannot be
 # recovered after a partial failure, and this one is full of CREATE POLICY,
 # which has no IF NOT EXISTS in PostgreSQL.
-echo "── والهجرةُ ثانيةً — إعادةُ التطبيق لا تكسر"
+echo "── تجميدُ المتطلّبات"
+su postgres -c "$PSQL -q -f $DATADIR/freeze.sql" 2>&1 | grep -v 'NOTICE' || true
+
+echo "── والهجرتان ثانيةً — إعادةُ التطبيق لا تكسر"
 su postgres -c "$PSQL -q -f $DATADIR/migration.sql" 2>&1 | grep -v 'NOTICE' || true
+su postgres -c "$PSQL -q -f $DATADIR/freeze.sql" 2>&1 | grep -v 'NOTICE' || true
 
 echo "── الحرّاس"
 su postgres -c "$PSQL -f $DATADIR/checks.sql" 2>&1 | sed -e 's/^psql:[^ ]* //' -e 's/^NOTICE:  //'

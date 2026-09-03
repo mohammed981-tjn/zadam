@@ -188,7 +188,21 @@ create table if not exists export_offer_requirements (
   offer_id              uuid not null references export_offers(id) on delete cascade,
   document_type_id      uuid not null references export_document_types(id),
   mode                  text not null,
-  source_requirement_id uuid references export_corridor_requirements(id),
+  -- `on delete set null` وهو الفرقُ بين نسخةٍ مجمَّدة ومؤشّرٍ إلى الحيّ.
+  --
+  -- Without it the reference defaults to NO ACTION, and the frozen copy then
+  -- *blocks* deletion of the very rule it copied: an administrator retiring an
+  -- obsolete requirement is refused because a two-year-old offer points at it.
+  -- Which turns freezing inside out — the copy was supposed to survive the
+  -- rule's retirement, not prevent it.
+  --
+  -- Found by the gate, not by reading: the check that deletes a corridor rule
+  -- and asserts the frozen rows survive failed on a foreign key.
+  --
+  -- The link is provenance, not data. Everything the frozen row needs —
+  -- document type, mode, the moment it was frozen — it already holds.
+  source_requirement_id uuid references export_corridor_requirements(id)
+                          on delete set null,
   frozen_at             timestamptz not null default now(),
   unique (offer_id, document_type_id)
 );

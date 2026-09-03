@@ -30,6 +30,13 @@ interface EvidenceRow {
   sha256: string | null;
 }
 
+/** Frozen at submission — what this shipment must satisfy, not what today's rules say. */
+interface RequirementRow {
+  offer_id: string;
+  mode: string;
+  document_type: { name_ar: string } | null;
+}
+
 /**
  * طابورُ المراجعة — الزرُّ الثاني.
  *
@@ -59,7 +66,7 @@ export default async function AdminExportQueuePage() {
   const queue = (queueRows ?? []) as QueueRow[];
   const ids = queue.map((o) => o.id);
 
-  const [{ data: originRows }, { data: evidenceRows }] = ids.length
+  const [{ data: originRows }, { data: evidenceRows }, { data: requirementRows }] = ids.length
     ? await Promise.all([
         supabase
           .from("export_offer_origins")
@@ -69,11 +76,16 @@ export default async function AdminExportQueuePage() {
           .from("export_offer_evidence")
           .select("offer_id, kind, sha256")
           .in("offer_id", ids),
+        supabase
+          .from("export_offer_requirements")
+          .select("offer_id, mode, document_type:export_document_types(name_ar)")
+          .in("offer_id", ids),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
 
   const origins = (originRows ?? []) as OriginRow[];
   const evidence = (evidenceRows ?? []) as EvidenceRow[];
+  const requirements = (requirementRows ?? []) as unknown as RequirementRow[];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -100,6 +112,7 @@ export default async function AdminExportQueuePage() {
           {queue.map((o) => {
             const offerOrigins = origins.filter((x) => x.offer_id === o.id);
             const offerEvidence = evidence.filter((x) => x.offer_id === o.id);
+            const offerRequirements = requirements.filter((x) => x.offer_id === o.id);
 
             return (
               <li key={o.id} className="rounded-xl border border-border bg-card p-4">
@@ -157,6 +170,29 @@ export default async function AdminExportQueuePage() {
                       </ul>
                     )}
                   </div>
+                </div>
+
+                <div className="mt-3">
+                  <h3 className="text-sm font-medium">
+                    المستندات المطلوبة — مجمَّدةٌ لحظةَ الإرسال
+                  </h3>
+                  {offerRequirements.length === 0 ? (
+                    <p className="text-sm text-danger">
+                      بلا متطلّباتٍ مجمَّدة — لا يُعرف ما كان مطلوباً لهذه الإرسالية.
+                    </p>
+                  ) : (
+                    <ul className="mt-1 flex flex-wrap gap-2 text-xs">
+                      {offerRequirements.map((r, i) => (
+                        <li
+                          key={i}
+                          className="rounded-full border border-border px-2 py-0.5"
+                        >
+                          {r.document_type?.name_ar}
+                          {r.mode !== "required" ? " (مشروط)" : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <ExportReviewCard offerId={o.id} />

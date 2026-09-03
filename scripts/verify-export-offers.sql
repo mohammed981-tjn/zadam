@@ -359,6 +359,67 @@ end $$;
 
 \echo ''
 \echo '=========================================================================='
+\echo 'ح) تجميدُ المتطلّبات عند الإرسال'
+\echo '=========================================================================='
+
+do $$
+declare o uuid; sheep uuid; frozen integer;
+begin
+  -- عرضُ الضأن مرّ draft→submitted في القسم السابق؟ لا — أُنشئ ولم يُرسل.
+  -- نُنشئ عرضاً جديداً ونرسله لنرصد التجميد لحظةَ حدوثه.
+  select cr.id into sheep from export_corridors cr
+    join export_commodities co on co.id = cr.commodity_id
+    join export_destinations d on d.id = cr.destination_id
+   where co.code = 'live_sheep' and d.code = 'SA';
+
+  perform _act_as('11111111-1111-1111-1111-111111111111');
+  execute format($f$
+    insert into export_offers (reference, owner_id, corridor_id,
+      quantity, unit_price_minor, value_minor)
+    values ('EXP-FREEZE', '11111111-1111-1111-1111-111111111111', %L,
+            100, 12000, 1200000)
+  $f$, sheep);
+
+  select id into o from export_offers where reference = 'EXP-FREEZE';
+
+  perform _eq((select requirements_frozen_at is null from export_offers where id=o), true,
+              'المسوّدةُ بلا متطلّباتٍ مجمَّدة');
+  perform _eq((select count(*)::int from export_offer_requirements where offer_id=o), 0,
+              'ولا صفَّ لها');
+
+  perform _accepts(format($f$update export_offers set status='submitted' where id=%L$f$, o),
+                   'تُرسل');
+
+  perform _eq((select requirements_frozen_at is not null from export_offers where id=o), true,
+              'فيُختم وقتُ التجميد');
+
+  select count(*)::int into frozen from export_offer_requirements where offer_id=o;
+  -- الضأنُ إلى السعودية: سابر · فاتورة · قائمة تعبئة · شهادة بيطرية = ٤
+  perform _eq(frozen, 4, 'وتُنسخ متطلّباتُ الممرّ السارية');
+
+  perform _eq((select count(*)::int from export_offer_requirements
+                where offer_id=o and document_type_id =
+                  (select id from export_document_types where code='veterinary')),
+              1, 'ومنها الشهادةُ البيطرية — وهي خاصّةٌ بالضأن لا بالوجهة');
+
+  -- لائحةُ الغابات تسري على الوجهة الأوروبية لا السعودية، فلا تُنسخ هنا.
+  perform _eq((select count(*)::int from export_offer_requirements
+                where offer_id=o and document_type_id =
+                  (select id from export_document_types where code='eudr_dds')),
+              0, 'ولا تُنسخ لائحةُ الغابات — ممرُّها أوروبا لا السعودية');
+
+  -- الأهمّ: النسخةُ لا تتغيّر بعد ذلك. تُحذف قاعدةُ الممرّ ويبقى ما جُمِّد.
+  delete from export_corridor_requirements r
+   using export_corridors cr, export_document_types dt
+   where r.corridor_id = cr.id and cr.id = sheep
+     and r.document_type_id = dt.id and dt.code = 'veterinary';
+
+  perform _eq((select count(*)::int from export_offer_requirements where offer_id=o), 4,
+              'وتبقى بعد حذف القاعدة من الممرّ — وهذا معنى التجميد كلُّه');
+end $$;
+
+\echo ''
+\echo '=========================================================================='
 \echo 'ز) الصلاحيات — بدورٍ عاديّ، لا بالمالك'
 \echo '=========================================================================='
 
