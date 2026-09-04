@@ -54,6 +54,21 @@ function Note({ note, mine }: { note: Feedback; mine?: boolean }) {
 
       <p className="whitespace-pre-wrap leading-relaxed">{note.body}</p>
 
+      {/* The automatic reply comes first because it arrived first, and it is
+          labelled without euphemism. A machine answer presented as a person's
+          is the one thing that would make this feature cost more trust than it
+          earns — so it says what wrote it, and says a person is still coming. */}
+      {note.ai_reply && (
+        <div className="mt-3 rounded-lg border-s-2 border-s-accent bg-accent/5 px-3 py-2">
+          <p className="mb-1 text-xs font-medium text-accent">
+            ردٌّ آليٌّ من مساعد سودجري — ولم يقرأه موظّفٌ بعد
+          </p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+            {note.ai_reply}
+          </p>
+        </div>
+      )}
+
       {note.admin_reply && (
         <div className="mt-3 rounded-lg border-s-2 border-s-primary bg-primary/5 px-3 py-2">
           <p className="mb-1 text-xs font-medium text-primary">ردّ الإدارة</p>
@@ -64,6 +79,28 @@ function Note({ note, mine }: { note: Feedback; mine?: boolean }) {
       )}
     </li>
   );
+}
+
+/**
+ * PostgreSQL renders an interval as "00:15:00" and a visitor does not read
+ * that. Only the shapes this policy actually allows are handled — between one
+ * minute and twenty-four hours — and anything unexpected is returned untouched
+ * rather than mangled into a wrong number.
+ */
+function arabicInterval(raw: string): string {
+  const match = /^(\d+):(\d+):(\d+)/.exec(raw);
+  if (!match) return raw;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (hours === 0) {
+    if (minutes === 15) return "ربع ساعة";
+    if (minutes === 30) return "نصف ساعة";
+    return `${minutes} دقيقة`;
+  }
+  if (minutes === 0) return hours === 1 ? "ساعة" : `${hours} ساعات`;
+  return `${hours} ساعة و${minutes} دقيقة`;
 }
 
 /**
@@ -80,10 +117,31 @@ export default async function FeedbackPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  /*
+   * The waiting time is read from the policy row, never written into this
+   * sentence. The whole point of putting it in a table was that an
+   * administrator can change it — and a promise on the page that disagrees with
+   * the job that keeps it is worse than no promise, because the visitor is the
+   * one who finds out.
+   *
+   * `maybeSingle` and a null fall-back: if the read fails, the page says
+   * nothing about timing rather than inventing a number.
+   */
+  const { data: policyRow } = await supabase
+    .from("support_policy")
+    .select("auto_reply_after, enabled, kinds")
+    .maybeSingle();
+
+  const policy = policyRow as {
+    auto_reply_after: string;
+    enabled: boolean;
+    kinds: string[];
+  } | null;
+
   const { data } = await supabase
     .from("feedback")
     .select(
-      "id, kind, body, status, admin_reply, display_name, page_path, published, author_id, created_at",
+      "id, kind, body, status, admin_reply, ai_reply, ai_replied_at, display_name, page_path, published, author_id, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -101,6 +159,14 @@ export default async function FeedbackPage() {
           إضافته — تُقرأ كل ملاحظة، وتُنشر هنا مع ردّ الإدارة حين تكون مفيدة
           لغيرك.
         </p>
+        {policy?.enabled && (
+          <p className="text-sm leading-relaxed text-muted">
+            وإن لم يردّ موظّفٌ خلال{" "}
+            <strong>{arabicInterval(policy.auto_reply_after)}</strong>، يصلك ردٌّ
+            آليٌّ من مساعد سودجري بما تعرفه المنصّة عن سؤالك — ثمّ يراجعه موظّف.
+            فلا تنتظر في صمت.
+          </p>
+        )}
       </header>
 
       <section className="rounded-2xl border border-border bg-card p-5">
