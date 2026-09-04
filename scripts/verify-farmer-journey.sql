@@ -83,7 +83,7 @@ language plpgsql as $$ begin update _who set uid = p; end $$;
 
 -- ── الناس ─────────────────────────────────────────────────────────────────
 insert into profiles (id, role) values
-  ('f0000000-0000-0000-0000-00000000000f', 'farmer'),
+  ('f0000000-0000-0000-0000-00000000000f', 'investor'),
   ('ad000000-0000-0000-0000-0000000000ad', 'admin')
 on conflict (id) do nothing;
 
