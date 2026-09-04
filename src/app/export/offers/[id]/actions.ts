@@ -108,6 +108,7 @@ export async function addCustodyEvent(
 export async function attachEvidence(
   offerId: string,
   stageEvidenceId: string,
+  documentTypeId?: string,
 ): Promise<ActionResult> {
   const supabase = await createClient();
   const {
@@ -167,6 +168,12 @@ export async function attachEvidence(
       longitude: row.longitude,
       storage_path: row.storage_path,
       sha256,
+      // Optional, and it stays optional. A photograph of the field is evidence
+      // and answers no document requirement; forcing a type here would either
+      // block the attachment or teach people to label it with whatever is
+      // nearest, and a readiness score built on mislabelled rows is worse than
+      // one that admits the document is missing.
+      document_type_id: documentTypeId || null,
     })
     .select("id");
 
@@ -187,5 +194,66 @@ export async function attachEvidence(
     message: sha256
       ? "أُلحق الدليل، وبصمتُه محسوبةٌ من الملفّ."
       : "أُلحق الدليل بلا بصمة — تعذّرت قراءة الملفّ. سيراه المراجع «بلا بصمة».",
+  };
+}
+
+/**
+ * تسميةُ الدليل بنوع المستند الذي يفي به — وهو ما يجعل «٧ من ٨» رقماً.
+ *
+ * WHY THIS EXISTS SEPARATELY FROM ATTACHING
+ *
+ * Evidence was attached for a year before there was anything to attach it to:
+ * `kind` is free text and matches no document type. Those rows are real proof
+ * sitting in offers that read as zero percent ready, and an action that could
+ * only classify at the moment of attachment would leave every one of them
+ * uncountable forever.
+ *
+ * WHY IT ACCEPTS BEING SET BACK TO NOTHING
+ *
+ * Mislabelling is the failure this whole score is exposed to — a certificate of
+ * origin tagged as a phytosanitary certificate makes an offer look shippable
+ * when it is not. Someone who notices must be able to take the label off, and
+ * the file itself stays put either way: `evidence_delete_own` refuses to remove
+ * it once the offer has left draft, whatever it is called.
+ */
+export async function classifyEvidence(
+  offerId: string,
+  evidenceId: string,
+  documentTypeId: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data, error } = await supabase
+    .from("export_offer_evidence")
+    .update({ document_type_id: documentTypeId || null })
+    .eq("id", evidenceId)
+    .eq("offer_id", offerId)
+    .select("id");
+
+  if (error) {
+    console.error("export: evidence classify failed", error);
+    return { ok: false, message: "تعذّر تعديل نوع المستند." };
+  }
+
+  // A filtered UPDATE that policy declines returns no error and no rows — the
+  // refusal and the success look identical from here, so the row count is the
+  // only thing that can tell them apart.
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      message: "لم يتغيّر شيء — العرض ليس في حالةٍ تسمح بالتعديل.",
+    };
+  }
+
+  revalidatePath(`/export/offers/${offerId}`);
+  return {
+    ok: true,
+    message: documentTypeId
+      ? "سُمّي الدليل، وحُسب في الجاهزيّة."
+      : "أُزيل النوع — لم يعد يُحسب مستنداً.",
   };
 }

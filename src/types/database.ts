@@ -748,7 +748,70 @@ export interface ExportOfferEvidence {
   longitude: string | null;
   storage_path: string;
   sha256: string | null;
-  created_at: string;
+  /**
+   * Nullable on purpose — 20260904230000_export_readiness.sql.
+   *
+   * Not every piece of evidence is a document: a photograph of the field is
+   * evidence and has no document type. Requiring one would either block the
+   * upload or push people to tag it with a type it is not, which is worse.
+   * Only a row that names a type counts toward readiness.
+   */
+  document_type_id: string | null;
+}
+
+/* ==========================================================================
+ * جاهزيّةُ العرض — 20260904230000_export_readiness.sql
+ * ========================================================================== */
+
+/** What a document type is worth in the score. A row, not a constant. */
+export interface ExportReadinessWeight {
+  mode: "required" | "conditional" | "recommended";
+  weight: number;
+  note_ar: string | null;
+}
+
+/**
+ * Where the requirement list came from.
+ *
+ * `frozen` — the rules this corridor demanded on the day the offer was sent,
+ * copied onto the offer at submission so a later rule change cannot retro-fail
+ * it. `live` — the corridor's rules as they stand today, which is what a draft
+ * gets, because the checklist is only useful *before* submitting. `none` — the
+ * caller may not see this offer at all, and the function says nothing further.
+ */
+export type ExportReadinessSource = "frozen" | "live" | "none";
+
+/** One row per required document — `export_offer_readiness_detail`. */
+export interface ExportReadinessLine {
+  document_type_id: string;
+  code: string;
+  name_ar: string;
+  note_ar: string | null;
+  mode: ExportReadinessWeight["mode"];
+  weight: number;
+  satisfied: boolean;
+  source: Exclude<ExportReadinessSource, "none">;
+}
+
+/**
+ * The summary — `export_offer_readiness`.
+ *
+ * Two numbers, not one, and they answer different questions. `ready` is the
+ * shipping judgement: false while any **required** document is missing, however
+ * flattering the percentage. `score` is the weighted proportion, for showing
+ * progress — never for deciding. Ninety-three percent with the phytosanitary
+ * certificate missing is not ninety-three percent shippable.
+ *
+ * `missing` carries the names because a number that does not say the next step
+ * is a number nobody can act on.
+ */
+export interface ExportOfferReadiness {
+  ready: boolean;
+  score: number;
+  required_total: number;
+  required_met: number;
+  missing: string[];
+  source: ExportReadinessSource;
 }
 
 /**

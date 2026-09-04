@@ -4,8 +4,10 @@ import { useState } from "react";
 import {
   addCustodyEvent,
   attachEvidence,
+  classifyEvidence,
   type ActionResult,
 } from "@/app/export/offers/[id]/actions";
+import { READINESS_MODE_LABEL } from "@/lib/exportReadiness";
 
 interface Origin {
   plot_ref: string;
@@ -28,10 +30,7 @@ interface Evidence {
   captured_at: string | null;
   storage_path: string;
   sha256: string | null;
-}
-interface Requirement {
-  mode: string;
-  document_type: { name_ar: string; note_ar: string | null } | null;
+  document_type_id: string | null;
 }
 interface Available {
   id: string;
@@ -40,12 +39,12 @@ interface Available {
   captured_at: string | null;
   storage_path: string;
 }
-
-const MODE_LABEL: Record<string, string> = {
-  required: "إلزامي",
-  conditional: "مشروط",
-  recommended: "مُستحسَن",
-};
+/** The document types this offer is actually measured against — nothing else. */
+interface DocumentType {
+  id: string;
+  name_ar: string;
+  mode: string;
+}
 
 /**
  * الأدلّةُ والعهدة — الجزءُ الذي يُبنى على مرّات.
@@ -63,6 +62,15 @@ const MODE_LABEL: Record<string, string> = {
  * and prove it was not swapped. When the file could not be read, the evidence
  * is still worth attaching but is worth less — so it says «بلا بصمة» rather
  * than looking identical to evidence that carries one.
+ *
+ * WHY THE REQUIRED-DOCUMENTS LIST IS NO LONGER HERE
+ *
+ * It used to render below, as a frozen list of what the corridor demanded — and
+ * beside it, unconnected, the list of what had been attached. The farmer was
+ * left to match the two by eye, which is exactly the join the database could not
+ * make either. `ReadinessPanel` now shows one list with a tick against each
+ * document, and appeared for drafts too, where the checklist is actually useful.
+ * Two lists that answer half a question each are worse than one that answers it.
  */
 export default function ExportOfferDetail({
   offerId,
@@ -70,8 +78,7 @@ export default function ExportOfferDetail({
   origins,
   custody,
   evidence,
-  requirements,
-  frozenAt,
+  documentTypes,
   available,
 }: {
   offerId: string;
@@ -79,12 +86,19 @@ export default function ExportOfferDetail({
   origins: Origin[];
   custody: Custody[];
   evidence: Evidence[];
-  requirements: Requirement[];
-  frozenAt: string | null;
+  documentTypes: DocumentType[];
   available: Available[];
 }) {
   const [result, setResult] = useState<ActionResult | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * What the farmer picked for each attachable item, before attaching.
+   *
+   * Kept per item rather than as one shared value: the whole reason there is a
+   * list is that different files answer different requirements, and a single
+   * select would silently carry the last choice onto the next attachment.
+   */
+  const [pick, setPick] = useState<Record<string, string>>({});
 
   const box = "mt-6 rounded-xl border border-border bg-card p-4";
   const field = "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm";
@@ -104,12 +118,40 @@ export default function ExportOfferDetail({
     if (busy) return;
     setBusy(true);
     try {
-      setResult(await attachEvidence(offerId, id));
+      setResult(await attachEvidence(offerId, id, pick[id] ?? ""));
     } catch {
       setResult({ ok: false, message: "تعذّر الوصول إلى الخادم." });
     } finally {
       setBusy(false);
     }
+  }
+
+  async function classify(evidenceId: string, documentTypeId: string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      setResult(await classifyEvidence(offerId, evidenceId, documentTypeId));
+    } catch {
+      setResult({ ok: false, message: "تعذّر الوصول إلى الخادم." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const typeName = (id: string | null) =>
+    documentTypes.find((t) => t.id === id)?.name_ar ?? null;
+
+  function TypeOptions() {
+    return (
+      <>
+        <option value="">— ليس مستنداً مطلوباً —</option>
+        {documentTypes.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name_ar} ({READINESS_MODE_LABEL[t.mode] ?? t.mode})
+          </option>
+        ))}
+      </>
+    );
   }
 
   return (
@@ -225,9 +267,9 @@ export default function ExportOfferDetail({
             بلا أدلّة — لا شيء يسند ما يقوله العرض.
           </p>
         ) : (
-          <ul className="mt-2 space-y-1 text-sm text-muted">
+          <ul className="mt-2 space-y-2 text-sm">
             {evidence.map((e) => (
-              <li key={e.id}>
+              <li key={e.id} className="text-muted">
                 {e.kind}
                 {e.captured_at
                   ? ` · ${new Date(e.captured_at).toLocaleDateString("ar-EG")}`
@@ -237,6 +279,27 @@ export default function ExportOfferDetail({
                   <span className="font-mono text-xs">{e.sha256.slice(0, 12)}…</span>
                 ) : (
                   <span className="text-danger">بلا بصمة</span>
+                )}
+
+                {/* أيَّ مستندٍ يفي به — وهذا وحده ما يجعله محسوباً في
+                    الجاهزيّة. و`kind` نصٌّ حرٌّ لا يطابق نوعاً، فبلا هذا
+                    الاختيار يبقى الدليلُ مرفوعاً وغيرَ معدود. */}
+                {editable && documentTypes.length > 0 ? (
+                  <select
+                    aria-label={`نوعُ المستند لـ ${e.kind}`}
+                    className="mt-1 block w-full rounded-lg border border-border bg-card px-2 py-1 text-xs"
+                    defaultValue={e.document_type_id ?? ""}
+                    disabled={busy}
+                    onChange={(event) => classify(e.id, event.target.value)}
+                  >
+                    <TypeOptions />
+                  </select>
+                ) : (
+                  typeName(e.document_type_id) && (
+                    <span className="block text-xs">
+                      يفي بـ: {typeName(e.document_type_id)}
+                    </span>
+                  )
                 )}
               </li>
             ))}
@@ -264,6 +327,19 @@ export default function ExportOfferDetail({
                         ? ` · ${new Date(a.captured_at).toLocaleDateString("ar-EG")}`
                         : ""}
                     </span>
+                    {documentTypes.length > 0 && (
+                      <select
+                        aria-label={`نوعُ المستند لـ ${a.kind}`}
+                        className="rounded-lg border border-border bg-card px-2 py-1 text-xs"
+                        value={pick[a.id] ?? ""}
+                        disabled={busy}
+                        onChange={(event) =>
+                          setPick((p) => ({ ...p, [a.id]: event.target.value }))
+                        }
+                      >
+                        <TypeOptions />
+                      </select>
+                    )}
                     <button
                       type="button"
                       onClick={() => attach(a.id)}
@@ -284,31 +360,6 @@ export default function ExportOfferDetail({
         )}
       </section>
 
-      {frozenAt && (
-        <section className={box}>
-          <h2 className="font-medium">المستندات المطلوبة — مجمَّدةٌ لهذا العرض</h2>
-          <p className="mt-1 text-xs text-muted">
-            نسخةٌ ممّا كان سارياً لحظةَ الإرسال في{" "}
-            {new Date(frozenAt).toLocaleString("ar-EG")}. اللوائحُ تتغيّر، وهذه لا
-            تتغيّر معها — فيبقى «ماذا كان مطلوباً؟» سؤالاً له جواب.
-          </p>
-          <ul className="mt-3 space-y-1 text-sm">
-            {requirements.map((r, i) => (
-              <li key={i}>
-                <strong>{r.document_type?.name_ar}</strong>{" "}
-                <span className="text-xs text-muted">
-                  ({MODE_LABEL[r.mode] ?? r.mode})
-                </span>
-                {r.document_type?.note_ar && (
-                  <span className="block text-xs text-muted">
-                    {r.document_type.note_ar}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </>
   );
 }

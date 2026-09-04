@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatMinor } from "@/lib/exportOffers";
+import { fetchReadiness } from "@/lib/exportReadiness";
 import InterestForm from "@/components/InterestForm";
+import { ReadinessBadge } from "@/components/ExportReadiness";
 
 export const metadata = {
   title: "عروض التصدير المنشورة · سودجري",
@@ -68,6 +70,14 @@ export default async function ExportMarketPage() {
 
   const offers = (data ?? []) as unknown as Row[];
 
+  // واحدةٌ لكلّ عرض، متوازيةً. والدالّةُ `security definer` وتحمل حاجزَها، فلا
+  // يمكن جمعُها في استعلامٍ واحدٍ هنا دون إعادة بناء منطق الجاهزيّة في
+  // تايبسكربت — وإجابتان لسؤالٍ واحدٍ أسوأُ من نداءٍ إضافيّ. وإن طالت القائمة
+  // يوماً فالحلُّ دالّةُ دفعةٍ في القاعدة لا حسابٌ هنا.
+  const readiness = await Promise.all(
+    offers.map((o) => fetchReadiness(supabase, o.id)),
+  );
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <h1 className="text-2xl font-bold">عروض التصدير المنشورة</h1>
@@ -95,7 +105,7 @@ export default async function ExportMarketPage() {
         </p>
       ) : (
         <ul className="mt-8 flex flex-col gap-4">
-          {offers.map((o) => (
+          {offers.map((o, i) => (
             <li key={o.id} className="rounded-xl border border-border bg-card p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-medium">
@@ -104,6 +114,12 @@ export default async function ExportMarketPage() {
                 </h2>
                 <span className="font-mono text-xs text-muted">{o.reference}</span>
               </div>
+
+              {readiness[i] && (
+                <p className="mt-2">
+                  <ReadinessBadge readiness={readiness[i]} />
+                </p>
+              )}
 
               <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                 <div className="flex justify-between gap-3 sm:block">
