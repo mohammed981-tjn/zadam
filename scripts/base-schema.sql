@@ -396,6 +396,110 @@ create or replace function public.is_admin() returns boolean
   select exists (select 1 from profiles where id = auth.uid() and role = 'admin') $$;
 
 -- ===========================================================================
+-- ٤ب) حرّاسُ الأرض والمرحلة — من الإنتاج، لأنّهم ليسوا في الهجرات
+-- ===========================================================================
+--
+-- `enforce_land_listing_gate` في الهجرات، لكنّه يقرأ `documents_on_file`،
+-- والعمودُ يملؤه زنادان لا وجودَ لهما في أيّ هجرة. فبدونهما تُختبر بوّابةُ النشر
+-- على عمودٍ يكتبه الاختبارُ بيده — أي تُختبر على نفسها.
+--
+-- والحيلةُ في الأصل تستحقّ الشرح: زنادُ `land_documents` لا يحسب شيئاً، بل يكتب
+-- `-1` في الأرض؛ فيوقظ ذلك زنادَ `lands` الذي يعيد الحساب. فالعددُ لا يُكتب من
+-- الخارج أبداً، ولو حاول أحدٌ تزويرَه فُرض عليه الصحيحُ قبل الحفظ.
+--
+-- وهو يعدّ **الأنواعَ المتمايزة** لا الملفّات: ثلاثُ نسخٍ من صكٍّ واحد وثيقةٌ
+-- واحدة، ولا تفتح بوّابةَ النشر.
+
+create or replace function public.force_land_document_count()
+returns trigger language plpgsql security definer set search_path to 'public'
+as $function$
+begin
+  new.documents_on_file := (
+    select count(distinct kind) from land_documents where land_id = new.id
+  );
+  return new;
+end $function$;
+
+create or replace function public.refresh_land_document_count()
+returns trigger language plpgsql security definer set search_path to 'public'
+as $function$
+declare target uuid := coalesce(new.land_id, old.land_id);
+begin
+  update lands set documents_on_file = -1 where id = target;
+  return coalesce(new, old);
+end $function$;
+
+create trigger lands_document_count_authoritative
+  before insert or update on lands
+  for each row execute function force_land_document_count();
+
+-- والدالّةُ نفسُها تأتي من الهجرة، والزنادُ يُنشأ هنا قبلها — فيوضع مكانَها
+-- بديلٌ **يرفع خطأً**. و`create or replace` في الهجرة يستبدل الجسمَ ويُبقي
+-- الهويّة، فيلتقط الزنادُ الجسمَ الحقيقيّ دون أن يُعاد إنشاؤه.
+--
+-- والبديلُ يصرخ ولا يسكت عمداً: لو لم تُطبَّق الهجرةُ لسببٍ ما، وجب أن ينهار
+-- الاختبارُ فوراً لا أن يمرّ على حراسةٍ غائبة — وهو نفسُه الدرسُ الذي تعلّمناه
+-- من هذا الملفّ كلِّه.
+create or replace function public.enforce_land_listing_gate()
+returns trigger language plpgsql as $placeholder$
+begin
+  raise exception 'enforce_land_listing_gate لم تُستبدل — الهجرةُ لم تُطبَّق';
+end $placeholder$;
+
+-- وهذا أحدُّ من سابقه: `enforce_land_listing_gate` **معرَّفةٌ في الهجرة**
+-- (20260817120000) — ومع ذلك لا زنادَ فيها يربطها بالجدول. الهجرةُ لا تُنشئ
+-- زناداً واحداً في ٤٥٤ سطراً.
+--
+-- فالبناءُ من الهجرات وحدها يُنتج دالّةَ حراسةٍ كاملةً **لا يناديها شيء**: أرضٌ
+-- تُنشر بلا توثيق وبلا أوراق، ومزارعٌ يوثّق أرضَه بنفسه. اكتشفته هذه البوّابةُ
+-- حين مرّ ما كان يجب أن يُرفض.
+create trigger lands_listing_gate
+  before insert or update on lands
+  for each row execute function enforce_land_listing_gate();
+
+create trigger land_documents_count
+  after insert or update or delete on land_documents
+  for each row execute function refresh_land_document_count();
+
+-- والمرحلةُ لا تُعتمد بلا دليلٍ مرفوع، ولا قبل ما سبقها.
+create or replace function public.enforce_stage_completion()
+returns trigger language plpgsql security definer set search_path to 'public'
+as $function$
+declare evidence_count int; prior_open int;
+begin
+  if new.completed and not coalesce(old.completed, false) then
+    select count(*) into evidence_count
+      from stage_evidence
+     where stage_id = new.id and storage_path is not null;
+
+    if evidence_count < 1 then
+      raise exception 'لا يمكن اعتماد المرحلة قبل رفع ملف واحد على الأقل (صورة أو فاتورة) — الملاحظة النصية وحدها ليست دليلاً';
+    end if;
+
+    select count(*) into prior_open
+      from season_stages
+     where season_id = new.season_id
+       and stage_order < new.stage_order
+       and completed = false;
+
+    if prior_open > 0 then
+      raise exception 'لا يمكن اعتماد هذه المرحلة قبل اعتماد % مرحلة سابقة', prior_open;
+    end if;
+
+    new.completed_at := now();
+  end if;
+  return new;
+end $function$;
+
+create trigger season_stages_completion_gate
+  before update on season_stages
+  for each row execute function enforce_stage_completion();
+
+-- ولا يُنقل زنادا `notify_on_land_change` و`refresh_operator_record`: كلاهما
+-- يكتب في `notifications` أو في عدّادٍ على `profiles`، ولا يحرس شيئاً. ونقلُ ما
+-- لا يحرس يوسّع التجهيزةَ بلا مقابل.
+
+-- ===========================================================================
 -- ٥) تفعيلُ حماية الصفوف
 -- ===========================================================================
 --

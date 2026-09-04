@@ -155,3 +155,6 @@ jobs:
 
       - name: رحلة المستثمر
         run: ./scripts/verify-investor-journey.sh
+
+      - name: رحلة الأرض والموسم
+        run: ./scripts/verify-land-season-journey.sh
