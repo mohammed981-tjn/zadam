@@ -418,11 +418,6 @@ begin
               'وتبقى بعد حذف القاعدة من الممرّ — وهذا معنى التجميد كلُّه');
 end $$;
 
-\echo ''
-\echo '=========================================================================='
-\echo 'ز) الصلاحيات — بدورٍ عاديّ، لا بالمالك'
-\echo '=========================================================================='
-
 -- تُلتقط المعرّفاتُ الآن، قبل تبديل الدور. فبعده تسري سياساتُ الصفوف على
 -- الاستعلام نفسِه، و auth.uid() لم تُضبط بعد — فيعود البحثُ فارغاً وتُقارَن كلُّ
 -- الفحوص التالية بـ NULL وتمرّ بلا معنى.
@@ -435,6 +430,65 @@ grant usage on schema public, auth to app_user;
 grant select, insert, update, delete on all tables in schema public to app_user;
 grant execute on all functions in schema public, auth to app_user;
 grant usage, select on all sequences in schema public to app_user;
+
+
+\echo ''
+\echo '=========================================================================='
+\echo 'ط) طلبُ الاهتمام — كتابةٌ عامةٌ على منشورٍ وحده'
+\echo '=========================================================================='
+
+-- بدورٍ عاديّ من هنا. المستخدمُ الخارقُ يتجاوز سياساتِ الصفوف، فسياسةُ الإدراج
+-- — وهي الحارسُ كلُّه هنا — لا تُستشار أصلاً، ويمرّ الفحصُ وهو لا يفحص شيئاً.
+set role app_user;
+
+do $$
+declare pub uuid; draft_o uuid;
+begin
+  select published_offer, draft_offer into pub, draft_o from _ids;
+
+  perform _accepts(format($f$
+    insert into export_offer_interests (offer_id, buyer_name, buyer_email, quantity_wanted, message)
+    values (%L, 'Jan de Vries', 'jan@example.nl', 3.5, 'نريد عيّنة أولاً')
+  $f$, pub), 'طلبٌ على عرضٍ منشور');
+
+  -- الشرطُ الذي يجعل الجدول صندوقَ بريدٍ لا صندوقَ قمامة.
+  perform _refuses(format($f$
+    insert into export_offer_interests (offer_id, buyer_name, buyer_email)
+    values (%L, 'Someone', 'x@example.com')
+  $f$, draft_o), 'وطلبٌ على مسوّدةٍ لم يرها أحد');
+
+  perform _refuses(format($f$
+    insert into export_offer_interests (offer_id, buyer_name)
+    values (%L, 'بلا وسيلة اتّصال')
+  $f$, pub), 'وطلبٌ بلا بريدٍ ولا هاتف — نصٌّ لا يُردّ عليه');
+
+  perform _refuses(format($f$
+    insert into export_offer_interests (offer_id, buyer_name, buyer_email)
+    values (%L, 'x', 'a@b.co')
+  $f$, pub), 'واسمٌ من حرفٍ واحد');
+
+  perform _refuses(format($f$
+    insert into export_offer_interests (offer_id, buyer_name, buyer_email, quantity_wanted)
+    values (%L, 'Buyer Two', 'b@example.com', 0)
+  $f$, pub), 'وكمّيةٌ مطلوبةٌ صفر');
+
+  -- المُرسِلُ لا يختار الحالة الابتدائية: طلبٌ يصل موسوماً «مُغلق» طلبٌ لا يراه أحد.
+  perform _refuses(format($f$
+    insert into export_offer_interests (offer_id, buyer_name, buyer_email, status)
+    values (%L, 'Buyer Three', 'c@example.com', 'closed')
+  $f$, pub), 'وطلبٌ يصل موسوماً «مُغلق»');
+
+  -- والكاتبُ لا يقرأ ما كتب. نموذجٌ عامٌّ يُقرأ منه صندوقُ بريدٍ عام: يرى كلُّ
+  -- مشترٍ بريدَ منافسيه وكمّياتِهم. والعددُ الفعليُّ لما دخل يفحصه القسمُ التالي
+  -- بهويّة الإدارة — وهي الوحيدة التي تملك قراءته.
+  perform _eq((select count(*)::int from export_offer_interests), 0,
+              'ولا يقرأ المُرسِلُ ما أرسل — ولا ما أرسله غيرُه');
+end $$;
+
+\echo ''
+\echo '=========================================================================='
+\echo 'ز) الصلاحيات — بدورٍ عاديّ، لا بالمالك'
+\echo '=========================================================================='
 
 set role app_user;
 
@@ -466,6 +520,17 @@ begin
   perform _act_as('33333333-3333-3333-3333-333333333333');  -- الإدارة
   perform _accepts(format($f$update export_offers set status='published' where id=%L$f$, o),
                    'والإدارةُ تنشره');
+
+  -- طلباتُ المشترين: بريدٌ وهاتف. لا يقرؤها زائرٌ ولا مزارع.
+  perform _act_as('22222222-2222-2222-2222-222222222222');
+  perform _eq((select count(*)::int from export_offer_interests), 0,
+              'ولا يقرأ أحدٌ طلباتِ المشترين إلا الإدارة');
+  perform _act_as('33333333-3333-3333-3333-333333333333');
+  perform _eq((select count(*)::int from export_offer_interests), 1,
+              'والإدارةُ تقرؤها');
+  perform _changes_nothing(
+    'delete from export_offer_interests',
+    'ولا حذف — الطلبُ الذي وصل يبقى، وهو أرخصُ بحثِ سوق');
 
   -- سجلٌّ يستطيع الفاعلُ الكتابةَ فيه سجلٌّ يستطيع تزويرَه.
   perform _refuses(format($f$

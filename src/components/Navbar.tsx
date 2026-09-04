@@ -119,6 +119,7 @@ export default async function Navbar() {
         { href: "/admin/review", label: "مراجعة الفرص" },
         { href: "/admin/analytics", label: "التحليلات" },
         { href: "/admin/export", label: "مراجعة الصادر" },
+        { href: "/admin/export/interests", label: "طلبات المشترين" },
         { href: "/admin/providers", label: "توثيق مقدّمي الخدمة" },
         { href: "/admin/feedback", label: "ملاحظات الزوّار" },
         { href: "/admin/leads", label: "العملاء المحتملون" },
