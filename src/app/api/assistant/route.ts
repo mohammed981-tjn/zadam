@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   fuseRankings,
   retrieveRelevant,
@@ -196,8 +197,40 @@ export async function POST(req: NextRequest) {
      * and the questions that still reach the model are the list of what to
      * build next.
      */
-    const logQuestion = (answered: boolean, source: string) =>
-      supabase
+    /*
+     * WHY THIS WRITES AS THE PROJECT AND NOT AS THE VISITOR
+     *
+     * It used to use the session client, which worked because `anon` held
+     * EXECUTE on the function. That was defensible while the row held only a
+     * question. It is not defensible now that the row carries an **answer** an
+     * administrator may promote into the knowledge base: a publicly callable
+     * endpoint that writes question/answer pairs is an injection path into that
+     * base, with the approval screen as the only thing in the way. The human
+     * gate stays, but a last guard is not a substitute for a shut door.
+     *
+     * Nothing about the owner's feature changes. The visitor still asks, the
+     * answer is still found and still stored — which client the server uses to
+     * store it was never visible to them.
+     *
+     * WHY THE ANSWER IS STORED AT ALL
+     *
+     * Because paying a model to find something and then discarding it means
+     * paying again tomorrow for the same question, and losing the one thing
+     * worth keeping: the text itself, waiting for someone to source it and let
+     * it into the base.
+     */
+    const admin = createAdminClient();
+
+    const logQuestion = (answered: boolean, source: string, answer?: string) => {
+      if (!admin) {
+        // Logging is not worth failing an answer over, but a silent loss of the
+        // gap list is worth a line in the log.
+        console.error(
+          "assistant: SUPABASE_SERVICE_ROLE_KEY is not set, so the question was not logged",
+        );
+        return Promise.resolve();
+      }
+      return admin
         .rpc("log_assistant_question", {
           p_question: question,
           p_matched:
@@ -206,11 +239,13 @@ export async function POST(req: NextRequest) {
               : matched.length,
           p_answered: answered,
           p_source: source,
+          p_answer: answer ?? null,
         })
         .then(
           () => undefined,
           (e: unknown) => console.error("assistant: question log failed", e),
         );
+    };
 
     /*
      * Answer from the platform itself before reaching for the model.
@@ -230,7 +265,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (local) {
-      await logQuestion(true, local.source);
+      await logQuestion(true, local.source, local.answer);
       return NextResponse.json({ answer: local.answer, source: local.source });
     }
 
@@ -379,7 +414,7 @@ export async function POST(req: NextRequest) {
       result.text.replace(/[*#_`]+/g, "").trim() ||
       "لم أتمكن من صياغة إجابة هذه المرة، أعد المحاولة أو اسأل بصيغة أخرى.";
 
-    await logQuestion(true, "model");
+    await logQuestion(true, "model", answer);
 
     setCachedAnswer(question, answer);
 
