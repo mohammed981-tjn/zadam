@@ -158,3 +158,8 @@ jobs:
 
       - name: رحلة الأرض والموسم
         run: ./scripts/verify-land-season-journey.sh
+
+      # المرحلة ٣ تبدأ من هنا: درجةُ ثقةٍ محسوبةٌ من أدلّةٍ يسحبها صاحبُها ليست
+      # درجةَ ثقة. فالدليلُ يُقفل قبل أن يُحسب عليه شيء.
+      - name: قفلُ الأدلّة
+        run: ./scripts/verify-evidence-lock.sh

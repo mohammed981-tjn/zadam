@@ -384,6 +384,50 @@ create table system_checks (
 );
 
 -- ===========================================================================
+-- ٣ب) المخزن — لأنّ الرفعَ يمرّ به لا بالخادم
+-- ===========================================================================
+--
+-- الملفّاتُ تُرفع من المتصفّح مباشرةً إلى Supabase Storage، فسياساتُ
+-- `storage.objects` هي الحدُّ الوحيد. وهي إلى اليوم تُدار من لوحة Supabase —
+-- خارج المستودع، كالأساس تماماً.
+--
+-- وهذه محاكاةُ الجدول لا سياساتُه: السياساتُ تأتي من الهجرة، وإلّا صحّحت
+-- البوّابةُ ورقتَها بنفسها.
+
+create schema if not exists storage;
+
+create table storage.buckets (
+  id                 text primary key,
+  public             boolean not null default false,
+  file_size_limit    bigint,
+  allowed_mime_types text[]
+);
+
+create table storage.objects (
+  id         uuid primary key default gen_random_uuid(),
+  bucket_id  text not null references storage.buckets(id),
+  name       text not null,
+  owner      uuid,
+  created_at timestamptz not null default now(),
+  unique (bucket_id, name)
+);
+
+alter table storage.objects enable row level security;
+
+-- الدالّةُ التي تعتمد عليها كلُّ سياسةٍ في الدلو: تقسّم المسارَ وتُرجع ما قبل
+-- اسم الملفّ. فأوّلُ مقطعٍ هو معرّفُ صاحبه.
+create or replace function storage.foldername(name text) returns text[]
+  language sql immutable as $$
+  select (string_to_array(name, '/'))[1 : array_length(string_to_array(name, '/'), 1) - 1]
+$$;
+
+insert into storage.buckets (id, public, file_size_limit, allowed_mime_types) values
+  ('evidence', false, 10485760,
+   array['image/jpeg','image/png','image/webp','image/heic','application/pdf']),
+  ('media',    true,  10485760,
+   array['image/jpeg','image/png','image/webp']);
+
+-- ===========================================================================
 -- ٤) الحارس الذي تستدعيه كلُّ سياسةٍ تقريباً
 -- ===========================================================================
 
