@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { buildEngines, generateWithFallback } from "@/lib/engines";
 import { retrieveRelevant, type RetrievableEntry } from "@/lib/retrieval";
 import { pageContextLine } from "@/lib/pageHelp";
+import { bearerMatches } from "@/lib/cronAuth";
 
 /**
  * الردُّ الآليّ على الشكاوى — بعد ربع ساعة، وإن لم يردّ إنسان.
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
       { status: 503 },
     );
   }
-  if (req.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!bearerMatches(req.headers.get("authorization"), secret)) {
     return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
   }
 
