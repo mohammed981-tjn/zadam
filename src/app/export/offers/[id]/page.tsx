@@ -2,7 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ExportOfferDetail from "@/components/ExportOfferDetail";
+import { ReadinessPanel } from "@/components/ExportReadiness";
+import { fetchReadiness } from "@/lib/exportReadiness";
 import { formatMinor, OFFER_STATUS_LABEL, OFFER_STATUS_HELP, type OfferStatus } from "@/lib/exportOffers";
+import type { ExportReadinessLine } from "@/types/database";
 
 /**
  * تفصيلُ العرض — حيث تُبنى الأدلّة والعهدة قبل الإرسال.
@@ -58,27 +61,35 @@ export default async function ExportOfferDetailPage({
   const isOwner = offer.owner_id === user.id;
   const editable = isOwner && (offer.status === "draft" || offer.status === "rejected");
 
-  const [{ data: origins }, { data: custody }, { data: evidence }, { data: requirements }] =
-    await Promise.all([
-      supabase
-        .from("export_offer_origins")
-        .select("plot_ref, area_hectares, latitude, longitude, boundary")
-        .eq("offer_id", id),
-      supabase
-        .from("export_offer_custody")
-        .select("sequence, occurred_at, place_name, latitude, longitude, note")
-        .eq("offer_id", id)
-        .order("sequence"),
-      supabase
-        .from("export_offer_evidence")
-        .select("id, kind, captured_at, storage_path, sha256")
-        .eq("offer_id", id)
-        .order("created_at"),
-      supabase
-        .from("export_offer_requirements")
-        .select("mode, document_type:export_document_types(name_ar, note_ar)")
-        .eq("offer_id", id),
-    ]);
+  // الجاهزيّةُ تأتي من القاعدة لا من جمعٍ هنا: الدالّتان `security definer`
+  // وتحملان حاجزَهما، والقائمةُ المجمَّدةُ أو الحيّةُ تُختار هناك — فلا تُحسب
+  // النسبةُ مرّتين بمنطقين قد يختلفان.
+  const [
+    { data: origins },
+    { data: custody },
+    { data: evidence },
+    readiness,
+    { data: lineRows },
+  ] = await Promise.all([
+    supabase
+      .from("export_offer_origins")
+      .select("plot_ref, area_hectares, latitude, longitude, boundary")
+      .eq("offer_id", id),
+    supabase
+      .from("export_offer_custody")
+      .select("sequence, occurred_at, place_name, latitude, longitude, note")
+      .eq("offer_id", id)
+      .order("sequence"),
+    supabase
+      .from("export_offer_evidence")
+      .select("id, kind, captured_at, storage_path, sha256, document_type_id")
+      .eq("offer_id", id)
+      .order("created_at"),
+    fetchReadiness(supabase, id),
+    supabase.rpc("export_offer_readiness_detail", { p_offer_id: id }),
+  ]);
+
+  const lines = (lineRows ?? []) as ExportReadinessLine[];
 
   // Evidence the farmer already has in the platform, offered for attaching.
   // Only from the season this offer names: evidence from an unrelated season
@@ -119,14 +130,25 @@ export default async function ExportOfferDetailPage({
         </p>
       )}
 
+      {readiness && (
+        <ReadinessPanel
+          readiness={readiness}
+          lines={lines}
+          frozenAt={offer.requirements_frozen_at}
+        />
+      )}
+
       <ExportOfferDetail
         offerId={offer.id}
         editable={editable}
         origins={(origins ?? []) as never}
         custody={(custody ?? []) as never}
         evidence={(evidence ?? []) as never}
-        requirements={(requirements ?? []) as never}
-        frozenAt={offer.requirements_frozen_at}
+        documentTypes={lines.map((l) => ({
+          id: l.document_type_id,
+          name_ar: l.name_ar,
+          mode: l.mode,
+        }))}
         available={((available ?? []) as unknown as {
           id: string;
           kind: string;
