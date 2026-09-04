@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { bearerMatches } from "@/lib/cronAuth";
 
 /**
  * Daily health check, which also keeps the database from being paused.
@@ -47,8 +48,7 @@ export async function GET(req: NextRequest) {
    */
   const secret = process.env.CRON_SECRET;
   if (secret) {
-    const provided = req.headers.get("authorization");
-    if (provided !== `Bearer ${secret}`) {
+    if (!bearerMatches(req.headers.get("authorization"), secret)) {
       return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
     }
   }

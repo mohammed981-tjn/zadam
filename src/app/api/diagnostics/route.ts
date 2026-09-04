@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildEngines, generateWithFallback } from "@/lib/engines";
 import { activeProvider } from "@/lib/embedding";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
+import { bearerMatches } from "@/lib/cronAuth";
 
 /**
  * What the deployment actually sees.
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest) {
       { status: 503 },
     );
   }
-  if (req.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!bearerMatches(req.headers.get("authorization"), secret)) {
     return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
   }
 
@@ -176,13 +177,16 @@ export async function GET(req: NextRequest) {
       report.probe = { ran: false, reason: "لا يوجد محرك مضبوط أصلاً" };
       return NextResponse.json(report);
     }
-    const forwardedFor = req.headers.get("x-forwarded-for");
-    const ip =
-      req.headers.get("x-real-ip") ??
-      forwardedFor?.split(",").pop()?.trim() ??
-      "unknown";
-
-    const verdict = await checkRateLimit("diagnostics", ip);
+    /*
+     * The shared helper rather than a fourth copy of the same three lines.
+     *
+     * The copy here was identical — including the `.pop()` that takes the edge's
+     * appended entry instead of the client-written leftmost one — so nothing
+     * changes today. But address resolution is exactly the kind of rule that is
+     * corrected in one place and left wrong in the others: get it backwards and
+     * any caller picks their own rate-limit bucket by sending a header.
+     */
+    const verdict = await checkRateLimit("diagnostics", clientAddress(req.headers));
 
     if (!verdict.allowed && verdict.tier !== "unavailable") {
       report.probe = { ran: false, reason: "تجاوزت حد الطلبات، انتظر دقيقة" };
