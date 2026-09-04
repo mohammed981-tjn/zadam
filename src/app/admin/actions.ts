@@ -141,14 +141,19 @@ export async function confirmInvestment(formData: FormData) {
   /*
    * The result was discarded, so every way this can fail looked like success.
    *
-   * The function raises distinct conditions and each one matters to the person
-   * clicking: 42501 not an administrator, 55000 the investment is no longer
-   * pending, 23514 the project has fewer shares left than the investment asks
-   * for, 40001 another confirmation won the race. Telling an admin "confirmed"
-   * when the database refused is how a share ledger and a spreadsheet drift
-   * apart without anyone noticing.
+   * An earlier round fixed half of that: a raised error is now caught and
+   * reported instead of being thrown away. But the other half could not be
+   * fixed from here, because the function had a path that raised nothing and
+   * returned nothing — a missing or already-confirmed investment left silently,
+   * and "no error" was read as "confirmed".
+   *
+   * The function now answers. `confirmed` is the only success; every other code
+   * is a refusal that changed nothing, and each one is worth a different
+   * sentence, because "someone already confirmed this" and "the project has
+   * fewer shares left than this asks for" send the administrator to two
+   * different places.
    */
-  const { error } = await supabase.rpc("confirm_investment", {
+  const { data, error } = await supabase.rpc("confirm_investment", {
     p_investment_id: investmentId,
   });
 
@@ -158,6 +163,31 @@ export async function confirmInvestment(formData: FormData) {
       `/admin/projects/${projectId}?error=${encodeURIComponent(
         "تعذّر تأكيد الاستثمار. راجع سجل الخادم للسبب.",
       )}`,
+    );
+  }
+
+  /*
+   * Every refusal is already recorded in `investment_events` by the function
+   * itself, so this is only about what the person in front of the screen reads.
+   * An unrecognised code is treated as a refusal rather than as success — if
+   * the function grows an outcome this file has not been taught, the safe
+   * reading is "it did not happen".
+   */
+  const outcomes: Record<string, string> = {
+    not_found: "لم أجد هذا الاستثمار. لعلّه حُذف.",
+    not_pending:
+      "هذا الاستثمار غير معلّق — أُكِّد أو أُلغي من قبل. لم يتغيّر شيء.",
+    over_allocated:
+      "الحصص المتبقّية في المشروع أقلّ ممّا يطلبه هذا الاستثمار. لم يتغيّر شيء.",
+  };
+
+  if (data !== "confirmed") {
+    const message =
+      outcomes[String(data)] ??
+      "لم يُؤكَّد الاستثمار، ولم يتغيّر شيء. راجع سجل الخادم.";
+    console.error("confirm_investment refused", { investmentId, outcome: data });
+    redirect(
+      `/admin/projects/${projectId}?error=${encodeURIComponent(message)}`,
     );
   }
 

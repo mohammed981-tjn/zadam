@@ -10,13 +10,10 @@
 # about the real one, and the race this is built to survive lives entirely
 # inside that clause.
 #
-# So, like verify-export-offers.sh, this stays out of the `npm run verify` glob
-# and is run by hand by anyone touching the support schema:
+# So it stays out of the `npm run verify` glob (which is Node-only, no services)
+# and runs either by hand or from the `sql-gates` job in web.yml:
 #
 #   ./scripts/verify-support-auto-reply.sh
-#
-# It builds its own PostgreSQL cluster in a temporary directory, uses it, and
-# tears it down.
 #
 # THE STUBS
 #
@@ -33,40 +30,12 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FEEDBACK="$ROOT/supabase/migrations/20260818180000_feedback.sql"
-AUTOREPLY="$ROOT/supabase/migrations/20260904100000_support_auto_reply.sql"
-CHECKS="$ROOT/scripts/verify-support-auto-reply.sql"
+# shellcheck source=scripts/pg-harness.sh
+source "$ROOT/scripts/pg-harness.sh"
 
-PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
-if [ -z "${PGBIN:-}" ] || [ ! -x "$PGBIN/initdb" ]; then
-  echo "لم أجد ثنائيّات PostgreSQL. حدّد PGBIN=/path/to/postgres/bin" >&2
-  exit 1
-fi
+pg_start support-auto-reply
 
-DATADIR="$(mktemp -d /var/tmp/support-auto-reply-XXXXXX)"
-PORT="${PGPORT:-5441}"
-
-cleanup() {
-  su postgres -c "$PGBIN/pg_ctl -D $DATADIR/data stop -m immediate" >/dev/null 2>&1 || true
-  rm -rf "$DATADIR"
-}
-trap cleanup EXIT
-
-chmod 777 "$DATADIR"
-chown -R postgres "$DATADIR"
-
-echo "── قاعدةٌ نظيفة في $DATADIR"
-su postgres -c "$PGBIN/initdb -D $DATADIR/data -U postgres" >/dev/null
-su postgres -c "$PGBIN/pg_ctl -D $DATADIR/data -o '-k $DATADIR -p $PORT -c listen_addresses=' -l $DATADIR/log start" >/dev/null
-
-for _ in $(seq 1 20); do
-  su postgres -c "$PGBIN/pg_isready -h $DATADIR -p $PORT" >/dev/null 2>&1 && break
-  sleep 0.5
-done
-
-PSQL="$PGBIN/psql -h $DATADIR -p $PORT -U postgres -v ON_ERROR_STOP=1"
-
-cat > "$DATADIR/stubs.sql" <<'SQL'
+STUBS="$(pg_write stubs.sql <<'SQL'
 create schema if not exists auth;
 create table auth.users (id uuid primary key);
 create table profiles (id uuid primary key, role text default 'farmer');
@@ -89,32 +58,26 @@ create or replace function auth.uid() returns uuid language sql stable as $$ sel
 create or replace function public.is_admin() returns boolean language sql stable as $$
   select exists (select 1 from profiles where id = auth.uid() and role = 'admin') $$;
 
--- أدوارُ Supabase التي تسمّيها أسطرُ المنح والسحب في الهجرة.
--- وهي نفسُها الأدوارُ التي يُختبر بها البابُ في القسم (د)، لا دورٌ مخترعٌ
--- للاختبار: `anon` هو الدورُ الذي يحمله المفتاحُ المنشور في كلّ صفحة.
+-- أدوارُ Supabase التي تسمّيها أسطرُ المنح والسحب في الهجرة — وهي نفسُها
+-- الأدوارُ التي يُختبر بها البابُ في القسم (د)، لا دورٌ مخترعٌ للاختبار:
+-- `anon` هو الدورُ الذي يحمله المفتاحُ المنشور في كلّ صفحة.
 create role anon          nologin;
 create role authenticated nologin;
 create role service_role  nologin;
 SQL
-chmod 644 "$DATADIR/stubs.sql"
+)"
 
-cp "$FEEDBACK"  "$DATADIR/feedback.sql"
-cp "$AUTOREPLY" "$DATADIR/autoreply.sql"
-cp "$CHECKS"    "$DATADIR/checks.sql"
-chmod 644 "$DATADIR/feedback.sql" "$DATADIR/autoreply.sql" "$DATADIR/checks.sql"
+FEEDBACK="$(pg_stage "$ROOT/supabase/migrations/20260818180000_feedback.sql" feedback.sql)"
+AUTOREPLY="$(pg_stage "$ROOT/supabase/migrations/20260904100000_support_auto_reply.sql" autoreply.sql)"
+CHECKS="$(pg_stage "$ROOT/scripts/verify-support-auto-reply.sql" checks.sql)"
 
-echo "── الأساس"
-su postgres -c "$PSQL -q -f $DATADIR/stubs.sql"
-
-echo "── ملاحظاتُ الزوّار"
-su postgres -c "$PSQL -q -f $DATADIR/feedback.sql" 2>&1 | grep -v 'NOTICE' || true
-
-echo "── الردّ الآلي"
-su postgres -c "$PSQL -q -f $DATADIR/autoreply.sql" 2>&1 | grep -v 'NOTICE' || true
+echo "── الأساس";          pg_run_quiet "$STUBS"
+echo "── ملاحظاتُ الزوّار"; pg_run_quiet "$FEEDBACK"
+echo "── الردّ الآلي";      pg_run_quiet "$AUTOREPLY"
 
 # إعادةُ التطبيق ليست تزيّناً: هجرةٌ لا تُعاد لا تُستأنَف بعد فشلٍ جزئيّ.
 echo "── وثانيةً — إعادةُ التطبيق لا تكسر"
-su postgres -c "$PSQL -q -f $DATADIR/autoreply.sql" 2>&1 | grep -v 'NOTICE' || true
+pg_run_quiet "$AUTOREPLY"
 
 echo "── الحرّاس"
-su postgres -c "$PSQL -f $DATADIR/checks.sql" 2>&1 | sed -e 's/^psql:[^ ]* //' -e 's/^NOTICE:  //'
+pg_run "$CHECKS"

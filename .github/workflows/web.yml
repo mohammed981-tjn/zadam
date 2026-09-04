@@ -19,13 +19,31 @@ name: Web app
 # Skipping it would let a mobile-only push move a number and land green, then
 # fail on some unrelated web commit days later, where nobody would think to
 # look for the cause.
+#
+# WHY `push` IS LIMITED TO main
+#
+# This used to be a bare `push:` alongside `pull_request:`, and the two overlap:
+# every push to a branch with an open PR fired the whole suite twice, on the same
+# commit, to the same conclusion. That is double the minutes, and worse, it made
+# "is it green?" a question with two answers — the PR page showed two `check`
+# runs and a reader had to know they were the same thing.
+#
+# Keeping `pull_request` and narrowing `push` to main gives each commit exactly
+# one run: on a branch the PR event covers it, and a direct push to main (or a
+# squash-merge landing there) is still covered. Nothing loses coverage.
 on:
   push:
+    branches: [main]
     paths-ignore:
       - "docs/**"
       - "**/*.md"
   pull_request:
   workflow_dispatch:
+
+# And if several commits land quickly, only the newest needs an answer.
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -73,6 +91,54 @@ jobs:
       # or write the production database.
       - name: Build
         run: npm run build
+
+  # ==========================================================================
+  # الحرّاسُ الذين لا تُثبتهم تايبسكربت
+  # ==========================================================================
+  #
+  # WHY A SECOND JOB, AND WHY IT WAS MISSING
+  #
+  # `npm run verify` globs scripts/verify-*.ts — Node only, no services. But the
+  # guards that matter most on this platform are not TypeScript: they are CHECK
+  # constraints, row-level security policies, function grants, and append-only
+  # triggers. A constraint mocked in TypeScript proves nothing about the
+  # constraint, so those gates were written as SQL against a real PostgreSQL.
+  #
+  # And then nothing ran them. 84 checks — the ones proving that `anon` cannot
+  # read the complaints queue, that a machine reply cannot land under a human
+  # one, that a frozen requirement cannot block deleting the live rule — sat
+  # outside every automated run, executed only when someone remembered. A
+  # migration edit could go green here while breaking any of them.
+  #
+  # It runs beside `check` rather than inside it: it needs no Node, no npm
+  # install and no build, and a failure here should read as "a database guard
+  # broke", not as one more red step in a job about typechecking.
+  sql-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ubuntu-latest ships PostgreSQL, but only the client on some images.
+      # The gates build their own throwaway cluster, so they need the server
+      # binaries — initdb and pg_ctl — not a running service.
+      - name: PostgreSQL binaries
+        run: |
+          if [ ! -x "$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)/initdb" ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql
+          fi
+          ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1
+
+      # The runner is an ordinary user, not root — which is why these scripts
+      # could not run here until the harness learned to skip `su postgres`.
+      - name: ممرّ الصادر
+        run: ./scripts/verify-export-offers.sh
+
+      - name: الردّ الآلي على الشكاوى
+        run: ./scripts/verify-support-auto-reply.sh
+
+      - name: تدقيقُ عملية الاستثمار
+        run: ./scripts/verify-investment-audit.sh
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build-only

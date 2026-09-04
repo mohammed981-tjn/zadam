@@ -765,3 +765,47 @@ export interface ExportOfferEvent {
   reason: string | null;
   occurred_at: string;
 }
+
+/* ==========================================================================
+ * تدقيقُ عملية الاستثمار — 20260904140000_investment_audit.sql
+ * ========================================================================== */
+
+/**
+ * What `confirm_investment` answers. `confirmed` is the only success — every
+ * other value means the database changed nothing, and each one has its own
+ * cause worth telling the administrator apart.
+ *
+ * The function used to return `void`, so a refusal and a success were the same
+ * silence. That is what this type exists to make impossible.
+ */
+export type ConfirmInvestmentOutcome =
+  | "confirmed"
+  | "not_found"
+  | "not_pending"
+  | "over_allocated";
+
+/**
+ * One attempt on the money path, recorded whether it succeeded or not.
+ *
+ * Append-only in the database: a trigger raises on UPDATE and DELETE rather
+ * than ignoring them, because an attempt to rewrite an audit row is itself
+ * something the owner should be able to see failed.
+ *
+ * `investment_id` and `project_id` carry no foreign key on purpose — the record
+ * of an attempt has to outlive the rows it refers to, or deleting an investment
+ * would erase the evidence that anyone ever tried to confirm it.
+ */
+export interface InvestmentEvent {
+  id: string;
+  investment_id: string;
+  project_id: string | null;
+  /** Taken from the session inside the function, never from an argument. */
+  actor_id: string | null;
+  action: "confirm";
+  outcome: Exclude<ConfirmInvestmentOutcome, "not_found">;
+  reason: string | null;
+  shares: number | null;
+  shares_sold_before: number | null;
+  shares_sold_after: number | null;
+  created_at: string;
+}
