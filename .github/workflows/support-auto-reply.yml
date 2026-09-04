@@ -1,0 +1,99 @@
+name: Support auto-reply
+
+# يدقّ طابورَ الشكاوى كلَّ عشر دقائق، فيردّ المساعدُ على ما لم يردّ عليه إنسان.
+#
+# WHY GITHUB ACTIONS AND NOT VERCEL CRON
+#
+# The reply is meant to land about fifteen minutes after a complaint arrives, so
+# the queue has to be checked every few minutes. Vercel's cron on the free plan
+# runs once a day — vercel.json already uses that slot for /api/health, and it
+# is the right tool for a daily job. This is not one.
+#
+# GitHub's scheduler runs on a five-minute floor, and this repository already
+# relies on it for keep-alive. Ten minutes is chosen over five deliberately: the
+# gain from halving the delay is two or three minutes of a visitor's wait, and
+# the cost is double the runs against a limiter that is shared with everything
+# else.
+#
+# Scheduled runs are frequently delayed under load — often by minutes, sometimes
+# more. That is acceptable here and it is why the policy row says "at least
+# fifteen minutes", not "at fifteen minutes": the delay exists to give a person
+# the first chance, and a late reply still gives them that. It would not be
+# acceptable if the number were a promise made to the visitor, which is why the
+# feedback page says "خلال ربع ساعة تقريباً" and not a guarantee.
+#
+# THE MISTAKE THIS FILE IS WRITTEN NOT TO REPEAT
+#
+# keep-alive.yml records it plainly: it once needed HEALTH_URL and CRON_SECRET,
+# nobody set them, and "the job failed on its first line every night from the day
+# it was written — six scheduled runs, six failures". A workflow that needs
+# configuration nobody has done is not a feature; it is a red mark in the Actions
+# tab that everyone learns to ignore.
+#
+# So this one **checks first and says which secret is missing, by name**, and
+# ends green without pretending it did the work. A missing secret is a setup step
+# nobody has taken yet, not a broken build — but it is also not silence: the run
+# summary says the feature is off and why.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+# One run at a time. Two overlapping runs would read the same queue and pay a
+# model twice for the same complaint — the database would refuse the second
+# write, so nothing corrupts, but the quota is spent either way.
+concurrency:
+  group: support-auto-reply
+  cancel-in-progress: false
+
+env:
+  SITE_URL: ${{ vars.SITE_URL || 'https://sudagri.vercel.app' }}
+
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the wiring before using it
+        id: wiring
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### الردّ الآلي على الشكاوى: **معطَّل**"
+              echo ""
+              echo "السرّ \`CRON_SECRET\` غير مضبوط في أسرار المستودع، فالنقطةُ ترفض النداء."
+              echo ""
+              echo "لتشغيله:"
+              echo "1. اضبط \`CRON_SECRET\` في Vercel (Production) — أيّ نصّ عشوائي طويل."
+              echo "2. اضبط السرّ نفسَه في: Settings ← Secrets and variables ← Actions."
+              echo ""
+              echo "والشكاوى تنتظر موظّفاً حتى ذلك الحين — لا تضيع، لكن لا يردّ عليها شيء."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Answer what nobody answered
+        if: steps.wiring.outputs.ready == 'true'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          # --fail-with-body so a 4xx/5xx both fails the step and prints why.
+          # Without the body a failure here is an HTTP code and no explanation.
+          body=$(curl --fail-with-body --silent --show-error --location \
+                      --max-time 300 \
+                      --retry 2 --retry-delay 15 --retry-all-errors \
+                      --request POST \
+                      --header "Authorization: Bearer $CRON_SECRET" \
+                      "$SITE_URL/api/support/auto-reply")
+          echo "$body"
+          {
+            echo "### الردّ الآلي على الشكاوى"
+            echo ""
+            echo '```json'
+            echo "$body"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

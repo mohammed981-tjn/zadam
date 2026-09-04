@@ -629,6 +629,15 @@ export interface Feedback {
   admin_reply: string | null;
   replied_at: string | null;
   replied_by: string | null;
+  /**
+   * Written by the scheduled job fifteen minutes after the note arrives, and
+   * only when `admin_reply` is still null. Kept in its own column so a person's
+   * reply never overwrites what the visitor has already read, and so "how many
+   * did the machine cover?" stays a question with an answer.
+   */
+  ai_reply: string | null;
+  ai_replied_at: string | null;
+  ai_reply_engine: string | null;
   published: boolean;
   created_at: string;
 }
