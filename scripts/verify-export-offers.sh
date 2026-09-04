@@ -35,6 +35,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATION="$ROOT/supabase/migrations/20260903170000_export_offers.sql"
 FREEZE="$ROOT/supabase/migrations/20260903190000_export_freeze_requirements.sql"
+INTERESTS="$ROOT/supabase/migrations/20260904080000_export_offer_interests.sql"
 CHECKS="$ROOT/scripts/verify-export-offers.sql"
 
 PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
@@ -91,8 +92,9 @@ chmod 644 "$DATADIR/stubs.sql"
 
 cp "$MIGRATION" "$DATADIR/migration.sql"
 cp "$FREEZE"    "$DATADIR/freeze.sql"
+cp "$INTERESTS" "$DATADIR/interests.sql"
 cp "$CHECKS"    "$DATADIR/checks.sql"
-chmod 644 "$DATADIR/migration.sql" "$DATADIR/freeze.sql" "$DATADIR/checks.sql"
+chmod 644 "$DATADIR/migration.sql" "$DATADIR/freeze.sql" "$DATADIR/interests.sql" "$DATADIR/checks.sql"
 
 echo "── الأساس"
 su postgres -c "$PSQL -q -f $DATADIR/stubs.sql"
@@ -106,9 +108,13 @@ su postgres -c "$PSQL -q -f $DATADIR/migration.sql" 2>&1 | grep -v 'NOTICE' || t
 echo "── تجميدُ المتطلّبات"
 su postgres -c "$PSQL -q -f $DATADIR/freeze.sql" 2>&1 | grep -v 'NOTICE' || true
 
-echo "── والهجرتان ثانيةً — إعادةُ التطبيق لا تكسر"
+echo "── طلبات المشترين"
+su postgres -c "$PSQL -q -f $DATADIR/interests.sql" 2>&1 | grep -v 'NOTICE' || true
+
+echo "── والهجرات ثانيةً — إعادةُ التطبيق لا تكسر"
 su postgres -c "$PSQL -q -f $DATADIR/migration.sql" 2>&1 | grep -v 'NOTICE' || true
 su postgres -c "$PSQL -q -f $DATADIR/freeze.sql" 2>&1 | grep -v 'NOTICE' || true
+su postgres -c "$PSQL -q -f $DATADIR/interests.sql" 2>&1 | grep -v 'NOTICE' || true
 
 echo "── الحرّاس"
 su postgres -c "$PSQL -f $DATADIR/checks.sql" 2>&1 | sed -e 's/^psql:[^ ]* //' -e 's/^NOTICE:  //'

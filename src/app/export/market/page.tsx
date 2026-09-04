@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatMinor } from "@/lib/exportOffers";
+import InterestForm from "@/components/InterestForm";
 
 export const metadata = {
   title: "عروض التصدير المنشورة · سودجري",
@@ -146,21 +147,24 @@ export default async function ExportMarketPage() {
                   روجع في {new Date(o.reviewed_at).toLocaleDateString("ar-EG")}
                 </p>
               )}
+
+              <InterestForm offerId={o.id} reference={o.reference} />
             </li>
           ))}
         </ul>
       )}
 
-      {/* Said out loud rather than left as a dead end a buyer discovers after
-          reading the whole page. The contact route is a decision the owner has
-          not made yet, and inventing one here would be worse than naming it. */}
+      {/* What this page promises the buyer about what happens next. A form that
+          does not say who reads it, or when, is a form people fill in once. */}
       <p className="mt-8 rounded-xl border border-border bg-background p-4 text-sm leading-7 text-muted">
-        <strong>للتواصل بشأن عرض:</strong> قناةُ التواصل بين المشتري والمصدِّر لم
-        تُفتح بعد في المنصّة. حتى تُفتح، اذكر مرجعَ العرض في{" "}
+        <strong>كيف يسير الأمر:</strong> تُرسل طلب اهتمام على العرض بلا حساب —
+        اسمٌ ووسيلةُ اتّصال. يصل الطلبُ فريقَ سودجري، فنراجعه ونصلك ونعرّفك على
+        المصدِّر ومعه <strong>ملفُّ الإرسالية</strong>: إحداثيّةُ المنشأ وسلسلةُ
+        العهدة وبصماتُ الأدلّة والمستنداتُ المطلوبة لوجهتك. ولك أن تراسلنا في{" "}
         <Link href="/feedback" className="text-primary underline">
           صفحة الملاحظات
         </Link>{" "}
-        ونصلك.
+        في أي أمرٍ آخر.
       </p>
     </div>
   );

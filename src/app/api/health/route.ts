@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Daily health check, which also keeps the database from being paused.
@@ -16,6 +16,20 @@ import { createClient } from "@/lib/supabase/server";
  * questions about the data, and a security-definer function can see past
  * row-level security to count admins and pending submissions, which an
  * anonymous request never could.
+ *
+ * WHY THIS CALLS AS THE PROJECT AND NOT AS A VISITOR
+ *
+ * It used to use the ordinary client, which worked only because `anon` held
+ * EXECUTE on run_system_check — and that grant was the problem. The function is
+ * SECURITY DEFINER, so anyone holding the public key could call it directly and
+ * receive exactly the counts `system_checks_admin_read` exists to withhold: how
+ * many administrators the platform has, how much is queued unreviewed, how much
+ * was published without approval. And not only read them — every call inserts a
+ * row and runs a delete across the table, at whatever rate the caller likes.
+ *
+ * This is a scheduled job with no session, so it has no visitor identity to
+ * borrow in the first place. Moving it to the service-role client is what makes
+ * the grant removable, and the two land together.
  */
 
 // Never cached: a cached health check is not a health check, and a cached
@@ -40,7 +54,18 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
+    if (!supabase) {
+      console.error(
+        "health: SUPABASE_SERVICE_ROLE_KEY is not set, so the check cannot run. " +
+          "It is required since run_system_check stopped being callable by anon.",
+      );
+      return NextResponse.json(
+        { ok: false, error: "الفحص غير مُهيّأ على هذا النشر." },
+        { status: 500 },
+      );
+    }
+
     const { data, error } = await supabase.rpc("run_system_check");
 
     if (error) {
@@ -61,6 +86,20 @@ export async function GET(req: NextRequest) {
      * mark the scheduled job as broken and train whoever watches it to ignore
      * the alert. The problems travel in the body and surface in the admin panel.
      */
+    /*
+     * The counts travel back only to a caller that proved it is the scheduler.
+     *
+     * CRON_SECRET is optional so the job keeps working before it is configured
+     * — but "optional secret" and "returns the admin counts" cannot both be
+     * true, or closing the RPC would have moved the leak rather than fixed it.
+     * Unauthenticated, the endpoint still runs the check and still keeps the
+     * database awake; it just answers with whether it ran. The findings are in
+     * `system_checks`, which the admin panel reads under its own policy.
+     */
+    if (!secret) {
+      return NextResponse.json({ ok: true, checkedAt: new Date().toISOString() });
+    }
+
     return NextResponse.json({ checkedAt: new Date().toISOString(), ...data });
   } catch (err) {
     console.error("health: unhandled error", err);

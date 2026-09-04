@@ -3,10 +3,14 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeArabic } from "@/lib/retrieval";
 import type { KnowledgeEntry, Lead } from "@/types/database";
+import PromoteAnswer from "@/components/PromoteAnswer";
 
 interface QuestionRow {
   id: string;
   question: string;
+  /** What the assistant answered, kept so it can be reviewed into the base. */
+  answer_text: string | null;
+  promoted_at: string | null;
   matched_entries: number;
   answered: boolean;
   /**
@@ -273,7 +277,8 @@ export default async function AnalyticsPage() {
         </h2>
         <p className="mb-4 text-sm text-muted">
           أسئلة لم يجد لها المسترجِع أي مُدخل مطابق. كل سطر هنا مُدخل معرفة
-          ينقصك.
+          ينقصك — ومعه ما أجاب به المساعد، محفوظاً بانتظار أن تراجعه وتنسبه إلى
+          مصدرٍ فيدخل القاعدة.
         </p>
         {gaps.length === 0 ? (
           <p className="rounded-2xl border border-border bg-card p-5 text-sm text-muted">
@@ -282,15 +287,14 @@ export default async function AnalyticsPage() {
         ) : (
           <ul className="flex flex-col gap-2">
             {gaps.slice(0, 25).map((q) => (
-              <li
+              <PromoteAnswer
                 key={q.id}
-                className="rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm"
-              >
-                {q.question}
-                <span className="mr-2 text-xs text-muted">
-                  {new Date(q.created_at).toLocaleDateString("ar-EG")}
-                </span>
-              </li>
+                questionId={q.id}
+                question={q.question}
+                answer={q.answer_text}
+                createdAt={q.created_at}
+                promoted={q.promoted_at !== null}
+              />
             ))}
           </ul>
         )}
