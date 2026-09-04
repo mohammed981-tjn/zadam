@@ -32,11 +32,23 @@
 -- memory. Keys and constraints are added below, since those are the part a
 -- column dump does not carry.
 --
--- WHAT IT DELIBERATELY LEAVES OUT
+-- WHAT IT DELIBERATELY LEAVES OUT — AND WHAT IT MUST NOT
 --
--- No row-level security and no policies. Those belong to the migrations, and a
--- gate that invented its own policies would be grading its own homework. This
--- file provides only what the migrations assume already exists.
+-- No **policies**. Those belong to the migrations, and a gate that invented its
+-- own policies would be grading its own homework.
+--
+-- But it does enable row-level security, and that division is not arbitrary —
+-- it mirrors an uncomfortable fact about this repository:
+-- `20260817120000_document_existing_policies_and_guards.sql` declares roughly
+-- forty policies and contains **not one** `enable row level security`. It never
+-- needed one, because the base schema had already switched it on, out here
+-- where nothing is versioned.
+--
+-- The consequence is worth stating plainly: rebuild this database from the
+-- migrations directory alone and every one of those policies would be inert —
+-- present in `pg_policy`, enforced on nothing, and silent about it. Production
+-- is fine (all 50 tables have it on, checked), but the migrations are not
+-- self-sufficient, and this fixture is the only place that currently says so.
 
 -- ===========================================================================
 -- ١) الأنواع التعدادية — بقيمها الحقيقية
@@ -51,6 +63,13 @@ create type stage_key        as enum ('land_prep', 'planting', 'establishment',
                                       'vegetative', 'flowering', 'maturity', 'harvest');
 create type ledger_category  as enum ('seeds', 'fertiliser', 'pesticide', 'labour',
                                       'irrigation', 'transport', 'other', 'revenue');
+create type custody_role     as enum ('miner', 'trader', 'refiner', 'exporter', 'other');
+create type extraction_method as enum ('artisanal', 'semi_mechanised', 'mechanised', 'unknown');
+
+-- الجداولُ التي تحمل متّجهاتٍ تحتاج pgvector. وهي غيرُ مثبّتةٍ في صورة العدّاء
+-- افتراضياً، فتُثبَّت في مهمّة `sql-gates` — و`embedding vector` هنا هو النوعُ
+-- الحقيقيّ لا بديلاً نصّياً، وإلّا عاد العطبُ الذي بُنيت التجهيزةُ لإزالته.
+create extension if not exists vector;
 
 -- ===========================================================================
 -- ٢) الهوية — قابلةٌ للتبديل بين الفحوص
@@ -235,16 +254,171 @@ create table notifications (
   constraint notifications_kind_check check (kind is not null)
 );
 
+create table project_updates (
+  id         uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  title      text not null,
+  body       text,
+  image_urls text[] not null default '{}',
+  created_by uuid references profiles(id),
+  created_at timestamptz not null default now()
+);
+
+create table mine_sites (
+  id             uuid primary key default gen_random_uuid(),
+  owner_id       uuid not null references profiles(id),
+  name           text not null,
+  state          text not null,
+  locality       text,
+  latitude       numeric,
+  longitude      numeric,
+  licence_number text,
+  licensed       boolean not null default false,
+  armed_presence boolean not null default false,
+  child_labour   boolean not null default false,
+  site_visited   boolean not null default false,
+  visit_note     text,
+  created_at     timestamptz not null default now()
+);
+
+create table gold_lots (
+  id                   uuid primary key default gen_random_uuid(),
+  owner_id             uuid not null references profiles(id),
+  site_id              uuid not null references mine_sites(id),
+  reference            text not null,
+  extracted_on         date not null,
+  method               extraction_method not null default 'unknown',
+  initial_weight_grams numeric not null,
+  initial_fineness     numeric not null,
+  note                 text,
+  provenance_score     numeric,
+  chain_intact         boolean,
+  created_at           timestamptz not null default now()
+);
+
+create table custody_events (
+  id           uuid primary key default gen_random_uuid(),
+  lot_id       uuid not null references gold_lots(id) on delete cascade,
+  sequence     smallint not null,
+  from_party   text not null,
+  to_party     text not null,
+  role         custody_role not null,
+  occurred_at  date not null,
+  weight_grams numeric not null,
+  fineness     numeric not null,
+  location     text,
+  note         text,
+  created_at   timestamptz not null default now()
+);
+
+create table custody_evidence (
+  id           uuid primary key default gen_random_uuid(),
+  event_id     uuid not null references custody_events(id) on delete cascade,
+  kind         text not null,
+  caption      text not null,
+  url          text,
+  created_by   uuid references profiles(id),
+  created_at   timestamptz not null default now(),
+  storage_path text
+);
+
+create table knowledge_entries (
+  id                   uuid primary key default gen_random_uuid(),
+  crop                 text not null,
+  topic                text not null,
+  title                text not null,
+  content              text not null,
+  source_country       text,
+  source_note          text,
+  created_by           uuid references profiles(id),
+  created_at           timestamptz not null default now(),
+  embedding            vector,
+  embedding_model      text,
+  embedding_updated_at timestamptz,
+  assistant_only       boolean not null default false
+);
+
+create table assistant_questions (
+  id                uuid primary key default gen_random_uuid(),
+  question          text not null,
+  matched_entries   smallint not null default 0,
+  answered          boolean not null default true,
+  created_at        timestamptz not null default now(),
+  answer_source     text,
+  answer_text       text,
+  promoted_at       timestamptz,
+  promoted_by       uuid references profiles(id),
+  promoted_entry_id uuid references knowledge_entries(id)
+);
+
+create table assistant_answers (
+  question_key    text primary key,
+  question        text not null,
+  answer          text not null,
+  source          text not null,
+  embedding       vector,
+  embedding_model text,
+  hits            integer not null default 1,
+  created_at      timestamptz not null default now(),
+  answered_at     timestamptz not null default now(),
+  expires_at      timestamptz not null
+);
+
+create table leads (
+  id         uuid primary key default gen_random_uuid(),
+  full_name  text not null,
+  contact    text not null,
+  -- نصٌّ لا نوعٌ تعداديّ: هذه صفةُ المُراسِل (مستثمر · مزارع · آخر)، ولا علاقة
+  -- لها بـ `profiles.role`. و«مزارع» صحيحةٌ هنا وحدها.
+  role       text not null,
+  interest   text,
+  message    text,
+  created_at timestamptz not null default now()
+);
+
+create table system_checks (
+  id         uuid primary key default gen_random_uuid(),
+  checked_at timestamptz not null default now(),
+  ok         boolean not null,
+  details    jsonb not null default '{}'
+);
+
 -- ===========================================================================
 -- ٤) الحارس الذي تستدعيه كلُّ سياسةٍ تقريباً
 -- ===========================================================================
 
+-- `security definer` كما هي في الإنتاج، وليست زينة: حمايةُ الصفوف مفعّلةٌ على
+-- `profiles`، فدالّةٌ تعمل بصلاحية المنادي لا تقرأ صفَّه أصلاً وتُرجع «ليس
+-- مديراً» **للمدير نفسِه**. وهي تُنادى من داخل عشرات السياسات، فيصير الرفضُ
+-- عامّاً وصامتاً.
 create or replace function public.is_admin() returns boolean
-  language sql stable as $$
+  language sql stable security definer set search_path to 'public' as $$
   select exists (select 1 from profiles where id = auth.uid() and role = 'admin') $$;
 
 -- ===========================================================================
--- ٥) أدوار Supabase
+-- ٥) تفعيلُ حماية الصفوف
+-- ===========================================================================
+--
+-- هنا لا في الهجرات — لأنّ الهجراتِ لا تفعله (انظر أعلى الملفّ). وبدونه تُنشأ
+-- السياساتُ ولا تُطبَّق، فيرى الزائرُ كلَّ شيء والفحوصُ خضراء: أخطرُ ما في هذا
+-- المشروع كلِّه شكلاً.
+
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'profiles','projects','investments','lands','land_documents','seasons',
+    'season_stages','stage_evidence','ledger_entries','notifications',
+    'project_updates','mine_sites','gold_lots','custody_events',
+    'custody_evidence','knowledge_entries','assistant_questions',
+    'assistant_answers','leads','system_checks'
+  ] loop
+    execute format('alter table %I enable row level security', t);
+  end loop;
+end $$;
+
+-- ===========================================================================
+-- ٦) أدوار Supabase
 -- ===========================================================================
 --
 -- `anon` هو الدورُ الذي يحمله المفتاحُ المنشور في كلّ صفحة، و`authenticated`
