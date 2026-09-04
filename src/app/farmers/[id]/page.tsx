@@ -19,8 +19,38 @@ interface SeasonRow {
   stages_total: number;
   stages_completed: number;
   stages_with_evidence: number;
+  stages_dated: number;
   stages_on_time: number;
 }
+
+/**
+ * الأرضُ التي وُثِّقت — والنصفُ الذي كان ناقصاً من هذه الصفحة.
+ *
+ * Readable by anyone, and not through any function: `lands_public_read` admits
+ * `listed and verification = 'verified'` to `anon`. So this needs no
+ * service-role key and no consent flag of its own — an administrator verified
+ * the land and published it, and that decision is the consent.
+ *
+ * It matters because everything above it is a claim about a person. A buyer
+ * asking «where is this farm» had no answer on this page, and a record with no
+ * place attached to it is a reference, not a passport.
+ */
+interface VerifiedLand {
+  id: string;
+  name: string;
+  state: string | null;
+  locality: string | null;
+  feddans: number | null;
+  tenure: string;
+  verification_note: string | null;
+}
+
+const TENURE_LABEL: Record<string, string> = {
+  owned: "مملوكة",
+  leased: "مستأجرة",
+  communal: "مشاع",
+  unspecified: "غير محدّدة",
+};
 
 export default async function FarmerPage({
   params,
@@ -47,10 +77,20 @@ export default async function FarmerPage({
    */
   const admin = createAdminClient();
 
-  const [{ data: profileRows }, seasonResponse] = await Promise.all([
-    supabase.rpc("public_farmer_profile", { p_id: id }),
-    admin ? admin.rpc("farmer_season_records", { p_id: id }) : null,
-  ]);
+  const [{ data: profileRows }, seasonResponse, { data: landRows }] =
+    await Promise.all([
+      supabase.rpc("public_farmer_profile", { p_id: id }),
+      admin ? admin.rpc("farmer_season_records", { p_id: id }) : null,
+      // بمفتاح الجلسة لا بمفتاح الخدمة، عمداً: إن كانت السياسةُ تمنع قراءتَها
+      // فالصفحةُ يجب أن تفرغ، لا أن تلتفّ على المنع بمفتاحٍ أقوى.
+      supabase
+        .from("lands")
+        .select("id, name, state, locality, feddans, tenure, verification_note")
+        .eq("owner_id", id)
+        .eq("listed", true)
+        .eq("verification", "verified")
+        .order("name"),
+    ]);
 
   const profile = (
     profileRows as
@@ -90,8 +130,11 @@ export default async function FarmerPage({
     stagesTotal: s.stages_total,
     stagesCompleted: s.stages_completed,
     stagesWithEvidence: s.stages_with_evidence,
+    stagesDated: s.stages_dated,
     stagesOnTime: s.stages_on_time,
   }));
+
+  const lands = (landRows ?? []) as VerifiedLand[];
 
   const trust = computeTrust(records);
 
@@ -149,16 +192,22 @@ export default async function FarmerPage({
               <div key={f.key}>
                 <div className="flex items-baseline justify-between text-sm">
                   <span className="font-medium">{f.label}</span>
+                  {/* «—» لا صفر: الصفرُ حكمٌ، والشرطةُ اعترافٌ بأنّ لا سجلَّ
+                      يُحكم به. وشريطٌ فارغٌ يُقرأ صفراً، فلا شريطَ أصلاً. */}
                   <span className="text-xs text-muted">
-                    {Math.round(f.score * f.weight)}/{f.weight}
+                    {f.score === null
+                      ? `لا يُقاس · ${f.weight}`
+                      : `${Math.round(f.score * f.weight)}/${f.weight}`}
                   </span>
                 </div>
-                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border">
-                  <div
-                    className="h-full bg-primary"
-                    style={{ width: `${Math.round(f.score * 100)}%` }}
-                  />
-                </div>
+                {f.score !== null && (
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border">
+                    <div
+                      className="h-full bg-primary"
+                      style={{ width: `${Math.round(f.score * 100)}%` }}
+                    />
+                  </div>
+                )}
                 <p className="mt-1 text-xs text-muted">{f.detail}</p>
               </div>
             ))}
@@ -171,6 +220,41 @@ export default async function FarmerPage({
           به: ما يظهر هنا مجاميع فقط.
         </p>
       </div>
+
+      {lands.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-2 text-lg font-bold">
+            الأرض الموثّقة ({lands.length})
+          </h2>
+          <p className="mb-4 text-xs leading-relaxed text-muted">
+            راجع موظّفٌ مستنداتِ كلّ قطعةٍ هنا وأثبت أنّها لصاحب هذا السجل. وما
+            لم يُوثَّق لا يظهر — <strong>لا لأنّه غيرُ موجود</strong>، بل لأنّ
+            المنصّة لا تشهد بما لم تفحصه.
+          </p>
+          <ul className="flex flex-col gap-3">
+            {lands.map((l) => (
+              <li key={l.id} className="rounded-xl border border-border bg-card p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-medium">{l.name}</span>
+                  <span className="text-xs text-muted">
+                    {TENURE_LABEL[l.tenure] ?? l.tenure}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-muted">
+                  {[l.state, l.locality].filter(Boolean).join(" · ") || "—"}
+                  {l.feddans ? ` · ${n0(Number(l.feddans))} فدان` : ""}
+                </p>
+                {l.verification_note && (
+                  <p className="mt-1 text-xs text-muted">{l.verification_note}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+          {/* والإحداثيّةُ ليست هنا عمداً: الأرضُ المنشورة تحمل موقعَها في
+              سجلّها، ونشرُ نقطةٍ دقيقةٍ على صفحةِ شخصٍ باسمه شيءٌ آخر لم يوافق
+              عليه أحد. */}
+        </section>
+      )}
 
       <section className="mt-8">
         <h2 className="mb-4 text-lg font-bold">

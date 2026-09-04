@@ -62,6 +62,7 @@ const TRUST_FACTORS = computeTrust([
     stagesTotal: 7,
     stagesCompleted: 7,
     stagesWithEvidence: 7,
+    stagesDated: 7,
     stagesOnTime: 7,
   },
 ]).factors;
