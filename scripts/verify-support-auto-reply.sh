@@ -15,17 +15,17 @@
 #
 #   ./scripts/verify-support-auto-reply.sh
 #
-# THE STUBS
+# الأساسُ المشترك
 #
-# The feedback migration is real and applied here verbatim; only what the
-# repository does not carry is stubbed — `auth.users`, `notifications`,
-# `profiles`, and the Supabase roles the GRANT/REVOKE lines name. `auth.uid()`
-# reads a table so a check can act as somebody.
+# `profiles`, `projects`, `investments`, `auth.uid()` and the enums they use all
+# belong to the base schema, which still lives outside the migrations directory.
+# They come from `scripts/base-schema.sql` — one fixture read out of production
+# and shared by every gate, rather than a stub each script invents for itself.
 #
-# And the permission section runs as `anon` and `authenticated` — the roles that
-# actually reach these functions in production — never as the cluster owner: a
-# superuser bypasses row-level security and function ACLs alike, so a door
-# checked as one is a door checked open.
+# That sharing is not tidiness. While the stubs were separate, all four declared
+# `role text default 'farmer'` — and there is no `farmer`: the production column
+# is an enum of `investor`, `admin`, `field_agent`. Four gates and 147 checks
+# passed against a database that could not exist.
 
 set -euo pipefail
 
@@ -35,43 +35,13 @@ source "$ROOT/scripts/pg-harness.sh"
 
 pg_start support-auto-reply
 
-STUBS="$(pg_write stubs.sql <<'SQL'
-create schema if not exists auth;
-create table auth.users (id uuid primary key);
-create table profiles (id uuid primary key, role text default 'farmer');
-
--- الإشعاراتُ يكتبها زنادُ الملاحظات، فلا بدّ منها كي تُطبَّق الهجرةُ كما هي.
-create table notifications (
-  id           uuid primary key default gen_random_uuid(),
-  recipient_id uuid,
-  kind         text not null,
-  title        text,
-  body         text,
-  link         text,
-  created_at   timestamptz not null default now(),
-  constraint notifications_kind_check check (kind is not null)
-);
-
-create table _who (uid uuid);
-insert into _who values (null);
-create or replace function auth.uid() returns uuid language sql stable as $$ select uid from _who $$;
-create or replace function public.is_admin() returns boolean language sql stable as $$
-  select exists (select 1 from profiles where id = auth.uid() and role = 'admin') $$;
-
--- أدوارُ Supabase التي تسمّيها أسطرُ المنح والسحب في الهجرة — وهي نفسُها
--- الأدوارُ التي يُختبر بها البابُ في القسم (د)، لا دورٌ مخترعٌ للاختبار:
--- `anon` هو الدورُ الذي يحمله المفتاحُ المنشور في كلّ صفحة.
-create role anon          nologin;
-create role authenticated nologin;
-create role service_role  nologin;
-SQL
-)"
+BASE="$(pg_stage "$ROOT/scripts/base-schema.sql" base-schema.sql)"
 
 FEEDBACK="$(pg_stage "$ROOT/supabase/migrations/20260818180000_feedback.sql" feedback.sql)"
 AUTOREPLY="$(pg_stage "$ROOT/supabase/migrations/20260904100000_support_auto_reply.sql" autoreply.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-support-auto-reply.sql" checks.sql)"
 
-echo "── الأساس";          pg_run_quiet "$STUBS"
+echo "── الأساس";          pg_run_quiet "$BASE"
 echo "── ملاحظاتُ الزوّار"; pg_run_quiet "$FEEDBACK"
 echo "── الردّ الآلي";      pg_run_quiet "$AUTOREPLY"
 

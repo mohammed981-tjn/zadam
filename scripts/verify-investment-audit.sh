@@ -11,13 +11,17 @@
 # UPDATE, and which roles PostgreSQL lets through the door. All three are
 # database behaviour, and mocking any of them proves nothing about it.
 #
-# THE STUBS
+# الأساسُ المشترك
 #
-# `profiles`, `projects`, `investments` and `auth.uid()` are all part of the
-# base schema, which still lives outside the migrations directory. They are
-# stubbed to the minimum the guards need — including the `investment_status`
-# enum, because the real column is an enum and a text stub would let a typo
-# through that production would reject.
+# `profiles`, `projects`, `investments`, `auth.uid()` and the enums they use all
+# belong to the base schema, which still lives outside the migrations directory.
+# They come from `scripts/base-schema.sql` — one fixture read out of production
+# and shared by every gate, rather than a stub each script invents for itself.
+#
+# That sharing is not tidiness. While the stubs were separate, all four declared
+# `role text default 'farmer'` — and there is no `farmer`: the production column
+# is an enum of `investor`, `admin`, `field_agent`. Four gates and 147 checks
+# passed against a database that could not exist.
 
 set -euo pipefail
 
@@ -27,39 +31,12 @@ source "$ROOT/scripts/pg-harness.sh"
 
 pg_start investment-audit
 
-STUBS="$(pg_write stubs.sql <<'SQL'
-create schema if not exists auth;
+BASE="$(pg_stage "$ROOT/scripts/base-schema.sql" base-schema.sql)"
 
-create table profiles (id uuid primary key, role text default 'farmer');
-
--- النوعُ الحقيقيُّ في الإنتاج تعداديّ لا نصّيّ، فيُحاكى كذلك: جدولٌ نصّيٌّ كان
--- سيقبل حالةً مكتوبةً خطأً ترفضها القاعدةُ الحقيقيّة.
-create type investment_status as enum ('pending', 'confirmed', 'cancelled');
-
-create table projects (
-  id           uuid primary key,
-  total_shares integer not null,
-  shares_sold  integer not null default 0
-);
-
-create table investments (
-  id          uuid primary key,
-  project_id  uuid not null references projects(id),
-  investor_id uuid not null references profiles(id),
-  shares      integer not null,
-  amount      numeric not null default 0,
-  status      investment_status not null default 'pending',
-  created_at  timestamptz not null default now()
-);
-
--- هويّةٌ قابلةٌ للتبديل: فحصٌ يتصرّف كمدير، وآخرُ كمستثمر، وآخرُ بلا هويّة.
-create table _who (uid uuid);
-insert into _who values (null);
-create or replace function auth.uid() returns uuid language sql stable as $$ select uid from _who $$;
-create or replace function public.is_admin() returns boolean language sql stable as $$
-  select exists (select 1 from profiles where id = auth.uid() and role = 'admin') $$;
-
--- النسخةُ القديمة، كي يكون ما تفعله الهجرةُ حذفاً حقيقياً لا إنشاءً على فراغ.
+# النسخةُ القديمة (تُرجع void). وجودُها متعمَّد: بدونها يصير `drop function`
+# في الهجرة بلا أثر، فلا يُختبر أنّ إعادةَ الإنشاء تُعيد ضبطَ الصلاحيات —
+# وهو الموضعُ الذي يمنح فيه PostgreSQL التنفيذَ لـ PUBLIC تلقائياً.
+OLDFN="$(pg_write old-function.sql <<'SQL'
 create function public.confirm_investment(p_investment_id uuid)
 returns void language plpgsql security definer set search_path to 'public'
 as $old$
@@ -67,17 +44,14 @@ begin
   if not is_admin() then raise exception 'not authorized'; end if;
   return;
 end $old$;
-
-create role anon          nologin;
-create role authenticated nologin;
-create role service_role  nologin;
 SQL
 )"
 
 MIGRATION="$(pg_stage "$ROOT/supabase/migrations/20260904140000_investment_audit.sql" migration.sql)"
 CHECKS="$(pg_stage    "$ROOT/scripts/verify-investment-audit.sql" checks.sql)"
 
-echo "── الأساس";   pg_run_quiet "$STUBS"
+echo "── الأساس";   pg_run_quiet "$BASE"
+echo "── الدالّةُ القديمة"; pg_run_quiet "$OLDFN"
 echo "── الهجرة";   pg_run_quiet "$MIGRATION"
 
 # هجرةٌ لا تُعاد لا تُستأنَف بعد فشلٍ جزئيّ — و `create policy` بلا
@@ -123,16 +97,18 @@ echo "ز) التزامن — جلستان تتسابقان على آخر الح�
 echo "=========================================================================="
 
 RACE_SETUP="$(pg_write race-setup.sql <<'SQL'
-insert into projects (id, total_shares, shares_sold)
-values ('33333333-0000-0000-0000-000000000001', 100, 90);
+insert into projects
+  (id, slug, name, location, total_feddans, price_per_share, total_shares, shares_sold)
+values ('33333333-0000-0000-0000-000000000001', 'race-plot', 'قطعةُ السباق',
+        'ولاية سنّار', 250, 500, 100, 90);
 
-insert into investments (id, project_id, investor_id, shares, status) values
+insert into investments (id, project_id, investor_id, shares, amount, status) values
   ('44444444-0000-0000-0000-000000000001',
    '33333333-0000-0000-0000-000000000001',
-   'b0000000-0000-0000-0000-00000000000b', 8, 'pending'),
+   'b0000000-0000-0000-0000-00000000000b', 8, 4000, 'pending'),
   ('44444444-0000-0000-0000-000000000002',
    '33333333-0000-0000-0000-000000000001',
-   'c0000000-0000-0000-0000-00000000000c', 8, 'pending');
+   'c0000000-0000-0000-0000-00000000000c', 8, 4000, 'pending');
 
 -- المديرُ هو الفاعلُ في الجلستين.
 update _who set uid = 'a0000000-0000-0000-0000-00000000000a';
