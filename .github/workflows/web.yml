@@ -139,6 +139,11 @@ jobs:
 
       - name: تدقيقُ عملية الاستثمار
         run: ./scripts/verify-investment-audit.sh
+
+      # وهذه تسأل السؤال المعاكس. الثلاث فوقها تُثبت ما تمنعه المنصّة؛ هذه
+      # وحدها تُثبت أنّ صاحب الحقّ يمرّ — ومنصّةٌ ترفض كلَّ شيء تنجح في الثلاث.
+      - name: الرحلة الذهبيّة
+        run: ./scripts/verify-farmer-journey.sh
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build-only
