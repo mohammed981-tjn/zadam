@@ -48,7 +48,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SITE_URL: ${{ vars.SITE_URL || 'https://sudagri.vercel.app' }}
+  # The project's own generated domain — see the note in keep-alive.yml. The old
+  # fallback, sudagri.vercel.app, belongs to nobody here.
+  SITE_URL: ${{ vars.SITE_URL || 'https://zadam-khaki.vercel.app' }}
 
 jobs:
   reply:
