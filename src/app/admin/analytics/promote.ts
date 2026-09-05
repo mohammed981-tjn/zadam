@@ -2,25 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminGuard";
+import { KNOWLEDGE_TOPICS } from "@/lib/knowledgeTopics";
 
 export interface PromoteResult {
   ok: boolean;
   message: string;
 }
 
-/** The topics `knowledge_entries` accepts, mirroring its CHECK constraint. */
-export const KNOWLEDGE_TOPICS = [
-  "agronomy",
-  "economics",
-  "institutional",
-  "livestock",
-  "water",
-  "soil",
-  "pest",
-  "variety",
-  "technology",
-  "general",
-] as const;
 
 /**
  * اعتمادُ جوابِ المساعد مُدخلَ معرفة — البوّابةُ التي تفصل المخزونَ عن القاعدة.

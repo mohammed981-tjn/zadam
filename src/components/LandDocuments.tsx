@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import EvidenceUpload from "@/components/EvidenceUpload";
-import {
-  addLandDocument,
-  LAND_DOCUMENT_KINDS,
-} from "@/app/lands/documents/actions";
+import { addLandDocument } from "@/app/lands/documents/actions";
+import { LAND_DOCUMENT_KINDS } from "@/lib/landDocuments";
 
 export default function LandDocuments({
   landId,
