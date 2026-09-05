@@ -145,6 +145,9 @@ export default async function Navbar() {
       hint: "للمشرفين وحدهم",
       items: [
         { href: "/admin", label: "لوحة المشاريع" },
+        // الشاشةُ التي كان إجراؤها موجوداً وهي مفقودة — وبلاها لا تُوثَّق أرضٌ
+        // أبداً، فتقف السلسلةُ كلُّها عند خطوتها الأولى.
+        { href: "/admin/lands", label: "توثيق الأراضي" },
         { href: "/admin/review", label: "مراجعة الفرص" },
         { href: "/admin/analytics", label: "التحليلات" },
         { href: "/admin/export", label: "مراجعة الصادر" },

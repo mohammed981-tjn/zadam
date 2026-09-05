@@ -105,6 +105,58 @@ export async function registerLand(
   };
 }
 
+/**
+ * ردُّ الأرض إلى صاحبها بسبب.
+ *
+ * WHY A VERIFICATION SCREEN NEEDS THIS
+ *
+ * `verifyLand` alone makes the reviewer a rubber stamp: the only button
+ * approves, so the only way to decline is to leave the plot in `submitted`
+ * forever — which the farmer reads as silence, not as an answer. Silence is the
+ * worst outcome for the person waiting, because there is nothing to act on.
+ *
+ * So a refusal carries a written reason, in the same column the farmer's screen
+ * already renders, and the plot moves to `rejected` rather than staying in a
+ * queue nobody will look at twice.
+ */
+export async function rejectLand(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if ((profile as { role: string } | null)?.role !== "admin") return;
+
+  const id = str(formData, "id");
+  const note = str(formData, "verification_note");
+
+  // سببٌ فارغٌ ليس رفضاً — هو صمتٌ يحمل ختماً. والمزارعُ لا يستطيع إصلاح
+  // «مرفوضة» بلا كلمة.
+  if (note.length < 10) {
+    redirect(
+      `/admin/lands?error=${encodeURIComponent("اكتب سبب الردّ — عشرة أحرف على الأقل، فالمزارع يصلح على أساسه.")}`,
+    );
+  }
+
+  const { error } = await supabase
+    .from("lands")
+    .update({ verification: "rejected", listed: false, verification_note: note })
+    .eq("id", id);
+
+  if (error) {
+    redirect(`/admin/lands?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/admin/lands");
+  revalidatePath("/lands");
+}
+
 /** Admin verification. The trigger re-checks documents before anything lists. */
 export async function verifyLand(formData: FormData) {
   const supabase = await createClient();

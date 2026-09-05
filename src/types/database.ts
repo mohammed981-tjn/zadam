@@ -108,6 +108,27 @@ export interface Land {
   created_at: string;
 }
 
+/**
+ * مستندُ أرض — والعدّادُ عليه لا فيه.
+ *
+ * `lands.documents_on_file` is not written from here: a database trigger
+ * recomputes it from the stored rows, counting **distinct kinds** rather than
+ * files, so three photographs are one kind and not three documents. That is why
+ * the review screen shows the kinds and not the file count.
+ */
+export interface LandDocument {
+  id: string;
+  land_id: string;
+  kind: "tenure" | "photo" | "permit" | "inspection";
+  storage_path: string;
+  caption: string | null;
+  created_by: string | null;
+  created_at: string;
+  captured_at: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export interface Season {
   id: string;
   owner_id: string;
