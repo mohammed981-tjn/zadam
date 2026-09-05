@@ -72,6 +72,32 @@ export default async function Navbar() {
     },
   ];
 
+  /*
+   * والزائرُ يعرف أنّ للمزرعة باباً، وإن كان يحتاج حساباً ليدخله.
+   *
+   * The «مزرعتي» group below is pushed only for a signed-in user, so a visitor
+   * browsing the menu saw calculators, studies, mining and an account section —
+   * and no hint that land, seasons or a farm record existed at all. The whole
+   * agricultural spine was invisible to precisely the person it was built for.
+   *
+   * The links point at `/signup` rather than at `/lands`, and that is
+   * deliberate: `/lands` redirects to `/login`, and login always lands on
+   * `/dashboard` — the investor portfolio — so a farmer who followed the honest
+   * href would arrive somewhere that has nothing to do with what they clicked.
+   * Pointing at signup states the requirement instead of walking them into it.
+   */
+  if (!user) {
+    groups.push({
+      title: "مزرعتك",
+      hint: "سجّل أرضك ووثّق موسمك — يحتاج حساباً",
+      items: [
+        { href: "/signup", label: "سجّل أرضك" },
+        { href: "/guide", label: "كيف تسير الخطوات" },
+        { href: "/export/market", label: "عروض التصدير المنشورة" },
+      ],
+    });
+  }
+
   if (user) {
     groups.push({
       title: "مزرعتي",
