@@ -63,6 +63,48 @@ export default async function SignupPage({
           <input type="text" name="full_name" required className={field} />
         </label>
 
+        {/*
+          السؤالُ الذي لم يكن يُسأل.
+
+          Every account ever created was written as an investor, because
+          `handle_new_user` hard-coded it and nothing asked. A platform whose
+          spine is land, seasons and a farm passport was telling every single
+          person who joined that they had come to invest.
+
+          The choice decides the doorway after signing in and what the menu
+          leads with — nothing more. It grants no permission either way, it is
+          changeable later from the same form's server action, and the boundary
+          on everything that matters is ownership, not this.
+        */}
+        <fieldset className="flex flex-col gap-2 text-sm">
+          <legend className="mb-1">وأنت؟</legend>
+          <label className="flex items-start gap-2 rounded-lg border border-border p-3">
+            <input
+              type="radio"
+              name="role"
+              value="farmer"
+              defaultChecked
+              className="mt-1"
+            />
+            <span>
+              <strong>أزرع</strong>
+              <span className="block text-xs text-muted">
+                أسجّل أرضي وأوثّق مواسمي، ويتكوّن لمزرعتي سجلٌّ يقرأه المشتري.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 rounded-lg border border-border p-3">
+            <input type="radio" name="role" value="investor" className="mt-1" />
+            <span>
+              <strong>أستثمر</strong>
+              <span className="block text-xs text-muted">
+                أتابع المشاريع المطروحة. والاستثمارُ لم يُفتح بعد — لا يُعرض
+                مشروعٌ قبل توثيقه ومعاينته.
+              </span>
+            </span>
+          </label>
+        </fieldset>
+
         {byEmail ? (
           <label className="flex flex-col gap-1 text-sm">
             البريد الإلكتروني

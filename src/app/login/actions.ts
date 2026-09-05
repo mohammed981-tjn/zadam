@@ -35,6 +35,42 @@ function readPhone(formData: FormData) {
   return toE164(str(formData, "dial_code"), str(formData, "phone"));
 }
 
+/**
+ * أين يصل المرءُ بعد الدخول.
+ *
+ * WHY THIS EXISTS AT ALL
+ *
+ * Every path here used to end in `redirect("/dashboard")` — the investment
+ * portfolio. A person who arrived by pressing «سجّل أرضك», signed up, and was
+ * dropped onto a page about shares they do not own has been answered by a
+ * different platform than the one they came to. That is not a small annoyance:
+ * it is the first thing the product says to them, and it says "you misread us".
+ *
+ * The role is orientation, so it decides the doorway and nothing more — the
+ * farmer can still open the portfolio from the menu, and the investor can still
+ * open the farm. Ownership, not role, is what any of it is actually guarded by.
+ *
+ * وتعذُّرُ قراءة الدور يُفضي إلى المحفظة كما كان: وجهةٌ خاطئةٌ أهونُ من صفحةِ
+ * خطأٍ في اللحظة التي ينجح فيها الدخول.
+ */
+async function homeAfterAuth(): Promise<string> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "/dashboard";
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  return (data as { role: string } | null)?.role === "farmer"
+    ? "/lands"
+    : "/dashboard";
+}
+
 export async function login(formData: FormData) {
   const method = str(formData, "method") || "phone";
   const password = str(formData, "password");
@@ -53,7 +89,7 @@ export async function login(formData: FormData) {
         )}`,
       );
     }
-    redirect("/dashboard");
+    redirect(await homeAfterAuth());
   }
 
   const phone = readPhone(formData);
@@ -74,13 +110,28 @@ export async function login(formData: FormData) {
     );
   }
 
-  redirect("/dashboard");
+  redirect(await homeAfterAuth());
 }
 
 export async function signup(formData: FormData) {
   const method = str(formData, "method") || "phone";
   const password = str(formData, "password");
   const fullName = str(formData, "full_name");
+
+  /*
+   * ما يقوله المسجِّلُ عن نفسه — ولا يقول به صلاحية.
+   *
+   * Narrowed here to the one value that changes anything, and narrowed **again**
+   * inside `handle_new_user`, which is where it actually matters: this line runs
+   * on our server and the trigger runs in the database, and only the second is
+   * out of reach of a hand-crafted request. Anything that is not exactly
+   * "investor" — including "admin" — becomes a farmer in both places.
+   *
+   * والافتراضيُّ مزارع: الاستثمارُ موقوفٌ على المنصّة اليوم (`INVESTMENT_LIVE`),
+   * وما يستطيع الواصلُ فعلَه الآنَ هو أرضٌ وموسمٌ وجواز.
+   */
+  const chosenRole = str(formData, "role") === "investor" ? "investor" : "farmer";
+
   const supabase = await createClient();
 
   if (password.length < 6) {
@@ -106,7 +157,7 @@ export async function signup(formData: FormData) {
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, role: chosenRole },
         ...(host
           ? { emailRedirectTo: `${proto}://${host}/auth/callback` }
           : {}),
@@ -129,7 +180,7 @@ export async function signup(formData: FormData) {
       );
     }
 
-    redirect("/dashboard");
+    redirect(await homeAfterAuth());
   }
 
   const phone = readPhone(formData);
@@ -183,7 +234,7 @@ export async function signup(formData: FormData) {
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: fullName, phone: phone.e164 },
+    user_metadata: { full_name: fullName, phone: phone.e164, role: chosenRole },
   });
 
   if (createError) {
@@ -209,7 +260,7 @@ export async function signup(formData: FormData) {
     );
   }
 
-  redirect("/dashboard");
+  redirect(await homeAfterAuth());
 }
 
 export async function logout() {
