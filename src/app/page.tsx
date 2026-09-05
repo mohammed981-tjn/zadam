@@ -146,6 +146,15 @@ export default async function Home() {
             >
               جرّب حاسبة المياه
             </Link>
+            {/* والمزارعُ له بابٌ في الواجهة لا في أسفل الصفحة وحدها: الزرّان
+                السابقان يقودان إلى قراءةٍ وحساب، وكلاهما لا يقول لمن يزرع إنّ
+                هنا شيئاً يفعله. */}
+            <Link
+              href="/signup"
+              className="rounded-xl border border-primary/40 bg-card px-5 py-3 font-medium shadow-card transition hover:shadow-raised"
+            >
+              سجّل أرضك ووثّق موسمك
+            </Link>
             <Link
               href="/arc-canal"
               className="rounded-xl border border-border bg-card px-5 py-3 font-medium shadow-card transition hover:shadow-raised"
@@ -194,6 +203,93 @@ export default async function Home() {
             </strong>{" "}
             — ولن يُعرض مشروع قبل توثيقه قانونياً ومعاينته ميدانياً. أمّا
             الأدوات وقاعدة المعرفة فتعمل الآن، مجاناً وبلا تسجيل.
+          </p>
+        </div>
+      </section>
+
+      {/* ───────────────────────── المزارع ─────────────────────────
+       *
+       * القسمُ الذي لم يكن، وصفرُ الأراضي هو أثرُه.
+       *
+       * Everything above and below this section speaks to a reader: calculators
+       * to try, studies to read, a knowledge base to browse. Nothing on the page
+       * told a farmer that the platform had anything for them to *do* — no land,
+       * no season, no evidence, no passport. And the database agrees: six people
+       * registered, and in the platform's whole life **not one plot of land has
+       * ever been recorded**.
+       *
+       * So this is placed above the tools rather than below the projects. The
+       * chain it describes is the product; the calculators are the doorway.
+       */}
+      <section className="mx-auto max-w-6xl px-4 pt-14">
+        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 sm:p-8">
+          <h2 className="font-bold" style={{ fontSize: "var(--text-title)" }}>
+            وإن كنت تزرع: من أرضك إلى المشتري
+          </h2>
+          <p className="mt-3 max-w-2xl leading-relaxed text-muted">
+            المزارعُ في السودان لا ينقصه محصول — ينقصه أن{" "}
+            <strong className="text-foreground">يُثبت</strong> ما زرعه. سودجري
+            تبني لك سجلّاً يقرأه المشتري والمموّل: أرضٌ موثّقة، وموسمٌ بمراحله
+            وأدلّته، ودرجةٌ محسوبةٌ من فعلك لا من كلامك.
+          </p>
+
+          <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                n: "١",
+                t: "سجّل أرضك",
+                b: "الموقع والمساحة والحيازة، ومستنداتها. يراجعها موظّفٌ ويوثّقها — وما لم يُوثَّق لا يُعرض.",
+              },
+              {
+                n: "٢",
+                t: "وثّق موسمك",
+                b: "سبعُ مراحل من التحضير إلى الحصاد، ولا تُعتمد مرحلةٌ بلا ملفٍّ مرفوع — صورةٍ أو فاتورة.",
+              },
+              {
+                n: "٣",
+                t: "يتكوّن جوازُ مزرعتك",
+                b: "سجلٌّ عامّ بإذنك وحدك: أرضُك الموثّقة، ومواسمُك، ودرجةُ ثقةٍ محسوبةٌ ممّا وثّقته فعلاً.",
+              },
+              {
+                n: "٤",
+                t: "اعرض للتصدير",
+                b: "بمستنداتِ الممرّ الذي تقصده، والمنصّةُ تقول لك ما نقص قبل أن تُرسل — لا على الحدود.",
+              },
+            ].map((s) => (
+              <li
+                key={s.n}
+                className="rounded-xl border border-border bg-card p-4 shadow-card"
+              >
+                <span className="figure text-lg font-black text-primary">
+                  {s.n}
+                </span>
+                <h3 className="mt-1 font-bold">{s.t}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted">{s.b}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link
+              href="/signup"
+              className="rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground shadow-raised transition hover:opacity-90"
+            >
+              سجّل أرضك
+            </Link>
+            <Link
+              href="/guide"
+              className="rounded-xl border border-border bg-card px-5 py-3 font-medium shadow-card transition hover:shadow-raised"
+            >
+              كيف تسير الخطوات
+            </Link>
+          </div>
+
+          {/* ولا يُوعَد بمشترٍ. المنصّةُ تشهد بأنّ الدليل موجودٌ ومراجَع، وهذا
+              كلُّ ما تملك أن تشهد به — ووعدُ بيعٍ لا نملكه يُفقد ثقةَ أوّل من
+              يصدّقه. */}
+          <p className="mt-4 text-xs leading-relaxed text-muted">
+            وما نشهد به هو أنّ <strong>أدلّتك موجودةٌ ومراجَعة</strong> — لا أنّ
+            بيعاً سيقع ولا بسعرٍ بعينه. ذلك يبقى تفاوضَك أنت.
           </p>
         </div>
       </section>
