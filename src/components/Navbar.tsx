@@ -48,6 +48,9 @@ export default async function Navbar() {
       items: [
         { href: "/", label: "الصفحة الرئيسية" },
         { href: "/guide", label: "دليل الاستخدام" },
+        // كانت تُوعَد من الصفحة الأولى مرّتين ولا توجد. ووجودُها في القائمة
+        // يجعلها قابلةً للوصول من كلّ صفحة، لا من الأولى وحدها.
+        { href: "/knowledge", label: "قاعدة المعرفة" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
         { href: "/tools/feasibility", label: "دراسة الجدوى المرحلية" },
         { href: "/feedback", label: "ملاحظات واقتراحات" },
@@ -165,10 +168,26 @@ export default async function Navbar() {
               )}
             </Link>
           )}
+          {/*
+           * لا `hidden ... sm:inline-block`.
+           *
+           * The class was `hidden rounded-lg ... sm:inline-block`: the button
+           * does not render below 640px, and a phone is 390px. Signing up was
+           * still *possible* — the menu carries a «حسابك» group — but that
+           * group is one of six in an accordion that opens one section at a
+           * time, so reaching it took opening the menu, finding the section and
+           * expanding it: three deliberate taps, with no visible prompt at any
+           * point that joining was a thing to do.
+           *
+           * Sudan browses on phones, and this platform's own owner has no
+           * computer. A call to action that renders only on the device the
+           * market does not use is a call to action for nobody. Six people ever
+           * registered.
+           */}
           {!user && (
             <Link
               href="/signup"
-              className="hidden rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 sm:inline-block"
+              className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
               ابدأ الآن
             </Link>
