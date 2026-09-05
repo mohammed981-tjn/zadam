@@ -151,7 +151,9 @@ function openRouterEngine(apiKey: string, models: string[]): Engine {
             "content-type": "application/json",
             authorization: `Bearer ${apiKey}`,
             // Optional attribution headers OpenRouter uses for its rankings.
-            "HTTP-Referer": "https://sudagri.vercel.app",
+            // The address is the platform's own; sudagri.vercel.app was never
+            // ours, so the attribution pointed at a stranger.
+            "HTTP-Referer": "https://zadam-khaki.vercel.app",
             "X-Title": "SudAgri",
           },
           body: JSON.stringify({
