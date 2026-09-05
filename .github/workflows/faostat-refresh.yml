@@ -12,6 +12,14 @@ name: FAOSTAT prices and trade
 # rather than a table to repair.
 
 on:
+  # مرّتان في السنة. فـFAOSTAT تنشر سنوياً، وجدولٌ أكثفُ من ذلك يُنزّل ٢٧٣
+  # ميغابايت ليكتشف أنّ شيئاً لم يتغيّر — والوظيفةُ تخرج صامتةً حين لا يتغيّر
+  # الملفّ، فالتكلفةُ كلُّها في التنزيل لا في الالتزام.
+  #
+  # والأوّلُ من مارس وسبتمبر عند ٠٣:٠٠ UTC: بعد نافذة النشر المعتادة بأسابيع،
+  # وفي ساعةٍ لا يزاحم فيها التنزيلُ شيئاً.
+  schedule:
+    - cron: "0 3 1 3,9 *"
   push:
     # Only when the fetch itself changes. The data commit this job makes does
     # not match these paths, so it cannot retrigger itself.

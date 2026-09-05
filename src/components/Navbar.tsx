@@ -151,6 +151,8 @@ export default async function Navbar() {
         { href: "/admin/review", label: "مراجعة الفرص" },
         { href: "/admin/analytics", label: "التحليلات" },
         { href: "/admin/export", label: "مراجعة الصادر" },
+        // اللوائحُ تتغيّر بإعلانٍ لا بجدول، فلا يملأ تاريخَ المراجعة إلّا إنسان.
+        { href: "/admin/export/corridors", label: "مراجعة قواعد الممرّات" },
         { href: "/admin/export/interests", label: "طلبات المشترين" },
         { href: "/admin/providers", label: "توثيق مقدّمي الخدمة" },
         { href: "/admin/feedback", label: "ملاحظات الزوّار" },
