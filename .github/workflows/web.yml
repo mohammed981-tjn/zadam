@@ -175,3 +175,9 @@ jobs:
       # تُعيد تنفيذَها إلى `PUBLIC` بلا كلمة.
       - name: جوازُ المزرعة
         run: ./scripts/verify-farm-passport.sh
+
+      # وهذه تحرس تضييقَ حارس. `prevent_self_role_escalation` صار يسمح
+      # investor ⇄ farmer، وتوسيعُ ثقبٍ في حارس أخطرُ أنواع التعديل — فتُفحص
+      # الجهتان: أنّ المسموحَ يمرّ، وأنّ كلَّ طريقٍ إلى صلاحيةٍ ما زال يُرَدّ.
+      - name: اختيار الدور
+        run: ./scripts/verify-role-choice.sh

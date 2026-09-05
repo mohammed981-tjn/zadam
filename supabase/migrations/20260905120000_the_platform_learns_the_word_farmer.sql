@@ -1,0 +1,43 @@
+-- المنصّةُ تتعلّم كلمة «مزارع».
+--
+-- الحجّة، من أرقام الإنتاج لا من ذوق
+--
+-- `user_role` is `('investor', 'admin', 'field_agent')`. There is no farmer.
+-- `handle_new_user` writes `'investor'` for every account ever created, and
+-- `prevent_self_role_escalation` silently reverts any attempt to change it. So
+-- a platform whose entire spine is land, seasons, evidence and a farm passport
+-- tells every single person who joins that they are an investor, and gives them
+-- no way to say otherwise.
+--
+-- The production numbers say what that cost: six accounts, five of them
+-- labelled investors who did nothing, two investments both belonging to the
+-- owner and both still pending — and, in the platform's whole life, zero plots
+-- of land.
+--
+-- ولماذا المزارعُ أوّلاً — وهي ليست مسألةَ تفضيل
+--
+-- `INVESTMENT_LIVE` is false in `src/lib/config.ts`, by the owner's own
+-- decision, and the invest action refuses on the server. It cannot be turned on
+-- until there are "real, legally documented projects and a real payment and
+-- custody arrangement behind them".
+--
+-- A documented project is built out of a verified plot and a recorded season.
+-- So the investor product is not an alternative to the farmer product — it is
+-- **downstream of it**, and cannot exist before it. An investor arriving today
+-- can do nothing at all; a farmer arriving today can register land, document a
+-- season and build a passport. That ordering is forced by the dependency, not
+-- chosen.
+--
+-- ولماذا لا يكسر هذا أمناً
+--
+-- Every use of `role` in the entire application tests for `'admin'` and nothing
+-- else, and no row-level policy anywhere reads it. `investor` grants nothing;
+-- `farmer` will grant nothing. The role is orientation — which screen you land
+-- on, what the menu offers — not permission. The permission boundary is
+-- ownership, and it stays exactly where it is.
+--
+-- This migration adds the value and nothing else. A new enum label cannot be
+-- **used** in the transaction that adds it, so the functions that read it come
+-- in 20260905120100.
+
+alter type user_role add value if not exists 'farmer';
