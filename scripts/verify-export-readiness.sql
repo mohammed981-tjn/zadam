@@ -129,6 +129,72 @@ begin
     'تُصدرها الغرفةُ التجارية', 'ويخرج شرحُ المستند معه لا في استعلامٍ ثانٍ');
 end $$;
 
+/*
+ * والقاعدةُ التي انتهى عملُها تخرج من الحساب — 20260905140000.
+ *
+ * دالّةُ التجميد كانت تفحص `effective_to` منذ كُتبت، ودالّةُ الجاهزيّة أغفلته.
+ * فتقيس المسوّدةُ نفسَها بقاعدةٍ لن تُجمَّد لها، ويُطلب من المزارع مستندٌ لم
+ * يعد أحدٌ يطلبه — ولا تبلغ نسبتُه مئةً أبداً.
+ *
+ * ويُعاد كلُّ شيءٍ إلى حاله بعد الفحص، فما بعده مبنيٌّ على أربعة مستندات.
+ */
+-- وإنهاءُ القاعدة بيد الإدارة، فتُبدَّل الجلسةُ هنا لا داخل الكتلة.
+--
+-- كتبتُ التحديثَ أوّلاً بدور المزارع، فرشّحته السياسةُ بلا خطأٍ وبلا صفوف —
+-- فمرّ الفحصُ كأنّ القاعدةَ لم تنتهِ، وكاد يُقرأ «الإصلاحُ لا يعمل». وهو الفخُّ
+-- نفسُه الذي تُقاس به الرفوضاتُ في هذه البوّابة كلِّها: التحديثُ المرشَّح ينجح
+-- ولا يمسّ شيئاً.
+reset role;
+do $$ begin perform _act_as('ad000000-0000-0000-0000-0000000000ad'); end $$;
+set role authenticated;
+
+do $$
+declare v_corridor uuid; v_d4 uuid; touched integer;
+begin
+  select id into v_corridor from export_corridors limit 1;
+  select id into v_d4 from export_document_types where code = 't_insure';
+
+  update export_corridor_requirements
+     set effective_to = current_date - 1
+   where corridor_id = v_corridor and document_type_id = v_d4;
+  get diagnostics touched = row_count;
+  perform _eq(touched, 1, 'الإدارةُ تُنهي عملَ قاعدة — وصفٌّ واحدٌ مُسّ فعلاً');
+end $$;
+
+reset role;
+do $$ begin perform _act_as('fa000000-0000-0000-0000-0000000000fa'); end $$;
+set role authenticated;
+
+do $$
+begin
+  perform _eq((select count(*)::int from export_offer_readiness_detail('0f000000-0000-0000-0000-00000000000d')),
+    3, 'قاعدةٌ انتهى عملُها تسقط من قائمة المسوّدة — ثلاثةٌ لا أربعة');
+  perform _eq((select array_length(missing, 1) from export_offer_readiness('0f000000-0000-0000-0000-00000000000d')),
+    3, 'ولا تبقى في الناقص — فلا يُطلب مستندٌ لا يطلبه أحد');
+end $$;
+
+reset role;
+do $$ begin perform _act_as('ad000000-0000-0000-0000-0000000000ad'); end $$;
+set role authenticated;
+do $$
+declare v_corridor uuid; v_d4 uuid;
+begin
+  select id into v_corridor from export_corridors limit 1;
+  select id into v_d4 from export_document_types where code = 't_insure';
+  update export_corridor_requirements set effective_to = null
+   where corridor_id = v_corridor and document_type_id = v_d4;
+end $$;
+
+reset role;
+do $$ begin perform _act_as('fa000000-0000-0000-0000-0000000000fa'); end $$;
+set role authenticated;
+
+do $$
+begin
+  perform _eq((select count(*)::int from export_offer_readiness_detail('0f000000-0000-0000-0000-00000000000d')),
+    4, 'وتعود إن أُلغي انتهاؤها — فما بعده مبنيٌّ على أربعة');
+end $$;
+
 \echo ''
 \echo '=========================================================================='
 \echo 'ب) ويرفع مستنداً مستنداً — والنسبةُ تتحرّك، والجاهزيّةُ لا'

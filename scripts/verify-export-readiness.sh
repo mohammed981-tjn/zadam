@@ -26,6 +26,7 @@ POLICIES="$(pg_stage "$ROOT/supabase/migrations/20260817120000_document_existing
 EXPORT="$(pg_stage "$ROOT/supabase/migrations/20260903170000_export_offers.sql" export.sql)"
 FREEZE="$(pg_stage "$ROOT/supabase/migrations/20260903190000_export_freeze_requirements.sql" freeze.sql)"
 READY="$(pg_stage "$ROOT/supabase/migrations/20260904230000_export_readiness.sql" readiness.sql)"
+RETIRE="$(pg_stage "$ROOT/supabase/migrations/20260905140000_a_retired_rule_stops_being_asked_for.sql" retire.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-export-readiness.sql" checks.sql)"
 
 echo "── الأساس";            pg_run_quiet "$BASE"
@@ -33,8 +34,9 @@ echo "── السياسات";          pg_run_quiet "$POLICIES"
 echo "── ممرّ الصادر";        pg_run_quiet "$EXPORT"
 echo "── تجميدُ المتطلّبات";  pg_run_quiet "$FREEZE"
 echo "── الجاهزيّة";          pg_run_quiet "$READY"
+echo "── القاعدة المنتهية";  pg_run_quiet "$RETIRE"
 
-echo "── وثانيةً"; pg_run_quiet "$READY"
+echo "── وثانيةً"; pg_run_quiet "$READY"; pg_run_quiet "$RETIRE"
 
 echo "── الحرّاس"
 pg_run "$CHECKS"
