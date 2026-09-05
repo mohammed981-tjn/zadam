@@ -826,6 +826,30 @@ export interface ExportReadinessLine {
  * `missing` carries the names because a number that does not say the next step
  * is a number nobody can act on.
  */
+/**
+ * عمرُ لائحةِ الممرّ — `export_corridor_rules_status`.
+ *
+ * The requirements table says when a rule takes effect; it never says when a
+ * person last confirmed it is still the rule. This is the second fact, and it
+ * is the only one that supports telling a farmer their consignment is ready.
+ *
+ * `last_reviewed_at` null means never reviewed, and that reads as **stale** —
+ * not as fresh. `null > interval` is false in SQL, so the obvious form of the
+ * comparison would quietly declare every unchecked corridor current, which is
+ * the wrong error to make about the one dataset whose staleness costs a
+ * rejected shipment.
+ */
+export interface ExportCorridorRulesStatus {
+  last_reviewed_at: string | null;
+  reviewed_count: number;
+  /** null only when nothing has ever been reviewed. */
+  days_since: number | null;
+  /** The interval, from a row an administrator edits — not a constant. */
+  review_days: number;
+  stale: boolean;
+  source_note: string | null;
+}
+
 export interface ExportOfferReadiness {
   ready: boolean;
   score: number;

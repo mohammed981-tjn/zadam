@@ -4,7 +4,10 @@ import {
   readinessVerdict,
   type ExportOfferReadiness,
 } from "@/lib/exportReadiness";
-import type { ExportReadinessLine } from "@/types/database";
+import type {
+  ExportReadinessLine,
+  ExportCorridorRulesStatus,
+} from "@/types/database";
 
 /**
  * «٧ من ٨ — وما هو الثامن».
@@ -30,11 +33,14 @@ export function ReadinessPanel({
   readiness,
   lines,
   frozenAt,
+  rules,
 }: {
   readiness: ExportOfferReadiness;
   lines: ExportReadinessLine[];
   /** When the list was copied onto the offer, if it has been. */
   frozenAt?: string | null;
+  /** متى رُوجعت قواعدُ هذا الممرّ آخرَ مرّة — وهل تأخّرت. */
+  rules?: ExportCorridorRulesStatus | null;
 }) {
   const tone = readiness.ready
     ? "border-primary/40 bg-primary/5"
@@ -99,6 +105,26 @@ export function ReadinessPanel({
           ? ` (${new Date(frozenAt).toLocaleString("ar-EG")})`
           : ""}
       </p>
+
+      {/*
+        عمرُ اللائحةِ يسافر مع الرقم.
+        The person who pays for a stale rule is the one shipping the goods, so
+        telling only the administrators that a corridor is overdue puts the
+        knowledge where the loss is not. A corridor past its review interval says
+        so here, beside the number computed from it, instead of letting «٧ من ٨»
+        imply a currency nobody has checked.
+      */}
+      {rules && (
+        <p
+          className={`mt-2 text-xs ${rules.stale ? "text-danger" : "text-muted"}`}
+        >
+          {rules.last_reviewed_at
+            ? rules.stale
+              ? `⚠ قواعدُ هذا الممرّ لم تُراجَع منذ ${rules.days_since} يوماً — والحدُّ ${rules.review_days}. قد تكون تغيّرت.`
+              : `قواعدُ هذا الممرّ رُوجعت قبل ${rules.days_since} يوماً.`
+            : "⚠ قواعدُ هذا الممرّ لم تُراجَع بعد — تحقّق منها قبل الشحن."}
+        </p>
+      )}
     </section>
   );
 }

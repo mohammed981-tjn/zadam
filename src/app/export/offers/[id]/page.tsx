@@ -5,7 +5,10 @@ import ExportOfferDetail from "@/components/ExportOfferDetail";
 import { ReadinessPanel } from "@/components/ExportReadiness";
 import { fetchReadiness } from "@/lib/exportReadiness";
 import { formatMinor, OFFER_STATUS_LABEL, OFFER_STATUS_HELP, type OfferStatus } from "@/lib/exportOffers";
-import type { ExportReadinessLine } from "@/types/database";
+import type {
+  ExportReadinessLine,
+  ExportCorridorRulesStatus,
+} from "@/types/database";
 
 /**
  * تفصيلُ العرض — حيث تُبنى الأدلّة والعهدة قبل الإرسال.
@@ -32,6 +35,7 @@ export default async function ExportOfferDetailPage({
     .select(
       "id, reference, owner_id, season_id, quantity, uom_code, unit_price_minor, value_minor, " +
         "currency_code, status, rejection_reason, requirements_frozen_at, " +
+        "corridor_id, " +
         "corridor:export_corridors(commodity:export_commodities(name_ar), destination:export_destinations(name_ar))",
     )
     .eq("id", id)
@@ -52,6 +56,7 @@ export default async function ExportOfferDetailPage({
     status: OfferStatus;
     rejection_reason: string | null;
     requirements_frozen_at: string | null;
+    corridor_id: string;
     corridor: {
       commodity: { name_ar: string } | null;
       destination: { name_ar: string } | null;
@@ -88,6 +93,12 @@ export default async function ExportOfferDetailPage({
     fetchReadiness(supabase, id),
     supabase.rpc("export_offer_readiness_detail", { p_offer_id: id }),
   ]);
+
+  // عمرُ اللائحة يُقرأ بعد العرض لأنّه يحتاج `corridor_id` منه.
+  const { data: rulesRow } = await supabase
+    .rpc("export_corridor_rules_status", { p_corridor_id: offer.corridor_id })
+    .maybeSingle();
+  const rules = rulesRow as ExportCorridorRulesStatus | null;
 
   const lines = (lineRows ?? []) as ExportReadinessLine[];
 
@@ -135,6 +146,7 @@ export default async function ExportOfferDetailPage({
           readiness={readiness}
           lines={lines}
           frozenAt={offer.requirements_frozen_at}
+          rules={rules}
         />
       )}
 
