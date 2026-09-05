@@ -1,9 +1,9 @@
 "use client";
 
+import { KNOWLEDGE_TOPICS } from "@/lib/knowledgeTopics";
 import { useState } from "react";
 import {
   promoteAnswer,
-  KNOWLEDGE_TOPICS,
   type PromoteResult,
 } from "@/app/admin/analytics/promote";
 

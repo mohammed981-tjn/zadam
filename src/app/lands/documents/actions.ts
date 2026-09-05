@@ -5,15 +5,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sanitisePhotoMetadata } from "@/lib/exif";
 import { evidenceFileExists } from "@/lib/evidenceFile";
+import { LAND_DOCUMENT_KINDS } from "@/lib/landDocuments";
 
-const KINDS = ["tenure", "photo", "permit", "inspection"];
-
-export const LAND_DOCUMENT_KINDS = [
-  { value: "tenure", label: "إثبات حيازة أو عقد إيجار" },
-  { value: "photo", label: "صورة للأرض" },
-  { value: "permit", label: "تصريح أو موافقة" },
-  { value: "inspection", label: "تقرير معاينة" },
-];
+// القائمةُ نفسُها هي مصدرُ الحقيقة، ومنها تُشتقّ المفاتيحُ المقبولة — فلا
+// تفترقان. وهي في `lib/` لا هنا: وحدةُ `"use server"` لا تُصدّر إلّا دوالَّ
+// غيرَ متزامنة، وتصديرُ مصفوفةٍ منها يصل مكوّنَ العميل شيئاً ليس مصفوفة.
+const KINDS = LAND_DOCUMENT_KINDS.map((k) => k.value);
 
 /**
  * Records an uploaded land document. The plot's documents_on_file is not
