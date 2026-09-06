@@ -51,6 +51,7 @@ export default async function Navbar() {
         // كانت تُوعَد من الصفحة الأولى مرّتين ولا توجد. ووجودُها في القائمة
         // يجعلها قابلةً للوصول من كلّ صفحة، لا من الأولى وحدها.
         { href: "/knowledge", label: "قاعدة المعرفة" },
+        { href: "/news", label: "جديد سودجري" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
         { href: "/tools/feasibility", label: "دراسة الجدوى المرحلية" },
         { href: "/feedback", label: "ملاحظات واقتراحات" },
@@ -150,6 +151,7 @@ export default async function Navbar() {
         { href: "/admin/lands", label: "توثيق الأراضي" },
         { href: "/admin/review", label: "مراجعة الفرص" },
         { href: "/admin/analytics", label: "التحليلات" },
+        { href: "/admin/news", label: "الأخبار" },
         { href: "/admin/export", label: "مراجعة الصادر" },
         // اللوائحُ تتغيّر بإعلانٍ لا بجدول، فلا يملأ تاريخَ المراجعة إلّا إنسان.
         { href: "/admin/export/corridors", label: "مراجعة قواعد الممرّات" },

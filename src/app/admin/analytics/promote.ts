@@ -78,6 +78,9 @@ export async function promoteAnswer(
   }
 
   revalidatePath("/admin/analytics");
+  // و`/knowledge` صارت مخزَّنةً لساعة، فبلا هذا السطر يعتمد المديرُ مُدخلاً
+  // ولا يراه في الصفحة العامّة فيظنّ الاعتمادَ فشل.
+  revalidatePath("/knowledge");
   return {
     ok: true,
     message:

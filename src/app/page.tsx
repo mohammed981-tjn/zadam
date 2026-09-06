@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
 import KnowledgeCard from "@/components/KnowledgeCard";
 import Icon, { type IconName } from "@/components/Icon";
+import NewsStrip from "@/components/NewsStrip";
 import { CROPS, STATIONS } from "@/lib/agronomy";
 import type { KnowledgeEntry, Project } from "@/types/database";
 
@@ -118,6 +119,9 @@ export default async function Home() {
 
   return (
     <div>
+      {/* جديدُ المنصّة — ولا يظهر شيءٌ منه حين لا خبر، فتبقى الصفحةُ كما هي. */}
+      <NewsStrip />
+
       {/* ───────────────────────── الواجهة ───────────────────────── */}
       <section className="mesh border-b border-border">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
