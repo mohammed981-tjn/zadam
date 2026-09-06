@@ -75,6 +75,9 @@ export default async function AdminPage() {
           >
             التحليلات
           </Link>
+          <Link href="/admin/news" className="text-sm text-primary underline">
+            الأخبار
+          </Link>
           <Link href="/admin/review" className="text-sm text-primary underline">
             مراجعة الفرص
           </Link>
