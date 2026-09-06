@@ -439,10 +439,11 @@ export async function setMilestoneStatus(formData: FormData) {
 
   if (!["in_progress", "submitted", "approved", "paid"].includes(status)) return;
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("contract_milestones")
     .update({ status })
-    .eq("id", str(formData, "milestone_id"));
+    .eq("id", str(formData, "milestone_id"))
+    .select("id");
 
   revalidatePath(`/contracts/${contractId}`);
 
@@ -451,5 +452,67 @@ export async function setMilestoneStatus(formData: FormData) {
     // رفع إثبات تنفيذ" — and it is written for the user, so it is passed
     // through rather than replaced with something generic.
     redirect(`/contracts/${contractId}?error=${encodeURIComponent(error.message)}`);
+  }
+  // ورفضُ سياسة الصفوف لا يرفع خطأً ولا يمسّ صفّاً، فيُقرأ نجاحاً. هذا الفرعُ
+  // هو الفرقُ بين «لم يحدث شيء» و«حدث» — وقد عضّ هذا المشروعَ خمسَ مرّات.
+  if (!error && (data ?? []).length === 0) {
+    redirect(
+      `/contracts/${contractId}?error=${encodeURIComponent("لم تتغيّر المرحلة — لا صلاحية لك على هذا العقد")}`,
+    );
+  }
+}
+
+/**
+ * ينقل العقدَ من حالٍ إلى حال — والقاعدةُ هي التي تقول مَن يملك أيَّ نقلة.
+ *
+ * WHY ONE ACTION AND NOT SIX
+ *
+ * Six named actions — propose, accept, decline, withdraw, complete, dispute —
+ * would each be four lines of the same thing, and each would be a place for the
+ * rule to be restated slightly differently. The transition map lives in
+ * `enforce_contract_status` and nowhere else; this function's whole job is to
+ * carry a request to it and carry the refusal back in Arabic.
+ *
+ * The allow-list below is therefore not the rule. It is a spelling check: it
+ * keeps a malformed request from reaching the database as an enum cast error,
+ * and it is deliberately wider than what any one caller may do. Narrowing it to
+ * "what this user can do" would put a second copy of the map here, and two
+ * copies drift.
+ */
+const CONTRACT_STATES = [
+  "draft",
+  "proposed",
+  "active",
+  "completed",
+  "cancelled",
+  "disputed",
+] as const;
+
+export async function setContractStatus(formData: FormData) {
+  const supabase = await createClient();
+  const contractId = str(formData, "contract_id");
+  const status = str(formData, "status");
+
+  if (!contractId) return;
+  if (!(CONTRACT_STATES as readonly string[]).includes(status)) return;
+
+  const { data, error } = await supabase
+    .from("service_contracts")
+    .update({ status })
+    .eq("id", contractId)
+    .select("id");
+
+  revalidatePath(`/contracts/${contractId}`);
+  revalidatePath("/contracts");
+
+  if (error) {
+    // رسائلُ الزناد مكتوبةٌ للقارئ لا للمطوّر — «قبولُ العقد من صلاحية مقدّم
+    // الخدمة» — فتُمرَّر كما هي.
+    redirect(`/contracts/${contractId}?error=${encodeURIComponent(error.message)}`);
+  }
+  if ((data ?? []).length === 0) {
+    redirect(
+      `/contracts/${contractId}?error=${encodeURIComponent("لم يتغيّر العقد — لا صلاحية لك عليه")}`,
+    );
   }
 }
