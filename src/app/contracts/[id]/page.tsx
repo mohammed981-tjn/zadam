@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Explain from "@/components/Explain";
 import MilestoneProof from "@/components/MilestoneProof";
-import { setMilestoneStatus } from "@/app/contracts/actions";
+import { setMilestoneStatus, setContractStatus } from "@/app/contracts/actions";
 import { SERVICE_UNIT_LABEL } from "@/lib/services";
 import type {
   ContractMilestone,
@@ -68,6 +68,90 @@ function captured(iso: string): string {
 }
 
 type MilestoneActor = "provider" | "client";
+
+/** حالُ العقد نفسِه — لا حالُ مراحله. */
+const CONTRACT_STATE: Record<
+  string,
+  { label: string; className: string; says: string }
+> = {
+  draft: {
+    label: "مسودة",
+    className: "bg-muted/10 text-muted",
+    says: "لم يُعرض بعد على مقدّم الخدمة. عدّل ما شئت — المراحل والأسعار ما تزال قابلة للتغيير، ولا عمل يبدأ.",
+  },
+  proposed: {
+    label: "معروض",
+    className: "bg-accent/10 text-accent",
+    says: "بانتظار قبول مقدّم الخدمة. والشروط تجمّدت لحظة العرض: لا يُغيَّر سعر ولا كمية ولا تُضاف مرحلة أو تُحذف، حتى يُسحب العرض.",
+  },
+  active: {
+    label: "سارٍ",
+    className: "bg-primary/10 text-primary",
+    says: "وقّع الطرفان. المراحل تتحرّك الآن، والدفع يتبع الإثبات.",
+  },
+  completed: {
+    label: "منجز",
+    className: "bg-primary/10 text-primary",
+    says: "أُقفل بعد اعتماد كل مراحله.",
+  },
+  cancelled: {
+    label: "ملغى",
+    className: "bg-danger/10 text-danger",
+    says: "أُلغي قبل أن يسري.",
+  },
+  disputed: {
+    label: "متنازع عليه",
+    className: "bg-danger/10 text-danger",
+    says: "أُعلن عليه نزاع. ولا يتحرّك بعدها إلا بقرار من الإدارة.",
+  },
+};
+
+/**
+ * الخطواتُ المتاحةُ لهذا القارئ الآن — والخريطةُ نسخةٌ من خريطة القاعدة.
+ *
+ * `enforce_contract_status` is the rule. This mirrors it so a person is not
+ * offered a button that the database will refuse, which is a worse experience
+ * than not seeing the button at all. It is **not** the boundary: a form posted
+ * directly still has to get past the trigger, and the trigger's Arabic message
+ * is what comes back.
+ *
+ * Where the two disagree, the database is right and this is a bug.
+ */
+function contractMoves(
+  status: string,
+  who: { isClient: boolean; isProvider: boolean; isAdmin: boolean },
+): { status: string; label: string; danger?: boolean }[] {
+  const { isClient, isProvider, isAdmin } = who;
+  const moves: { status: string; label: string; danger?: boolean }[] = [];
+
+  if (status === "draft") {
+    if (isClient) moves.push({ status: "proposed", label: "اعرضه على مقدّم الخدمة" });
+    if (isClient) moves.push({ status: "cancelled", label: "ألغِ المسودة", danger: true });
+  } else if (status === "proposed") {
+    if (isProvider) moves.push({ status: "active", label: "أقبل العقد" });
+    if (isClient) moves.push({ status: "draft", label: "اسحب العرض للتعديل" });
+    if (isClient || isProvider) {
+      moves.push({ status: "cancelled", label: "ألغِ العقد", danger: true });
+    }
+  } else if (status === "active") {
+    if (isClient) moves.push({ status: "completed", label: "أقفل العقد" });
+  } else if (status === "disputed" && isAdmin) {
+    moves.push({ status: "active", label: "أعِده سارياً" });
+    moves.push({ status: "completed", label: "أقفله منجزاً" });
+    moves.push({ status: "cancelled", label: "أقفله ملغى", danger: true });
+  }
+
+  // والنزاعُ بابٌ لا يُغلق: من «سارٍ» ومن «منجز» ومن «ملغى» سواء، ولأيّ الطرفين.
+  // وأكثرُ ما يُكتشف الخللُ بعد الإقفال لا قبله.
+  if (
+    ["active", "completed", "cancelled"].includes(status) &&
+    (isClient || isProvider)
+  ) {
+    moves.push({ status: "disputed", label: "أعلن نزاعاً", danger: true });
+  }
+
+  return moves;
+}
 
 const NEXT: Partial<
   Record<
@@ -187,6 +271,22 @@ export default async function ContractPage({
     .filter((m) => m.status === "paid")
     .reduce((s, m) => s + Number(m.amount), 0);
 
+  const state = CONTRACT_STATE[contract.status] ?? {
+    label: contract.status,
+    className: "bg-muted/10 text-muted",
+    says: "",
+  };
+  const moves = contractMoves(contract.status, {
+    // `isClient` أعلاه يشمل الإدارة عمداً، فيُستخرج الدورُ الصريحُ هنا حتّى
+    // لا يُعرض على المدير زرُّ العميل وزرُّ الإدارة معاً على النزاع نفسه.
+    isClient: contract.client_id === user.id,
+    isProvider,
+    isAdmin,
+  });
+  // والعملُ لا يتحرّك إلّا على عقدٍ سارٍ — قاعدةٌ في الزناد، ومرآتُها هنا حتّى
+  // لا يُعرض زرٌّ ترفضه القاعدة.
+  const contractRunning = contract.status === "active";
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-2xl font-bold">{contract.title}</h1>
@@ -220,6 +320,57 @@ export default async function ContractPage({
         </p>
       )}
 
+      {/*
+        حالُ العقد، والخطوةُ التالية، في مكانٍ واحد.
+        Until this shipped, `contract_status` had six values and the platform
+        could write exactly one of them: every contract ever built was born
+        `draft` and stayed there, because nothing in `src/` touched the column.
+        The page did not show the state either, so there was nothing to notice.
+      */}
+      <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className={`rounded-full px-3 py-1 text-sm font-medium ${state.className}`}
+          >
+            {state.label}
+          </span>
+          {contract.signed_at && (
+            <span className="text-xs text-muted">
+              وُقّع {captured(contract.signed_at)}
+            </span>
+          )}
+        </div>
+
+        <p className="mt-3 text-sm leading-7 text-muted">{state.says}</p>
+
+        {moves.length > 0 ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {moves.map((mv) => (
+              <form key={mv.status} action={setContractStatus}>
+                <input type="hidden" name="contract_id" value={contract.id} />
+                <input type="hidden" name="status" value={mv.status} />
+                <button
+                  type="submit"
+                  className={`rounded-lg px-4 py-2 text-sm font-medium ${
+                    mv.danger
+                      ? "border border-danger/40 text-danger hover:bg-danger/5"
+                      : "bg-primary text-primary-foreground hover:opacity-90"
+                  }`}
+                >
+                  {mv.label}
+                </button>
+              </form>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-xs text-muted">
+            {contract.status === "proposed"
+              ? "بانتظار الطرف الآخر — لا خطوة لك الآن."
+              : "لا خطوة متاحة لك على هذا العقد الآن."}
+          </p>
+        )}
+      </div>
+
       <Explain tone="why">
         {/* Stated once, at the top, so nobody has to discover the rule by
             being refused by it. */}
@@ -236,6 +387,7 @@ export default async function ContractPage({
           // season they own. Checking the entitled side rather than the
           // excluded one keeps that case working.
           const mine =
+            contractRunning &&
             next !== undefined &&
             (next.actor === "client" ? isClient : isProvider);
           const blocked =
@@ -332,7 +484,13 @@ export default async function ContractPage({
 
               {next && !mine && (
                 <p className="mt-4 text-xs text-muted">
-                  {WAITING_ON[next.actor]}: {next.label}.
+                  {/* والسببُ الصحيح، لا أقربُ سببٍ في متناول اليد: قبل السريان
+                      لا أحدَ منتظَر — العقدُ نفسُه هو ما ينقص. وقولُ «بانتظار
+                      مقدّم الخدمة» على مسودّةٍ يرسل العميلَ يطالب رجلاً لم
+                      يتّفق معه بعد. */}
+                  {contractRunning
+                    ? `${WAITING_ON[next.actor]}: ${next.label}.`
+                    : `المراحل لا تتحرّك ما دام العقد «${state.label}» — لا عمل قبل الاتفاق.`}
                 </p>
               )}
 

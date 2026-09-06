@@ -1,8 +1,21 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import KnowledgeCard from "@/components/KnowledgeCard";
 import { topicLabel } from "@/lib/format";
 import type { KnowledgeEntry } from "@/types/database";
+
+/*
+ * ساعةٌ بين البناء والبناء.
+ *
+ * الصفحةُ ذاتُها لكلّ قارئ — ١٥٢ مُدخلاً تتغيّر مرّاتٍ في الشهر — وكانت تُبنى
+ * من القاعدة في كلّ زيارة لأنّ عميلَ الجلسة يقرأ الكعكات فيُخرج المسارَ من
+ * التخزين المؤقّت. والكلفةُ نقلٌ صادر لا حساب: ٥ غ.ب شهريّاً على الطبقة
+ * المجانيّة، والجدولُ كلُّه يعبر في كلّ عرض.
+ *
+ * والاعتمادُ يُبطل هذا فوراً: `promoteAnswer` ينادي `revalidatePath('/knowledge')`،
+ * فالمُدخلُ الجديد يظهر حين يُعتمد لا بعد ساعة.
+ */
+export const revalidate = 3600;
 
 export const metadata = {
   title: "قاعدة المعرفة الزراعية · سودجري",
@@ -44,7 +57,7 @@ export default async function KnowledgePage({
   searchParams: Promise<{ topic?: string }>;
 }) {
   const { topic } = await searchParams;
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data, error } = await supabase
     .from("knowledge_entries")

@@ -151,7 +151,9 @@ function openRouterEngine(apiKey: string, models: string[]): Engine {
             "content-type": "application/json",
             authorization: `Bearer ${apiKey}`,
             // Optional attribution headers OpenRouter uses for its rankings.
-            "HTTP-Referer": "https://sudagri.vercel.app",
+            // The address is the platform's own; sudagri.vercel.app was never
+            // ours, so the attribution pointed at a stranger.
+            "HTTP-Referer": "https://zadam-khaki.vercel.app",
             "X-Title": "SudAgri",
           },
           body: JSON.stringify({
@@ -259,6 +261,65 @@ export function buildEngines(env: EngineEnv): Engine[] {
  * attempts are carried on the result so a chain that limped to an answer is
  * visible in the logs rather than looking identical to a clean first hit.
  */
+/**
+ * إجابةٌ بلغةٍ أخرى ليست إجابةً رديئة، بل إجابةٌ فاشلة.
+ *
+ * WHAT THIS IS FOR
+ *
+ * On 6 September 2026 the assistant answered a Sudanese farmer with this:
+ *
+ *     أنا مساعد سودجري، و悉悉ُك في منصة سودجري
+ *     فتأتي رية الإشعاع不是在 موعد ثابت
+ *     أو في فهم opportunities on the platform
+ *
+ * Han characters mid-word, and an English clause inside an Arabic sentence.
+ * The free OpenRouter pool leans on models trained mostly on Chinese and
+ * English, and under a long Arabic system prompt they leak the script they know
+ * best. It answered `200`, so nothing anywhere treated it as a failure.
+ *
+ * WHY THE CHAIN IS THE RIGHT PLACE
+ *
+ * There is already machinery for "this engine did not produce a usable answer":
+ * it tries the next one. A wrong-script answer belongs in that category rather
+ * than in a new one — and the standby that follows may well be fine, because
+ * the fault is this model's, not the request's.
+ *
+ * WHY CJK IS AN ABSOLUTE BAR AND LATIN IS A RATIO
+ *
+ * A Han, Kana or Hangul character has no legitimate place in an answer about
+ * Sudanese agriculture — one is enough to condemn the whole reply.
+ *
+ * Latin is different, and a flat ban would be wrong: `FAO-56`, `NASA POWER`,
+ * `SoilGrids`, `Ca(H2PO4)2` and Latin binomials are the platform's own
+ * vocabulary and appear in its best answers. What is not acceptable is Latin
+ * carrying the *sentence*. So the test is proportion, and the threshold is set
+ * loose deliberately: those citations are a handful of characters in hundreds,
+ * nowhere near a third, while «فهم opportunities on the platform» is a clause.
+ * A guard that fires on a correct answer costs more than one that misses a bad
+ * one, because the reader never learns why the assistant went quiet.
+ */
+const CJK = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯]/;
+const LATIN_SHARE_LIMIT = 0.35;
+
+export function wrongScriptReason(text: string): string | null {
+  if (CJK.test(text)) {
+    return "answer contains CJK characters";
+  }
+
+  const arabic = (text.match(/[؀-ۿ]/g) ?? []).length;
+  const latin = (text.match(/[A-Za-z]/g) ?? []).length;
+  const letters = arabic + latin;
+
+  // نصٌّ بلا حروفٍ أصلاً — رقمٌ أو رمز — لا يُحكم عليه بنسبةٍ مقامُها صفر.
+  if (letters === 0) return null;
+
+  if (latin / letters > LATIN_SHARE_LIMIT) {
+    return `answer is ${Math.round((latin / letters) * 100)}% Latin letters`;
+  }
+
+  return null;
+}
+
 export async function generateWithFallback(
   engines: Engine[],
   system: string,
@@ -269,6 +330,11 @@ export async function generateWithFallback(
   for (const engine of engines) {
     try {
       const text = await engine.generate(system, user);
+
+      // ويُعامَل كفشلِ محرّك لا كفشلِ طلب: الاحتياطيُّ بعده قد يُحسن.
+      const wrong = wrongScriptReason(text);
+      if (wrong) throw new EngineFailure(wrong);
+
       return { result: { text, engine: engine.name, attempts }, attempts };
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);

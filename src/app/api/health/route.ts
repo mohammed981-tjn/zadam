@@ -66,6 +66,27 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    /*
+     * الكنسُ هنا لا في المسار الساخن.
+     *
+     * `check_assistant_rate_limit` used to delete a day of rows on every call —
+     * once per question a visitor asked. This job already runs daily and
+     * already holds the service-role key, so the sweep belongs here.
+     *
+     * It runs **before** the check and its failure is logged rather than
+     * raised: keeping the database awake is this endpoint's first duty, and a
+     * failed prune must not take that down. Nothing depends on the prune
+     * having happened — the tables it trims are read by count and by date, not
+     * by size.
+     */
+    const { data: pruned, error: pruneError } =
+      await supabase.rpc("prune_ephemeral_rows");
+    if (pruneError) {
+      console.error("health: prune failed", pruneError);
+    } else if (pruned) {
+      console.log("health: pruned", pruned);
+    }
+
     const { data, error } = await supabase.rpc("run_system_check");
 
     if (error) {
