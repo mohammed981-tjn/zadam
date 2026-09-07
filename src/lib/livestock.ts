@@ -216,6 +216,53 @@ const DAY_MS = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 /**
+ * يقسّم ميزانيّةَ الدورة على مراحلها بنسبة العلف.
+ *
+ * The parts must add up to the whole.
+ *
+ * Rounding each phase's share independently leaves a residue: 200 head of
+ * sheep on a 9,000,000 budget produced phases summing to 9,000,001. One pound
+ * is nothing; a farmer adding the column and getting a different total from
+ * the one printed above it is not nothing, on a platform whose entire claim
+ * is that its numbers can be re-derived and checked.
+ *
+ * So every phase but the last is rounded, and the last takes the remainder.
+ * The drift lands in one place, is at most a few units, and the column always
+ * reconciles.
+ *
+ * WHY IT IS EXPORTED
+ *
+ * `planHerd` uses it when a cycle is created, and `setHerdBudget` uses it when
+ * the owner fixes a budget they left blank. Two callers, one rule — and the
+ * second exists because there was no way to fix that blank at all: the herd
+ * screen showed zeros in every money column and offered nothing but «اعتمد
+ * المرحلة», with no edit path anywhere in the module.
+ */
+export function apportionBudget(
+  feedByPhase: number[],
+  totalBudget: number,
+): number[] {
+  const totalFeedKg = feedByPhase.reduce((a, b) => a + b, 0);
+  const budgets: number[] = [];
+  let allocated = 0;
+
+  for (let i = 0; i < feedByPhase.length; i++) {
+    if (i === feedByPhase.length - 1) {
+      budgets.push(totalBudget - allocated);
+    } else {
+      const share =
+        totalFeedKg > 0
+          ? Math.round((feedByPhase[i] / totalFeedKg) * totalBudget)
+          : 0;
+      budgets.push(share);
+      allocated += share;
+    }
+  }
+
+  return budgets;
+}
+
+/**
  * Builds a dated phase plan for a herd.
  *
  * Feed is apportioned by phase length and head count, and the budget follows
@@ -278,36 +325,25 @@ export function planHerd(
   const dailyFeedPerHead = demand.dailyPerHeadKg;
   const totalBudget = budgetPerHead * headCount;
 
-  const feedByPhase = phases.map((p) => dailyFeedPerHead * headCount * p.days);
+  /*
+   * والقسمةُ على العلف **المُدوَّر**، لا على الكسر الذي وراءه.
+   *
+   * `feedKg` is stored and displayed rounded, and the budget is apportioned by
+   * feed — so apportioning on the unrounded figure makes the two columns not
+   * quite correspond: a reader comparing a phase's share of the feed with its
+   * share of the money finds the last digits disagree and cannot see why.
+   *
+   * It also meant the split could not be rebuilt from the stored rows, which is
+   * exactly what `setHerdBudget` must do when the owner fills in a budget he
+   * left blank at creation. `scripts/verify-herd-budget.ts` caught the two
+   * disagreeing — this comment exists because that gate failed on its first run.
+   */
+  const feedByPhase = phases.map((p) =>
+    Math.round(dailyFeedPerHead * headCount * p.days),
+  );
   const totalFeedKg = feedByPhase.reduce((a, b) => a + b, 0);
 
-  /*
-   * The parts must add up to the whole.
-   *
-   * Rounding each phase's share independently leaves a residue: 200 head of
-   * sheep on a 9,000,000 budget produced phases summing to 9,000,001. One pound
-   * is nothing; a farmer adding the column and getting a different total from
-   * the one printed above it is not nothing, on a platform whose entire claim
-   * is that its numbers can be re-derived and checked.
-   *
-   * So every phase but the last is rounded, and the last takes the remainder.
-   * The drift lands in one place, is at most a few units, and the column always
-   * reconciles.
-   */
-  const budgets: number[] = [];
-  let allocated = 0;
-  for (let i = 0; i < phases.length; i++) {
-    if (i === phases.length - 1) {
-      budgets.push(totalBudget - allocated);
-    } else {
-      const share =
-        totalFeedKg > 0
-          ? Math.round((feedByPhase[i] / totalFeedKg) * totalBudget)
-          : 0;
-      budgets.push(share);
-      allocated += share;
-    }
-  }
+  const budgets = apportionBudget(feedByPhase, totalBudget);
 
   let cursor = start;
   const stages: PlannedHerdStage[] = phases.map((p, i) => {
@@ -322,7 +358,7 @@ export function planHerd(
       startDate: iso(phaseStart),
       endDate: iso(phaseEnd),
       days: p.days,
-      feedKg: Math.round(feedByPhase[i]),
+      feedKg: feedByPhase[i],
       budget: budgets[i],
     };
   });
@@ -345,7 +381,7 @@ export function planHerd(
     startDate: iso(start),
     endDate: stages[stages.length - 1].endDate,
     stages,
-    totalFeedKg: Math.round(totalFeedKg),
+    totalFeedKg,
     totalBudget,
     dse: cycle ? Math.round(cycle.dse * 10) / 10 : 0,
     animalUnits: cycle ? Math.round(cycle.animalUnits * 10) / 10 : 0,
