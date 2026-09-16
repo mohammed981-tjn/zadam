@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import NavMenu, { type NavGroup } from "./NavMenu";
@@ -181,7 +182,29 @@ export default async function Navbar() {
           href="/"
           className="flex items-center gap-2 text-lg font-bold text-primary"
         >
-          🌾 سودجري
+          {/*
+            العلامةُ صورةٌ والاسمُ نصّ — لا الاثنان صورةً واحدة.
+
+            The logo the owner supplied is a full badge with «سودجري» drawn
+            inside it. At the 32px a header gives a brand mark, drawn lettering
+            is a smudge — so the mark here is the illustration alone, cropped
+            round, and the name beside it is real text: it scales with the
+            reader's font size, it is what a screen reader announces, and it
+            survives a failed image load.
+
+            `priority` because this is above the fold on every page in the
+            platform; letting it lazy-load would make the header twitch on the
+            first paint of every navigation.
+          */}
+          <Image
+            src="/sudagri-mark.png"
+            alt=""
+            width={36}
+            height={36}
+            priority
+            className="size-9 rounded-full"
+          />
+          سودجري
         </Link>
 
         <div className="flex items-center gap-3">

@@ -11,10 +11,46 @@ const tajawal = Tajawal({
   weight: ["400", "500", "700", "900"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://zadam-khaki.vercel.app";
+
+const TITLE = "سودجري | معرفة زراعية واستثمار ذكي في السودان";
+const DESCRIPTION =
+  "منصة تخدم كل مزارع ومستثمر سوداني: قاعدة معرفة زراعية موثّقة عن المحاصيل والثروة الحيوانية، ومشاريع استثمار زراعي موثّقة قانونياً بمتابعة ميدانية دورية.";
+
+/*
+ * الشعارُ يسافر مع الرابط، لا يقف على الموقع.
+ *
+ * Nearly all of this platform's traffic arrives on a phone, and nearly all of
+ * it will arrive as a link pasted into WhatsApp. Without an `openGraph` block a
+ * pasted link renders as a bare grey card with a domain nobody recognises —
+ * which is where the logo matters most and where the site itself is not yet
+ * visible.
+ *
+ * `metadataBase` is what makes the relative image path absolute. Without it
+ * Next emits a relative `og:image`, and every scraper that reads it — WhatsApp,
+ * Facebook, Twitter — silently shows no image at all.
+ *
+ * `icons` is deliberately not listed: `src/app/icon.png`, `apple-icon.png` and
+ * `favicon.ico` are picked up by file convention, and naming them here too
+ * would be a second copy of the truth that can drift from the files.
+ */
 export const metadata: Metadata = {
-  title: "سودجري | معرفة زراعية واستثمار ذكي في السودان",
-  description:
-    "منصة تخدم كل مزارع ومستثمر سوداني: قاعدة معرفة زراعية موثّقة عن المحاصيل والثروة الحيوانية، ومشاريع استثمار زراعي موثّقة قانونياً بمتابعة ميدانية دورية.",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: "سودجري",
+    locale: "ar_SD",
+    url: SITE_URL,
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
