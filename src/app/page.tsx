@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { SUDAGRI_LOGO } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
 import KnowledgeCard from "@/components/KnowledgeCard";
@@ -136,19 +137,20 @@ export default async function Home() {
             is legible.
 
             So the logo gets the hero: 340px beside the sentence on a wide
-            screen, 200px above it on a phone. It is the first thing on the
-            page, at the size the artwork was drawn for.
+            screen, and on a phone 56% of the screen's width — about 220px on
+            the 390px screen this platform is mostly read on. It is the first
+            thing on the page, at the size the artwork was drawn for.
 
             `md:flex-row-reverse` and not `flex-row`: the page is RTL, so the
             row already starts at the right. Reversing puts the logo on the
             **left** — the eye lands on the sentence first and the logo closes
             the line, which is the order a reader of Arabic expects.
 
-            `flex-col-reverse` on a phone, and the size drops to 160px there.
-            Reversed because a logo under three buttons is a footer, not a
-            masthead; 160 and not 200 because the headline is the one thing
-            that has to survive the fold, and this platform is read on a 390px
-            screen far more often than on any other.
+            `flex-col-reverse` on a phone: a logo under three buttons is a
+            footer, not a masthead. It sits above the headline, sized in `vw`
+            so it fills the same share of a small screen as of a large one,
+            with a `max-w` so it stops growing before it pushes the headline —
+            the one thing that has to survive the fold — off the screen.
           */}
           <div className="flex flex-col-reverse items-center gap-8 md:flex-row-reverse md:items-center md:gap-12">
             <div className="min-w-0 flex-1">
@@ -195,14 +197,21 @@ export default async function Home() {
           </div>
             </div>
 
+            {/*
+              `preload` وليس `priority` — الأخيرةُ متروكةٌ منذ Next 16.
+
+              This is the hero image and the largest thing on the page, so it is
+              the one worth fetching from the `<head>`. The blur placeholder
+              below means the column holds its shape and its colour from the
+              first frame rather than opening as a hole.
+            */}
             <Image
-              src="/sudagri-logo.png"
+              src={SUDAGRI_LOGO}
               alt="شعار سودجري — منصّة سودانية للزراعة والتجارة"
-              width={680}
-              height={680}
-              priority
-              sizes="(min-width: 768px) 340px, 200px"
-              className="w-40 shrink-0 md:w-[340px]"
+              placeholder="blur"
+              preload
+              sizes="(min-width: 768px) 340px, 220px"
+              className="w-[56vw] max-w-[240px] shrink-0 md:w-[340px] md:max-w-none"
             />
           </div>
 

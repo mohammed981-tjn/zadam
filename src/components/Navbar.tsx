@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { SUDAGRI_LOGO } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import NavMenu, { type NavGroup } from "./NavMenu";
@@ -193,16 +194,23 @@ export default async function Navbar() {
             it to the farmer and quietly lost the sorghum, the sacks and the
             cattle, which are half of what the artwork says.
 
-            `priority` because this is above the fold on every page in the
-            platform; letting it lazy-load would make the header twitch on the
-            first paint of every navigation.
+            `loading="eager"` because this is above the fold on every page in
+            the platform; letting it lazy-load would make the header twitch on
+            the first paint of every navigation. Not `preload`, which belongs to
+            the one image that is the largest paint — here that is the hero, not
+            a 36px mark. (`priority` did both at once and is deprecated as of
+            Next 16 for exactly that ambiguity.)
+
+            At this size the artwork is a green disc and nothing more: the
+            sorghum, the cattle and the lettering are all below what 36px can
+            hold. That is what the hero and the splash screen are for.
           */}
           <Image
-            src="/sudagri-logo.png"
+            src={SUDAGRI_LOGO}
             alt=""
             width={36}
             height={36}
-            priority
+            loading="eager"
             className="size-9 rounded-full"
           />
           سودجري
