@@ -185,19 +185,20 @@ export default async function Navbar() {
           {/*
             العلامةُ صورةٌ والاسمُ نصّ — لا الاثنان صورةً واحدة.
 
-            The logo the owner supplied is a full badge with «سودجري» drawn
-            inside it. At the 32px a header gives a brand mark, drawn lettering
-            is a smudge — so the mark here is the illustration alone, cropped
-            round, and the name beside it is real text: it scales with the
-            reader's font size, it is what a screen reader announces, and it
-            survives a failed image load.
+            The badge carries «سودجري» drawn inside it, and at the 36px a
+            header gives a brand mark that lettering is a smudge. So the name
+            beside it is real text: it scales with the reader's font size, it
+            is what a screen reader announces, and it survives a failed image
+            load. The badge itself is shown whole — an earlier version cropped
+            it to the farmer and quietly lost the sorghum, the sacks and the
+            cattle, which are half of what the artwork says.
 
             `priority` because this is above the fold on every page in the
             platform; letting it lazy-load would make the header twitch on the
             first paint of every navigation.
           */}
           <Image
-            src="/sudagri-mark.png"
+            src="/sudagri-logo.png"
             alt=""
             width={36}
             height={36}

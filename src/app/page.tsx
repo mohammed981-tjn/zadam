@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
 import KnowledgeCard from "@/components/KnowledgeCard";
@@ -124,7 +125,33 @@ export default async function Home() {
 
       {/* ───────────────────────── الواجهة ───────────────────────── */}
       <section className="mesh border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
+          {/*
+            الشعارُ في مكانٍ يليق به، لا في زاويةِ شريط.
+
+            The mark in the header is 36px because that is what a header is,
+            and a badge carrying an illustrated scene and drawn Arabic
+            lettering has nothing to say at that size — the sorghum, the
+            cattle, the river and the wordmark are all there and none of them
+            is legible.
+
+            So the logo gets the hero: 340px beside the sentence on a wide
+            screen, 200px above it on a phone. It is the first thing on the
+            page, at the size the artwork was drawn for.
+
+            `md:flex-row-reverse` and not `flex-row`: the page is RTL, so the
+            row already starts at the right. Reversing puts the logo on the
+            **left** — the eye lands on the sentence first and the logo closes
+            the line, which is the order a reader of Arabic expects.
+
+            `flex-col-reverse` on a phone, and the size drops to 160px there.
+            Reversed because a logo under three buttons is a footer, not a
+            masthead; 160 and not 200 because the headline is the one thing
+            that has to survive the fold, and this platform is read on a 390px
+            screen far more often than on any other.
+          */}
+          <div className="flex flex-col-reverse items-center gap-8 md:flex-row-reverse md:items-center md:gap-12">
+            <div className="min-w-0 flex-1">
           <p className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
             <Icon name="wheat" className="size-5" />
             معرفة زراعية وبيانات مفتوحة — للسودان
@@ -165,6 +192,18 @@ export default async function Home() {
             >
               اقرأ دراسة القناة القوسية
             </Link>
+          </div>
+            </div>
+
+            <Image
+              src="/sudagri-logo.png"
+              alt="شعار سودجري — منصّة سودانية للزراعة والتجارة"
+              width={680}
+              height={680}
+              priority
+              sizes="(min-width: 768px) 340px, 200px"
+              className="w-40 shrink-0 md:w-[340px]"
+            />
           </div>
 
           {/*

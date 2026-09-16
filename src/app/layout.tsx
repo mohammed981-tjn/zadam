@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import SplashOnce from "@/components/SplashOnce";
 import AssistantWidget from "@/components/AssistantWidget";
 
 const tajawal = Tajawal({
@@ -61,6 +62,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${tajawal.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* شاشةُ البداية فوق الصفحة لا مكانَها: الصفحةُ تُعرض من أوّل إطار،
+            وهذه طبقةٌ تنزاح عنها. */}
+        <SplashOnce />
         <Navbar />
         <main className="flex-1">{children}</main>
         {/*
