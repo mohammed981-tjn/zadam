@@ -38,15 +38,28 @@ export default function manifest(): MetadataRoute.Manifest {
     // بين الشاشة الافتتاحيّة وأوّل عرضٍ للصفحة.
     background_color: "#f7f5ef",
     theme_color: "#1f7a3d",
+    /*
+     * مقاسان بصيغتين، والنظامُ يختار ما يفهم.
+     *
+     * The 512 is WebP because the artwork is a detailed illustration and a
+     * lossless PNG of it is 417 KB — four times the WebP for a difference no
+     * eye resolves. Quantising the PNG instead is the one thing not on the
+     * table: that is what turned the sorghum from gold to olive, twice.
+     *
+     * The 192 stays PNG deliberately. A manifest icon list is a menu, not a
+     * sequence — a launcher that cannot read WebP simply takes this one, and
+     * every system can read a PNG. So the cheap format is offered and the
+     * universal one is guaranteed.
+     */
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/icon-512.webp", sizes: "512x512", type: "image/webp" },
       // `maskable` يتيح للنظام قصَّ الأيقونة بشكله (دائرة · مربّع بحواف) بلا
       // أن يقصّ من الرسم ما يهمّ.
       {
-        src: "/icon-512.png",
+        src: "/icon-512.webp",
         sizes: "512x512",
-        type: "image/png",
+        type: "image/webp",
         purpose: "maskable",
       },
     ],
