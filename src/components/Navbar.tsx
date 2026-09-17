@@ -1,6 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
-import { SUDAGRI_LOGO } from "@/lib/brand";
+import SorghumMark from "./SorghumMark";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import NavMenu, { type NavGroup } from "./NavMenu";
@@ -184,35 +183,24 @@ export default async function Navbar() {
           className="flex items-center gap-2 text-lg font-bold text-primary"
         >
           {/*
-            العلامةُ صورةٌ والاسمُ نصّ — لا الاثنان صورةً واحدة.
+            السنبلةُ هنا، والشعارُ في الواجهة — وهذا ما طلبه المالك حرفيّاً.
 
-            The badge carries «سودجري» drawn inside it, and at the 36px a
-            header gives a brand mark that lettering is a smudge. So the name
-            beside it is real text: it scales with the reader's font size, it
-            is what a screen reader announces, and it survives a failed image
-            load. The badge itself is shown whole — an earlier version cropped
-            it to the farmer and quietly lost the sorghum, the sacks and the
-            cattle, which are half of what the artwork says.
+            This header read `🌾 سودجري` until the logo was put here, which is
+            what «صور السنبله الصفرا التي حزفتها» was about: the sorghum he
+            missed was this one, not the one inside the artwork. The same
+            sentence asked for the logo to get «مكان أوسع وصورة أكبر», and both
+            halves point the same way — a 36px slot is where an illustrated
+            badge has least to say, and where a single clear mark has most.
 
-            `loading="eager"` because this is above the fold on every page in
-            the platform; letting it lazy-load would make the header twitch on
-            the first paint of every navigation. Not `preload`, which belongs to
-            the one image that is the largest paint — here that is the hero, not
-            a 36px mark. (`priority` did both at once and is deprecated as of
-            Next 16 for exactly that ambiguity.)
+            So the logo moved to the hero and the splash at the size it was
+            drawn for, and the sorghum came back to the place it was taken from.
+            Drawn rather than the emoji, for the reason in `SorghumMark`.
 
-            At this size the artwork is a green disc and nothing more: the
-            sorghum, the cattle and the lettering are all below what 36px can
-            hold. That is what the hero and the splash screen are for.
+            The name stays real text beside it: it scales with the reader's font
+            size, a screen reader announces it, and it survives anything failing
+            to draw.
           */}
-          <Image
-            src={SUDAGRI_LOGO}
-            alt=""
-            width={36}
-            height={36}
-            loading="eager"
-            className="size-9 rounded-full"
-          />
+          <SorghumMark className="size-6 shrink-0" />
           سودجري
         </Link>
 
