@@ -1,5 +1,4 @@
 import Link from "next/link";
-import SorghumMark from "./SorghumMark";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import NavMenu, { type NavGroup } from "./NavMenu";
@@ -194,13 +193,27 @@ export default async function Navbar() {
 
             So the logo moved to the hero and the splash at the size it was
             drawn for, and the sorghum came back to the place it was taken from.
-            Drawn rather than the emoji, for the reason in `SorghumMark`.
 
-            The name stays real text beside it: it scales with the reader's font
-            size, a screen reader announces it, and it survives anything failing
-            to draw.
+            THE EMOJI IS HERE ON PURPOSE — AND AGAINST THE RULE NEXT DOOR
+
+            `Icon.tsx` is an argument for never doing this: an emoji is drawn by
+            the device's own font, so this is a different picture on every
+            phone, and on hardware whose font predates the codepoint it is a
+            hollow rectangle. I offered a drawn one that avoids all of that and
+            the owner chose this, having been told. It is his mark and his
+            decision, and «قديمة موجوده من اول» is the whole reason — it is not
+            a sorghum he wants, it is *this* sorghum, the one that was here.
+
+            So if it ever needs to stop being an emoji, that is his call to
+            make and not a tidy-up. `git log` for `SorghumMark` has the drawn
+            version ready to restore.
+
+            `aria-hidden` because a screen reader would otherwise announce
+            "sheaf of rice" immediately before the name it decorates. The name
+            itself stays real text: it scales with the reader's font size, and
+            it survives anything failing to draw.
           */}
-          <SorghumMark className="size-6 shrink-0" />
+          <span aria-hidden="true">🌾</span>
           سودجري
         </Link>
 
