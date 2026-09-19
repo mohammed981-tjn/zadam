@@ -1,8 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
+import { SUDAGRI_LOGO } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
 import KnowledgeCard from "@/components/KnowledgeCard";
 import Icon, { type IconName } from "@/components/Icon";
+import NewsStrip from "@/components/NewsStrip";
 import { CROPS, STATIONS } from "@/lib/agronomy";
 import type { KnowledgeEntry, Project } from "@/types/database";
 
@@ -118,9 +121,39 @@ export default async function Home() {
 
   return (
     <div>
+      {/* جديدُ المنصّة — ولا يظهر شيءٌ منه حين لا خبر، فتبقى الصفحةُ كما هي. */}
+      <NewsStrip />
+
       {/* ───────────────────────── الواجهة ───────────────────────── */}
       <section className="mesh border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
+          {/*
+            الشعارُ في مكانٍ يليق به، لا في زاويةِ شريط.
+
+            The mark in the header is 36px because that is what a header is,
+            and a badge carrying an illustrated scene and drawn Arabic
+            lettering has nothing to say at that size — the sorghum, the
+            cattle, the river and the wordmark are all there and none of them
+            is legible.
+
+            So the logo gets the hero: 340px beside the sentence on a wide
+            screen, and on a phone 56% of the screen's width — about 220px on
+            the 390px screen this platform is mostly read on. It is the first
+            thing on the page, at the size the artwork was drawn for.
+
+            `md:flex-row-reverse` and not `flex-row`: the page is RTL, so the
+            row already starts at the right. Reversing puts the logo on the
+            **left** — the eye lands on the sentence first and the logo closes
+            the line, which is the order a reader of Arabic expects.
+
+            `flex-col-reverse` on a phone: a logo under three buttons is a
+            footer, not a masthead. It sits above the headline, sized in `vw`
+            so it fills the same share of a small screen as of a large one,
+            with a `max-w` so it stops growing before it pushes the headline —
+            the one thing that has to survive the fold — off the screen.
+          */}
+          <div className="flex flex-col-reverse items-center gap-8 md:flex-row-reverse md:items-center md:gap-12">
+            <div className="min-w-0 flex-1">
           <p className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
             <Icon name="wheat" className="size-5" />
             معرفة زراعية وبيانات مفتوحة — للسودان
@@ -161,6 +194,25 @@ export default async function Home() {
             >
               اقرأ دراسة القناة القوسية
             </Link>
+          </div>
+            </div>
+
+            {/*
+              `preload` وليس `priority` — الأخيرةُ متروكةٌ منذ Next 16.
+
+              This is the hero image and the largest thing on the page, so it is
+              the one worth fetching from the `<head>`. The blur placeholder
+              below means the column holds its shape and its colour from the
+              first frame rather than opening as a hole.
+            */}
+            <Image
+              src={SUDAGRI_LOGO}
+              alt="شعار سودجري — منصّة سودانية للزراعة والتجارة"
+              placeholder="blur"
+              preload
+              sizes="(min-width: 768px) 340px, 220px"
+              className="w-[56vw] max-w-[240px] shrink-0 md:w-[340px] md:max-w-none"
+            />
           </div>
 
           {/*

@@ -227,3 +227,32 @@ html {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
+
+/*
+ * دخولُ الشعار في شاشة البداية — ظهورٌ مع تكبيرٍ خفيف.
+ *
+ * Declared here rather than inline because Tailwind's arbitrary
+ * `animate-[name_…]` names a keyframe; it does not define one. The pair has to
+ * exist in CSS or the class resolves to an animation that never runs, and the
+ * splash would appear with no motion at all — which looks like a bug rather
+ * than a choice.
+ */
+@keyframes splash-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ومَن طلب حركةً أقلّ لا تتحرّك عنده — والشاشةُ تُتخطّى أصلاً في جافاسكربت،
+   وهذا حارسٌ ثانٍ لئلّا يتحرّك شيءٌ إن عُرضت لسببٍ آخر. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes splash-in {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 1; transform: none; }
+  }
+}

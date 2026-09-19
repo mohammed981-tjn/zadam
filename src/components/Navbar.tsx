@@ -51,6 +51,7 @@ export default async function Navbar() {
         // كانت تُوعَد من الصفحة الأولى مرّتين ولا توجد. ووجودُها في القائمة
         // يجعلها قابلةً للوصول من كلّ صفحة، لا من الأولى وحدها.
         { href: "/knowledge", label: "قاعدة المعرفة" },
+        { href: "/news", label: "جديد سودجري" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
         { href: "/tools/feasibility", label: "دراسة الجدوى المرحلية" },
         { href: "/feedback", label: "ملاحظات واقتراحات" },
@@ -150,6 +151,7 @@ export default async function Navbar() {
         { href: "/admin/lands", label: "توثيق الأراضي" },
         { href: "/admin/review", label: "مراجعة الفرص" },
         { href: "/admin/analytics", label: "التحليلات" },
+        { href: "/admin/news", label: "الأخبار" },
         { href: "/admin/export", label: "مراجعة الصادر" },
         // اللوائحُ تتغيّر بإعلانٍ لا بجدول، فلا يملأ تاريخَ المراجعة إلّا إنسان.
         { href: "/admin/export/corridors", label: "مراجعة قواعد الممرّات" },
@@ -179,7 +181,40 @@ export default async function Navbar() {
           href="/"
           className="flex items-center gap-2 text-lg font-bold text-primary"
         >
-          🌾 سودجري
+          {/*
+            السنبلةُ هنا، والشعارُ في الواجهة — وهذا ما طلبه المالك حرفيّاً.
+
+            This header read `🌾 سودجري` until the logo was put here, which is
+            what «صور السنبله الصفرا التي حزفتها» was about: the sorghum he
+            missed was this one, not the one inside the artwork. The same
+            sentence asked for the logo to get «مكان أوسع وصورة أكبر», and both
+            halves point the same way — a 36px slot is where an illustrated
+            badge has least to say, and where a single clear mark has most.
+
+            So the logo moved to the hero and the splash at the size it was
+            drawn for, and the sorghum came back to the place it was taken from.
+
+            THE EMOJI IS HERE ON PURPOSE — AND AGAINST THE RULE NEXT DOOR
+
+            `Icon.tsx` is an argument for never doing this: an emoji is drawn by
+            the device's own font, so this is a different picture on every
+            phone, and on hardware whose font predates the codepoint it is a
+            hollow rectangle. I offered a drawn one that avoids all of that and
+            the owner chose this, having been told. It is his mark and his
+            decision, and «قديمة موجوده من اول» is the whole reason — it is not
+            a sorghum he wants, it is *this* sorghum, the one that was here.
+
+            So if it ever needs to stop being an emoji, that is his call to
+            make and not a tidy-up. `git log` for `SorghumMark` has the drawn
+            version ready to restore.
+
+            `aria-hidden` because a screen reader would otherwise announce
+            "sheaf of rice" immediately before the name it decorates. The name
+            itself stays real text: it scales with the reader's font size, and
+            it survives anything failing to draw.
+          */}
+          <span aria-hidden="true">🌾</span>
+          سودجري
         </Link>
 
         <div className="flex items-center gap-3">

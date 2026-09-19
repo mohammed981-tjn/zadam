@@ -40,7 +40,13 @@ on:
 env:
   # Override with a repository variable if the site ever moves. It is the public
   # address of the site, so it is a variable and not a secret.
-  SITE_URL: ${{ vars.SITE_URL || 'https://sudagri.vercel.app' }}
+  #
+  # The fallback is the project's own generated domain, read from Vercel. It used
+  # to be sudagri.vercel.app, which this project does not own — the name was
+  # taken, so Vercel assigned zadam-khaki instead. Nothing was broken by it while
+  # vars.SITE_URL is set, and it is; but a fallback pointing at someone else's
+  # site is a job that keeps *their* database awake and reports success.
+  SITE_URL: ${{ vars.SITE_URL || 'https://zadam-khaki.vercel.app' }}
 
 jobs:
   ping:
