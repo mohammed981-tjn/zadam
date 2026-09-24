@@ -1,0 +1,61 @@
+name: Canal corridor map
+
+# Fetches the ground across the Arc Canal corridor — elevation grid, derived
+# drainage, OpenStreetMap waterways/roads/villages, SoilGrids soil groups — and
+# commits one JSON file. See scripts/fetch-canal-map.ts for what and why.
+#
+# It runs here because none of those services is reachable from the
+# environment this repository is developed in. Up to an hour: Open-Meteo drops
+# about every other connection from a runner and each retry waits a minute,
+# and SoilGrids asks for a pause between its forty-eight points.
+
+on:
+  push:
+    paths:
+      - ".github/workflows/canal-map.yml"
+      - "scripts/fetch-canal-map.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  survey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Fetch the corridor
+        run: npx tsx scripts/fetch-canal-map.ts
+
+      - name: Report what will be committed
+        run: |
+          wc -c data/canal-map.json
+          node -e "
+            const d = require('./data/canal-map.json');
+            console.log('drainage segments:', d.drainage.segments.length);
+            console.log('osm:', d.osm.waterways.length, 'waterways,', d.osm.roads.length, 'roads,', d.osm.places.length, 'places');
+            console.log('soil:', d.soil.cells.filter(c => c.wrb).length, 'of', d.soil.cells.length);
+            for (const c of d.crossings) console.log('  km', c.chainageKm, c.kind, c.sub, c.name ?? '', c.km2 ?? '');
+            for (const p of d.nearPlaces) console.log('  near km', p.chainageKm, p.name, p.km, 'km');
+          "
+
+      - name: Commit
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/canal-map.json
+          if git diff --cached --quiet; then
+            echo 'The corridor map is unchanged since the last fetch.'
+            exit 0
+          fi
+          git commit -m 'Refresh the Arc Canal corridor map (Copernicus DEM, OSM, SoilGrids)'
+          git push origin HEAD:${GITHUB_REF_NAME}
