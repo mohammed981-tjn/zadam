@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Explain from "@/components/Explain";
@@ -69,6 +70,20 @@ export default async function HerdPage({
         {SPECIES_LABEL[herd.species]} — {PURPOSE_LABEL[herd.purpose]}
         {herd.breed && ` — ${herd.breed}`} — {n0(herd.head_count)} رأس
       </p>
+
+      {/*
+        من القطيع إلى العقد مباشرةً. القاعدةُ تقبل عقداً على قطيع منذ البداية،
+        والنموذجُ يعرضه — لكن لم يكن من هنا طريقٌ إليه، فكان صاحبُ القطيع يخرج
+        إلى صفحة العقود ويبحث عن قطيعه في القائمة من جديد.
+      */}
+      {herd.status === "active" && (
+        <Link
+          href={`/contracts/new?herd=${herd.id}`}
+          className="mt-4 inline-block rounded-xl border border-primary/40 bg-card px-4 py-2 text-sm font-medium text-primary shadow-card transition hover:shadow-raised"
+        >
+          اطلب خدمة لهذا القطيع (برنامج بيطري، تغذية، متابعة صحّة) ←
+        </Link>
+      )}
 
       <div className="mt-6 grid gap-3 rounded-2xl border border-border bg-card p-5 sm:grid-cols-3">
         <div>

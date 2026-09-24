@@ -46,10 +46,15 @@ export default function ContractBuilder({
   seasons,
   herds,
   offers,
+  initialHerdId,
+  initialSeasonId,
 }: {
   seasons: BuilderSeason[];
   herds: BuilderHerd[];
   offers: BuilderOffer[];
+  /** وحدةٌ يُفتح عليها النموذج — تُتجاهل إن لم تكن في القائمة. */
+  initialHerdId?: string;
+  initialSeasonId?: string;
 }) {
   const [state, formAction, pending] = useActionState<
     ActionResult | null,
@@ -58,11 +63,15 @@ export default function ContractBuilder({
 
   // Which side of production this contract serves. The database allows exactly
   // one, so the form asks once rather than letting both be filled in.
+  const presetHerd = herds.find((h) => h.id === initialHerdId);
+  const presetSeason = seasons.find((s) => s.id === initialSeasonId);
   const [unitKind, setUnitKind] = useState<"season" | "herd">(
-    seasons.length > 0 ? "season" : "herd",
+    presetHerd ? "herd" : presetSeason || seasons.length > 0 ? "season" : "herd",
   );
-  const [seasonId, setSeasonId] = useState(seasons[0]?.id ?? "");
-  const [herdId, setHerdId] = useState(herds[0]?.id ?? "");
+  const [seasonId, setSeasonId] = useState(
+    presetSeason?.id ?? seasons[0]?.id ?? "",
+  );
+  const [herdId, setHerdId] = useState(presetHerd?.id ?? herds[0]?.id ?? "");
   const [providerId, setProviderId] = useState(offers[0]?.provider_id ?? "");
   const [picked, setPicked] = useState<ServiceKey[]>([]);
 

@@ -8,7 +8,18 @@ import ContractBuilder, {
 
 export const metadata = { title: "عقد خدمات جديد | سودجري" };
 
-export default async function NewContractPage() {
+export default async function NewContractPage({
+  searchParams,
+}: {
+  /*
+   * `?herd=<id>` أو `?season=<id>` — يأتي من زرّ «اطلب خدمة» في صفحة القطيع
+   * أو الموسم، فيفتح النموذجُ على الوحدة نفسها بدل أوّل ما في القائمة.
+   * والمعرّفُ مجرّدُ تفضيل: إن لم يكن من وحدات المستدعي النشطة (وRLS لا
+   * تُرجع غيرها) يُتجاهل ويبقى الاختيارُ الافتراضي.
+   */
+  searchParams: Promise<{ herd?: string; season?: string }>;
+}) {
+  const { herd: wantedHerd, season: wantedSeason } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -61,6 +72,8 @@ export default async function NewContractPage() {
         seasons={(seasonRows ?? []) as BuilderSeason[]}
         herds={(herdRows ?? []) as BuilderHerd[]}
         offers={offers}
+        initialHerdId={wantedHerd}
+        initialSeasonId={wantedSeason}
       />
     </div>
   );
