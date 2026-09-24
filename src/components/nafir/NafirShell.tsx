@@ -11,6 +11,8 @@ const TABS = [
   { href: "/nafir/faza", label: "الفزعة" },
   { href: "/nafir/shura", label: "الشورى" },
   { href: "/nafir/judiyya", label: "الجودية" },
+  { href: "/nafir/canals", label: "الترع" },
+  { href: "/nafir/mine", label: "سجلّ عطائي" },
   { href: "/nafir/pulse", label: "نبض الثقة" },
 ];
 
