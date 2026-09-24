@@ -17,6 +17,8 @@ library;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'rain_map.dart';
+
 class ApiConfig {
   static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
   static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -218,6 +220,39 @@ class SudagriApi {
       answer: body['answer'] as String? ?? '',
       source: body['source'] as String? ?? 'model',
     );
+  }
+
+  /// The week's rain map, from the website so both draw the same grid.
+  Future<RainGrid> rain() async {
+    if (ApiConfig.siteUrl.isEmpty) {
+      throw ApiException('خريطة الأمطار غير مضبوطة في هذه النسخة من التطبيق.');
+    }
+
+    late final http.Response res;
+    try {
+      res = await _client
+          .get(Uri.parse('${ApiConfig.siteUrl}/api/rain'))
+          .timeout(_timeout);
+    } catch (_) {
+      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+    }
+
+    // A proxy or an error page can answer with HTML; that is a failed load,
+    // not a crash.
+    try {
+      final body =
+          jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      if (res.statusCode != 200) {
+        throw ApiException(
+          body['error'] as String? ?? 'تعذّر تحميل التوقّع (${res.statusCode}).',
+        );
+      }
+      return RainGrid.fromJson(body);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw ApiException('تعذّر تحميل التوقّع (${res.statusCode}).');
+    }
   }
 
   void dispose() => _client.close();
