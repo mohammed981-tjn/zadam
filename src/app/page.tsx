@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SUDAGRI_LOGO } from "@/lib/brand";
+import { PHOTOS } from "@/lib/photos";
+import SectionPhoto from "@/components/SectionPhoto";
 import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
 import KnowledgeCard from "@/components/KnowledgeCard";
@@ -274,7 +276,13 @@ export default async function Home() {
        * chain it describes is the product; the calculators are the doorway.
        */}
       <section className="mx-auto max-w-6xl px-4 pt-14">
-        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 sm:p-8">
+        <div className="overflow-hidden rounded-2xl border border-primary/30 bg-primary/5">
+          <SectionPhoto
+            src={PHOTOS.geziraFarmer}
+            alt="مزارع يقف عند حقل ذرة إلى جوار ترعة ريّ ترابية، ونخيل في الأفق"
+          />
+
+          <div className="p-6 sm:p-8">
           <h2 className="font-bold" style={{ fontSize: "var(--text-title)" }}>
             وإن كنت تزرع: من أرضك إلى المشتري
           </h2>
@@ -343,6 +351,7 @@ export default async function Home() {
             وما نشهد به هو أنّ <strong>أدلّتك موجودةٌ ومراجَعة</strong> — لا أنّ
             بيعاً سيقع ولا بسعرٍ بعينه. ذلك يبقى تفاوضَك أنت.
           </p>
+          </div>
         </div>
       </section>
 
@@ -351,9 +360,16 @@ export default async function Home() {
         <h2 className="mb-2 font-bold" style={{ fontSize: "var(--text-title)" }}>
           ما يعمل اليوم
         </h2>
-        <p className="mb-8 max-w-2xl text-muted">
+        <p className="mb-6 max-w-2xl text-muted">
           أربع أدوات مبنيّة على البيانات أعلاه، تعمل الآن ولا تحتاج حساباً.
         </p>
+
+        <SectionPhoto
+          className="mb-8 overflow-hidden rounded-2xl border border-border"
+          src={PHOTOS.irrigatedPlain}
+          alt="سهل مرويّ من الجوّ: شبكة حقول هندسية، ونخيل على الترع، والنهر في الأفق"
+          caption="صورةٌ مولَّدةٌ لأغراض العرض — لا تمثّل موقعاً بعينه."
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
           {tools.map((t) => (
@@ -398,6 +414,13 @@ export default async function Home() {
         <h2 className="mb-6 font-bold" style={{ fontSize: "var(--text-title)" }}>
           المشاريع المتاحة
         </h2>
+
+        <SectionPhoto
+          className="mb-6 overflow-hidden rounded-2xl border border-border"
+          src={PHOTOS.herdCanal}
+          alt="قطيع بقر ذي سنام وقرون طويلة يسير بمحاذاة ترعة في الغبار، وراعيه خلفه"
+          caption="صورةٌ مولَّدةٌ لأغراض العرض — لا تمثّل مشروعاً بعينه."
+        />
         {!projects || projects.length === 0 ? (
           <div className="reveal rounded-2xl border border-dashed border-border p-10 text-center">
             <Icon
