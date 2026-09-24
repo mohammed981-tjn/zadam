@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import 'mining_screen.dart';
+import 'nafir_screen.dart';
 import 'rain_screen.dart';
 import 'services_screen.dart';
 
@@ -64,6 +65,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const _Hero(),
             const SizedBox(height: 20),
             const _RainEntry(),
+            const SizedBox(height: 12),
+            const _NafirEntry(),
             const SizedBox(height: 12),
             const _SectionChoice(),
             const SizedBox(height: 20),
@@ -455,6 +458,43 @@ class _Heading extends StatelessWidget {
         text,
         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
       );
+}
+
+/// النفير: the board of calls and help requests, one tap from home.
+class _NafirEntry extends StatelessWidget {
+  const _NafirEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const NafirScreen()),
+      ),
+      child: Row(
+        children: [
+          const Text('🤝', style: TextStyle(fontSize: 30)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('النفير — العمل المشترك',
+                    style:
+                        TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(
+                  'دعوات الحصاد وتطهير القنوات، والفزعة لمن أصابته جائحة.',
+                  style: TextStyle(
+                      fontSize: 13, color: mutedOn(context), height: 1.7),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_left, color: mutedOn(context)),
+        ],
+      ),
+    );
+  }
 }
 
 /// Rain first after the hero, as on the website's homepage.

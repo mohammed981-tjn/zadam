@@ -9,11 +9,12 @@ name: Canal corridor map
 # about every other connection from a runner and each retry waits a minute,
 # and SoilGrids asks for a pause between its forty-eight points.
 
+# Manual only. It used to run on every push that touched the script, and a
+# squash-merge re-pushes the script to the branch — so it re-ran after each
+# merge, committed a refreshed file, and turned the next push from the branch
+# into a rejected non-fast-forward. The ground does not change between merges;
+# run it from the Actions tab when the survey itself changes.
 on:
-  push:
-    paths:
-      - ".github/workflows/canal-map.yml"
-      - "scripts/fetch-canal-map.ts"
   workflow_dispatch:
 
 permissions:

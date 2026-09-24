@@ -122,6 +122,20 @@ export default async function Navbar() {
     });
   }
 
+  // النفير قبل الملكيّة والدراسات: بابٌ عامّ يدخله الزائر قبل أن يسجّل،
+  // لأنّ دعوةً إلى حصادٍ هذا الأسبوع هي ما قد يجعله يسجّل.
+  groups.push({
+    title: "النفير — العمل المشترك",
+    hint: "الميثاق والنفير والفزعة والشورى",
+    items: [
+      { href: "/nafir", label: "ساحة النفير" },
+      { href: "/nafir/charter", label: "الميثاق" },
+      { href: "/nafir/faza", label: "الفزعة" },
+      { href: "/nafir/shura", label: "الشورى" },
+      { href: "/nafir/pulse", label: "نبض الثقة" },
+    ],
+  });
+
   groups.push({
     title: "مشاريع ودراسات",
     hint: "قراءات في أرقام المشاريع الكبرى",

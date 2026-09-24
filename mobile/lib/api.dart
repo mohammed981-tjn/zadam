@@ -17,6 +17,7 @@ library;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'nafir.dart';
 import 'rain_map.dart';
 
 class ApiConfig {
@@ -253,6 +254,71 @@ class SudagriApi {
     } catch (_) {
       throw ApiException('تعذّر تحميل التوقّع (${res.statusCode}).');
     }
+  }
+
+  /// Everything the النفير screen shows, in parallel reads. Every table here
+  /// is world-readable by policy; nothing needs a session.
+  Future<NafirBoard> nafirBoard() async {
+    final results = await Future.wait([
+      _get('nafir_calls', {
+        'select': '*',
+        'status': 'eq.open',
+        'order': 'starts_on.asc',
+        'limit': '30',
+      }),
+      _get('nafir_calls', {
+        'select': '*',
+        'status': 'eq.done',
+        'order': 'closed_at.desc',
+        'limit': '10',
+      }),
+      _get('faza_requests', {
+        'select': '*',
+        'status': 'eq.open',
+        'order': 'created_at.desc',
+        'limit': '20',
+      }),
+      _get('nafir_joins', {'select': 'call_id'}),
+    ]);
+
+    final joined = <String, int>{};
+    for (final j in results[3]) {
+      final id = j['call_id'] as String;
+      joined[id] = (joined[id] ?? 0) + 1;
+    }
+
+    NafirIndicators? indicators;
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('${ApiConfig.supabaseUrl}/rest/v1/rpc/nafir_indicators'),
+            headers: {
+              'apikey': ApiConfig.supabaseAnonKey,
+              'authorization': 'Bearer ${ApiConfig.supabaseAnonKey}',
+              'content-type': 'application/json',
+            },
+            body: '{}',
+          )
+          .timeout(_timeout);
+      if (res.statusCode == 200) {
+        final rows = jsonDecode(utf8.decode(res.bodyBytes)) as List<dynamic>;
+        if (rows.isNotEmpty) {
+          indicators =
+              NafirIndicators.fromJson(rows.first as Map<String, dynamic>);
+        }
+      }
+    } catch (_) {
+      // The board is useful without the numbers; a failed count is not a
+      // failed screen.
+    }
+
+    return NafirBoard(
+      open: results[0].map(NafirCall.fromJson).toList(),
+      done: results[1].map(NafirCall.fromJson).toList(),
+      faza: results[2].map(FazaRequest.fromJson).toList(),
+      joined: joined,
+      indicators: indicators,
+    );
   }
 
   void dispose() => _client.close();
