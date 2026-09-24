@@ -30,6 +30,7 @@ const PUBLIC_PAGES = [
   /^\/$/,
   /^\/knowledge(\/.*)?$/,
   /^\/tools\/(water|feasibility)$/,
+  /^\/rain$/,
   /^\/arc-canal$/,
   /^\/export$/,
   /^\/export\/market$/,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import Image from "next/image";
 import { SUDAGRI_LOGO } from "@/lib/brand";
 import { PHOTOS } from "@/lib/photos";
@@ -8,6 +9,7 @@ import ProjectCard from "@/components/ProjectCard";
 import KnowledgeCard from "@/components/KnowledgeCard";
 import Icon, { type IconName } from "@/components/Icon";
 import NewsStrip from "@/components/NewsStrip";
+import RainHomeCard from "@/components/RainHomeCard";
 import { CROPS, STATIONS } from "@/lib/agronomy";
 import type { KnowledgeEntry, Project } from "@/types/database";
 
@@ -322,6 +324,15 @@ export default async function Home() {
           </dl>
         </div>
       </section>
+
+      {/* ───────────────────────── توقّع الأمطار ─────────────────────────
+       * أوّلُ ما بعد الواجهة (طلب المالك، 24 سبتمبر): الخريطةُ نفسها هنا،
+       * والبطاقةُ كلُّها تفتح صفحة /rain.
+       */}
+      {/* Suspense so the rest of the page streams while the forecast loads. */}
+      <Suspense fallback={null}>
+        <RainHomeCard />
+      </Suspense>
 
       {/* ───────────────────────── الصور ─────────────────────────
        * تحت الواجهة مباشرةً: العنوانُ والأرقامُ الأربعةُ تبقى أوّلَ ما يُرى،

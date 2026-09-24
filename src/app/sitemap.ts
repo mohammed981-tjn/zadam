@@ -27,6 +27,7 @@ const PUBLIC_ROUTES: {
 }[] = [
   { path: "", priority: 1, changeFrequency: "weekly" },
   { path: "/knowledge", priority: 0.9, changeFrequency: "weekly" },
+  { path: "/rain", priority: 0.9, changeFrequency: "daily" },
   { path: "/tools/water", priority: 0.9, changeFrequency: "monthly" },
   { path: "/tools/feasibility", priority: 0.8, changeFrequency: "monthly" },
   { path: "/arc-canal", priority: 0.8, changeFrequency: "monthly" },

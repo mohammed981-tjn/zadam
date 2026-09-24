@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import 'mining_screen.dart';
+import 'rain_screen.dart';
 import 'services_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -62,6 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const _Hero(),
             const SizedBox(height: 20),
+            const _RainEntry(),
+            const SizedBox(height: 12),
             const _SectionChoice(),
             const SizedBox(height: 20),
             const _Audiences(),
@@ -452,6 +455,43 @@ class _Heading extends StatelessWidget {
         text,
         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
       );
+}
+
+/// Rain first after the hero, as on the website's homepage.
+class _RainEntry extends StatelessWidget {
+  const _RainEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const RainScreen()),
+      ),
+      child: Row(
+        children: [
+          const Text('🌧️', style: TextStyle(fontSize: 30)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('توقّع الأمطار — الأيام السبعة القادمة',
+                    style:
+                        TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(
+                  'خريطة المطر والحرارة والتضاريس، وجدول المطر يوماً بيوم.',
+                  style: TextStyle(
+                      fontSize: 13, color: mutedOn(context), height: 1.7),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_left, color: mutedOn(context)),
+        ],
+      ),
+    );
+  }
 }
 
 class _Card extends StatelessWidget {
