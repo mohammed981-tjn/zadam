@@ -4,9 +4,10 @@ import {
   LAT_MIN,
   LON_MAX,
   LON_MIN,
-  RAIN_BANDS,
+  LAYERS,
   SUDAN_BORDER,
-  bandFor,
+  bandIn,
+  type Layer,
   type RainGrid,
 } from "@/lib/rainMap";
 
@@ -51,23 +52,31 @@ const TOWNS: { name: string; lon: number; lat: number; above: boolean }[] = [
   { name: "دنقلا", lon: 30.48, lat: 19.17, above: false },
 ];
 
-const ar = (n: number) => Math.round(n).toLocaleString("ar");
+const ar = (n: number) => Math.round(n).toLocaleString("ar", { useGrouping: false });
 
 export default function RainMap({
   grid,
+  layer = LAYERS[0],
   showTowns = true,
 }: {
   grid: RainGrid;
+  layer?: Layer;
   showTowns?: boolean;
 }) {
   const clipId = "sudan-clip";
+  // A cell with no value for this layer (elevation that failed to load) is
+  // left out, so it shows as unpainted ground rather than as the lowest band.
+  const cells = grid.cells.flatMap((c) => {
+    const v = layer.value(c);
+    return v == null ? [] : [{ ...c, v, band: bandIn(layer.bands, v) }];
+  });
   return (
     <figure>
       <svg
         viewBox={`-4 -4 ${PLOT_W + 8} ${PLOT_H + 8}`}
         className="h-auto w-full"
         role="img"
-        aria-label="خريطة السودان ملوّنةً بمجموع المطر المتوقّع للأيام السبعة القادمة، بالمليمتر"
+        aria-label={`خريطة السودان: ${layer.note}، ${layer.unit}`}
       >
         <defs>
           <clipPath id={clipId}>
@@ -77,14 +86,14 @@ export default function RainMap({
 
         <g clipPath={`url(#${clipId})`}>
           <path d={border} fill="var(--card)" />
-          {grid.cells.map((c) => (
+          {cells.map((c) => (
             <rect
               key={`${c.lon},${c.lat}`}
               x={x(c.lon - CELL_DEG / 2)}
               y={y(c.lat + CELL_DEG / 2)}
               width={CW}
               height={CH}
-              fill={bandFor(c.rainMm).fill}
+              fill={c.band.fill}
               stroke="var(--border)"
               strokeWidth={0.5}
             />
@@ -92,7 +101,7 @@ export default function RainMap({
         </g>
         <path d={border} fill="none" stroke="var(--foreground)" strokeWidth={1.2} />
 
-        {grid.cells
+        {cells
           .filter((c) => c.labelled)
           .map((c) => (
             <text
@@ -101,16 +110,16 @@ export default function RainMap({
               y={y(c.lat) + (showTowns ? CH * 0.2 : 0)}
               textAnchor="middle"
               dominantBaseline="central"
-              fontSize={11}
+              fontSize={Math.abs(c.v) >= 999.5 ? 8.5 : 11}
               fontWeight={700}
-              fill={bandFor(c.rainMm).ink}
+              fill={c.band.ink}
               // A halo in the cell's own colour, so a number near the border
               // stays legible where it runs past the clipped cell edge.
-              stroke={bandFor(c.rainMm).fill}
+              stroke={c.band.fill}
               strokeWidth={3}
               paintOrder="stroke"
             >
-              {ar(c.rainMm)}
+              {ar(c.v)}
             </text>
           ))}
 
@@ -136,7 +145,7 @@ export default function RainMap({
 
       <figcaption className="mt-3">
         <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-          {RAIN_BANDS.map((b) => (
+          {layer.bands.map((b) => (
             <li key={b.min} className="flex items-center gap-1">
               <span
                 className="inline-block size-3.5 rounded-sm border border-border"
@@ -145,7 +154,7 @@ export default function RainMap({
               <span className="figure">{b.label}</span>
             </li>
           ))}
-          <li className="text-muted">مليمتر في ٧ أيام</li>
+          <li className="text-muted">{layer.unit}</li>
         </ul>
       </figcaption>
     </figure>

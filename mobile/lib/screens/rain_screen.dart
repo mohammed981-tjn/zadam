@@ -22,6 +22,7 @@ class RainScreen extends StatefulWidget {
 class _RainScreenState extends State<RainScreen> {
   final _api = SudagriApi();
   late Future<RainGrid> _future;
+  String _layer = 'rain';
 
   @override
   void initState() {
@@ -38,16 +39,15 @@ class _RainScreenState extends State<RainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('توقّع الأمطار')),
+      appBar: AppBar(title: const Text('توقّع الأمطار والخرائط')),
       body: RefreshIndicator(
         onRefresh: () async => setState(() => _future = _api.rain()),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
             Text(
-              'مجموع المطر المتوقّع في الأيام السبعة القادمة على كل مربّعٍ من '
-              'السودان (نحو ١٦٠ كم للضلع). اللون يُريك أين المطر، والرقم كم '
-              'مليمتراً. توقّعٌ من نماذج الأرصاد لا قياس، ويُحدَّث كل ثلاث ساعات.',
+              'الأيام السبعة القادمة على خريطة السودان، ثمّ يوماً بيوم لكل '
+              'مدينة. توقّعاتٌ من نماذج الأرصاد لا قياسات، وتُحدَّث كل ثلاث ساعات.',
               style: TextStyle(
                   fontSize: 13, color: mutedOn(context), height: 1.7),
             ),
@@ -79,15 +79,67 @@ class _RainScreenState extends State<RainScreen> {
                   );
                 }
                 final grid = snapshot.data!;
+                final layer = grid.layers.firstWhere((l) => l.key == _layer,
+                    orElse: () => grid.rain);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('من ${grid.from} إلى ${grid.to}',
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 12),
-                    RainMapView(grid: grid),
-                    const SizedBox(height: 12),
-                    _Legend(grid: grid),
+                    // The same order as the website: the map with its layers,
+                    // then the day-by-day table.
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final l in grid.layers)
+                                  ChoiceChip(
+                                    label: Text(l.title),
+                                    selected: l.key == layer.key,
+                                    onSelected: (_) =>
+                                        setState(() => _layer = l.key),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(layer.note,
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 4),
+                            Text(
+                              layer.key == 'elev'
+                                  ? 'ثابتةٌ لا تتغيّر مع الطقس — بدقّة المربّع، للصورة العامة لا لمسح موقع.'
+                                  : 'من ${grid.from} إلى ${grid.to}',
+                              style: TextStyle(
+                                  fontSize: 12, color: mutedOn(context)),
+                            ),
+                            const SizedBox(height: 12),
+                            RainMapView(grid: grid, layer: layer),
+                            const SizedBox(height: 12),
+                            _Legend(layer: layer),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (grid.daily != null) ...[
+                      const SizedBox(height: 24),
+                      const Text('المطر يوماً بيوم',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
+                      Text(
+                        'بالمليمتر لكل يوم، بألوان الخريطة نفسها. النقطة تعني أقلّ من ١ مم.',
+                        style:
+                            TextStyle(fontSize: 13, color: mutedOn(context)),
+                      ),
+                      const SizedBox(height: 12),
+                      _DailyTable(table: grid.daily!, rain: grid.rain),
+                    ],
                   ],
                 );
               },
@@ -101,9 +153,15 @@ class _RainScreenState extends State<RainScreen> {
 
 /// The map alone, sized to its width. Used here and on the home screen.
 class RainMapView extends StatelessWidget {
-  const RainMapView({super.key, required this.grid, this.showTowns = true});
+  const RainMapView({
+    super.key,
+    required this.grid,
+    required this.layer,
+    this.showTowns = true,
+  });
 
   final RainGrid grid;
+  final MapLayer layer;
   final bool showTowns;
 
   @override
@@ -115,6 +173,7 @@ class RainMapView extends StatelessWidget {
       child: CustomPaint(
         painter: _RainPainter(
           grid: grid,
+          layer: layer,
           projection: p,
           card: theme.cardColor,
           border: theme.dividerColor,
@@ -168,6 +227,7 @@ const _towns = <(String, double, double, bool)>[
 class _RainPainter extends CustomPainter {
   _RainPainter({
     required this.grid,
+    required this.layer,
     required this.projection,
     required this.card,
     required this.border,
@@ -177,6 +237,7 @@ class _RainPainter extends CustomPainter {
   });
 
   final RainGrid grid;
+  final MapLayer layer;
   final _Projection projection;
   final Color card, border, foreground, muted;
   final bool showTowns;
@@ -207,8 +268,10 @@ class _RainPainter extends CustomPainter {
       ..strokeWidth = 0.5
       ..color = border;
     for (final c in grid.cells) {
+      final v = c.values[layer.key];
+      if (v == null) continue;
       final r = Rect.fromPoints(at(c.lon - h, c.lat + h), at(c.lon + h, c.lat - h));
-      canvas.drawRect(r, Paint()..color = grid.bandFor(c.rainMm).fill ?? card);
+      canvas.drawRect(r, Paint()..color = layer.bandFor(v).fill ?? card);
       canvas.drawRect(r, lines);
     }
     canvas.restore();
@@ -223,10 +286,12 @@ class _RainPainter extends CustomPainter {
 
     final fontSize = (size.width / 36).clamp(8.0, 14.0);
     for (final c in grid.cells.where((c) => c.labelled)) {
-      final band = grid.bandFor(c.rainMm);
+      final v = c.values[layer.key];
+      if (v == null) continue;
+      final band = layer.bandFor(v);
       final centre = at(c.lon, c.lat) + Offset(0, showTowns ? cellH * 0.2 : 0);
-      _text(canvas, '${c.rainMm.round()}', centre,
-          size: fontSize,
+      _text(canvas, '${v.round()}', centre,
+          size: v.abs() >= 999.5 ? fontSize * 0.78 : fontSize,
           bold: true,
           colour: band.ink ?? muted,
           halo: band.fill ?? card);
@@ -270,13 +335,16 @@ class _RainPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RainPainter old) =>
-      old.grid != grid || old.card != card || old.showTowns != showTowns;
+      old.grid != grid ||
+      old.layer != layer ||
+      old.card != card ||
+      old.showTowns != showTowns;
 }
 
 class _Legend extends StatelessWidget {
-  const _Legend({required this.grid});
+  const _Legend({required this.layer});
 
-  final RainGrid grid;
+  final MapLayer layer;
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +354,7 @@ class _Legend extends StatelessWidget {
       spacing: 12,
       runSpacing: 6,
       children: [
-        for (final b in grid.bands)
+        for (final b in layer.bands)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -303,9 +371,91 @@ class _Legend extends StatelessWidget {
               Text(b.label, style: const TextStyle(fontSize: 12)),
             ],
           ),
-        Text('مليمتر في ٧ أيام',
+        Text(layer.unit,
             style: TextStyle(fontSize: 12, color: mutedOn(context))),
       ],
+    );
+  }
+}
+
+/// Towns down the side, days across, each day shaded with the map's blues.
+/// Scrolls sideways on a narrow phone; the town names scroll with it, which
+/// is the price of using a plain Table rather than a pinned-column widget.
+class _DailyTable extends StatelessWidget {
+  const _DailyTable({required this.table, required this.rain});
+
+  final DailyTable table;
+  final MapLayer rain;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = mutedOn(context);
+    const weekdays = [
+      'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'
+    ];
+
+    Widget cell(Widget child, {Color? bg}) => Container(
+          color: bg,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          alignment: Alignment.center,
+          child: child,
+        );
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Table(
+          defaultColumnWidth: const IntrinsicColumnWidth(),
+          border: TableBorder(
+              horizontalInside: BorderSide(color: theme.dividerColor)),
+          children: [
+            TableRow(children: [
+              cell(Text('المدينة',
+                  style: TextStyle(fontSize: 12, color: muted))),
+              for (final d in table.dates)
+                cell(Column(children: [
+                  Text(weekdays[DateTime.parse(d).weekday - 1],
+                      style: TextStyle(fontSize: 11, color: muted)),
+                  Text('${DateTime.parse(d).day}',
+                      style: TextStyle(fontSize: 11, color: muted)),
+                ])),
+              cell(Text('المجموع',
+                  style: TextStyle(fontSize: 12, color: muted))),
+              cell(Text('أعلى حرارة',
+                  style: TextStyle(fontSize: 12, color: muted))),
+            ]),
+            for (final t in table.towns)
+              TableRow(children: [
+                cell(Text(t.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700))),
+                for (final date in table.dates)
+                  _dayCell(cell, t, date, muted),
+                cell(Text(
+                    '${t.days.fold<double>(0, (a, d) => a + d.rainMm).round()}',
+                    style: const TextStyle(fontWeight: FontWeight.w800))),
+                cell(Text(
+                    '${t.days.map((d) => d.tmaxC).reduce((a, b) => a > b ? a : b).round()}°',
+                    style: TextStyle(color: muted))),
+              ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dayCell(Widget Function(Widget, {Color? bg}) cell, TownForecast t,
+      String date, Color muted) {
+    final matches = t.days.where((d) => d.date == date);
+    if (matches.isEmpty) return cell(Text('—', style: TextStyle(color: muted)));
+    final mm = matches.first.rainMm;
+    final band = rain.bandFor(mm);
+    return cell(
+      Text(mm < 1 ? '·' : '${mm.round()}',
+          style: TextStyle(
+              fontWeight: FontWeight.w700, color: band.ink ?? muted)),
+      bg: band.fill,
     );
   }
 }

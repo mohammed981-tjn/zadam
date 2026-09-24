@@ -1,4 +1,4 @@
-import { forecastUrl, parseOpenMeteo } from "./forecast";
+import { forecastUrl, parseOpenMeteo, type ForecastDay } from "./forecast";
 
 /**
  * خريطة المطر: مجموعُ الأيام السبعة القادمة على شبكةٍ تغطّي السودان.
@@ -111,22 +111,42 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export const RAIN_CELLS = buildCells();
 
-/** Rain bands in mm over seven days, with the colour each is painted. */
-export interface RainBand {
+export interface Band {
   min: number;
   label: string;
   fill: string;
   /** Text colour that reads on this fill. */
   ink: string;
 }
+/** One cell with everything the map can show. */
+export interface GridCell extends RainCell {
+  /** Seven-day totals and the week's hottest afternoon. */
+  rainMm: number;
+  et0Mm: number;
+  tmaxC: number;
+  /** Ground height at the centre, metres. Null when the elevation read failed. */
+  elevM: number | null;
+}
+
+export type LayerKey = "rain" | "tmax" | "et0" | "elev";
+
+export interface Layer {
+  key: LayerKey;
+  /** Tab label. */
+  title: string;
+  /** What the number in a cell is, in one line under the map. */
+  note: string;
+  unit: string;
+  bands: Band[];
+  value: (c: GridCell) => number | null;
+}
 
 /**
  * Sequential blues, light to dark, because more rain is more of one thing.
- * The first band is `null` fill — the card colour — so "no rain" reads as
- * the absence of paint in both the light and dark themes rather than as a
- * pale blue that suggests a little.
+ * The first band is the card colour, so "no rain" reads as the absence of
+ * paint in both themes rather than as a pale blue that suggests a little.
  */
-export const RAIN_BANDS: RainBand[] = [
+export const RAIN_BANDS: Band[] = [
   { min: 0, label: "أقلّ من ١", fill: "var(--card)", ink: "var(--muted)" },
   { min: 1, label: "١–٥", fill: "#d4e8f6", ink: "#12324f" },
   { min: 5, label: "٥–١٥", fill: "#9cc9ea", ink: "#12324f" },
@@ -135,61 +155,249 @@ export const RAIN_BANDS: RainBand[] = [
   { min: 60, label: "٦٠ فأكثر", fill: "#143f78", ink: "#ffffff" },
 ];
 
-export function bandFor(mm: number): RainBand {
-  let b = RAIN_BANDS[0];
-  for (const band of RAIN_BANDS) if (mm >= band.min) b = band;
+/**
+ * THE OTHER LAYERS
+ *
+ * Each answers a question the platform's users already bring to it, from data
+ * the rain request already returns or one more cached call:
+ *
+ *  - الحرارة: the week's hottest afternoon — heat stress at flowering, and
+ *    how hard the herd is working for water.
+ *  - حاجة الجوّ: FAO-56 reference evapotranspiration summed over the week,
+ *    the same quantity the water calculator is built on. Browns, because more
+ *    of it means drier air; a green ramp would read as "wetter".
+ *  - التضاريس: ground height from Open-Meteo's elevation service (Copernicus
+ *    DEM, 90 m) at each cell centre. At 160 km a cell it shows the shape of
+ *    the country — the Nile valley, Jebel Marra, the Red Sea hills — not a
+ *    site survey; the canal study's SRTM profile is the survey.
+ */
+export const LAYERS: Layer[] = [
+  {
+    key: "rain",
+    title: "المطر",
+    note: "مجموع المطر المتوقّع في الأيام السبعة القادمة",
+    unit: "مم في ٧ أيام",
+    bands: RAIN_BANDS,
+    value: (c) => c.rainMm,
+  },
+  {
+    key: "tmax",
+    title: "الحرارة",
+    note: "أعلى درجة حرارة متوقّعة خلال الأيام السبعة",
+    unit: "°م",
+    bands: [
+      { min: -99, label: "أقلّ من ٣٠", fill: "#fff3c4", ink: "#4a2a00" },
+      { min: 30, label: "٣٠–٣٥", fill: "#fdd98a", ink: "#4a2a00" },
+      { min: 35, label: "٣٥–٣٨", fill: "#f9b35c", ink: "#4a2a00" },
+      { min: 38, label: "٣٨–٤١", fill: "#ef8a3c", ink: "#ffffff" },
+      { min: 41, label: "٤١–٤٤", fill: "#d9572b", ink: "#ffffff" },
+      { min: 44, label: "٤٤ فأكثر", fill: "#a8321d", ink: "#ffffff" },
+    ],
+    value: (c) => c.tmaxC,
+  },
+  {
+    key: "et0",
+    title: "حاجة الجوّ",
+    note: "ما يأخذه الجوّ من حقلٍ معشوشب في الأيام السبعة (البخر-نتح المرجعي)",
+    unit: "مم في ٧ أيام",
+    bands: [
+      { min: -99, label: "أقلّ من ٢٥", fill: "#f6ecd9", ink: "#3d2508" },
+      { min: 25, label: "٢٥–٣٥", fill: "#e8cfa2", ink: "#3d2508" },
+      { min: 35, label: "٣٥–٤٥", fill: "#d6ad6c", ink: "#3d2508" },
+      { min: 45, label: "٤٥–٥٥", fill: "#bb8641", ink: "#ffffff" },
+      { min: 55, label: "٥٥–٦٥", fill: "#935f25", ink: "#ffffff" },
+      { min: 65, label: "٦٥ فأكثر", fill: "#6a3f14", ink: "#ffffff" },
+    ],
+    value: (c) => c.et0Mm,
+  },
+  {
+    key: "elev",
+    title: "التضاريس",
+    note: "ارتفاع الأرض عن سطح البحر في وسط كل مربّع",
+    unit: "متر",
+    bands: [
+      { min: -99, label: "أقلّ من ٣٠٠", fill: "#d9ead3", ink: "#1f3318" },
+      { min: 300, label: "٣٠٠–٥٠٠", fill: "#b5d59b", ink: "#1f3318" },
+      { min: 500, label: "٥٠٠–٧٠٠", fill: "#e6dca0", ink: "#3a3010" },
+      { min: 700, label: "٧٠٠–١٠٠٠", fill: "#d1b276", ink: "#3a3010" },
+      { min: 1000, label: "١٠٠٠–١٥٠٠", fill: "#a97d4f", ink: "#ffffff" },
+      { min: 1500, label: "١٥٠٠ فأكثر", fill: "#7a5536", ink: "#ffffff" },
+    ],
+    value: (c) => c.elevM,
+  },
+];
+
+export const layerFor = (key: string | undefined): Layer =>
+  LAYERS.find((l) => l.key === key) ?? LAYERS[0];
+
+export function bandIn(bands: Band[], v: number): Band {
+  let b = bands[0];
+  for (const band of bands) if (v >= band.min) b = band;
   return b;
 }
 
+export const bandFor = (mm: number): Band => bandIn(RAIN_BANDS, mm);
+
 export interface RainGrid {
-  cells: (RainCell & { rainMm: number })[];
+  cells: GridCell[];
   /** First and last forecast day, ISO dates. */
   from: string;
   to: string;
 }
 
+const r1 = (n: number) => Math.round(n * 10) / 10;
+
 /**
  * Sums each cell's seven days. A cell whose forecast came back empty is
  * dropped, not painted dry — "no data" and "no rain" must not share a colour.
+ * Elevation, when given, is matched by position in the same cell order.
  */
-export function sumGrid(cells: RainCell[], json: unknown): RainGrid | null {
+export function sumGrid(
+  cells: RainCell[],
+  json: unknown,
+  elevations: (number | null)[] | null = null,
+): RainGrid | null {
   const perCell = parseOpenMeteo(json);
-  const out: RainGrid["cells"] = [];
+  const out: GridCell[] = [];
   let from = "";
   let to = "";
   cells.forEach((c, i) => {
     const days = perCell[i] ?? [];
     if (days.length === 0) return;
     from ||= days[0].date;
-    to = days[days.length - 1].date > to ? days[days.length - 1].date : to;
-    const rainMm = Math.round(days.reduce((a, d) => a + d.rainMm, 0) * 10) / 10;
-    out.push({ ...c, rainMm });
+    const last = days[days.length - 1].date;
+    if (last > to) to = last;
+    out.push({
+      ...c,
+      rainMm: r1(days.reduce((a, d) => a + d.rainMm, 0)),
+      et0Mm: r1(days.reduce((a, d) => a + d.et0Mm, 0)),
+      tmaxC: r1(Math.max(...days.map((d) => d.tmaxC))),
+      elevM: elevations?.[i] ?? null,
+    });
   });
   return out.length > 0 ? { cells: out, from, to } : null;
 }
 
 /**
- * One request for the whole grid, cached three hours like the station table.
+ * Ground height for every cell, one call, cached a month — the ground does
+ * not move. Null on any failure; the map then simply has no terrain tab.
+ */
+async function fetchElevations(cells: RainCell[]): Promise<(number | null)[] | null> {
+  try {
+    const p = new URLSearchParams({
+      latitude: cells.map((c) => c.lat).join(","),
+      longitude: cells.map((c) => c.lon).join(","),
+    });
+    const res = await fetch(`https://api.open-meteo.com/v1/elevation?${p}`, {
+      next: { revalidate: 2_592_000 },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) {
+      console.error("elevation: Open-Meteo answered", res.status);
+      return null;
+    }
+    const json = (await res.json()) as { elevation?: (number | null)[] };
+    return Array.isArray(json.elevation) ? json.elevation : null;
+  } catch (e) {
+    console.error("elevation: request failed", e);
+    return null;
+  }
+}
+
+/**
+ * One forecast request for the whole grid, cached three hours like the
+ * station table, and the elevation beside it.
  *
  * Open-Meteo counts each location as a call: 85 cells refreshed eight times a
  * day is under 700 of the free tier's 10,000 daily calls.
- * Null on any failure, and the page says so instead of drawing an empty map.
  */
 export async function fetchRainGrid(): Promise<RainGrid | null> {
   try {
-    const res = await fetch(
-      forecastUrl(RAIN_CELLS.map((c) => ({ latitude: c.lat, longitude: c.lon }))),
-      // A slow upstream must not hold the homepage: after 8 s the card is
-      // simply left out.
-      { next: { revalidate: 10_800 }, signal: AbortSignal.timeout(8_000) },
-    );
+    const [res, elev] = await Promise.all([
+      fetch(
+        forecastUrl(RAIN_CELLS.map((c) => ({ latitude: c.lat, longitude: c.lon }))),
+        // A slow upstream must not hold the homepage: after 8 s the card is
+        // simply left out.
+        { next: { revalidate: 10_800 }, signal: AbortSignal.timeout(8_000) },
+      ),
+      fetchElevations(RAIN_CELLS),
+    ]);
     if (!res.ok) {
       console.error("rain map: Open-Meteo answered", res.status);
       return null;
     }
-    return sumGrid(RAIN_CELLS, await res.json());
+    return sumGrid(RAIN_CELLS, await res.json(), elev);
   } catch (e) {
     console.error("rain map: request failed", e);
+    return null;
+  }
+}
+
+/* ───────────────────────── الجدول اليومي ───────────────────────── */
+
+/**
+ * Towns for the day-by-day table: every state's main market town that a
+ * farmer would name, east to west. Not the water calculator's stations —
+ * those were chosen for their climate records; these for being where people
+ * are, including Gedaref and Damazin, the rain-fed heartland the station list
+ * leaves out.
+ */
+export const FORECAST_TOWNS: { name: string; lat: number; lon: number }[] = [
+  { name: "بورتسودان", lat: 19.62, lon: 37.22 },
+  { name: "كسلا", lat: 15.45, lon: 36.4 },
+  { name: "القضارف", lat: 14.03, lon: 35.39 },
+  { name: "الدمازين", lat: 11.79, lon: 34.36 },
+  { name: "سنّار", lat: 13.55, lon: 33.63 },
+  { name: "ود مدني", lat: 14.4, lon: 33.52 },
+  { name: "الخرطوم", lat: 15.6, lon: 32.53 },
+  { name: "عطبرة", lat: 17.7, lon: 33.98 },
+  { name: "كوستي", lat: 13.16, lon: 32.66 },
+  { name: "دنقلا", lat: 19.17, lon: 30.48 },
+  { name: "الأبيض", lat: 13.18, lon: 30.22 },
+  { name: "كادقلي", lat: 11.01, lon: 29.72 },
+  { name: "الفاشر", lat: 13.63, lon: 25.35 },
+  { name: "نيالا", lat: 12.05, lon: 24.88 },
+  { name: "الجنينة", lat: 13.45, lon: 22.44 },
+];
+
+export interface TownDays {
+  name: string;
+  days: ForecastDay[];
+}
+
+export interface DailyTable {
+  dates: string[];
+  towns: TownDays[];
+}
+
+/** Lines towns up on the dates they share; a town with no days is dropped. */
+export function toDailyTable(json: unknown): DailyTable | null {
+  const per = parseOpenMeteo(json);
+  const towns: TownDays[] = FORECAST_TOWNS.map((t, i) => ({
+    name: t.name,
+    days: per[i] ?? [],
+  })).filter((t) => t.days.length > 0);
+  if (towns.length === 0) return null;
+  const dates = towns.reduce(
+    (longest, t) => (t.days.length > longest.length ? t.days.map((d) => d.date) : longest),
+    [] as string[],
+  );
+  return { dates, towns };
+}
+
+export async function fetchDailyTable(): Promise<DailyTable | null> {
+  try {
+    const res = await fetch(
+      forecastUrl(FORECAST_TOWNS.map((t) => ({ latitude: t.lat, longitude: t.lon }))),
+      { next: { revalidate: 10_800 }, signal: AbortSignal.timeout(8_000) },
+    );
+    if (!res.ok) {
+      console.error("daily table: Open-Meteo answered", res.status);
+      return null;
+    }
+    return toDailyTable(await res.json());
+  } catch (e) {
+    console.error("daily table: request failed", e);
     return null;
   }
 }

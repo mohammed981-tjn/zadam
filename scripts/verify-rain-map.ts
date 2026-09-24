@@ -4,7 +4,12 @@
  * rather than painted dry.
  */
 import {
+  FORECAST_TOWNS,
+  LAYERS,
   RAIN_CELLS,
+  bandIn,
+  layerFor,
+  toDailyTable,
   SUDAN_BORDER,
   bandFor,
   insideSudan,
@@ -58,6 +63,37 @@ console.log("\nالجمع:");
   ok(g?.cells[0].rainMm === 6.3, "والمطر يُجمع ويُقرَّب لعُشر");
   ok(g?.from === "2026-09-25" && g?.to === "2026-09-27", "ومدى الأيام صحيح");
   ok(sumGrid(cells, [{ daily: {} }]) === null, "ولا خريطة حين لا بيانات أصلاً");
+  ok(g?.cells[0].et0Mm === 18 && g?.cells[0].tmaxC === 38, "وحاجة الجوّ تُجمع والحرارة أعلاها");
+  ok(g?.cells[0].elevM === null, "وبلا ارتفاعٍ حين لم يُقرأ");
+  const withElev = sumGrid(cells, [loc([0]), loc([0])], [380, null]);
+  ok(withElev?.cells[0].elevM === 380 && withElev?.cells[1].elevM === null, "والارتفاع يُطابَق بالترتيب");
+}
+
+console.log("\nالطبقات:");
+ok(LAYERS.map((l) => l.key).join() === "rain,tmax,et0,elev", "أربع طبقات بالترتيب");
+ok(layerFor("elev").key === "elev" && layerFor("junk").key === "rain", "والمجهولة تعود إلى المطر");
+ok(LAYERS.every((l) => l.bands.every((b, i) => i === 0 || b.min > l.bands[i - 1].min)), "درجات كلّ طبقة تصاعدية");
+ok(LAYERS.every((l) => l.bands.length === 6), "ستّ درجات لكلّ طبقة");
+ok(bandIn(layerFor("tmax").bands, 45).label.startsWith("٤٤"), "٤٥° ← أعلى درجات الحرارة");
+ok(bandIn(layerFor("elev").bands, 120).min === -99, "١٢٠ م ← أدنى درجات الارتفاع");
+
+console.log("\nالجدول اليومي:");
+{
+  const loc = (n: number) => ({
+    daily: {
+      time: Array.from({ length: n }, (_, i) => `2026-09-${25 + i}`),
+      precipitation_sum: Array.from({ length: n }, () => 2),
+      et0_fao_evapotranspiration: Array.from({ length: n }, () => 6),
+      temperature_2m_max: Array.from({ length: n }, () => 38),
+    },
+  });
+  const json = FORECAST_TOWNS.map((_, i) => (i === 1 ? { daily: {} } : loc(7)));
+  const t = toDailyTable(json);
+  ok(t?.towns.length === FORECAST_TOWNS.length - 1, "مدينةٌ بلا بيانات تُسقط");
+  ok(t?.dates.length === 7, "وسبعة أيام");
+  ok(t?.towns[0].name === FORECAST_TOWNS[0].name, "والترتيب محفوظ");
+  ok(toDailyTable([]) === null, "ولا جدول بلا بيانات");
+  ok(FORECAST_TOWNS.every((x) => insideSudan([x.lon, x.lat])), "كلّ المدن داخل الحدود");
 }
 
 if (fail) {

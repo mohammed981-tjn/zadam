@@ -52,7 +52,7 @@ export default async function Navbar() {
         // يجعلها قابلةً للوصول من كلّ صفحة، لا من الأولى وحدها.
         { href: "/knowledge", label: "قاعدة المعرفة" },
         { href: "/news", label: "جديد سودجري" },
-        { href: "/rain", label: "توقّع الأمطار" },
+        { href: "/rain", label: "توقّع الأمطار والخرائط" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
         { href: "/tools/feasibility", label: "دراسة الجدوى المرحلية" },
         { href: "/feedback", label: "ملاحظات واقتراحات" },

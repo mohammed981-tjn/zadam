@@ -480,7 +480,7 @@ class _RainEntry extends StatelessWidget {
                         TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 Text(
-                  'خريطة السودان بكمية المطر المتوقّعة، باللون والرقم.',
+                  'خريطة المطر والحرارة والتضاريس، وجدول المطر يوماً بيوم.',
                   style: TextStyle(
                       fontSize: 13, color: mutedOn(context), height: 1.7),
                 ),
