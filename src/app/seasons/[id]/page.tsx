@@ -18,6 +18,7 @@ import type {
 } from "@/types/database";
 import { addLedgerEntry, completeSeason, completeStage } from "../actions";
 import StageEvidenceUpload from "@/components/StageEvidence";
+import YieldBenchmark from "@/components/YieldBenchmark";
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -121,6 +122,8 @@ export default async function SeasonPage({
           {error}
         </p>
       )}
+
+      <YieldBenchmark cropKey={season.crop_key} />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         {[

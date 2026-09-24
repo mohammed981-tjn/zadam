@@ -1,0 +1,112 @@
+import { createClient } from "@/lib/supabase/server";
+import {
+  FAOSTAT_ITEM,
+  HECTARES_PER_FEDDAN,
+  NEAREST_PEER,
+  PEER_AREAS,
+} from "@/lib/cropBenchmark";
+
+const n0 = (v: number) => Math.round(v).toLocaleString("ar");
+
+/** kg/ha → kg/feddan, the unit a Sudanese farmer weighs a harvest in. */
+const perFeddan = (kgPerHa: number) => kgPerHa * HECTARES_PER_FEDDAN;
+
+function median(xs: number[]): number | null {
+  if (xs.length === 0) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/**
+ * «أين تقف غلّةُ هذا المحصول؟» — السودان، ومصر، ووسيطُ النظراء، من FAOSTAT.
+ *
+ * WHY THESE THREE AND NOT THE WORLD'S BEST
+ *
+ * `cropBenchmark.ts` explains it at length: the world maximum for tomatoes is a
+ * Belgian glasshouse, and showing it to a farmer in Kassala says nothing except
+ * that the platform does not understand him. So the season page shows Sudan's
+ * own national figure, Egypt as the single sharpest comparison (same river,
+ * same climate band, irrigated), and the median of arid open-field peers.
+ *
+ * WHY NO "YOUR YIELD" YET
+ *
+ * A season records costs, stages and evidence, but not the harvested weight —
+ * there is no column for it. Printing a comparison with a blank where the
+ * farmer's own number belongs would be a form pretending to be a result. So
+ * this shows the reference now, and says plainly what it will be compared to.
+ *
+ * WHY THE LATEST YEAR ONLY
+ *
+ * The loaded QCL domain carries yields for 2023 and 2024 only (checked 24
+ * September 2026), so an eight-year trend line cannot be drawn honestly yet.
+ * When the earlier years are loaded, the trend belongs here.
+ */
+export default async function YieldBenchmark({ cropKey }: { cropKey: string }) {
+  const item = FAOSTAT_ITEM[cropKey];
+  if (!item) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("faostat_observations")
+    .select("area, year, value")
+    .eq("domain", "QCL")
+    .eq("element", "Yield")
+    .eq("item", item)
+    .in("area", ["Sudan", ...PEER_AREAS]);
+
+  if (error || !data || data.length === 0) return null;
+
+  const rows = data as { area: string; year: number; value: number | string }[];
+  const latestYear = Math.max(...rows.map((r) => r.year));
+  const at = (area: string, year = latestYear) => {
+    const r = rows.find((x) => x.area === area && x.year === year);
+    return r ? Number(r.value) : null;
+  };
+
+  const sudan = at("Sudan");
+  if (sudan === null) return null;
+  const sudanPrev = at("Sudan", latestYear - 1);
+  const egypt = at(NEAREST_PEER);
+  const peers = median(
+    PEER_AREAS.map((a) => at(a)).filter((v): v is number => v !== null),
+  );
+
+  const tiles: { label: string; kg: number; note?: string }[] = [
+    {
+      label: `السودان ${latestYear}`,
+      kg: sudan,
+      note:
+        sudanPrev !== null
+          ? `${latestYear - 1}: ${n0(perFeddan(sudanPrev))} كجم/فدان`
+          : undefined,
+    },
+    ...(egypt !== null ? [{ label: "مصر", kg: egypt, note: "النيلُ نفسه، مرويّاً" }] : []),
+    ...(peers !== null
+      ? [{ label: "وسيطُ النظراء", kg: peers, note: "دولٌ جافّة، زراعةٌ مكشوفة" }]
+      : []),
+  ];
+
+  return (
+    <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-card">
+      <h2 className="font-bold">أين تقف غلّةُ هذا المحصول؟</h2>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        {tiles.map((t) => (
+          <div key={t.label} className="rounded-xl bg-background p-3">
+            <p className="text-xs text-muted">{t.label}</p>
+            <p className="figure text-lg font-black text-primary">
+              {n0(perFeddan(t.kg))}{" "}
+              <span className="text-xs font-medium text-muted">كجم/فدان</span>
+            </p>
+            {t.note && <p className="text-[11px] text-muted">{t.note}</p>}
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-xs leading-6 text-muted">
+        المتوسّطُ الوطنيّ يجمع المطريّ والمرويّ معاً، فقارِن به بحذر. وحين
+        تحصد، زِن محصولك واقسمه على الأفدنة — ذلك هو الرقم الذي يُقارَن بهذه.
+        المصدر: FAOSTAT، منظمة الأغذية والزراعة.
+      </p>
+    </section>
+  );
+}
