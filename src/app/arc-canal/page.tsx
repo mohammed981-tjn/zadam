@@ -4,6 +4,7 @@ import { PHOTOS } from "@/lib/photos";
 import NotifyMeForm from "@/components/NotifyMeForm";
 import ArcCanalProfile from "@/components/ArcCanalProfile";
 import ArcCanalMap from "@/components/ArcCanalMap";
+import ArcCanalCorridor from "@/components/ArcCanalCorridor";
 import ArcCanalWater from "@/components/ArcCanalWater";
 import ArcCanalDesign from "@/components/ArcCanalDesign";
 import ArcCanalDossier from "@/components/ArcCanalDossier";
@@ -154,6 +155,8 @@ export default async function ArcCanalPage() {
           </p>
         </div>
       </section>
+
+      <ArcCanalCorridor />
 
       <ArcCanalGallery />
 
