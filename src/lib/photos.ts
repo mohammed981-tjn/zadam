@@ -3,6 +3,14 @@ import herdCanal from "../../public/photos/herd-canal.webp";
 import canalRegulator from "../../public/photos/canal-regulator.webp";
 import nileDam from "../../public/photos/nile-dam.webp";
 import irrigatedPlain from "../../public/photos/irrigated-plain.webp";
+import solarPump from "../../public/photos/solar-pump.webp";
+import dateHarvest from "../../public/photos/date-harvest.webp";
+import vetHerd from "../../public/photos/vet-herd.webp";
+import exportStore from "../../public/photos/export-store.webp";
+import landSurvey from "../../public/photos/land-survey.webp";
+import womenHarvest from "../../public/photos/women-harvest.webp";
+import grainSoil from "../../public/photos/grain-soil.webp";
+import miningSieve from "../../public/photos/mining-sieve.webp";
 
 /**
  * صورُ الصفحات — مستورَدةً لا مساراتٍ، ولكلٍّ منها مصدرٌ معروف.
@@ -35,7 +43,7 @@ import irrigatedPlain from "../../public/photos/irrigated-plain.webp";
  */
 
 /**
- * كلُّها ١٦٨٠×٩٤٤، WebP بجودة ٨٢ — بين ١٤٥ و١٨٣ ك.ب للواحدة. ولأنّ كلَّ واحدةٍ
+ * كلُّها ١٦٨٠×٩٤٤، WebP بجودة ٨٢ — بين ١٠٠ و٢٨٠ ك.ب للواحدة. ولأنّ كلَّ واحدةٍ
  * تُحمَّل كسولاً عند الوصول إلى قسمها، لا يدفع الزائرُ ثمنَ صورةٍ لم يصل إليها.
  */
 export const PHOTOS = {
@@ -49,4 +57,20 @@ export const PHOTOS = {
   nileDam,
   /** السهلُ المرويُّ من الجوّ: شبكةُ حقولٍ هندسيّة، ونخيلٌ على الترع، والنهرُ في الأفق. */
   irrigatedPlain,
+  /** مضخّةٌ بالطاقة الشمسيّة تصبّ في ترعةٍ ترابيّة، وحقلُ بصلٍ أخضر إلى جوارها. */
+  solarPump,
+  /** قطعُ التمر: رجلٌ على النخلة يُنزل سَبَتاً، وآخرون يتلقّونه، والنيلُ خلفهم. */
+  dateHarvest,
+  /** طبيبٌ بيطريٌّ يحقن بقرةً ذات سنامٍ في زريبة، وراعيها يمسك قرنها. */
+  vetHerd,
+  /** مخزنُ صادر: جوالاتُ سمسمٍ وصمغٍ عربيٍّ وميزانٌ وشاحنةٌ تُحمَّل. */
+  exportStore,
+  /** مسّاحٌ بجهاز GNSS على أرضٍ متشقّقة، وجرّارٌ يحرث خلفه قرب ترعة. */
+  landSurvey,
+  /** نساءٌ يحصدن الفول السودانيّ ويغربلنه في سلّةٍ من السعف، والطلحُ في الأفق. */
+  womenHarvest,
+  /** كفّان تغرفان حبّاً من جوال، وعيّنةُ تربةٍ ودفترٌ على الطاولة، والذرةُ خلفها. */
+  grainSoil,
+  /** معدّنون أهليّون بخوذاتٍ وكمّامات يغربلون الترابَ عند بئرٍ خشبيّة. */
+  miningSieve,
 } as const;
