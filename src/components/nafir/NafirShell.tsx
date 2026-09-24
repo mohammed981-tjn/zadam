@@ -10,6 +10,7 @@ const TABS = [
   { href: "/nafir/charter", label: "الميثاق" },
   { href: "/nafir/faza", label: "الفزعة" },
   { href: "/nafir/shura", label: "الشورى" },
+  { href: "/nafir/judiyya", label: "الجودية" },
   { href: "/nafir/pulse", label: "نبض الثقة" },
 ];
 
