@@ -175,7 +175,9 @@ class SudagriApi {
       // pattern would be read as another condition and silently change the
       // query. Stripping it is enough here because the rest of the pattern is
       // percent-encoded by Uri.
-      final safe = search.trim().replaceAll(',', ' ');
+      // Parentheses are stripped for the same reason: they open and close the
+      // or() group, so a stray one ends the filter early and the query fails.
+      final safe = search.trim().replaceAll(RegExp(r'[,()]'), ' ');
       params['or'] = '(title.ilike.*$safe*,content.ilike.*$safe*,crop.ilike.*$safe*)';
     }
 

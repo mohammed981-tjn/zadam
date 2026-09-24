@@ -5,6 +5,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import SplashOnce from "@/components/SplashOnce";
 import AssistantWidget from "@/components/AssistantWidget";
+import ServiceWorker from "@/components/ServiceWorker";
 import { SITE_URL } from "@/lib/site";
 
 const tajawal = Tajawal({
@@ -104,6 +105,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </footer>
         <AssistantWidget />
+        <ServiceWorker />
       </body>
     </html>
   );

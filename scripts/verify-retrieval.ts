@@ -249,6 +249,12 @@ ok(
   "«المنقة» تصل إلى «المانجو» في المقدمة",
 );
 
+ok(
+  scoreEntries("كيفية انشاء مزرعة لاحم", formal).filter((s) => s.score > 0)[0]
+    ?.entry.title === "تربية الدواجن",
+  "«مزرعة لاحم» تصل إلى «الدواجن» في المقدمة",
+);
+
 // The stemmer will not strip an article that leaves fewer than three letters,
 // so "المي" never reaches the bare form the map would otherwise catch.
 ok(

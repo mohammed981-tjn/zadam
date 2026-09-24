@@ -144,6 +144,8 @@ export interface Season {
   harvest_date: string | null;
   status: "active" | "completed" | "abandoned";
   created_at: string;
+  /** الوزن المحصود بالكيلوغرام، مصرَّحٌ به عند الإقفال. */
+  harvest_kg?: number | null;
 }
 
 export interface SeasonStage {

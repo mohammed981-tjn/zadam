@@ -1,5 +1,6 @@
 import WaterCalculator from "@/components/WaterCalculator";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
+import WeekForecast from "@/components/WeekForecast";
 
 export const metadata = {
   title: "حاسبة الاحتياج المائي | سودجري",
@@ -25,6 +26,7 @@ export default function WaterToolPage() {
         الإرشاد الزراعي قبل تصميم شبكة ري فعلية.
       </p>
       <WaterCalculator />
+      <WeekForecast />
     </div>
   );
 }

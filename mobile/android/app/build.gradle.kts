@@ -1,8 +1,20 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// يُقرأ هنا بعد `plugins {}` (التي يجب أن تكون أوّل الملف) لا داخل `android {}`: هناك يشير `java` إلى امتداد
+// Java في Gradle لا إلى الحزمة، فيفشل `java.util.Properties` — وهو ما أسقط
+// البناء في CI (24 سبتمبر). وهذا نمطُ Flutter الموثّق لمفتاح النشر.
+val keyProps = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) FileInputStream(f).use { load(it) }
+}
+
 
 android {
     namespace = "sd.sudagri.sudagri"
@@ -53,10 +65,34 @@ android {
         }
     }
 
+    /*
+     * مفتاحُ النشر الحقيقيّ خارج المستودع، ويُقرأ إن وُجد.
+     *
+     * `android/key.properties` (gitignored) names the upload keystore and its
+     * passwords. When it exists — on the owner's machine, or in CI from a
+     * secret — release builds are signed with it. When it does not, release
+     * falls back to the committed hand-install key above, so CI still produces
+     * an installable APK. That fallback is fine for sideloading and wrong for a
+     * store, and the build says so rather than failing silently later.
+     */
+    if (keyProps.getProperty("storeFile") != null) {
+        signingConfigs.create("upload") {
+            storeFile = file(keyProps.getProperty("storeFile"))
+            storePassword = keyProps.getProperty("storePassword")
+            keyAlias = keyProps.getProperty("keyAlias")
+            keyPassword = keyProps.getProperty("keyPassword")
+        }
+    } else {
+        logger.warn(
+            "sudagri: android/key.properties not found — release is signed with " +
+                "the committed hand-install key. Do not upload this build to a store.",
+        )
+    }
+
     buildTypes {
         release {
-            // TODO: replace with a real upload key before publishing to a store.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload")
+                ?: signingConfigs.getByName("debug")
         }
     }
 }

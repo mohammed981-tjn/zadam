@@ -116,6 +116,13 @@ const DIALECT: Record<string, string> = Object.fromEntries(
   منقا: "مانجو",
   مانجا: "مانجو",
   كركدي: "كركديه",
+  // «كيفية انشاء مزرعة لاحم» — سُئل ولم يُجب، والقاعدةُ فيها مشروعُ دواجن
+  // كاملٌ بالأرقام. «لاحم» هو الدجاج اللاحم، واسمُه في القاعدة «دواجن».
+  // والمُجذِّعُ ينزع اللامَ الأولى على أنّها حرفُ جرّ، فيصل «لاحم» إلى
+  // المفتاح بصورة «احم» — فهي المسجَّلة، والأصلُ معها لما لا يُجذَّع.
+  احم: "دواجن",
+  لاحم: "دواجن",
+  فراخ: "دواجن",
   // Keys are normalised at build time rather than by hand, so an entry written
   // with a taa marbuta or a hamza still matches the token the tokeniser
   // actually produces.

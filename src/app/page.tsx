@@ -188,12 +188,6 @@ export default async function Home() {
 
   const tools: { href: string; icon: IconName; title: string; body: string }[] = [
     {
-      href: "/tools/water",
-      icon: "droplet",
-      title: "حاسبة الاحتياج المائي",
-      body: "بمنهجية FAO-56 على مناخ ولايتك ومحصولك وطريقة ريّك — بالمتر المكعّب للفدان، وبشهر الذروة الذي تُحسب عليه الطلمبة لا بالمتوسّط.",
-    },
-    {
       href: "/tools/feasibility",
       icon: "chart",
       title: "دراسة الجدوى المرحلية",
@@ -215,9 +209,6 @@ export default async function Home() {
 
   return (
     <div>
-      {/* جديدُ المنصّة — ولا يظهر شيءٌ منه حين لا خبر، فتبقى الصفحةُ كما هي. */}
-      <NewsStrip />
-
       {/* ───────────────────────── الواجهة ───────────────────────── */}
       <section className="mesh border-b border-border">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
@@ -267,18 +258,11 @@ export default async function Home() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/tools/water"
-              className="rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground shadow-raised transition hover:opacity-90"
-            >
-              جرّب حاسبة المياه
-            </Link>
-            {/* والمزارعُ له بابٌ في الواجهة لا في أسفل الصفحة وحدها: الزرّان
-                السابقان يقودان إلى قراءةٍ وحساب، وكلاهما لا يقول لمن يزرع إنّ
-                هنا شيئاً يفعله. */}
+            {/* والمزارعُ له بابٌ في الواجهة لا في أسفل الصفحة وحدها. وزرُّ
+                الحاسبة خرج من هنا إلى زرٍّ كبيرٍ خاصٍّ به تحت الأخبار. */}
             <Link
               href="/signup"
-              className="rounded-xl border border-primary/40 bg-card px-5 py-3 font-medium shadow-card transition hover:shadow-raised"
+              className="rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground shadow-raised transition hover:opacity-90"
             >
               سجّل أرضك ووثّق موسمك
             </Link>
@@ -344,6 +328,48 @@ export default async function Home() {
        * والصورُ أوّلَ ما يليها. وكلُّ بطاقةٍ بابٌ إلى قسمٍ يُفتح بلا حساب.
        */}
       <PhotoStrip items={STRIP} />
+
+      {/* ───────────────────────── الأخبار ─────────────────────────
+       * ترتيبُ المالك (24 سبتمبر): تعريفٌ، ثمّ الصور، ثمّ الأخبار، ثمّ زرُّ
+       * الحاسبة. والشريطُ يختفي كلُّه حين لا خبر منشور، فلا عنوانَ فوق فراغ.
+       */}
+      <NewsStrip />
+
+      {/* ───────────────────────── حاسبة المياه ─────────────────────────
+       *
+       * زرٌّ كبير يفتح صفحتها، لا الحاسبةُ نفسُها هنا.
+       *
+       * The calculator is the tool farmers actually come for, so it gets the
+       * largest target on the page. But it stays on its own route: the form,
+       * the station table and the FAO-56 engine are the heaviest thing the site
+       * ships, and loading them on the homepage would slow the first paint on
+       * the rural connections this page is mostly read on — for every visitor,
+       * including the ones who came to read. A link costs nothing until pressed.
+       */}
+      <section className="mx-auto max-w-6xl px-4 pt-10">
+        <Link
+          href="/tools/water"
+          className="reveal group flex items-center gap-4 rounded-2xl bg-primary p-6 text-primary-foreground shadow-raised transition hover:opacity-95 sm:p-8"
+        >
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary-foreground/15 sm:size-16">
+            <Icon name="droplet" className="size-8" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xl font-black sm:text-2xl">
+              كم يحتاج محصولك من الماء؟
+            </span>
+            <span className="mt-1 block text-sm leading-relaxed opacity-90">
+              احسبه الآن على مناخ ولايتك وطريقة ريّك — مجاناً وبلا تسجيل.
+            </span>
+          </span>
+          <span
+            aria-hidden
+            className="text-2xl transition group-hover:-translate-x-1"
+          >
+            ←
+          </span>
+        </Link>
+      </section>
 
       {/* ───────────────────────── الحالة ───────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 pt-10">
@@ -449,10 +475,10 @@ export default async function Home() {
       {/* ───────────────────────── الأدوات ───────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 py-14">
         <h2 className="mb-2 font-bold" style={{ fontSize: "var(--text-title)" }}>
-          ما يعمل اليوم
+          وأدواتٌ أخرى تعمل اليوم
         </h2>
         <p className="mb-8 max-w-2xl text-muted">
-          أربع أدوات مبنيّة على البيانات أعلاه، تعمل الآن ولا تحتاج حساباً.
+          مبنيّةٌ على البيانات أعلاه، وتعمل الآن ولا تحتاج حساباً.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -493,32 +519,22 @@ export default async function Home() {
         </Link>
       </section>
 
-      {/* ───────────────────────── المشاريع ───────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 pb-14">
-        <h2 className="mb-6 font-bold" style={{ fontSize: "var(--text-title)" }}>
-          المشاريع المتاحة
-        </h2>
-        {!projects || projects.length === 0 ? (
-          <div className="reveal rounded-2xl border border-dashed border-border p-10 text-center">
-            <Icon
-              name="wheat"
-              className="mx-auto mb-3 size-8 text-muted opacity-60"
-            />
-            <h3 className="mb-2 font-bold">لا توجد مشاريع مطروحة بعد</h3>
-            <p className="mx-auto max-w-lg text-sm leading-relaxed text-muted">
-              لا يُعرض مشروع حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة
-              ميدانية، وموافقة الجهة الزراعية. سجّل اهتمامك عبر المساعد وسنبلغك
-              أوّل ما يُطرح مشروع موثّق.
-            </p>
-          </div>
-        ) : (
+      {/* ───────────────────────── المشاريع ─────────────────────────
+       * يظهر حين يُنشر مشروعٌ فقط. كان يعرض صندوقاً فارغاً يكرّر ما يقوله
+       * صندوقُ «لا توجد فرص» أعلاه، فيوحي للزائر بأنّ الموقع ناقص.
+       */}
+      {projects && projects.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pb-14">
+          <h2 className="mb-6 font-bold" style={{ fontSize: "var(--text-title)" }}>
+            المشاريع المتاحة
+          </h2>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {(projects as Project[]).map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* ───────────────────────── المعرفة ───────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 pb-16">
