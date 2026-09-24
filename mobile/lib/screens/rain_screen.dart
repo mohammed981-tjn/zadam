@@ -112,16 +112,33 @@ class _RainScreenState extends State<RainScreen> {
                                     fontWeight: FontWeight.w800)),
                             const SizedBox(height: 4),
                             Text(
-                              layer.key == 'elev'
-                                  ? 'ثابتةٌ لا تتغيّر مع الطقس — بدقّة المربّع، للصورة العامة لا لمسح موقع.'
-                                  : 'من ${grid.from} إلى ${grid.to}',
+                              switch (layer.key) {
+                                'elev' =>
+                                  'ثابتةٌ لا تتغيّر مع الطقس — بدقّة المربّع، للصورة العامة لا لمسح موقع.',
+                                'soil' =>
+                                  'الصنف الغالب في خمس نقاطٍ من كل مربّع — صورة البلد العامة، لا فحص تربة حقلك.',
+                                'lands' =>
+                                  'بعددها في كل مربّع — لا تضع الخريطة نقطةً على أرض أحد.',
+                                _ => 'من ${grid.from} إلى ${grid.to}',
+                              },
                               style: TextStyle(
                                   fontSize: 12, color: mutedOn(context)),
                             ),
                             const SizedBox(height: 12),
-                            RainMapView(grid: grid, layer: layer),
+                            RainMapView(
+                                grid: grid, layer: layer, showCanal: true),
+                            if (layer.key == 'lands' &&
+                                grid.cells.every(
+                                    (c) => c.values['lands'] == null)) ...[
+                              const SizedBox(height: 8),
+                              const Text(
+                                  'لا أرضَ موثّقة معروضة بعد. سجّل أرضك فتظهر هنا حين تُوثَّق ويعرضها صاحبها.',
+                                  style: TextStyle(fontSize: 13)),
+                            ],
                             const SizedBox(height: 12),
-                            _Legend(layer: layer),
+                            _Legend(
+                                layer: layer,
+                                canal: grid.canalRoute.isNotEmpty),
                           ],
                         ),
                       ),
@@ -158,11 +175,13 @@ class RainMapView extends StatelessWidget {
     required this.grid,
     required this.layer,
     this.showTowns = true,
+    this.showCanal = false,
   });
 
   final RainGrid grid;
   final MapLayer layer;
   final bool showTowns;
+  final bool showCanal;
 
   @override
   Widget build(BuildContext context) {
@@ -180,6 +199,7 @@ class RainMapView extends StatelessWidget {
           foreground: theme.colorScheme.onSurface,
           muted: mutedOn(context),
           showTowns: showTowns,
+          showCanal: showCanal,
         ),
       ),
     );
@@ -224,6 +244,7 @@ class _RainPainter extends CustomPainter {
     required this.foreground,
     required this.muted,
     required this.showTowns,
+    required this.showCanal,
   });
 
   final RainGrid grid;
@@ -231,6 +252,7 @@ class _RainPainter extends CustomPainter {
   final _Projection projection;
   final Color card, border, foreground, muted;
   final bool showTowns;
+  final bool showCanal;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -274,8 +296,29 @@ class _RainPainter extends CustomPainter {
         ..color = foreground,
     );
 
+    if (showCanal && grid.canalRoute.length > 1) {
+      final route = Path();
+      for (var i = 0; i < grid.canalRoute.length; i++) {
+        final o = at(grid.canalRoute[i].$1, grid.canalRoute[i].$2);
+        if (i == 0) {
+          route.moveTo(o.dx, o.dy);
+        } else {
+          route.lineTo(o.dx, o.dy);
+        }
+      }
+      for (final (w, c) in [(4.5, card), (2.5, canalInk)]) {
+        canvas.drawPath(
+            route,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = w
+              ..strokeCap = StrokeCap.round
+              ..color = c);
+      }
+    }
+
     final fontSize = (size.width / 36).clamp(8.0, 14.0);
-    for (final c in grid.cells.where((c) => c.labelled)) {
+    for (final c in grid.cells.where((c) => c.labelled && layer.numbers)) {
       final v = c.values[layer.key];
       if (v == null) continue;
       final band = layer.bandFor(v);
@@ -331,13 +374,18 @@ class _RainPainter extends CustomPainter {
       old.grid != grid ||
       old.layer != layer ||
       old.card != card ||
-      old.showTowns != showTowns;
+      old.showTowns != showTowns ||
+      old.showCanal != showCanal;
 }
 
+/// The Arc Canal's line colour, the same teal as on the website.
+const canalInk = Color(0xFF0E7C86);
+
 class _Legend extends StatelessWidget {
-  const _Legend({required this.layer});
+  const _Legend({required this.layer, this.canal = false});
 
   final MapLayer layer;
+  final bool canal;
 
   @override
   Widget build(BuildContext context) {
@@ -366,6 +414,23 @@ class _Legend extends StatelessWidget {
           ),
         Text(layer.unit,
             style: TextStyle(fontSize: 12, color: mutedOn(context))),
+        if (canal)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 16,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: canalInk,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Text('مسار القناة القوسية',
+                  style: TextStyle(fontSize: 12)),
+            ],
+          ),
       ],
     );
   }

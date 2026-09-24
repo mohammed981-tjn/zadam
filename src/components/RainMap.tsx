@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ROUTE } from "@/lib/arcCanal";
 import {
   CELL_DEG,
   LAT_MAX,
@@ -36,6 +38,16 @@ const border = SUDAN_BORDER.map(
   ([lon, lat], i) => `${i === 0 ? "M" : "L"}${x(lon).toFixed(1)} ${y(lat).toFixed(1)}`,
 ).join("") + "Z";
 
+/**
+ * The Arc Canal on the national map. At this scale it is a small hook west
+ * of Khartoum — 60 km end to end is about seven pixels across — which is the
+ * honest size of it next to the country; the corridor map on /arc-canal is
+ * where it is drawn to be read.
+ */
+const canalPath = ROUTE.map(
+  (p, i) => `${i === 0 ? "M" : "L"}${x(p.lon).toFixed(1)} ${y(p.lat).toFixed(1)}`,
+).join("");
+const CANAL_INK = "#0e7c86";
 
 const ar = (n: number) => Math.round(n).toLocaleString("ar", { useGrouping: false });
 
@@ -43,10 +55,15 @@ export default function RainMap({
   grid,
   layer = LAYERS[0],
   showTowns = true,
+  showCanal = false,
+  legend = true,
 }: {
   grid: RainGrid;
   layer?: Layer;
   showTowns?: boolean;
+  showCanal?: boolean;
+  /** False when the page draws its own, fuller legend (the soil groups with what each means). */
+  legend?: boolean;
 }) {
   const clipId = "sudan-clip";
   // A cell with no value for this layer (elevation that failed to load) is
@@ -86,8 +103,20 @@ export default function RainMap({
         </g>
         <path d={border} fill="none" stroke="var(--foreground)" strokeWidth={1.2} />
 
+        {showCanal && (
+          <path
+            d={canalPath}
+            fill="none"
+            stroke={CANAL_INK}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            // A pale edge so the line reads on the dark soil and terrain bands.
+            style={{ filter: "drop-shadow(0 0 1px var(--card))" }}
+          />
+        )}
+
         {cells
-          .filter((c) => c.labelled)
+          .filter((c) => c.labelled && layer.numbers !== false)
           .map((c) => (
             <text
               key={`t${c.lon},${c.lat}`}
@@ -130,7 +159,7 @@ export default function RainMap({
 
       <figcaption className="mt-3">
         <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-          {layer.bands.map((b) => (
+          {legend && layer.bands.map((b) => (
             <li key={b.min} className="flex items-center gap-1">
               <span
                 className="inline-block size-3.5 rounded-sm border border-border"
@@ -139,7 +168,13 @@ export default function RainMap({
               <span className="figure">{b.label}</span>
             </li>
           ))}
-          <li className="text-muted">{layer.unit}</li>
+          {legend && <li className="text-muted">{layer.unit}</li>}
+          {showCanal && (
+            <li className="flex items-center gap-1">
+              <span className="inline-block h-1 w-4 rounded-full" style={{ background: CANAL_INK }} />
+              <Link href="/arc-canal" className="underline">مسار القناة القوسية</Link>
+            </li>
+          )}
         </ul>
       </figcaption>
     </figure>

@@ -7,7 +7,11 @@ import {
   FORECAST_TOWNS,
   LAYERS,
   RAIN_CELLS,
+  SOIL_CLASSES,
+  availableLayers,
   bandIn,
+  cellKeyAt,
+  countLands,
   layerFor,
   toDailyTable,
   SUDAN_BORDER,
@@ -15,6 +19,9 @@ import {
   insideSudan,
   sumGrid,
 } from "../src/lib/rainMap";
+import { samplePoints } from "./fetch-sudan-soil";
+import { WRB } from "../src/lib/soilClasses";
+import { ROUTE } from "../src/lib/arcCanal";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -75,12 +82,55 @@ console.log("\nالجمع:");
 }
 
 console.log("\nالطبقات:");
-ok(LAYERS.map((l) => l.key).join() === "rain,tmax,et0,elev", "أربع طبقات بالترتيب");
+ok(LAYERS.map((l) => l.key).join() === "rain,tmax,et0,elev,soil,lands", "ستّ طبقات بالترتيب");
 ok(layerFor("elev").key === "elev" && layerFor("junk").key === "rain", "والمجهولة تعود إلى المطر");
 ok(LAYERS.every((l) => l.bands.every((b, i) => i === 0 || b.min > l.bands[i - 1].min)), "درجات كلّ طبقة تصاعدية");
-ok(LAYERS.every((l) => l.bands.length === 6), "ستّ درجات لكلّ طبقة");
+ok(LAYERS.slice(0, 4).every((l) => l.bands.length === 6), "ستّ درجات لكلّ طبقةٍ متّصلة");
+ok(layerFor("soil").numbers === false, "والتربة صنفٌ يُلوَّن ولا يُكتب رقمه");
 ok(bandIn(layerFor("tmax").bands, 45).label.startsWith("٤٤"), "٤٥° ← أعلى درجات الحرارة");
 ok(bandIn(layerFor("elev").bands, 120).min === -99, "١٢٠ م ← أدنى درجات الارتفاع");
+
+console.log("\nالتربة والأراضي ومسار القناة:");
+{
+  ok(cellKeyAt(32.53, 15.6) === "33.00,15.25", "الخرطوم في مربّعها الصحيح");
+  ok(cellKeyAt(21.75, 8.5) === "22.50,9.25" && cellKeyAt(38.75, 10) === null, "وحافّة الشبكة: الركن داخلها وما بعدها خارجها");
+  ok(cellKeyAt(31.23, 30.04) === null, "والقاهرة خارج الشبكة");
+  const n = countLands([
+    { latitude: 15.6, longitude: 32.53 },
+    { latitude: "15.4", longitude: "32.9" },
+    { latitude: 14.03, longitude: 35.39 },
+    { latitude: null, longitude: 32 },
+    { latitude: 30.04, longitude: 31.23 },
+  ]);
+  ok(n.get("33.00,15.25") === 2, "أرضان في مربّع الخرطوم (والأرقام نصّاً تُقرأ)");
+  ok(n.size === 2, "وأرضٌ بلا إحداثيات أو خارج الشبكة لا تُعدّ");
+
+  const cells = [
+    { lon: 33, lat: 15.25, pLon: 33, pLat: 15.25, labelled: true },
+    { lon: 34.5, lat: 13.75, pLon: 34.5, pLat: 13.75, labelled: true },
+  ];
+  const day = { daily: { time: ["2026-09-25"], precipitation_sum: [0], et0_fao_evapotranspiration: [6], temperature_2m_max: [38] } };
+  const g = sumGrid(cells, [day, day], null, n)!;
+  ok(g.cells[0].lands === 2 && g.cells[1].lands === null, "والعدد يُطابَق بموضع المربّع، وبلا أرضٍ يبقى فارغاً");
+  const names = availableLayers(g).map((l) => l.key);
+  ok(names.includes("lands"), "وطبقة الأراضي تظهر دائماً");
+  ok(!names.includes("elev"), "وطبقةٌ بلا قيمة (الارتفاع) تختفي");
+  ok(availableLayers(sumGrid(cells, [day, day])!).some((l) => l.key === "lands"), "حتى حين لا أرض أصلاً");
+  ok(SOIL_CLASSES.every((w) => w in WRB), "وكلّ صنف تربةٍ في البيانات له اسمٌ عربيّ ولون");
+  ok(
+    names.includes("soil") === SOIL_CLASSES.length > 0,
+    SOIL_CLASSES.length ? "وطبقة التربة تظهر لأنّ مسحها موجود" : "وطبقة التربة مخفيّة حتى يُجرى مسحها",
+  );
+
+  ok(ROUTE.every((p) => insideSudan([p.lon, p.lat])), "ومسار القناة القوسية داخل الحدود");
+  ok(ROUTE.every((p) => cellKeyAt(p.lon, p.lat) != null), "وعلى شبكة الخريطة");
+
+  const pts = RAIN_CELLS.map(samplePoints);
+  ok(pts.every((p) => p.length >= 1 && p.length <= 5), "من نقطةٍ إلى خمسٍ لكلّ مربّع");
+  ok(pts.flat().every((q) => insideSudan(q)), "وكلّ نقاط التربة داخل الحدود");
+  const total = pts.reduce((a, p) => a + p.length, 0);
+  ok(total * 13 < 200 * 60, `ومسحها كلّه (${total} نقطة) يسعه وقت الـ Action`);
+}
 
 console.log("\nالجدول اليومي:");
 {

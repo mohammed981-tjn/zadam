@@ -3,12 +3,13 @@ import DailyRainTable from "@/components/DailyRainTable";
 import RainMap from "@/components/RainMap";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import WeekForecast from "@/components/WeekForecast";
-import { LAYERS, fetchDailyTable, fetchRainGrid, layerFor } from "@/lib/rainMap";
+import { SOIL_CLASSES, SOIL_FETCHED_AT, availableLayers, fetchDailyTable, fetchRainGrid, layerFor } from "@/lib/rainMap";
+import { WRB } from "@/lib/soilClasses";
 
 export const metadata = {
   title: "توقّع الأمطار والخرائط | سودجري",
   description:
-    "خريطة السودان للأيام السبعة القادمة — المطر والحرارة وحاجة الجوّ من الماء والتضاريس — وجدول المطر يوماً بيوم لخمس عشرة مدينة.",
+    "خريطة السودان للأيام السبعة القادمة — المطر والحرارة وحاجة الجوّ من الماء — ومعها التضاريس والتربة والأراضي الموثّقة ومسار القناة القوسية، وجدول المطر يوماً بيوم لخمس عشرة مدينة.",
 };
 
 const dayMonth = (iso: string) =>
@@ -34,14 +35,14 @@ export default async function RainPage({
   searchParams: Promise<{ layer?: string }>;
 }) {
   const { layer: layerKey } = await searchParams;
-  const [grid, table] = await Promise.all([fetchRainGrid(), fetchDailyTable()]);
+  const [grid, table] = await Promise.all([fetchRainGrid({ lands: true }), fetchDailyTable()]);
 
-  // A layer with no values at all (elevation that could not be read) loses
-  // its tab rather than drawing an empty map.
-  const available = grid
-    ? LAYERS.filter((l) => grid.cells.some((c) => l.value(c) != null))
-    : [];
+  // A layer with no values at all (elevation that could not be read, soil
+  // before its survey has run) loses its tab rather than drawing an empty
+  // map — except the lands, whose empty map is itself the answer.
+  const available = grid ? availableLayers(grid) : [];
   const layer = available.find((l) => l.key === layerKey) ?? layerFor("rain");
+  const landCount = grid ? grid.cells.reduce((a, c) => a + (c.lands ?? 0), 0) : 0;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -60,11 +61,8 @@ export default async function RainPage({
       <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-6">
         {grid ? (
           <>
-            <nav
-              aria-label="طبقة الخريطة"
-              className="mb-4 grid gap-2"
-              style={{ gridTemplateColumns: `repeat(${available.length}, minmax(0, 1fr))` }}
-            >
+            {/* Two rows of three on a phone rather than six squeezed tabs. */}
+            <nav aria-label="طبقة الخريطة" className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
               {available.map((l) => {
                 const active = l.key === layer.key;
                 return (
@@ -88,9 +86,34 @@ export default async function RainPage({
             <p className="mb-3 mt-1 text-xs text-muted">
               {layer.key === "elev"
                 ? "ثابتةٌ لا تتغيّر مع الطقس — بدقّة المربّع (١٦٠ كم)، للصورة العامة لا لمسح موقع."
-                : `من ${dayMonth(grid.from)} إلى ${dayMonth(grid.to)}`}
+                : layer.key === "soil"
+                  ? "الصنف الغالب في خمس نقاطٍ من كل مربّع — صورةُ البلد العامة (سهل الطين في الجزيرة والقضارف، ورمال القوز في كردفان)، لا فحصُ تربة حقلك."
+                  : layer.key === "lands"
+                    ? "بعددها في كل مربّع — لا تضع الخريطة نقطةً على أرض أحد. موقع كل أرضٍ في صفحتها."
+                    : `من ${dayMonth(grid.from)} إلى ${dayMonth(grid.to)}`}
             </p>
-            <RainMap grid={grid} layer={layer} />
+            <RainMap grid={grid} layer={layer} showCanal legend={layer.key !== "soil"} />
+            {layer.key === "lands" && landCount === 0 && (
+              <p className="mt-3 rounded-xl border border-border bg-background p-3 text-sm">
+                لا أرضَ موثّقة معروضة بعد.{" "}
+                <Link href="/signup" className="font-medium text-primary underline">سجّل أرضك</Link>{" "}
+                فتظهر هنا حين تُوثَّق ويعرضها صاحبها.
+              </p>
+            )}
+            {layer.key === "soil" && (
+              <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                {/* The soil layer's bands are SOIL_CLASSES in order. */}
+                {SOIL_CLASSES.map((w, i) => (
+                  <div key={w} className="flex gap-2">
+                    <span className="mt-1 inline-block size-3.5 shrink-0 rounded-sm border border-border" style={{ background: layer.bands[i].fill }} />
+                    <div>
+                      <dt className="font-medium">{layer.bands[i].label}</dt>
+                      {WRB[w]?.note && <dd className="text-xs text-muted">{WRB[w].note}</dd>}
+                    </div>
+                  </div>
+                ))}
+              </dl>
+            )}
           </>
         ) : (
           <p className="text-sm text-muted">
@@ -120,8 +143,10 @@ export default async function RainPage({
         </Link>
       </p>
       <p className="mt-2 text-xs text-muted">
-        المصدر: <span dir="ltr">Open-Meteo</span> (التوقّع والارتفاع)، وحدود
-        السودان من <span dir="ltr">Natural Earth</span>.
+        المصدر: <span dir="ltr">Open-Meteo</span> (التوقّع والارتفاع)، والتربة من{" "}
+        <span dir="ltr">ISRIC SoilGrids</span>
+        {SOIL_FETCHED_AT && <> (قُرئت {SOIL_FETCHED_AT})</>}، وحدود السودان من{" "}
+        <span dir="ltr">Natural Earth</span>.
       </p>
     </div>
   );

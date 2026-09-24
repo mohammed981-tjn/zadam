@@ -1,4 +1,7 @@
+import soilData from "../../data/sudan-soil.json";
 import { forecastUrl, parseOpenMeteo, type ForecastDay } from "./forecast";
+import { WRB, wrbShort } from "./soilClasses";
+import { createPublicClient } from "./supabase/public";
 
 /**
  * خريطة المطر: مجموعُ الأيام السبعة القادمة على شبكةٍ تغطّي السودان.
@@ -192,9 +195,13 @@ export interface GridCell extends RainCell {
   tmaxC: number;
   /** Ground height at the centre, metres. Null when the elevation read failed. */
   elevM: number | null;
+  /** Most probable soil group (WRB name), null before the soil survey has run. */
+  soil: string | null;
+  /** Verified lands listed on the platform inside this cell; null for none. */
+  lands: number | null;
 }
 
-export type LayerKey = "rain" | "tmax" | "et0" | "elev";
+export type LayerKey = "rain" | "tmax" | "et0" | "elev" | "soil" | "lands";
 
 export interface Layer {
   key: LayerKey;
@@ -205,6 +212,18 @@ export interface Layer {
   unit: string;
   bands: Band[];
   value: (c: GridCell) => number | null;
+  /**
+   * False for a layer whose value is a class, not an amount — the soil
+   * group's index means nothing written in a cell, so the colour and the
+   * legend carry it alone.
+   */
+  numbers?: boolean;
+  /**
+   * Shown even when no cell has a value. The lands layer is empty until the
+   * first land is listed, and an empty map that says so is the answer to
+   * "where are the lands"; a missing tab is not.
+   */
+  always?: boolean;
 }
 
 /**
@@ -237,6 +256,76 @@ export const RAIN_BANDS: Band[] = [
  *    the country — the Nile valley, Jebel Marra, the Red Sea hills — not a
  *    site survey; the canal study's SRTM profile is the survey.
  */
+/* ───────────────────────── التربة ───────────────────────── */
+
+interface SoilRow {
+  lon: number;
+  lat: number;
+  wrb: string | null;
+  share: number | null;
+}
+
+const cellKey = (lon: number, lat: number) => `${lon.toFixed(2)},${lat.toFixed(2)}`;
+
+const SOIL_ROWS = (soilData as { cells: SoilRow[] }).cells;
+export const SOIL_FETCHED_AT = (soilData as { fetchedAt: string | null }).fetchedAt;
+const SOIL_BY_CELL = new Map(SOIL_ROWS.filter((r) => r.wrb).map((r) => [cellKey(r.lon, r.lat), r.wrb!]));
+
+/**
+ * The groups that actually occur, commonest first — the legend lists these
+ * and no others, so it is as long as the country needs and not the twenty
+ * the classification has.
+ */
+export const SOIL_CLASSES: string[] = (() => {
+  const n = new Map<string, number>();
+  for (const w of SOIL_BY_CELL.values()) n.set(w, (n.get(w) ?? 0) + 1);
+  return [...n.entries()].sort((a, b) => b[1] - a[1]).map(([w]) => w);
+})();
+
+/**
+ * THE SOIL AND LAND LAYERS
+ *
+ *  - التربة: the most probable WRB group across up to five SoilGrids points in
+ *    each cell (scripts/fetch-sudan-soil.ts). A class, so it is coloured and
+ *    named in the legend, with no figure in the cell.
+ *  - الأراضي: how many verified, listed lands on the platform fall in each
+ *    cell. Counted per cell on purpose — the map never puts a dot on
+ *    anyone's field; the land's own page is where its place is shown, to
+ *    whom its owner allows.
+ */
+const SOIL_LAYER: Layer = {
+  key: "soil",
+  title: "التربة",
+  note: "صنف التربة الأرجح في كل مربّع",
+  unit: "تصنيف WRB",
+  numbers: false,
+  bands: SOIL_CLASSES.map((w, i) => ({
+    min: i,
+    label: wrbShort(w),
+    fill: WRB[w]?.fill ?? "#cccccc",
+    ink: "#ffffff",
+  })),
+  value: (c) => {
+    const i = c.soil ? SOIL_CLASSES.indexOf(c.soil) : -1;
+    return i < 0 ? null : i;
+  },
+};
+
+const LANDS_LAYER: Layer = {
+  key: "lands",
+  title: "الأراضي",
+  note: "الأراضي الموثّقة المعروضة على المنصّة في كل مربّع",
+  unit: "أرض",
+  always: true,
+  bands: [
+    { min: 1, label: "١", fill: "#cfe8c4", ink: "#1f3318" },
+    { min: 2, label: "٢–٤", fill: "#8fcb7a", ink: "#1f3318" },
+    { min: 5, label: "٥–٩", fill: "#4c9a3f", ink: "#ffffff" },
+    { min: 10, label: "١٠ فأكثر", fill: "#2a6424", ink: "#ffffff" },
+  ],
+  value: (c) => c.lands,
+};
+
 export const LAYERS: Layer[] = [
   {
     key: "rain",
@@ -291,7 +380,13 @@ export const LAYERS: Layer[] = [
     ],
     value: (c) => c.elevM,
   },
+  SOIL_LAYER,
+  LANDS_LAYER,
 ];
+
+/** The layers worth a tab for this grid: any with a value, and the lands layer always. */
+export const availableLayers = (grid: RainGrid): Layer[] =>
+  LAYERS.filter((l) => l.always || grid.cells.some((c) => l.value(c) != null));
 
 export const layerFor = (key: string | undefined): Layer =>
   LAYERS.find((l) => l.key === key) ?? LAYERS[0];
@@ -314,14 +409,38 @@ export interface RainGrid {
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /**
+ * The key of the cell a point falls in, or null outside the grid. Cells are
+ * squares from the grid's corner, so this is two floors, not a search.
+ */
+export function cellKeyAt(lon: number, lat: number): string | null {
+  if (lon < LON_MIN || lon >= LON_MAX || lat < LAT_MIN || lat >= LAT_MAX) return null;
+  const cLon = LON_MIN + (Math.floor((lon - LON_MIN) / CELL_DEG) + 0.5) * CELL_DEG;
+  const cLat = LAT_MIN + (Math.floor((lat - LAT_MIN) / CELL_DEG) + 0.5) * CELL_DEG;
+  return cellKey(cLon, cLat);
+}
+
+/** Lands per cell from their coordinates; a land with none, or off the grid, is not counted. */
+export function countLands(points: { latitude: number | string | null; longitude: number | string | null }[]) {
+  const n = new Map<string, number>();
+  for (const p of points) {
+    if (p.latitude == null || p.longitude == null) continue;
+    const k = cellKeyAt(Number(p.longitude), Number(p.latitude));
+    if (k) n.set(k, (n.get(k) ?? 0) + 1);
+  }
+  return n;
+}
+
+/**
  * Sums each cell's seven days. A cell whose forecast came back empty is
  * dropped, not painted dry — "no data" and "no rain" must not share a colour.
- * Elevation, when given, is matched by position in the same cell order.
+ * Elevation, when given, is matched by position in the same cell order; soil
+ * and land counts by the cell's position on the map.
  */
 export function sumGrid(
   cells: RainCell[],
   json: unknown,
   elevations: (number | null)[] | null = null,
+  lands: Map<string, number> | null = null,
 ): RainGrid | null {
   const perCell = parseOpenMeteo(json);
   const out: GridCell[] = [];
@@ -339,6 +458,8 @@ export function sumGrid(
       et0Mm: r1(days.reduce((a, d) => a + d.et0Mm, 0)),
       tmaxC: r1(Math.max(...days.map((d) => d.tmaxC))),
       elevM: elevations?.[i] ?? null,
+      soil: SOIL_BY_CELL.get(cellKey(c.lon, c.lat)) ?? null,
+      lands: lands?.get(cellKey(c.lon, c.lat)) ?? null,
     });
   });
   return out.length > 0 ? { cells: out, from, to } : null;
@@ -371,15 +492,40 @@ async function fetchElevations(cells: RainCell[]): Promise<(number | null)[] | n
 }
 
 /**
+ * Verified, listed lands per cell. Asked with the anon key, so row-level
+ * security returns exactly what a stranger may see, and filtered the same way
+ * here so the count cannot widen if a policy ever does. Null on any failure;
+ * the lands layer then says it has nothing, which is also what it says today.
+ */
+async function fetchLandCounts(): Promise<Map<string, number> | null> {
+  try {
+    const { data, error } = await createPublicClient()
+      .from("lands")
+      .select("latitude, longitude")
+      .eq("listed", true)
+      .eq("verification", "verified");
+    if (error) {
+      console.error("rain map lands:", error.message);
+      return null;
+    }
+    return countLands(data ?? []);
+  } catch (e) {
+    console.error("rain map lands: request failed", e);
+    return null;
+  }
+}
+
+/**
  * One forecast request for the whole grid, cached three hours like the
- * station table, and the elevation beside it.
+ * station table, and the elevation beside it. The land count only when asked
+ * for: the homepage card shows rain alone and should not query the database.
  *
  * Open-Meteo counts each location as a call: 90-odd cells refreshed eight times a
  * day is under 800 of the free tier's 10,000 daily calls.
  */
-export async function fetchRainGrid(): Promise<RainGrid | null> {
+export async function fetchRainGrid({ lands = false } = {}): Promise<RainGrid | null> {
   try {
-    const [res, elev] = await Promise.all([
+    const [res, elev, landCounts] = await Promise.all([
       fetch(
         forecastUrl(RAIN_CELLS.map((c) => ({ latitude: c.pLat, longitude: c.pLon }))),
         // A slow upstream must not hold the homepage: after 8 s the card is
@@ -387,12 +533,13 @@ export async function fetchRainGrid(): Promise<RainGrid | null> {
         { next: { revalidate: 10_800 }, signal: AbortSignal.timeout(8_000) },
       ),
       fetchElevations(RAIN_CELLS),
+      lands ? fetchLandCounts() : Promise.resolve(null),
     ]);
     if (!res.ok) {
       console.error("rain map: Open-Meteo answered", res.status);
       return null;
     }
-    return sumGrid(RAIN_CELLS, await res.json(), elev);
+    return sumGrid(RAIN_CELLS, await res.json(), elev, landCounts);
   } catch (e) {
     console.error("rain map: request failed", e);
     return null;

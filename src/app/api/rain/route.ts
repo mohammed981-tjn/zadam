@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { ROUTE } from "@/lib/arcCanal";
 import {
   CELL_DEG,
-  LAYERS,
   MAP_TOWNS,
   SUDAN_BORDER,
+  availableLayers,
   fetchDailyTable,
   fetchRainGrid,
 } from "@/lib/rainMap";
@@ -20,10 +21,13 @@ import {
  * Colours that are CSS variables (the "no rain" band is the card colour) go
  * out as null — a variable means nothing to Flutter, and the app paints them
  * its own card colour for the same reason the site does. A layer with no
- * values at all (elevation that could not be read) is left out.
+ * values at all (elevation that could not be read, soil before its survey)
+ * is left out; the lands layer always goes, empty or not, as on the site.
+ * `numbers: false` marks a layer whose value is a class (soil) — the app
+ * colours it and writes nothing in the cell.
  */
 export async function GET() {
-  const [grid, table] = await Promise.all([fetchRainGrid(), fetchDailyTable()]);
+  const [grid, table] = await Promise.all([fetchRainGrid({ lands: true }), fetchDailyTable()]);
   if (!grid) {
     return NextResponse.json(
       { error: "تعذّر جلبُ التوقّع الآن. أعد المحاولة بعد قليل." },
@@ -32,7 +36,7 @@ export async function GET() {
   }
 
   const hex = (c: string) => (c.startsWith("#") ? c : null);
-  const layers = LAYERS.filter((l) => grid.cells.some((c) => l.value(c) != null));
+  const layers = availableLayers(grid);
 
   return NextResponse.json(
     {
@@ -41,11 +45,13 @@ export async function GET() {
       cellDeg: CELL_DEG,
       border: SUDAN_BORDER,
       towns: MAP_TOWNS,
+      canalRoute: ROUTE.map((p) => [p.lon, p.lat]),
       layers: layers.map((l) => ({
         key: l.key,
         title: l.title,
         note: l.note,
         unit: l.unit,
+        numbers: l.numbers !== false,
         bands: l.bands.map((b) => ({
           min: b.min,
           label: b.label,
