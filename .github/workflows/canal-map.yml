@@ -5,8 +5,9 @@ name: Canal corridor map
 # commits one JSON file. See scripts/fetch-canal-map.ts for what and why.
 #
 # It runs here because none of those services is reachable from the
-# environment this repository is developed in. About fifteen minutes, nearly
-# all of it the pause SoilGrids' rate limit asks for between points.
+# environment this repository is developed in. Up to an hour: Open-Meteo drops
+# about every other connection from a runner and each retry waits a minute,
+# and SoilGrids asks for a pause between its forty-eight points.
 
 on:
   push:
@@ -21,7 +22,7 @@ permissions:
 jobs:
   survey:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 100
     steps:
       - uses: actions/checkout@v4
 

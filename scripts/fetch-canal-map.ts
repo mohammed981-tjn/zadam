@@ -351,6 +351,13 @@ out geom tags;`;
   return { waterways, roads, railways, places };
 }
 
+/**
+ * The frame takes in Omdurman and Khartoum, where OpenStreetMap maps every
+ * tertiary street — two thousand of them on the first run. Every road still
+ * counts for crossings; only the ones a regional map draws are kept to draw.
+ */
+const DRAWN_ROADS = new Set(["motorway", "trunk", "primary", "secondary"]);
+
 /* ───────────────────────── 4. التربة ───────────────────────── */
 
 interface SoilCell {
@@ -513,7 +520,9 @@ async function main() {
     bbox: BBOX,
     grid: { step: STEP, nlat: NLAT, nlon: NLON, elevation },
     drainage: { minKm2: DRAIN_MIN_KM2, segments },
-    osm: osm ?? { waterways: [], roads: [], railways: [], places: [] },
+    osm: osm
+      ? { ...osm, roads: osm.roads.filter((r) => DRAWN_ROADS.has(r.kind)) }
+      : { waterways: [], roads: [], railways: [], places: [] },
     soil: { step: SOIL_STEP, cells: soil },
     crossings,
     nearPlaces,
