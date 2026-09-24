@@ -42,7 +42,7 @@ export async function addLandDocument(args: {
   }
 
   // The row must point at a file that is actually there. See lib/evidenceFile
-  // for why a failure to confirm is not treated as a failure to upload.
+  // for why a failure to confirm is treated as a failure to upload.
   if (!(await evidenceFileExists(supabase, args.storagePath))) {
     return {
       ok: false,
