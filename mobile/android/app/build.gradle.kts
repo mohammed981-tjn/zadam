@@ -1,8 +1,20 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// يُقرأ هنا بعد `plugins {}` (التي يجب أن تكون أوّل الملف) لا داخل `android {}`: هناك يشير `java` إلى امتداد
+// Java في Gradle لا إلى الحزمة، فيفشل `java.util.Properties` — وهو ما أسقط
+// البناء في CI (24 سبتمبر). وهذا نمطُ Flutter الموثّق لمفتاح النشر.
+val keyProps = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) FileInputStream(f).use { load(it) }
+}
+
 
 android {
     namespace = "sd.sudagri.sudagri"
@@ -63,10 +75,6 @@ android {
      * an installable APK. That fallback is fine for sideloading and wrong for a
      * store, and the build says so rather than failing silently later.
      */
-    val keyProps = java.util.Properties().apply {
-        val f = rootProject.file("key.properties")
-        if (f.exists()) f.inputStream().use { load(it) }
-    }
     if (keyProps.getProperty("storeFile") != null) {
         signingConfigs.create("upload") {
             storeFile = file(keyProps.getProperty("storeFile"))
