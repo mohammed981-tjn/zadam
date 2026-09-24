@@ -142,6 +142,9 @@ jobs:
       - name: ممرّ الصادر
         run: ./scripts/verify-export-offers.sh
 
+      - name: النفير — الميثاق والفزعة والشورى
+        run: ./scripts/verify-nafir.sh
+
       - name: الردّ الآلي على الشكاوى
         run: ./scripts/verify-support-auto-reply.sh
 
