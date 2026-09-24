@@ -1149,8 +1149,77 @@ const LIVENESS_TERMS = ["المساعد يعمل", "المساعد العام ي
   normalizeArabic,
 );
 
+/*
+ * «ماذا تقدم» — asked on 6 September and answered with nothing.
+ *
+ * It is not the capability question. «ماهي إمكانياتك» asks what the assistant
+ * can compute; «ماذا تقدم» asks what the *platform* is for, and a visitor who
+ * gets a list of FAO-56 arithmetic in reply has been told about one widget on a
+ * site they have not yet understood. So it gets the map of the platform, with
+ * the assistant as one item on it.
+ *
+ * WHY THE WORD LIMIT
+ *
+ * «ماذا تقدم وزارة الزراعة لمزارعي القطن في الجزيرة» opens with the same two
+ * words and is about the ministry. A question about the platform is short —
+ * the logged ones are two words — and one that goes on to name somebody else is
+ * about somebody else. Six words is the line: «ماذا تقدم منصة سودجري للمزارع»
+ * is five, and the ministry question is eight.
+ */
+const INTRO_TERMS = [
+  "ماذا تقدم",
+  "ماذا تقدمون",
+  "شنو بتقدم",
+  "شنو تقدم",
+  "شنو بتقدمو",
+  "ايش تقدم",
+  "وش تقدم",
+  "ما هي سودجري",
+  "ماهي سودجري",
+  "ما هي المنصه",
+  "ما هي منصه",
+  "ماهي منصه",
+  "ماهي المنصه",
+  "ما هذه المنصه",
+  "ما هو سودجري",
+  "شنو سودجري",
+  "شنو المنصه دي",
+].map(normalizeArabic);
+const INTRO_MAX_WORDS = 6;
+
+function platformIntro(): LocalAnswer {
+  return {
+    source: "platform",
+    confidence: 1,
+    usedTitles: [],
+    answer: [
+      "سودجري منصّة زراعية سودانية، وأغلب ما فيها مجاني ويعمل بلا تسجيل:",
+      "",
+      "• حاسبة الاحتياج المائي: كم يحتاج فدان محصولك من الماء على مناخ ولايتك وطريقة ريّك.",
+      "• دراسة الجدوى المرحلية: أين آخر نقطة آمنة للتوقّف قبل أن تُنفق أكثر.",
+      "• قاعدة المعرفة: تجارب زراعية موثّقة، كل مُدخل بمصدره ودولته.",
+      "• ممرّ الصادر: ما تحتاجه الشحنة لتُقبل في السوق الخارجي.",
+      "• الخدمات التعاقدية: حراثة ومساحة وخدمات بيطرية بسعر ومدّة معلنين.",
+      "• دراسة القناة القوسية، وقسم مستقلّ للتعدين.",
+      "",
+      "وبحساب مجاني: توثّق أرضك، وتتابع موسمك وقطيعك مرحلةً مرحلة بالصور والتكاليف.",
+      "",
+      "ولا توجد اليوم فرص استثمار مطروحة — لن يُعرض مشروع قبل توثيقه ومعاينته.",
+      "",
+      "واسألني أنا عن أي محصول أو ريّ أو مناخ: «متى أزرع السمسم في القضارف؟»",
+    ].join("\n"),
+  };
+}
+
 function resolveCapability(input: LocalAnswerInput): LocalAnswer | null {
   const normalized = normalizeArabic(input.question);
+
+  if (
+    INTRO_TERMS.some((t) => normalized.includes(t)) &&
+    wordCount(input.question) <= INTRO_MAX_WORDS
+  ) {
+    return platformIntro();
+  }
 
   if (AUTHORING_TERMS.some((t) => normalized.includes(t))) {
     return {

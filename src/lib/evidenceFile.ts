@@ -14,16 +14,21 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * approval without a row". A caller could send <own id>/x/y.jpg, upload
  * nothing, and satisfy it.
  *
- * Deliberately advisory rather than blocking on its own failure:
+ * WHY A FAILURE TO LIST IS NOW A REFUSAL
  *
- * The `evidence` bucket's policies are not in this repository, so whether the
- * uploader may LIST their own folder — as opposed to reading a file directly —
- * cannot be verified from here. If listing is refused, this returns `true` and
- * logs, leaving behaviour exactly as it was. It tightens the check where the
- * policy allows it and never invents a new way for an upload to fail.
+ * This used to accept the row when listing failed, because the bucket's
+ * policies were not known and the check must not invent a new way for an
+ * upload to fail. They are known now. Production carries `evidence_read_own`
+ * — SELECT on `storage.objects` for `bucket_id = 'evidence'` where the first
+ * folder is `auth.uid()` — and the Storage API's list runs through
+ * `storage.search`, which is SECURITY INVOKER, so that policy is exactly what
+ * lets an uploader list their own folder. Checked 24 September 2026.
  *
- * Once storage policies are in the repo and listing is known to work, the
- * `catch`-equivalent branch below can become a refusal.
+ * So an error here is no longer "the policy forbids listing"; it is a real
+ * failure, and a check that cannot confirm the file does not get to vouch for
+ * it. Failing closed costs the farmer one retry. Failing open is the gap this
+ * function exists to close: a row that `enforce_milestone_approval` counts as
+ * proof of work, pointing at nothing.
  */
 export async function evidenceFileExists(
   supabase: SupabaseClient,
@@ -40,14 +45,12 @@ export async function evidenceFileExists(
     .list(folder, { search: filename, limit: 100 });
 
   if (error) {
-    console.warn(
+    console.error(
       "evidenceFileExists: could not list the evidence folder, so the file " +
-        "could not be confirmed. Accepting the record unchanged. This is the " +
-        "expected result if the bucket's SELECT policy allows downloads but " +
-        "not listing — see docs/security-review-2026-08-19.md, ص-1/ص-2.",
+        "could not be confirmed. Refusing the record.",
       { folder, error },
     );
-    return true;
+    return false;
   }
 
   return (data ?? []).some((entry) => entry.name === filename);

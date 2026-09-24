@@ -9,6 +9,7 @@ import ArcCanalDesign from "@/components/ArcCanalDesign";
 import ArcCanalDossier from "@/components/ArcCanalDossier";
 import ArcCanalGallery from "@/components/ArcCanalGallery";
 import { summarise, ROUTE_LENGTH_KM, ROUTE } from "@/lib/arcCanal";
+import ShareWhatsApp from "@/components/ShareWhatsApp";
 
 export const metadata = {
   title: "القناة القوسية — دراسة سودجري | سودجري",
@@ -57,6 +58,7 @@ export default async function ArcCanalPage() {
           وتصميمه الهندسي وكلفته من الكميّات. كل رقم هنا مقيسٌ أو محسوب، ومصدره
           ومنهجه مذكوران معه.
         </p>
+        <ShareWhatsApp path="/arc-canal" text="القناة القوسية — دراسة الأرض والتصميم بالقياسات:" className="my-3" />
 
         {/*
           صورتان على هذه الصفحة، وكلتاهما بتعليقٍ صريح — وذلك شرطٌ لا زينة.

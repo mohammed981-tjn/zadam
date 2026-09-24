@@ -3,6 +3,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import KnowledgeCard from "@/components/KnowledgeCard";
 import { topicLabel } from "@/lib/format";
 import type { KnowledgeEntry } from "@/types/database";
+import ShareWhatsApp from "@/components/ShareWhatsApp";
 
 /*
  * ساعةٌ بين البناء والبناء.
@@ -90,6 +91,7 @@ export default async function KnowledgePage({
         نجح في مصر أو الهند ليس وعداً بأن ينجح في الجزيرة، والفرقُ في التربة
         والمناخ والسوق. اقرأها على أنّها نقطةُ بداية للسؤال، لا جواباً نهائياً.
       </p>
+      <ShareWhatsApp path="/knowledge" text="قاعدة معرفة زراعية سودانية — كل معلومة بمصدرها:" className="my-3" />
 
       {error ? (
         <p className="mt-8 rounded-2xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">

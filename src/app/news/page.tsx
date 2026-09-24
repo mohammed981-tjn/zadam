@@ -5,6 +5,7 @@ import {
   announcementDate,
   type Announcement,
 } from "@/lib/announcements";
+import ShareWhatsApp from "@/components/ShareWhatsApp";
 
 export const metadata = {
   title: "أخبار سودجري | جديد المنصّة",
@@ -56,6 +57,7 @@ export default async function NewsPage() {
         ما استجدّ في المنصّة: بياناتٌ أُضيفت، ودراساتٌ نُشرت، وأدواتٌ صارت
         متاحة. والأقدمُ يبقى — فالصفحةُ سجلٌّ لا واجهةُ عرض.
       </p>
+      <ShareWhatsApp path="/news" text="جديد سودجري:" className="my-3" />
 
       {items.length === 0 ? (
         <div className="mt-8">

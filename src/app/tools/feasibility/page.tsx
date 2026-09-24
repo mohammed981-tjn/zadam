@@ -1,6 +1,7 @@
 import Link from "next/link";
 import FeasibilityStudy from "@/components/FeasibilityStudy";
 import { loadCropMarkets } from "@/lib/marketData";
+import ShareWhatsApp from "@/components/ShareWhatsApp";
 
 export const metadata = {
   title: "دراسة الجدوى المرحلية — سودجري",
@@ -41,6 +42,7 @@ export default async function FeasibilityPage() {
           «هل الموسم مجدٍ» بل <strong>«وقد أنفقتُ ما أنفقت، هل أدفع القسط
           التالي؟»</strong> — وهذه الأداة تجيبه مرحلةً مرحلة.
         </p>
+        <ShareWhatsApp path="/tools/feasibility" text="دراسة جدوى مرحلية: أين آخر مخرج آمن قبل أن تُنفق أكثر؟" className="my-3" />
       </header>
 
       <section className="rounded-xl border border-primary/30 bg-primary/5 p-5 text-sm leading-relaxed">

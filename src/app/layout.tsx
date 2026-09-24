@@ -5,6 +5,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import SplashOnce from "@/components/SplashOnce";
 import AssistantWidget from "@/components/AssistantWidget";
+import { SITE_URL } from "@/lib/site";
 
 const tajawal = Tajawal({
   variable: "--font-tajawal",
@@ -12,7 +13,6 @@ const tajawal = Tajawal({
   weight: ["400", "500", "700", "900"],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://zadam-khaki.vercel.app";
 
 const TITLE = "سودجري | معرفة زراعية واستثمار ذكي في السودان";
 const DESCRIPTION =

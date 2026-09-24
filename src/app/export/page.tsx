@@ -11,6 +11,7 @@ import {
   REJECTION,
   type Source,
 } from "@/lib/exportTrade";
+import ShareWhatsApp from "@/components/ShareWhatsApp";
 
 export const metadata = {
   title: "ممرّ الصادر السوداني — دراسة سودجري | سودجري",
@@ -68,6 +69,7 @@ export default function ExportPage() {
           أبوابُ العالم مفتوحةٌ أمام السودان بلا رسوم. والشحنات تُردّ.
           الفارقُ ليس السوق ولا الجمارك — بل <strong>الإثبات</strong>.
         </p>
+        <ShareWhatsApp path="/export" text="ممرّ الصادر السوداني — البوّابات الأربع لكل شحنة:" className="my-3" />
       </header>
 
       <section className="grid gap-px overflow-hidden rounded-lg border bg-gray-200 sm:grid-cols-2">
