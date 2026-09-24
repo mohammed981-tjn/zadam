@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import {
   FAZA_CAUSES,
   FAZA_NEEDS,
+  JUDIYYA_KINDS,
   NAFIR_KINDS,
   PULSE_QUESTIONS,
   SUDAN_STATES,
@@ -32,6 +33,11 @@ ok(same(Object.keys(NAFIR_KINDS), list(/kind\s+text not null check \(kind in \((
 ok(same(Object.keys(FAZA_CAUSES), list(/cause\s+text not null check \(cause in \(([^)]*)\)\)/)), "أسباب الفزعة");
 ok(same(Object.keys(FAZA_NEEDS), list(/needs <@ array\[([^\]]*)\]/)), "أنواع العون");
 ok(!Object.keys(FAZA_NEEDS).includes("cash"), "ولا مال بينها");
+{
+  const j = readFileSync("supabase/migrations/20260925120000_judiyya.sql", "utf8");
+  const kinds = [...(j.match(/kind\s+text not null check \(kind in \(([^)]*)\)\)/)?.[1].matchAll(/'([^']+)'/g) ?? [])].map((m) => m[1]);
+  ok(same(Object.keys(JUDIYYA_KINDS), kinds), "أنواع نزاعات الجودية");
+}
 ok(PULSE_QUESTIONS.every((q) => sql.includes(`${q.key}  `) || sql.includes(`${q.key} `)), "أعمدة نبض الثقة موجودة");
 
 console.log("\nالأزمنة:");

@@ -331,3 +331,64 @@ export const dateAr = (iso: string) =>
 export function tomorrowIso(now = Date.now()): string {
   return new Date(now + 86_400_000).toISOString().slice(0, 10);
 }
+
+/* ───────────────────────── الجودية ───────────────────────── */
+
+export const JUDIYYA_KINDS = {
+  water: "الماء ونوباته",
+  boundary: "حدود الأرض",
+  grazing: "المرعى ومرور الماشية",
+  contract: "اتفاقٌ أو شراكة",
+  other: "أمرٌ آخر",
+} as const;
+export type JudiyyaKind = keyof typeof JUDIYYA_KINDS;
+
+export const JUDIYYA_STATUS = {
+  forming: "ينتظر الطرفين",
+  active: "جارٍ",
+  settled: "خُتم الصلح",
+  withdrawn: "سُحب",
+} as const;
+
+export interface JudiyyaMediator {
+  user_id: string;
+  display_name: string;
+  state: string;
+  about: string;
+  verified_at: string | null;
+}
+
+export interface JudiyyaCase {
+  id: string;
+  opened_by: string;
+  kind: JudiyyaKind;
+  title: string;
+  summary: string;
+  state: string;
+  locality: string;
+  invite_token: string;
+  status: keyof typeof JUDIYYA_STATUS;
+  settlement: string | null;
+  settled_by: string | null;
+  settlement_name: string | null;
+  settlement_at: string | null;
+  settled_at: string | null;
+  created_at: string;
+}
+
+export interface JudiyyaParty {
+  case_id: string;
+  side: "a" | "b";
+  user_id: string;
+  display_name: string;
+  committed_at: string | null;
+  confirmed_at: string | null;
+}
+
+export interface JudiyyaPanelSeat {
+  case_id: string;
+  mediator_id: string;
+  approved_a: boolean;
+  approved_b: boolean;
+  accepted_at: string | null;
+}

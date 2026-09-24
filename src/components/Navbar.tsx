@@ -126,12 +126,13 @@ export default async function Navbar() {
   // لأنّ دعوةً إلى حصادٍ هذا الأسبوع هي ما قد يجعله يسجّل.
   groups.push({
     title: "النفير — العمل المشترك",
-    hint: "الميثاق والنفير والفزعة والشورى",
+    hint: "الميثاق والنفير والفزعة والشورى والجودية",
     items: [
       { href: "/nafir", label: "ساحة النفير" },
       { href: "/nafir/charter", label: "الميثاق" },
       { href: "/nafir/faza", label: "الفزعة" },
       { href: "/nafir/shura", label: "الشورى" },
+      { href: "/nafir/judiyya", label: "الجودية" },
       { href: "/nafir/pulse", label: "نبض الثقة" },
     ],
   });
