@@ -1,4 +1,6 @@
 import Link from "next/link";
+import SectionPhoto from "@/components/SectionPhoto";
+import { PHOTOS } from "@/lib/photos";
 import NotifyMeForm from "@/components/NotifyMeForm";
 import ArcCanalProfile from "@/components/ArcCanalProfile";
 import ArcCanalMap from "@/components/ArcCanalMap";
@@ -55,6 +57,25 @@ export default async function ArcCanalPage() {
           وتصميمه الهندسي وكلفته من الكميّات. كل رقم هنا مقيسٌ أو محسوب، ومصدره
           ومنهجه مذكوران معه.
         </p>
+
+        {/*
+          صورتان على هذه الصفحة، وكلتاهما بتعليقٍ صريح — وذلك شرطٌ لا زينة.
+
+          This page argues from 41 SRTM elevations, SoilGrids profiles, a canal
+          sized by Manning's equation and a cost built from quantities. A
+          photograph placed on it without a caption makes a claim the numbers do
+          not: that the canal exists. Both pictures here are generated, and the
+          captions say so in the same words a reader would use.
+
+          They sit below the opening paragraph rather than above the title, so
+          the first thing on the page stays the sentence that says what this is.
+        */}
+        <SectionPhoto
+          className="overflow-hidden rounded-xl border border-border"
+          src={PHOTOS.nileDam}
+          alt="سدّ خرسانيّ على نهر واسع، وخزانه خلفه، وأرض قاحلة حوله"
+          caption="صورةٌ مولَّدةٌ لأغراض العرض — ليست خزّان جبل أولياء ولا أيّ سدٍّ قائم."
+        />
       </header>
 
       {/* The four numbers the whole study turns on. */}
@@ -145,6 +166,13 @@ export default async function ArcCanalPage() {
         <h2 className="text-xl font-semibold">
           النواة القابلة للاستثمار — اليوم، لا بعد عشر سنوات
         </h2>
+
+        <SectionPhoto
+          className="overflow-hidden rounded-xl border border-border"
+          src={PHOTOS.canalRegulator}
+          alt="قنطرة خرسانية ببوابات فولاذية على ترعة ريّ، والماء الطيني يمرّ تحتها"
+          caption="صورةٌ مولَّدةٌ لأغراض العرض — لا تمثّل القناة المقترحة ولا منشأةً قائمة."
+        />
 
         <p className="leading-relaxed">
           كل صعوبة في الأرقام أعلاه صعوبةٌ في <strong>الحجم</strong>، لا في

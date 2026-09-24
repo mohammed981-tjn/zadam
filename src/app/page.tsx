@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SUDAGRI_LOGO } from "@/lib/brand";
+import { PHOTOS } from "@/lib/photos";
+import PhotoStrip, { type StripItem } from "@/components/PhotoStrip";
 import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
 import KnowledgeCard from "@/components/KnowledgeCard";
@@ -27,6 +29,49 @@ import type { KnowledgeEntry, Project } from "@/types/database";
  */
 
 const n0 = (v: number) => v.toLocaleString("en-US");
+
+/**
+ * بطاقاتُ الشريط — كلُّ واحدةٍ تقود إلى ما يُفتح للزائر بلا حساب.
+ * الأرضُ والقطيعُ يحتاجان حساباً، فبابُهما `/signup` الذي يقول ذلك صراحةً،
+ * لا `/lands` التي تُحوِّل بصمتٍ إلى شاشة الدخول.
+ */
+const STRIP: StripItem[] = [
+  {
+    photo: PHOTOS.geziraFarmer,
+    alt: "مزارع يقف عند حقل ذرة إلى جوار ترعة ريّ ترابية",
+    title: "سجّل أرضك ووثّق موسمك",
+    note: "أرضٌ موثّقة، وموسمٌ بمراحله وأدلّته — يحتاج حساباً.",
+    href: "/signup",
+  },
+  {
+    photo: PHOTOS.herdCanal,
+    alt: "قطيع بقر ذي سنام يسير بمحاذاة ترعة في الغبار",
+    title: "دورات الإنتاج الحيواني",
+    note: "علفُ القطيع وميزانيّتُه مرحلةً مرحلة — يحتاج حساباً.",
+    href: "/signup",
+  },
+  {
+    photo: PHOTOS.canalRegulator,
+    alt: "قنطرة خرسانية ببوابات فولاذية على ترعة ريّ",
+    title: "حاسبة الاحتياج المائي",
+    note: "بمنهجية FAO-56 على مناخ ولايتك وطريقة ريّك.",
+    href: "/tools/water",
+  },
+  {
+    photo: PHOTOS.irrigatedPlain,
+    alt: "سهل مرويّ من الجوّ بشبكة حقول هندسية",
+    title: "دراسة الجدوى المرحلية",
+    note: "أين آخرُ مخرجٍ آمن قبل أن تُنفق أكثر.",
+    href: "/tools/feasibility",
+  },
+  {
+    photo: PHOTOS.nileDam,
+    alt: "سدّ خرسانيّ على نهر واسع وخزانه خلفه",
+    title: "القناة القوسية",
+    note: "٤١ قياساً من SRTM، وقناةٌ محجَّمةٌ بمعادلة مانينغ.",
+    href: "/arc-canal",
+  },
+];
 
 export default async function Home() {
   const supabase = await createClient();
@@ -244,6 +289,12 @@ export default async function Home() {
           </dl>
         </div>
       </section>
+
+      {/* ───────────────────────── الصور ─────────────────────────
+       * تحت الواجهة مباشرةً: العنوانُ والأرقامُ الأربعةُ تبقى أوّلَ ما يُرى،
+       * والصورُ أوّلَ ما يليها. وكلُّ بطاقةٍ بابٌ إلى قسمٍ يُفتح بلا حساب.
+       */}
+      <PhotoStrip items={STRIP} />
 
       {/* ───────────────────────── الحالة ───────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 pt-10">
