@@ -1,4 +1,5 @@
 import WaterCalculator from "@/components/WaterCalculator";
+import ShareWhatsApp from "@/components/ShareWhatsApp";
 
 export const metadata = {
   title: "حاسبة الاحتياج المائي | سودجري",
@@ -16,6 +17,7 @@ export default function WaterToolPage() {
         خط عرض منطقتك ودرجات حرارتها، ثم تضربه في معامل المحصول عبر مراحل نموّه،
         وتخصم المطر الفعّال، وتقسم على كفاءة طريقة الري.
       </p>
+      <ShareWhatsApp path="/tools/water" text="كم يحتاج محصولك من الماء؟ حاسبة مجانية على مناخ ولايتك:" className="my-3" />
       <p className="mb-6 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
         البيانات المناخية المستخدمة{" "}
         <strong className="font-bold">معدلات استرشادية</strong> للتخطيط، وليست

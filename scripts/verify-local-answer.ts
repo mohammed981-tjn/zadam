@@ -622,6 +622,20 @@ console.log("\nماذا يستطيع المساعد:");
     "بقائمة مبنيّة على ما تفعله المُجيبات فعلاً",
   );
 
+  // «ماذا تقدم» asks about the platform, not the assistant's arithmetic.
+  for (const q of ["ماذا تقدم", "شنو بتقدم", "ما هي منصة سودجري"]) {
+    const intro = answerLocally(base(q));
+    ok(
+      intro?.source === "platform" && intro.answer.includes("حاسبة الاحتياج المائي"),
+      `«${q}» تُجاب بخريطة المنصّة`,
+    );
+  }
+  ok(
+    answerLocally(base("ماذا تقدم وزارة الزراعة لمزارعي القطن في الجزيرة"))
+      ?.answer.includes("سودجري منصّة") !== true,
+    "و«ماذا تقدم وزارة الزراعة…» ليس سؤالاً عن المنصّة",
+  );
+
   // The one that used to be answered with a menu instead of an answer.
   const trap = answerLocally(base("تعمل شنو لو واطاطي عطشت شديد"));
   ok(
