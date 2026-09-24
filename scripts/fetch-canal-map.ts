@@ -11,7 +11,7 @@
  *
  * WHAT IS FETCHED
  *
- *  1. Ground height on a 0.01° grid (≈1.1 km) over the corridor, from
+ *  1. Ground height on a 0.015° grid (≈1.65 km) over the corridor, from
  *     Open-Meteo's elevation service (Copernicus DEM, 90 m).
  *  2. From that grid, the drainage network: pits filled (priority-flood), each
  *     cell drained to its steepest neighbour (D8), and the upstream area
@@ -38,7 +38,13 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { ROUTE, distanceKm } from "../src/lib/arcCanal";
 
 export const BBOX = { south: 15.1, west: 32.05, north: 15.92, east: 32.7 };
-const STEP = 0.01;
+/**
+ * 0.015° (≈1.65 km): 2,420 points. Open-Meteo counts every coordinate as a
+ * call, with a ceiling of 600 a minute and 5,000 an hour; the first run, at
+ * 0.01° and 5,478 points, was throttled and then refused a third of the way
+ * through the last thousand.
+ */
+const STEP = 0.015;
 const SOIL_STEP = 0.1;
 
 /** Upstream area above which a cell is drawn as a channel, km². */
@@ -68,7 +74,8 @@ async function getJson(url: string, init?: RequestInit, attempts = 4): Promise<u
       return await res.json();
     } catch (e) {
       if (i === attempts) throw e;
-      const wait = 15_000 * i;
+      // A 429 is a per-minute budget; waiting a full minute is what clears it.
+      const wait = 65_000 * i;
       console.error(`  retry ${i}/${attempts - 1} after ${wait / 1000}s — ${e}`);
       await sleep(wait);
     }
@@ -112,8 +119,10 @@ async function fetchElevation(): Promise<number[]> {
       throw new Error(`elevation: asked ${chunk.length}, got ${json.elevation?.length}`);
     }
     out.push(...json.elevation);
-    if (k % 1000 === 0) console.log(`  elevation ${k + chunk.length}/${pts.length}`);
-    await sleep(700);
+    console.log(`  elevation ${k + chunk.length}/${pts.length}`);
+    // 100 coordinates are 100 calls: twelve seconds apart is 500 a minute,
+    // under the 600 ceiling with room for a retry.
+    await sleep(12_000);
   }
   return out;
 }
