@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   CELL_DEG,
   LAYERS,
+  MAP_TOWNS,
   SUDAN_BORDER,
   fetchDailyTable,
   fetchRainGrid,
@@ -39,6 +40,7 @@ export async function GET() {
       to: grid.to,
       cellDeg: CELL_DEG,
       border: SUDAN_BORDER,
+      towns: MAP_TOWNS,
       layers: layers.map((l) => ({
         key: l.key,
         title: l.title,
@@ -54,6 +56,8 @@ export async function GET() {
       cells: grid.cells.map((c) => ({
         lon: c.lon,
         lat: c.lat,
+        pLon: c.pLon,
+        pLat: c.pLat,
         labelled: c.labelled,
         values: Object.fromEntries(layers.map((l) => [l.key, l.value(c)])),
       })),

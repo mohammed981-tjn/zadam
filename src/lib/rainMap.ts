@@ -22,11 +22,14 @@ import { forecastUrl, parseOpenMeteo, type ForecastDay } from "./forecast";
  * value at a point, not an area average and not a measurement, so the page
  * says "توقّع" everywhere and never "هطل".
  *
- * THE BORDER
+ * THE BORDER — WITH HALAIB
  *
- * Natural Earth 1:50m (public domain), simplified to about 5 km. It draws the
- * country's shape so the grid has something to sit in; it is not a statement
- * about any disputed line.
+ * Natural Earth 1:50m (public domain), simplified to about 5 km, with the
+ * Halaib Triangle joined to it from Natural Earth's disputed-areas layer
+ * (1:10m). Natural Earth draws the de-facto line, which leaves Halaib to
+ * Egypt; this is a Sudanese platform and draws Sudan as Sudan maps it, with
+ * the triangle inside (the owner's instruction, 24 September 2026). The
+ * grid reaches 23.5°N so the triangle has cells and a forecast of its own.
  */
 
 export type LonLat = readonly [number, number];
@@ -44,19 +47,20 @@ export const SUDAN_BORDER: LonLat[] = [
   [22.23, 13.33], [22.13, 13.85], [22.51, 14.13], [22.5, 14.24], [22.38, 14.55], [22.67, 14.72],
   [22.76, 15], [22.93, 15.16], [22.93, 15.53], [23.01, 15.63], [23.11, 15.7], [23.97, 15.72],
   [23.98, 20], [24.98, 20], [24.98, 22], [31.21, 21.99], [31.4, 22.2], [31.49, 22.15],
-  [31.43, 22], [36.87, 22], [36.93, 21.59], [37.26, 21.11], [37.26, 21.04], [37.15, 21.1],
-  [37.14, 20.98], [37.23, 20.56], [37.19, 20.12], [37.25, 19.58], [37.47, 18.82], [38.61, 18],
-  [38.22, 17.56], [37.55, 17.32], [37.41, 17.06], [37.01, 17.06], [36.89, 16.62], [36.91, 16.3],
-  [36.43, 15.13], [36.52, 14.26], [36.39, 13.63], [36.16, 13.09], [36.12, 12.76], [35.67, 12.62],
-  [35.11, 11.82], [34.93, 10.86], [34.77, 10.75], [34.57, 10.88], [34.34, 10.66], [34.27, 10.53],
-  [34.31, 10.19], [34.08, 9.46],
+  [31.43, 22], [34.08, 22], [34.15, 22.19], [34.68, 22.3], [34.94, 22.86], [35.21, 22.79],
+  [35.62, 23.14], [35.85, 22.76], [36.23, 22.64], [36.44, 22.36], [36.78, 22.16], [36.89, 22.01],
+  [36.93, 21.59], [37.26, 21.11], [37.26, 21.04], [37.15, 21.1], [37.14, 20.98], [37.23, 20.56],
+  [37.19, 20.12], [37.25, 19.58], [37.47, 18.82], [38.61, 18], [38.22, 17.56], [37.55, 17.32],
+  [37.41, 17.06], [37.01, 17.06], [36.89, 16.62], [36.91, 16.3], [36.43, 15.13], [36.52, 14.26],
+  [36.39, 13.63], [36.16, 13.09], [36.12, 12.76], [35.67, 12.62], [35.11, 11.82], [34.93, 10.86],
+  [34.77, 10.75], [34.57, 10.88], [34.34, 10.66], [34.27, 10.53], [34.31, 10.19], [34.08, 9.46],
 ];
 
 export const CELL_DEG = 1.5;
 export const LON_MIN = 21.75;
 export const LON_MAX = 38.75;
 export const LAT_MIN = 8.5;
-export const LAT_MAX = 22.5;
+export const LAT_MAX = 23.5;
 
 /** Ray casting. Points exactly on an edge may land either side; cells never sit there. */
 export function insideSudan([lon, lat]: LonLat, poly: LonLat[] = SUDAN_BORDER): boolean {
@@ -72,36 +76,98 @@ export function insideSudan([lon, lat]: LonLat, poly: LonLat[] = SUDAN_BORDER): 
 }
 
 export interface RainCell {
-  /** Centre of the cell. */
+  /** Centre of the cell — where it is drawn. */
   lon: number;
   lat: number;
   /**
-   * True when the centre is inside the border. Only these carry a number;
-   * the others are edge cells, drawn clipped to the border so the country has
-   * no gaps, but their centre lies outside it and a figure there would be a
-   * forecast for a neighbour.
+   * Where the forecast is read and the number written: the centre when it is
+   * inside the border, otherwise the middle of the part that is.
+   */
+  pLon: number;
+  pLat: number;
+  /**
+   * True when at least a fifth of the cell is inside the border. Only these
+   * carry a number. The others are slivers, drawn clipped to the border so
+   * the country has no gaps, with no figure of their own.
+   *
+   * Reading the forecast at the inside part rather than at the centre is
+   * what gives an edge region its own number. Halaib is the case that forced
+   * it: the coast cuts its cells so that no centre falls on land, and a
+   * centre-only rule left the triangle painted but silent.
    */
   labelled: boolean;
 }
 
 /**
- * Every cell that touches Sudan: its centre or one of its corners is inside.
- * Built once from the constants above, so the request and the drawing can
- * never disagree about which cells exist.
+ * The towns drawn on the map so a reader can find their own place, and the
+ * side of the dot each name sits on — whichever is clear of its cell's number.
+ * Chosen by hand for these seven and checked by looking: a seventh needs the
+ * same look. They live here, not in the drawing, because the cell builder
+ * keeps edge numbers off them.
+ */
+export const MAP_TOWNS: { name: string; lon: number; lat: number; above: boolean }[] = [
+  { name: "الخرطوم", lon: 32.53, lat: 15.6, above: true },
+  { name: "بورتسودان", lon: 37.22, lat: 19.62, above: true },
+  { name: "القضارف", lon: 35.39, lat: 14.03, above: true },
+  { name: "الأبيض", lon: 30.22, lat: 13.18, above: false },
+  { name: "نيالا", lon: 24.88, lat: 12.05, above: true },
+  { name: "دنقلا", lon: 30.48, lat: 19.17, above: false },
+  { name: "حلايب", lon: 36.64, lat: 22.22, above: false },
+];
+
+/** How close (degrees) an edge number may come to a town's dot and name. */
+const TOWN_CLEARANCE = 0.4;
+
+const SAMPLES = 6;
+
+/**
+ * Every cell with any part inside Sudan, sampled on a 6×6 sub-grid. Built
+ * once from the constants above, so the request and the drawing can never
+ * disagree about which cells exist.
  */
 export function buildCells(): RainCell[] {
   const cells: RainCell[] = [];
   const h = CELL_DEG / 2;
   for (let lat = LAT_MIN + h; lat < LAT_MAX; lat += CELL_DEG) {
     for (let lon = LON_MIN + h; lon < LON_MAX; lon += CELL_DEG) {
-      const c: LonLat = [lon, lat];
-      const labelled = insideSudan(c);
-      const touches =
-        labelled ||
-        [[-h, -h], [h, -h], [-h, h], [h, h]].some(([dx, dy]) =>
-          insideSudan([lon + dx, lat + dy]),
-        );
-      if (touches) cells.push({ lon: round2(lon), lat: round2(lat), labelled });
+      const inside: LonLat[] = [];
+      for (let i = 0; i < SAMPLES; i++) {
+        for (let j = 0; j < SAMPLES; j++) {
+          const q: LonLat = [
+            lon - h + ((i + 0.5) / SAMPLES) * CELL_DEG,
+            lat - h + ((j + 0.5) / SAMPLES) * CELL_DEG,
+          ];
+          if (insideSudan(q)) inside.push(q);
+        }
+      }
+      if (inside.length === 0) continue;
+      const centreIn = insideSudan([lon, lat]);
+      // The mean of the inside samples can itself fall outside a concave
+      // shape; the inside sample nearest to it cannot.
+      const mLon = inside.reduce((a, q) => a + q[0], 0) / inside.length;
+      const mLat = inside.reduce((a, q) => a + q[1], 0) / inside.length;
+      // Edge numbers keep clear of the town names; Port Sudan sits exactly
+      // where its coastal cell's inside part is.
+      const clear = inside.filter((q) =>
+        MAP_TOWNS.every(
+          (t) => Math.hypot(q[0] - t.lon, q[1] - t.lat) > TOWN_CLEARANCE,
+        ),
+      );
+      const pool = clear.length > 0 ? clear : inside;
+      const near = pool.reduce((best, q) =>
+        (q[0] - mLon) ** 2 + (q[1] - mLat) ** 2 <
+        (best[0] - mLon) ** 2 + (best[1] - mLat) ** 2
+          ? q
+          : best,
+      );
+      const [pLon, pLat] = centreIn ? [lon, lat] : near;
+      cells.push({
+        lon: round2(lon),
+        lat: round2(lat),
+        pLon: round2(pLon),
+        pLat: round2(pLat),
+        labelled: centreIn || inside.length >= (SAMPLES * SAMPLES) / 5,
+      });
     }
   }
   return cells;
@@ -285,8 +351,8 @@ export function sumGrid(
 async function fetchElevations(cells: RainCell[]): Promise<(number | null)[] | null> {
   try {
     const p = new URLSearchParams({
-      latitude: cells.map((c) => c.lat).join(","),
-      longitude: cells.map((c) => c.lon).join(","),
+      latitude: cells.map((c) => c.pLat).join(","),
+      longitude: cells.map((c) => c.pLon).join(","),
     });
     const res = await fetch(`https://api.open-meteo.com/v1/elevation?${p}`, {
       next: { revalidate: 2_592_000 },
@@ -308,14 +374,14 @@ async function fetchElevations(cells: RainCell[]): Promise<(number | null)[] | n
  * One forecast request for the whole grid, cached three hours like the
  * station table, and the elevation beside it.
  *
- * Open-Meteo counts each location as a call: 85 cells refreshed eight times a
- * day is under 700 of the free tier's 10,000 daily calls.
+ * Open-Meteo counts each location as a call: 90-odd cells refreshed eight times a
+ * day is under 800 of the free tier's 10,000 daily calls.
  */
 export async function fetchRainGrid(): Promise<RainGrid | null> {
   try {
     const [res, elev] = await Promise.all([
       fetch(
-        forecastUrl(RAIN_CELLS.map((c) => ({ latitude: c.lat, longitude: c.lon }))),
+        forecastUrl(RAIN_CELLS.map((c) => ({ latitude: c.pLat, longitude: c.pLon }))),
         // A slow upstream must not hold the homepage: after 8 s the card is
         // simply left out.
         { next: { revalidate: 10_800 }, signal: AbortSignal.timeout(8_000) },

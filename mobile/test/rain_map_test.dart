@@ -48,6 +48,8 @@ void main() {
       {
         'lon': 37.5,
         'lat': 21.25,
+        'pLon': 37.2,
+        'pLat': 21.1,
         'labelled': false,
         'values': {'rain': 0, 'elev': null},
       },
@@ -74,8 +76,11 @@ void main() {
     expect(g.cells.first.values['elev'], 380);
     expect(g.cells.last.values['elev'], isNull);
     expect(g.cells.last.labelled, isFalse);
+    expect(g.cells.first.pLon, 32.25, reason: 'older responses fall back to the centre');
+    expect(g.cells.last.pLat, 21.1);
     expect(g.layers.map((l) => l.key), ['rain', 'elev']);
     expect(g.daily!.towns.single.days[1].rainMm, 6);
+    expect(g.towns, same(fallbackTowns), reason: 'no towns sent: the built-in six');
   });
 
   test('bands match the website', () {
@@ -90,6 +95,17 @@ void main() {
   test('a response without the daily table still parses', () {
     final g = RainGrid.fromJson({...json, 'daily': null});
     expect(g.daily, isNull);
+  });
+
+  test('towns come from the server when it sends them', () {
+    final g = RainGrid.fromJson({
+      ...json,
+      'towns': [
+        {'name': 'حلايب', 'lon': 36.64, 'lat': 22.22, 'above': false},
+      ],
+    });
+    expect(g.towns.single.name, 'حلايب');
+    expect(g.towns.single.above, isFalse);
   });
 
   test('bad colours are null, not black', () {

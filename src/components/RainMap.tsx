@@ -5,6 +5,7 @@ import {
   LON_MAX,
   LON_MIN,
   LAYERS,
+  MAP_TOWNS,
   SUDAN_BORDER,
   bandIn,
   type Layer,
@@ -35,22 +36,6 @@ const border = SUDAN_BORDER.map(
   ([lon, lat], i) => `${i === 0 ? "M" : "L"}${x(lon).toFixed(1)} ${y(lat).toFixed(1)}`,
 ).join("") + "Z";
 
-/**
- * A few towns so the reader can find their own place on the grid.
- *
- * With towns on, each cell's number drops to the lower part of its cell, and
- * each name sits above or below its dot — whichever side is clear of that
- * cell's number. Chosen by hand for these six and pinned by looking at it:
- * a seventh town needs the same check.
- */
-const TOWNS: { name: string; lon: number; lat: number; above: boolean }[] = [
-  { name: "الخرطوم", lon: 32.53, lat: 15.6, above: true },
-  { name: "بورتسودان", lon: 37.22, lat: 19.62, above: true },
-  { name: "القضارف", lon: 35.39, lat: 14.03, above: true },
-  { name: "الأبيض", lon: 30.22, lat: 13.18, above: false },
-  { name: "نيالا", lon: 24.88, lat: 12.05, above: true },
-  { name: "دنقلا", lon: 30.48, lat: 19.17, above: false },
-];
 
 const ar = (n: number) => Math.round(n).toLocaleString("ar", { useGrouping: false });
 
@@ -106,8 +91,8 @@ export default function RainMap({
           .map((c) => (
             <text
               key={`t${c.lon},${c.lat}`}
-              x={x(c.lon)}
-              y={y(c.lat) + (showTowns ? CH * 0.2 : 0)}
+              x={x(c.pLon)}
+              y={y(c.pLat) + (c.pLon === c.lon && c.pLat === c.lat && showTowns ? CH * 0.2 : 0)}
               textAnchor="middle"
               dominantBaseline="central"
               fontSize={Math.abs(c.v) >= 999.5 ? 8.5 : 11}
@@ -124,7 +109,7 @@ export default function RainMap({
           ))}
 
         {showTowns &&
-          TOWNS.map((t) => (
+          MAP_TOWNS.map((t) => (
             <g key={t.name}>
               <circle cx={x(t.lon)} cy={y(t.lat)} r={2.5} fill="var(--danger)" />
               <text

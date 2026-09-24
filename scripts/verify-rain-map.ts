@@ -27,11 +27,16 @@ ok(SUDAN_BORDER.length > 50, "حدود السودان مرسومة بأكثر م
 ok(insideSudan([32.53, 15.6]), "الخرطوم داخل الحدود");
 ok(insideSudan([35.39, 14.03]), "القضارف داخل الحدود");
 ok(insideSudan([24.88, 12.05]), "نيالا داخل الحدود");
+ok(insideSudan([36.64, 22.22]), "حلايب داخل الحدود");
+ok(insideSudan([36.4, 22.37]), "وأبو رماد داخلها");
+ok(RAIN_CELLS.some((c) => c.labelled && c.lat > 22 && c.lon > 35), "ولمثلث حلايب مربّعٌ برقمه");
+ok(RAIN_CELLS.every((c) => insideSudan([c.pLon, c.pLat])), "وكلّ نقطة توقّعٍ داخل الحدود لا في البحر ولا عند الجيران");
+ok(!insideSudan([32.9, 24.09]), "أسوان خارجها");
 ok(!insideSudan([31.23, 30.04]), "القاهرة خارجها");
 ok(!insideSudan([38.74, 9.03]), "أديس أبابا خارجها");
 ok(!insideSudan([31.58, 4.85]), "جوبا خارجها — الحدود بعد ٢٠١١");
-ok(RAIN_CELLS.length >= 60 && RAIN_CELLS.length <= 120, `عدد المربّعات معقول (${RAIN_CELLS.length})`);
-ok(RAIN_CELLS.every((c) => c.lat > 8 && c.lat < 23 && c.lon > 21 && c.lon < 39), "كلّها في صندوق السودان");
+ok(RAIN_CELLS.length >= 60 && RAIN_CELLS.length <= 100, `عدد المربّعات معقول (${RAIN_CELLS.length})`);
+ok(RAIN_CELLS.every((c) => c.lat > 8 && c.lat < 24 && c.lon > 21 && c.lon < 39), "كلّها في صندوق السودان");
 ok(
   RAIN_CELLS.some((c) => c.labelled && Math.abs(c.lon - 32.5) <= 0.75 && Math.abs(c.lat - 15.25) <= 0.75),
   "مربّع الخرطوم موجود ويحمل رقماً",
@@ -47,8 +52,8 @@ ok(bandFor(200).min === 60, "٢٠٠ ← أعلى درجة");
 console.log("\nالجمع:");
 {
   const cells = [
-    { lon: 32.5, lat: 15.25, labelled: true },
-    { lon: 34, lat: 13.75, labelled: true },
+    { lon: 32.5, lat: 15.25, pLon: 32.5, pLat: 15.25, labelled: true },
+    { lon: 34, lat: 13.75, pLon: 34, pLat: 13.75, labelled: true },
   ];
   const loc = (rain: (number | null)[]) => ({
     daily: {

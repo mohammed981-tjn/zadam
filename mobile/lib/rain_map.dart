@@ -54,14 +54,22 @@ class RainCell {
   const RainCell({
     required this.lon,
     required this.lat,
+    required this.pLon,
+    required this.pLat,
     required this.labelled,
     required this.values,
   });
 
+  /// Centre of the cell, where it is drawn.
   final double lon;
   final double lat;
 
-  /// Centre inside the border: only these carry a number.
+  /// Where the forecast was read and the number is written: the centre, or
+  /// the middle of the inside part of an edge cell (Halaib's, for one).
+  final double pLon;
+  final double pLat;
+
+  /// Enough of the cell inside the border to carry a number.
   final bool labelled;
 
   /// Layer key to value; a missing or null value is not drawn.
@@ -90,6 +98,28 @@ class DailyTable {
   final List<TownForecast> towns;
 }
 
+class MapTown {
+  const MapTown(this.name, this.lon, this.lat, {required this.above});
+
+  final String name;
+  final double lon;
+  final double lat;
+
+  /// Name above the dot, or below it — whichever is clear of the numbers.
+  final bool above;
+}
+
+/// Used only if the server sends no towns (a response from before it did).
+const fallbackTowns = <MapTown>[
+  MapTown('الخرطوم', 32.53, 15.6, above: true),
+  MapTown('بورتسودان', 37.22, 19.62, above: true),
+  MapTown('القضارف', 35.39, 14.03, above: true),
+  MapTown('الأبيض', 30.22, 13.18, above: false),
+  MapTown('نيالا', 24.88, 12.05, above: true),
+  MapTown('دنقلا', 30.48, 19.17, above: false),
+  MapTown('حلايب', 36.64, 22.22, above: false),
+];
+
 class RainGrid {
   const RainGrid({
     required this.from,
@@ -98,6 +128,7 @@ class RainGrid {
     required this.border,
     required this.layers,
     required this.cells,
+    this.towns = fallbackTowns,
     this.daily,
   });
 
@@ -109,6 +140,7 @@ class RainGrid {
   final List<(double, double)> border;
   final List<MapLayer> layers;
   final List<RainCell> cells;
+  final List<MapTown> towns;
   final DailyTable? daily;
 
   /// The rain layer's bands, for shading the daily table like the map.
@@ -120,6 +152,7 @@ class RainGrid {
     double? nn(Object? v) => v == null ? null : (v as num).toDouble();
 
     final daily = json['daily'] as Map<String, dynamic>?;
+    final towns = json['towns'] as List<dynamic>?;
 
     return RainGrid(
       from: json['from'] as String,
@@ -153,10 +186,19 @@ class RainGrid {
         return RainCell(
           lon: n(m['lon']),
           lat: n(m['lat']),
+          pLon: nn(m['pLon']) ?? n(m['lon']),
+          pLat: nn(m['pLat']) ?? n(m['lat']),
           labelled: m['labelled'] as bool,
           values: values,
         );
       }).toList(),
+      towns: towns == null
+          ? fallbackTowns
+          : towns.map((t) {
+              final m = t as Map<String, dynamic>;
+              return MapTown(m['name'] as String, n(m['lon']), n(m['lat']),
+                  above: m['above'] as bool? ?? true);
+            }).toList(),
       daily: daily == null
           ? null
           : DailyTable(

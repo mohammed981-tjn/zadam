@@ -213,16 +213,6 @@ class _Projection {
       );
 }
 
-/// Same six towns as the website, with the label on the side clear of the
-/// cell's number.
-const _towns = <(String, double, double, bool)>[
-  ('الخرطوم', 32.53, 15.6, true),
-  ('بورتسودان', 37.22, 19.62, true),
-  ('القضارف', 35.39, 14.03, true),
-  ('الأبيض', 30.22, 13.18, false),
-  ('نيالا', 24.88, 12.05, true),
-  ('دنقلا', 30.48, 19.17, false),
-];
 
 class _RainPainter extends CustomPainter {
   _RainPainter({
@@ -289,7 +279,9 @@ class _RainPainter extends CustomPainter {
       final v = c.values[layer.key];
       if (v == null) continue;
       final band = layer.bandFor(v);
-      final centre = at(c.lon, c.lat) + Offset(0, showTowns ? cellH * 0.2 : 0);
+      final atCentre = c.pLon == c.lon && c.pLat == c.lat;
+      final centre = at(c.pLon, c.pLat) +
+          Offset(0, showTowns && atCentre ? cellH * 0.2 : 0);
       _text(canvas, '${v.round()}', centre,
           size: v.abs() >= 999.5 ? fontSize * 0.78 : fontSize,
           bold: true,
@@ -298,10 +290,11 @@ class _RainPainter extends CustomPainter {
     }
 
     if (!showTowns) return;
-    for (final (name, lon, lat, above) in _towns) {
-      final o = at(lon, lat);
+    for (final t in grid.towns) {
+      final o = at(t.lon, t.lat);
       canvas.drawCircle(o, 2.5, Paint()..color = const Color(0xFFB3261E));
-      _text(canvas, name, o + Offset(0, above ? -fontSize * 0.8 : fontSize * 0.8),
+      _text(canvas, t.name,
+          o + Offset(0, t.above ? -fontSize * 0.8 : fontSize * 0.8),
           size: fontSize * 0.8, colour: foreground, halo: card);
     }
   }
