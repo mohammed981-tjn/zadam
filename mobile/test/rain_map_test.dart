@@ -108,6 +108,36 @@ void main() {
     expect(g.towns.single.above, isFalse);
   });
 
+  test('soil is coloured without numbers, and the canal route parses', () {
+    final g = RainGrid.fromJson({
+      ...json,
+      'layers': [
+        ...(json['layers'] as List<dynamic>),
+        {
+          'key': 'soil',
+          'title': 'التربة',
+          'note': 'صنف التربة',
+          'unit': 'تصنيف WRB',
+          'numbers': false,
+          'bands': [
+            {'min': 0, 'label': 'طينية متشقّقة', 'fill': '#5b4a3a', 'ink': '#ffffff'},
+          ],
+        },
+      ],
+      'canalRoute': [
+        [32.51, 15.24],
+        [32.23, 15.51],
+        [32.51, 15.78],
+      ],
+    });
+    expect(g.layers.last.numbers, isFalse);
+    expect(g.layers.first.numbers, isTrue, reason: 'absent means a number layer');
+    expect(g.canalRoute, hasLength(3));
+    expect(g.canalRoute[1], (32.23, 15.51));
+    expect(RainGrid.fromJson(json).canalRoute, isEmpty,
+        reason: 'an older server sends no route');
+  });
+
   test('bad colours are null, not black', () {
     expect(parseHex('var(--card)'), isNull);
     expect(parseHex('#fff'), isNull);

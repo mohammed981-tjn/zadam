@@ -33,6 +33,7 @@ class MapLayer {
     required this.note,
     required this.unit,
     required this.bands,
+    this.numbers = true,
   });
 
   final String key;
@@ -40,6 +41,10 @@ class MapLayer {
   final String note;
   final String unit;
   final List<RainBand> bands;
+
+  /// False for a layer whose value is a class (the soil group): coloured,
+  /// with nothing written in the cell.
+  final bool numbers;
 
   RainBand bandFor(double v) {
     var b = bands.first;
@@ -129,6 +134,7 @@ class RainGrid {
     required this.layers,
     required this.cells,
     this.towns = fallbackTowns,
+    this.canalRoute = const [],
     this.daily,
   });
 
@@ -141,6 +147,9 @@ class RainGrid {
   final List<MapLayer> layers;
   final List<RainCell> cells;
   final List<MapTown> towns;
+
+  /// The Arc Canal's line, [lon, lat] pairs; empty from an older server.
+  final List<(double, double)> canalRoute;
   final DailyTable? daily;
 
   /// The rain layer's bands, for shading the daily table like the map.
@@ -153,6 +162,7 @@ class RainGrid {
 
     final daily = json['daily'] as Map<String, dynamic>?;
     final towns = json['towns'] as List<dynamic>?;
+    final route = json['canalRoute'] as List<dynamic>?;
 
     return RainGrid(
       from: json['from'] as String,
@@ -168,6 +178,7 @@ class RainGrid {
           title: m['title'] as String,
           note: m['note'] as String,
           unit: m['unit'] as String,
+          numbers: m['numbers'] as bool? ?? true,
           bands: (m['bands'] as List<dynamic>).map((b) {
             final bm = b as Map<String, dynamic>;
             return RainBand(
@@ -199,6 +210,11 @@ class RainGrid {
               return MapTown(m['name'] as String, n(m['lon']), n(m['lat']),
                   above: m['above'] as bool? ?? true);
             }).toList(),
+      canalRoute: route == null
+          ? const []
+          : route
+              .map((p) => (n((p as List<dynamic>)[0]), n(p[1])))
+              .toList(),
       daily: daily == null
           ? null
           : DailyTable(

@@ -76,30 +76,7 @@ export function elevationRange() {
   return { lo, hi };
 }
 
-/**
- * The soil groups SoilGrids can return here, in Arabic, with what each means
- * for a canal and for irrigation — the reason to map them at all. Colours
- * follow the usual WRB map convention loosely (vertisols dark, arenosols
- * sand-yellow) so a reader who has seen a soil map recognises them.
- */
-export const WRB: Record<string, { ar: string; note: string; fill: string }> = {
-  Vertisols: { ar: "طينية متشقّقة (فيرتيسول)", note: "تمسك الماء جيداً وتتشقّق حين تجفّ — تحتاج تبطيناً مرناً", fill: "#5b4a3a" },
-  Arenosols: { ar: "رملية (أرينوسول)", note: "ترشيحٌ عالٍ — القناة فيها تحتاج تبطيناً، والريّ بالتنقيط", fill: "#e9d59a" },
-  Leptosols: { ar: "ضحلة صخرية (ليبتوسول)", note: "حفرٌ صعب ورقعةٌ لا تصلح للزراعة", fill: "#9a9a9a" },
-  Regosols: { ar: "مفكّكة غير متطوّرة (ريغوسول)", note: "خفيفة؛ تُزرع بعناية وتنجرف", fill: "#d8c7a4" },
-  Cambisols: { ar: "حديثة التكوّن (كامبيسول)", note: "متوسطة، تصلح للزراعة المرويّة", fill: "#c49a6c" },
-  Calcisols: { ar: "كلسية (كالسيسول)", note: "كربونات في القطاع؛ تُراقب القلوية", fill: "#e3d3c3" },
-  Gypsisols: { ar: "جبسية (جيبسيسول)", note: "الجبس يذوب تحت القنوات — خطر هبوط", fill: "#f1ece0" },
-  Fluvisols: { ar: "رسوبية نهرية (فلوفيسول)", note: "خصبة، على ضفاف المجاري", fill: "#7fa7a0" },
-  Luvisols: { ar: "طين مغسول (لوفيسول)", note: "خصبة ومتوسطة النفاذية", fill: "#b5764a" },
-  Lixisols: { ar: "مغسولة فقيرة (ليكسيسول)", note: "ضعيفة الخصوبة، تحتاج تسميداً", fill: "#cf9b6b" },
-  Solonetz: { ar: "صودية (سولونتز)", note: "صوديوم عالٍ — أفسدت مشاريع ريّ في المنطقة", fill: "#8f6fa3" },
-  Solonchaks: { ar: "ملحية (سولونتشاك)", note: "ملوحة — لا تُروى دون صرف", fill: "#c9b3d9" },
-  Plinthosols: { ar: "حديدية (بلينثوسول)", note: "طبقة حديدية تتصلّب", fill: "#a0522d" },
-};
-
-export const wrbInfo = (name: string | null) =>
-  name ? (WRB[name] ?? { ar: name, note: "", fill: "#cccccc" }) : null;
+export { WRB, wrbInfo } from "./soilClasses";
 
 /**
  * A first sort of what each drainage crossing asks of the canal, by upstream

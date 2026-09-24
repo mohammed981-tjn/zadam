@@ -103,19 +103,32 @@ jobs:
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
             --dart-define=SITE_URL="$SITE_URL"
 
+      # The APK is kept from push builds only. A branch with an open pull
+      # request builds every commit twice — once for the push, once for the
+      # pull request — and two copies of a 50 MB file for every commit, kept a
+      # month, filled the account's artifact storage on 24 September 2026 and
+      # failed a build that had compiled and passed every test.
+      #
+      # And an upload that fails does not fail the build: by this step the app
+      # has been analysed, tested and assembled, which is what this workflow
+      # proves. The file is a convenience for installing it by hand.
       - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
         with:
           name: sudagri-apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
 
       # Without these a crash report from an obfuscated build is unreadable
       # noise. They are only useful next to the exact APK they came from, hence
       # the run number in the name.
       - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
         with:
           name: sudagri-symbols-${{ github.run_number }}
           path: mobile/build/symbols
           if-no-files-found: warn
-          retention-days: 90
+          retention-days: 30
