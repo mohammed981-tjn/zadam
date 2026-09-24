@@ -132,6 +132,7 @@ export async function createCall(fd: FormData) {
       needed,
       hosting: str(fd, "hosting") || null,
       bring_tools: str(fd, "bring_tools") || null,
+      canal_id: str(fd, "canal_id") || null,
     })
     .select("id")
     .single();

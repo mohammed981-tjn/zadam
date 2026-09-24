@@ -148,6 +148,9 @@ jobs:
       - name: الجودية — الوساطة بخطواتها
         run: ./scripts/verify-judiyya.sh
 
+      - name: الترع — الحدود والنصيب والنوبات
+        run: ./scripts/verify-canals.sh
+
       - name: الردّ الآلي على الشكاوى
         run: ./scripts/verify-support-auto-reply.sh
 

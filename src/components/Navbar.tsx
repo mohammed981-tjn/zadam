@@ -133,6 +133,7 @@ export default async function Navbar() {
       { href: "/nafir/faza", label: "الفزعة" },
       { href: "/nafir/shura", label: "الشورى" },
       { href: "/nafir/judiyya", label: "الجودية" },
+      { href: "/nafir/canals", label: "الترع" },
       { href: "/nafir/pulse", label: "نبض الثقة" },
     ],
   });

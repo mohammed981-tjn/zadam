@@ -175,6 +175,7 @@ export interface NafirCall {
   needed: number;
   hosting: string | null;
   bring_tools: string | null;
+  canal_id: string | null;
   status: "open" | "done" | "cancelled";
   outcome: string | null;
   attended: number | null;
@@ -391,4 +392,48 @@ export interface JudiyyaPanelSeat {
   approved_a: boolean;
   approved_b: boolean;
   accepted_at: string | null;
+}
+
+/* ───────────────────────── الترع ───────────────────────── */
+
+export const WEEKDAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+
+export interface CanalSummary {
+  id: string;
+  name: string;
+  state: string;
+  locality: string;
+  description: string | null;
+  members: number;
+  feddans: number;
+}
+
+export interface CanalMember {
+  canal_id: string;
+  user_id: string;
+  display_name: string;
+  feddans: number;
+  role: "member" | "steward";
+  status: "pending" | "member";
+  joined_at: string;
+}
+
+export interface CanalTurn {
+  id: string;
+  canal_id: string;
+  user_id: string;
+  weekday: number;
+  starts: string;
+  ends: string;
+}
+
+/**
+ * Each member's share of the canal's maintenance, in proportion to the land it
+ * waters — Ostrom's 2B, proportional equivalence between benefits and costs.
+ * Pending applicants carry no share until a steward accepts them.
+ */
+export function maintenanceShares(members: CanalMember[]): Map<string, number> {
+  const active = members.filter((m) => m.status === "member");
+  const total = active.reduce((a, m) => a + Number(m.feddans), 0);
+  return new Map(active.map((m) => [m.user_id, total > 0 ? Number(m.feddans) / total : 0]));
 }
