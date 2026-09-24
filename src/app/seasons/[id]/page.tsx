@@ -123,7 +123,14 @@ export default async function SeasonPage({
         </p>
       )}
 
-      <YieldBenchmark cropKey={season.crop_key} />
+      <YieldBenchmark
+        cropKey={season.crop_key}
+        declaredKgPerFeddan={
+          season.harvest_kg != null && season.feddans > 0
+            ? Number(season.harvest_kg) / Number(season.feddans)
+            : null
+        }
+      />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         {[
@@ -346,6 +353,24 @@ export default async function SeasonPage({
         stages.length > 0 && (
           <form action={completeSeason} className="mt-10">
             <input type="hidden" name="season_id" value={season.id} />
+            <label className="mb-3 block max-w-xs text-sm">
+              <span className="mb-1 block font-medium">
+                الوزن المحصود (كجم) — اختياري
+              </span>
+              <input
+                name="harvest_kg"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                className={field + " w-full"}
+                placeholder={`مثلاً: ${n0(season.feddans * 250)}`}
+              />
+              <span className="mt-1 block text-xs text-muted">
+                يُقسَم على {season.feddans} فدان ويُقارَن بالمتوسّط الوطني. لا يدخل
+                في أيّ درجة.
+              </span>
+            </label>
             <button
               type="submit"
               className="rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground hover:opacity-90"

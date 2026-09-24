@@ -275,11 +275,23 @@ export async function completeSeason(formData: FormData) {
   const supabase = await createClient();
   const seasonId = str(formData, "season_id");
 
+  // الوزن المحصود اختياريّ. فراغٌ يبقى null؛ ورقمٌ غير صالح يُرفض بدل أن
+  // يُحفظ صفراً — فالصفرُ ادّعاءٌ بمحصولٍ فاشل، والفراغُ مجرّد «لم يُكتب».
+  const harvestRaw = str(formData, "harvest_kg");
+  const harvestKg = harvestRaw === "" ? null : Number(harvestRaw);
+  if (harvestKg !== null && (!Number.isFinite(harvestKg) || harvestKg < 0)) {
+    redirect(
+      `/seasons/${seasonId}?error=${encodeURIComponent(
+        "الوزن المحصود يجب أن يكون رقماً موجباً بالكيلوغرام، أو يُترك فارغاً.",
+      )}`,
+    );
+  }
+
   // Closing a season credits the operator's track record, so "did it close?"
   // has to be answerable. RLS filtering returns no error and no rows.
   const { data: closed, error } = await supabase
     .from("seasons")
-    .update({ status: "completed" })
+    .update({ status: "completed", harvest_kg: harvestKg })
     .eq("id", seasonId)
     .select("id");
 

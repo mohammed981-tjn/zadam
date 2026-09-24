@@ -29,12 +29,13 @@ function median(xs: number[]): number | null {
  * own national figure, Egypt as the single sharpest comparison (same river,
  * same climate band, irrigated), and the median of arid open-field peers.
  *
- * WHY NO "YOUR YIELD" YET
+ * "YOUR YIELD" APPEARS ONLY ONCE IT EXISTS
  *
- * A season records costs, stages and evidence, but not the harvested weight —
- * there is no column for it. Printing a comparison with a blank where the
- * farmer's own number belongs would be a form pretending to be a result. So
- * this shows the reference now, and says plainly what it will be compared to.
+ * The harvested weight is typed when the season is closed (`harvest_kg`, added
+ * 24 September 2026). Until then there is nothing to compare, and printing a
+ * blank tile where the farmer's own number belongs would be a form pretending
+ * to be a result — so the tile is simply absent. When present it is labelled
+ * as declared: nothing weighs it.
  *
  * WHY THE LATEST YEAR ONLY
  *
@@ -42,7 +43,14 @@ function median(xs: number[]): number | null {
  * September 2026), so an eight-year trend line cannot be drawn honestly yet.
  * When the earlier years are loaded, the trend belongs here.
  */
-export default async function YieldBenchmark({ cropKey }: { cropKey: string }) {
+export default async function YieldBenchmark({
+  cropKey,
+  declaredKgPerFeddan = null,
+}: {
+  cropKey: string;
+  /** من `seasons.harvest_kg` ÷ الأفدنة — يصرّح به المزارع عند الإقفال. */
+  declaredKgPerFeddan?: number | null;
+}) {
   const item = FAOSTAT_ITEM[cropKey];
   if (!item) return null;
 
@@ -72,7 +80,17 @@ export default async function YieldBenchmark({ cropKey }: { cropKey: string }) {
     PEER_AREAS.map((a) => at(a)).filter((v): v is number => v !== null),
   );
 
-  const tiles: { label: string; kg: number; note?: string }[] = [
+  const tiles: { label: string; kg: number; note?: string; own?: boolean }[] = [
+    ...(declaredKgPerFeddan !== null
+      ? [
+          {
+            label: "غلّتك",
+            kg: declaredKgPerFeddan / HECTARES_PER_FEDDAN,
+            note: "كما صرّحتَ بها عند الإقفال",
+            own: true,
+          },
+        ]
+      : []),
     {
       label: `السودان ${latestYear}`,
       kg: sudan,
@@ -90,9 +108,12 @@ export default async function YieldBenchmark({ cropKey }: { cropKey: string }) {
   return (
     <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-card">
       <h2 className="font-bold">أين تقف غلّةُ هذا المحصول؟</h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded-xl bg-background p-3">
+          <div
+            key={t.label}
+            className={`rounded-xl p-3 ${t.own ? "border border-primary/40 bg-primary/5" : "bg-background"}`}
+          >
             <p className="text-xs text-muted">{t.label}</p>
             <p className="figure text-lg font-black text-primary">
               {n0(perFeddan(t.kg))}{" "}
