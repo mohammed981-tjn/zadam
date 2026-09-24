@@ -1,4 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      الإنترنت في البيان الرئيسي لا في بياني debug وprofile وحدهما.
+
+      Flutter's template grants INTERNET only to debug and profile builds — the
+      engine needs it there for hot reload. Everything this app does (knowledge
+      base over PostgREST, the assistant route) is a network call, and CI ships
+      `flutter build apk --release`. Without this line the released APK builds,
+      installs, and then fails every request with "تعذّر الاتصال": it had no
+      permission to open a socket at all.
+    -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="سودجري"
         android:name="${applicationName}"
