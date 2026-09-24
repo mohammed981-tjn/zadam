@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لا اتصال — سودجري</title>
+<style>
+  :root { --bg:#f6f4ee; --fg:#1d2a1f; --muted:#5b6b5e; --primary:#1f7a3d; --card:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121712; --fg:#e8efe8; --muted:#9fb0a2; --primary:#4fbf72; --card:#1b221c; } }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--fg);
+         font-family: system-ui, "Segoe UI", Tahoma, sans-serif; padding:16px; }
+  main { max-width:26rem; background:var(--card); border-radius:16px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  h1 { margin:0 0 8px; font-size:1.4rem; }
+  p { margin:0 0 12px; line-height:1.8; color:var(--muted); }
+  ul { margin:0 0 16px; padding-inline-start:1.2rem; line-height:2; }
+  a { color:var(--primary); font-weight:700; }
+  button { background:var(--primary); color:#fff; border:0; border-radius:12px; padding:10px 18px; font:inherit; font-weight:700; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🌾 لا يوجد اتصال بالإنترنت</h1>
+  <p>هذه الصفحة لم تُفتح من قبل على هذا الهاتف، فلا نسخة محفوظة منها. الصفحات العامّة التي فتحتَها سابقاً تعمل بلا إنترنت:</p>
+  <ul>
+    <li><a href="/">الرئيسية</a></li>
+    <li><a href="/tools/water">حاسبة الاحتياج المائي</a></li>
+    <li><a href="/knowledge">قاعدة المعرفة</a></li>
+  </ul>
+  <button onclick="location.reload()">أعد المحاولة</button>
+</main>
+</body>
+</html>
