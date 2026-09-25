@@ -91,6 +91,38 @@ class Project {
       );
 }
 
+/// One item of «جديد سودجري», as the website's /news page shows it.
+class NewsItem {
+  const NewsItem({
+    required this.title,
+    required this.body,
+    required this.publishedAt,
+    this.summary,
+    this.linkPath,
+    this.linkLabel,
+  });
+
+  final String title;
+  final String body;
+  final DateTime publishedAt;
+  final String? summary;
+
+  /// A page on the website the item points to, e.g. /arc-canal.
+  final String? linkPath;
+  final String? linkLabel;
+
+  factory NewsItem.fromJson(Map<String, dynamic> json) => NewsItem(
+        title: json['title'] as String? ?? '',
+        body: json['body'] as String? ?? '',
+        publishedAt:
+            DateTime.tryParse(json['published_at'] as String? ?? '') ??
+                DateTime.now(),
+        summary: json['summary'] as String?,
+        linkPath: json['link_path'] as String?,
+        linkLabel: json['link_label'] as String?,
+      );
+}
+
 /// Raised for anything the caller should show the user rather than swallow.
 class ApiException implements Exception {
   ApiException(this.message);
@@ -150,6 +182,19 @@ class SudagriApi {
       'order': 'created_at.desc',
     });
     return rows.map((e) => Project.fromJson(e)).toList();
+  }
+
+  /// The news, newest first. Row-level security returns only what is
+  /// published and whose moment has come — the same rows the website's /news
+  /// page reads, so a scheduled item appears in both at once.
+  Future<List<NewsItem>> news() async {
+    final rows = await _get('announcements', {
+      'select': 'title,summary,body,link_path,link_label,published_at',
+      'published_at': 'not.is.null',
+      'order': 'published_at.desc',
+      'limit': '50',
+    });
+    return rows.map((e) => NewsItem.fromJson(e)).toList();
   }
 
   /// The published knowledge entries.

@@ -3,15 +3,14 @@ import { Suspense } from "react";
 import Image from "next/image";
 import { SUDAGRI_LOGO } from "@/lib/brand";
 import { PHOTOS } from "@/lib/photos";
-import PhotoStrip, { type StripItem } from "@/components/PhotoStrip";
+import { PhotoBoard, QuickTabs, type BoardTile, type QuickTab } from "@/components/HomeBoard";
 import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
-import KnowledgeCard from "@/components/KnowledgeCard";
-import Icon, { type IconName } from "@/components/Icon";
-import NewsStrip from "@/components/NewsStrip";
+import Icon from "@/components/Icon";
 import RainHomeCard from "@/components/RainHomeCard";
+import HeroVideo from "@/components/HeroVideo";
 import { CROPS, STATIONS } from "@/lib/agronomy";
-import type { KnowledgeEntry, Project } from "@/types/database";
+import type { Project } from "@/types/database";
 
 /**
  * الصفحة الأولى — ما تملكه المنصّة، لا ما تعد به.
@@ -33,78 +32,86 @@ import type { KnowledgeEntry, Project } from "@/types/database";
 const n0 = (v: number) => v.toLocaleString("en-US");
 
 /**
- * بطاقاتُ الشريط — كلُّ واحدةٍ تقود إلى ما يُفتح للزائر بلا حساب.
+ * بطاقاتُ اللوحة — كلُّ واحدةٍ تقود إلى ما يُفتح للزائر بلا حساب.
  * الأرضُ والقطيعُ يحتاجان حساباً، فبابُهما `/signup` الذي يقول ذلك صراحةً،
- * لا `/lands` التي تُحوِّل بصمتٍ إلى شاشة الدخول.
+ * لا `/lands` التي تُحوِّل بصمتٍ إلى شاشة الدخول. والأولى، حاسبةُ الماء،
+ * أكبرُها: هي ما يأتي المزارعون من أجله.
  */
-const STRIP: StripItem[] = [
+const BOARD: BoardTile[] = [
+  {
+    photo: PHOTOS.solarPump,
+    alt: "مزارع عند مضخة تعمل بالطاقة الشمسية تصبّ الماء في ترعة إلى جوار حقل بصل",
+    title: "كم يحتاج محصولك من الماء؟",
+    note: "احسبه على مناخ ولايتك وطريقة ريّك — مجاناً وبلا تسجيل.",
+    href: "/tools/water",
+  },
   {
     photo: PHOTOS.geziraFarmer,
     alt: "مزارع يقف عند حقل ذرة إلى جوار ترعة ريّ ترابية",
     title: "سجّل أرضك ووثّق موسمك",
-    note: "أرضٌ موثّقة، وموسمٌ بمراحله وأدلّته — يحتاج حساباً.",
+    note: "أرضٌ موثّقة وموسمٌ بأدلّته — يحتاج حساباً.",
     href: "/signup",
-  },
-  {
-    photo: PHOTOS.solarPump,
-    alt: "مزارع عند مضخة تعمل بالطاقة الشمسية تصبّ الماء في ترعة إلى جوار حقل بصل",
-    title: "حاسبة الاحتياج المائي",
-    note: "بمنهجية FAO-56 على مناخ ولايتك وطريقة ريّك.",
-    href: "/tools/water",
   },
   {
     photo: PHOTOS.grainSoil,
     alt: "كفّان تغرفان حبوباً من جوال، وإلى جوارهما عيّنة تربة ودفتر",
-    title: "قاعدة المعرفة الزراعية",
+    title: "قاعدة المعرفة",
     note: "محاصيلُ وتربةٌ وماء — كلُّ مُدخلٍ بمصدره.",
     href: "/knowledge",
+  },
+  {
+    photo: PHOTOS.womenHarvest,
+    alt: "نساء يحصدن الفول السوداني ويغربلنه في سلّة من السعف",
+    title: "النفير",
+    note: "العملُ المشترك: نفيرٌ وفزعةٌ وشورى وجودية.",
+    href: "/nafir",
+  },
+  {
+    photo: PHOTOS.canalRegulator,
+    alt: "قنطرة ريّ على ترعة",
+    title: "الترع",
+    note: "أعضاءُ كلّ ترعة ونوباتُ مائها وواجبُ صيانتها.",
+    href: "/nafir/canals",
   },
   {
     photo: PHOTOS.landSurvey,
     alt: "مسّاح يحمل جهاز تحديد مواقع على أرض متشقّقة وجرّار يحرث خلفه",
     title: "الخدمات التعاقدية",
-    note: "حراثةٌ ومساحةٌ وخدماتٌ بسعرٍ معلن ومدّةٍ معلنة.",
+    note: "حراثةٌ ومساحةٌ وريّ بسعرٍ معلن.",
     href: "/services",
-  },
-  {
-    photo: PHOTOS.womenHarvest,
-    alt: "نساء يحصدن الفول السوداني ويغربلنه في سلّة من السعف",
-    title: "لكلّ من يزرع",
-    note: "الحسابُ مجّانيّ، والأرضُ تُوثَّق باسم صاحبها أو صاحبتها.",
-    href: "/signup",
-  },
-  {
-    photo: PHOTOS.exportStore,
-    alt: "مخزن فيه جوالات سمسم وصمغ عربي وعمّال يحمّلون شاحنة",
-    title: "ممرّ الصادر السوداني",
-    note: "الصمغُ العربيّ والسمسمُ والماشية — حصصُها وأسواقُها.",
-    href: "/export",
-  },
-  {
-    photo: PHOTOS.herdCanal,
-    alt: "قطيع بقر ذي سنام يسير بمحاذاة ترعة في الغبار",
-    title: "دورات الإنتاج الحيواني",
-    note: "علفُ القطيع وميزانيّتُه مرحلةً مرحلة — يحتاج حساباً.",
-    href: "/signup",
   },
   {
     photo: PHOTOS.vetHerd,
     alt: "طبيب بيطري يحقن بقرة ذات سنام وراعيها يمسك قرنها",
     title: "خدماتٌ للقطيع",
-    note: "تطعيمٌ وعلاجٌ بيطريّ من مقدّمي خدمةٍ مسجّلين.",
+    note: "تطعيمٌ وعلاجٌ من مقدّمي خدمةٍ مسجّلين.",
     href: "/services",
+  },
+  {
+    photo: PHOTOS.herdCanal,
+    alt: "قطيع بقر ذي سنام يسير بمحاذاة ترعة في الغبار",
+    title: "الإنتاج الحيواني",
+    note: "علفُ القطيع وميزانيّتُه مرحلةً مرحلة — يحتاج حساباً.",
+    href: "/signup",
+  },
+  {
+    photo: PHOTOS.exportStore,
+    alt: "مخزن فيه جوالات سمسم وصمغ عربي وعمّال يحمّلون شاحنة",
+    title: "ممرّ الصادر",
+    note: "الصمغُ والسمسمُ والماشية — حصصُها وأسواقُها.",
+    href: "/export",
   },
   {
     photo: PHOTOS.dateHarvest,
     alt: "رجل على نخلة يُنزل سلّة تمر ورجال يتلقّونها والنيل خلفهم",
-    title: "البوّاباتُ الأربع لكلّ شحنة",
-    note: "المنشأ والصحّة والمطابقة والمال — وتعطّلُ واحدةٍ يوقف الصفقة.",
-    href: "/export",
+    title: "عروض التصدير",
+    note: "العروضُ المنشورة بمستنداتها.",
+    href: "/export/market",
   },
   {
     photo: PHOTOS.irrigatedPlain,
     alt: "سهل مرويّ من الجوّ بشبكة حقول هندسية",
-    title: "دراسة الجدوى المرحلية",
+    title: "دراسة الجدوى",
     note: "أين آخرُ مخرجٍ آمن قبل أن تُنفق أكثر.",
     href: "/tools/feasibility",
   },
@@ -112,7 +119,7 @@ const STRIP: StripItem[] = [
     photo: PHOTOS.nileDam,
     alt: "سدّ خرسانيّ على نهر واسع وخزانه خلفه",
     title: "القناة القوسية",
-    note: "٤١ قياساً من SRTM، وقناةٌ محجَّمةٌ بمعادلة مانينغ.",
+    note: "المسارُ والتضاريسُ والتربةُ والكلفة.",
     href: "/arc-canal",
   },
   {
@@ -124,32 +131,25 @@ const STRIP: StripItem[] = [
   },
 ];
 
+/** ما يعود إليه الناس: بلمسةٍ واحدة، دون المرور بالصور. */
+const TABS: QuickTab[] = [
+  { href: "/news", icon: "news", label: "الأخبار" },
+  { href: "/rain", icon: "cloud", label: "الأمطار" },
+  { href: "/guide", icon: "compass", label: "الدليل" },
+  { href: "/knowledge", icon: "book", label: "المعرفة" },
+  { href: "/tools/feasibility", icon: "chart", label: "الجدوى" },
+  { href: "/feedback", icon: "message", label: "ملاحظاتك" },
+];
+
 export default async function Home() {
   const supabase = await createClient();
 
-  const [
-    { data: projects },
-    { data: knowledge },
-    { count: kbCount },
-    { count: faoCount },
-  ] = await Promise.all([
+  const [{ data: projects }, { count: kbCount }, { count: faoCount }] = await Promise.all([
     supabase
       .from("projects")
       .select("*")
       .neq("status", "draft")
       .order("created_at", { ascending: false }),
-    // Mining lives in its own section — mixing it into the agricultural feed
-    // is exactly what confuses a visitor who came for one of the two.
-    supabase
-      .from("knowledge_entries")
-      .select("*")
-      .neq("crop", "تعدين")
-      // Regional reference material the assistant reads but the pages do not
-      // show. Without this the newest foreign entries would displace every
-      // Sudan-specific one a visitor came here for.
-      .eq("assistant_only", false)
-      .order("created_at", { ascending: false })
-      .limit(6),
     supabase.from("knowledge_entries").select("id", { count: "exact", head: true }),
     supabase
       .from("faostat_observations")
@@ -188,59 +188,24 @@ export default async function Home() {
     },
   ].filter((s): s is { value: string; label: string; note: string } => s !== null);
 
-  const tools: { href: string; icon: IconName; title: string; body: string }[] = [
-    {
-      href: "/tools/feasibility",
-      icon: "chart",
-      title: "دراسة الجدوى المرحلية",
-      body: "تقسّم المشروع مراحل، وتحسب عند كل مرحلة الغلّة التي تتعادل بها — فتعرف أين آخر مخرج آمن قبل أن تُنفق أكثر.",
-    },
-    {
-      href: "/knowledge",
-      icon: "book",
-      title: "قاعدة المعرفة",
-      body: "تجارب زراعية موثّقة من دول رائدة، كلٌّ منها بدولته المرجعية وبتنبيهٍ متى تحتاج المعلومة تحققاً محلياً قبل تطبيقها.",
-    },
-    {
-      href: "/arc-canal",
-      icon: "spark",
-      title: "دراسة القناة القوسية",
-      body: "قياسٌ وحساب: ٤١ ارتفاعاً من SRTM، وتربةٌ من SoilGrids، وقناةٌ محجَّمة بمعادلة مانينغ، وكلفةٌ مبنيّة من الكميّات.",
-    },
-  ];
-
   return (
     <div>
       {/* ───────────────────────── الواجهة ───────────────────────── */}
       <section className="mesh border-b border-border">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
           {/*
-            الشعارُ في مكانٍ يليق به، لا في زاويةِ شريط.
-
-            The mark in the header is 36px because that is what a header is,
-            and a badge carrying an illustrated scene and drawn Arabic
-            lettering has nothing to say at that size — the sorghum, the
-            cattle, the river and the wordmark are all there and none of them
-            is legible.
-
-            So the logo gets the hero: 340px beside the sentence on a wide
-            screen, and on a phone 56% of the screen's width — about 220px on
-            the 390px screen this platform is mostly read on. It is the first
-            thing on the page, at the size the artwork was drawn for.
-
-            `md:flex-row-reverse` and not `flex-row`: the page is RTL, so the
-            row already starts at the right. Reversing puts the logo on the
-            **left** — the eye lands on the sentence first and the logo closes
-            the line, which is the order a reader of Arabic expects.
-
-            `flex-col-reverse` on a phone: a logo under three buttons is a
-            footer, not a masthead. It sits above the headline, sized in `vw`
-            so it fills the same share of a small screen as of a large one,
-            with a `max-w` so it stops growing before it pushes the headline —
-            the one thing that has to survive the fold — off the screen.
+            فيديو المزارع في إطاره، يعمل حين يُطلب — فالزائرُ رآه على الشاشة
+            كاملةً في المقدّمة. والشعارُ بسنبلته الذهبيّة عاد بجوار العنوان
+            (المالك، 25 سبتمبر: «لا تحذفها، هي أجمل ما في الشاشة»).
           */}
-          <div className="flex flex-col-reverse items-center gap-8 md:flex-row-reverse md:items-center md:gap-12">
-            <div className="min-w-0 flex-1">
+          <HeroVideo />
+
+          {/*
+            `md:flex-row-reverse`: الصفحةُ من اليمين، فيقع الشعارُ يساراً ويبدأ
+            النظرُ بالجملة. وعلى الهاتف `flex-col-reverse`: الشعارُ فوق العنوان.
+          */}
+          <div className="mt-10 flex flex-col-reverse items-center gap-8 md:flex-row-reverse md:gap-12">
+          <div className="min-w-0 flex-1">
           <p className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
             <Icon name="wheat" className="size-5" />
             معرفة زراعية وبيانات مفتوحة — للسودان
@@ -260,8 +225,8 @@ export default async function Home() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            {/* والمزارعُ له بابٌ في الواجهة لا في أسفل الصفحة وحدها. وزرُّ
-                الحاسبة خرج من هنا إلى زرٍّ كبيرٍ خاصٍّ به تحت الأخبار. */}
+            {/* والمزارعُ له بابٌ في الواجهة لا في أسفل الصفحة وحدها، وحاسبةُ
+                الماء أكبرُ بطاقات اللوحة. */}
             <Link
               href="/signup"
               className="rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground shadow-raised transition hover:opacity-90"
@@ -275,24 +240,15 @@ export default async function Home() {
               اقرأ دراسة القناة القوسية
             </Link>
           </div>
-            </div>
+          </div>
 
-            {/*
-              `preload` وليس `priority` — الأخيرةُ متروكةٌ منذ Next 16.
-
-              This is the hero image and the largest thing on the page, so it is
-              the one worth fetching from the `<head>`. The blur placeholder
-              below means the column holds its shape and its colour from the
-              first frame rather than opening as a hole.
-            */}
-            <Image
-              src={SUDAGRI_LOGO}
-              alt="شعار سودجري — منصّة سودانية للزراعة والتجارة"
-              placeholder="blur"
-              preload
-              sizes="(min-width: 768px) 340px, 220px"
-              className="w-[56vw] max-w-[240px] shrink-0 md:w-[340px] md:max-w-none"
-            />
+          <Image
+            src={SUDAGRI_LOGO}
+            alt="شعار سودجري — منصّة سودانية للزراعة والتجارة"
+            placeholder="blur"
+            sizes="(min-width: 768px) 340px, 240px"
+            className="w-[60vw] max-w-[260px] shrink-0 md:w-[340px] md:max-w-none"
+          />
           </div>
 
           {/*
@@ -325,66 +281,32 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ───────────────────────── توقّع الأمطار ─────────────────────────
-       * أوّلُ ما بعد الواجهة (طلب المالك، 24 سبتمبر): الخريطةُ نفسها هنا،
-       * والبطاقةُ كلُّها تفتح صفحة /rain.
+      {/* ───────────────────────── التبويبات ─────────────────────────
+       * طلب المالك (25 سبتمبر): الرئيسيّةُ واجهةٌ ثمّ لوحة. والأخبار خرجت منها
+       * إلى صفحتها `/news`، ولها هنا تبويبٌ أوّل بدل شريطٍ بين الأقسام.
        */}
-      {/* Suspense so the rest of the page streams while the forecast loads. */}
+      <section className="mx-auto max-w-6xl px-4 pt-8">
+        <QuickTabs tabs={TABS} />
+      </section>
+
+      {/* ───────────────────────── توقّع الأمطار ─────────────────────────
+       * الخريطةُ نفسها هنا، والبطاقةُ كلُّها تفتح صفحة /rain.
+       */}
       <Suspense fallback={null}>
         <RainHomeCard />
       </Suspense>
 
-      {/* ───────────────────────── الصور ─────────────────────────
-       * تحت الواجهة مباشرةً: العنوانُ والأرقامُ الأربعةُ تبقى أوّلَ ما يُرى،
-       * والصورُ أوّلَ ما يليها. وكلُّ بطاقةٍ بابٌ إلى قسمٍ يُفتح بلا حساب.
-       */}
-      <PhotoStrip items={STRIP} />
-
-      {/* ───────────────────────── الأخبار ─────────────────────────
-       * ترتيبُ المالك (24 سبتمبر): تعريفٌ، ثمّ الصور، ثمّ الأخبار، ثمّ زرُّ
-       * الحاسبة. والشريطُ يختفي كلُّه حين لا خبر منشور، فلا عنوانَ فوق فراغ.
-       */}
-      <NewsStrip />
-
-      {/* ───────────────────────── حاسبة المياه ─────────────────────────
-       *
-       * زرٌّ كبير يفتح صفحتها، لا الحاسبةُ نفسُها هنا.
-       *
-       * The calculator is the tool farmers actually come for, so it gets the
-       * largest target on the page. But it stays on its own route: the form,
-       * the station table and the FAO-56 engine are the heaviest thing the site
-       * ships, and loading them on the homepage would slow the first paint on
-       * the rural connections this page is mostly read on — for every visitor,
-       * including the ones who came to read. A link costs nothing until pressed.
-       */}
+      {/* ───────────────────────── اللوحة ───────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 pt-10">
-        <Link
-          href="/tools/water"
-          className="reveal group flex items-center gap-4 rounded-2xl bg-primary p-6 text-primary-foreground shadow-raised transition hover:opacity-95 sm:p-8"
-        >
-          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary-foreground/15 sm:size-16">
-            <Icon name="droplet" className="size-8" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-xl font-black sm:text-2xl">
-              كم يحتاج محصولك من الماء؟
-            </span>
-            <span className="mt-1 block text-sm leading-relaxed opacity-90">
-              احسبه الآن على مناخ ولايتك وطريقة ريّك — مجاناً وبلا تسجيل.
-            </span>
-          </span>
-          <span
-            aria-hidden
-            className="text-2xl transition group-hover:-translate-x-1"
-          >
-            ←
-          </span>
-        </Link>
+        <h2 className="mb-4 font-bold" style={{ fontSize: "var(--text-section)" }}>
+          أقسام سودجري
+        </h2>
+        <PhotoBoard tiles={BOARD} />
       </section>
 
       {/* ───────────────────────── الحالة ───────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 pt-10">
-        <div className="reveal flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-5">
+      <section className="mx-auto max-w-6xl px-4 py-10">
+        <div className="flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-5">
           <Icon name="shield" className="mt-0.5 size-5 shrink-0 text-accent" />
           <p className="text-sm leading-relaxed">
             <strong className="font-bold">
@@ -396,143 +318,8 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ───────────────────────── المزارع ─────────────────────────
-       *
-       * القسمُ الذي لم يكن، وصفرُ الأراضي هو أثرُه.
-       *
-       * Everything above and below this section speaks to a reader: calculators
-       * to try, studies to read, a knowledge base to browse. Nothing on the page
-       * told a farmer that the platform had anything for them to *do* — no land,
-       * no season, no evidence, no passport. And the database agrees: six people
-       * registered, and in the platform's whole life **not one plot of land has
-       * ever been recorded**.
-       *
-       * So this is placed above the tools rather than below the projects. The
-       * chain it describes is the product; the calculators are the doorway.
-       */}
-      <section className="mx-auto max-w-6xl px-4 pt-14">
-        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 sm:p-8">
-          <h2 className="font-bold" style={{ fontSize: "var(--text-title)" }}>
-            وإن كنت تزرع: من أرضك إلى المشتري
-          </h2>
-          <p className="mt-3 max-w-2xl leading-relaxed text-muted">
-            المزارعُ في السودان لا ينقصه محصول — ينقصه أن{" "}
-            <strong className="text-foreground">يُثبت</strong> ما زرعه. سودجري
-            تبني لك سجلّاً يقرأه المشتري والمموّل: أرضٌ موثّقة، وموسمٌ بمراحله
-            وأدلّته، ودرجةٌ محسوبةٌ من فعلك لا من كلامك.
-          </p>
-
-          <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                n: "١",
-                t: "سجّل أرضك",
-                b: "الموقع والمساحة والحيازة، ومستنداتها. يراجعها موظّفٌ ويوثّقها — وما لم يُوثَّق لا يُعرض.",
-              },
-              {
-                n: "٢",
-                t: "وثّق موسمك",
-                b: "سبعُ مراحل من التحضير إلى الحصاد، ولا تُعتمد مرحلةٌ بلا ملفٍّ مرفوع — صورةٍ أو فاتورة.",
-              },
-              {
-                n: "٣",
-                t: "يتكوّن جوازُ مزرعتك",
-                b: "سجلٌّ عامّ بإذنك وحدك: أرضُك الموثّقة، ومواسمُك، ودرجةُ ثقةٍ محسوبةٌ ممّا وثّقته فعلاً.",
-              },
-              {
-                n: "٤",
-                t: "اعرض للتصدير",
-                b: "بمستنداتِ الممرّ الذي تقصده، والمنصّةُ تقول لك ما نقص قبل أن تُرسل — لا على الحدود.",
-              },
-            ].map((s) => (
-              <li
-                key={s.n}
-                className="rounded-xl border border-border bg-card p-4 shadow-card"
-              >
-                <span className="figure text-lg font-black text-primary">
-                  {s.n}
-                </span>
-                <h3 className="mt-1 font-bold">{s.t}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted">{s.b}</p>
-              </li>
-            ))}
-          </ol>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link
-              href="/signup"
-              className="rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground shadow-raised transition hover:opacity-90"
-            >
-              سجّل أرضك
-            </Link>
-            <Link
-              href="/guide"
-              className="rounded-xl border border-border bg-card px-5 py-3 font-medium shadow-card transition hover:shadow-raised"
-            >
-              كيف تسير الخطوات
-            </Link>
-          </div>
-
-          {/* ولا يُوعَد بمشترٍ. المنصّةُ تشهد بأنّ الدليل موجودٌ ومراجَع، وهذا
-              كلُّ ما تملك أن تشهد به — ووعدُ بيعٍ لا نملكه يُفقد ثقةَ أوّل من
-              يصدّقه. */}
-          <p className="mt-4 text-xs leading-relaxed text-muted">
-            وما نشهد به هو أنّ <strong>أدلّتك موجودةٌ ومراجَعة</strong> — لا أنّ
-            بيعاً سيقع ولا بسعرٍ بعينه. ذلك يبقى تفاوضَك أنت.
-          </p>
-        </div>
-      </section>
-
-      {/* ───────────────────────── الأدوات ───────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-14">
-        <h2 className="mb-2 font-bold" style={{ fontSize: "var(--text-title)" }}>
-          وأدواتٌ أخرى تعمل اليوم
-        </h2>
-        <p className="mb-8 max-w-2xl text-muted">
-          مبنيّةٌ على البيانات أعلاه، وتعمل الآن ولا تحتاج حساباً.
-        </p>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {tools.map((t) => (
-            <Link
-              key={t.href}
-              href={t.href}
-              className="reveal group rounded-2xl border border-border bg-card p-6 shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-float"
-            >
-              <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
-                <Icon name={t.icon} />
-              </div>
-              <h3 className="mb-2 text-lg font-bold">{t.title}</h3>
-              <p className="text-sm leading-relaxed text-muted">{t.body}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* ───────────────────────── التعدين ───────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 pb-14">
-        <Link
-          href="/mining"
-          className="reveal flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-card transition hover:shadow-raised"
-        >
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-            <Icon name="pickaxe" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-bold">قسم التعدين — منفصل عمداً</h3>
-            <p className="text-sm leading-relaxed text-muted">
-              السلامة في الحفر، والاستخلاص بلا زئبق، وجيولوجيا الذهب في السودان.
-            </p>
-          </div>
-          <span aria-hidden className="ms-auto text-muted">
-            ←
-          </span>
-        </Link>
-      </section>
-
       {/* ───────────────────────── المشاريع ─────────────────────────
-       * يظهر حين يُنشر مشروعٌ فقط. كان يعرض صندوقاً فارغاً يكرّر ما يقوله
-       * صندوقُ «لا توجد فرص» أعلاه، فيوحي للزائر بأنّ الموقع ناقص.
+       * يظهر حين يُنشر مشروعٌ فقط.
        */}
       {projects && projects.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pb-14">
@@ -546,27 +333,6 @@ export default async function Home() {
           </div>
         </section>
       )}
-
-      {/* ───────────────────────── المعرفة ───────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 pb-16">
-        <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="font-bold" style={{ fontSize: "var(--text-title)" }}>
-            أحدث ما في قاعدة المعرفة
-          </h2>
-          <Link href="/knowledge" className="text-sm text-primary underline">
-            القاعدة كاملة ←
-          </Link>
-        </div>
-        {!knowledge || knowledge.length === 0 ? (
-          <p className="text-muted">قاعدة المعرفة قيد الإعداد حالياً.</p>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {(knowledge as KnowledgeEntry[]).map((entry) => (
-              <KnowledgeCard key={entry.id} entry={entry} />
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }

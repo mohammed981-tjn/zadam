@@ -26,7 +26,12 @@ export type IconName =
   | "chart"
   | "book"
   | "shield"
-  | "spark";
+  | "spark"
+  | "news"
+  | "cloud"
+  | "compass"
+  | "people"
+  | "message";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   // A stalk with grain — agriculture, without the emoji's cartoon warmth.
@@ -81,6 +86,40 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="m8.4 15.6-2.8 2.8" />
     </>
   ),
+  // A folded page with lines — the news.
+  news: (
+    <>
+      <path d="M5 4h11v16H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1Z" />
+      <path d="M16 8h3v10a2 2 0 0 1-2 2" />
+      <path d="M8 8h5" />
+      <path d="M8 12h5" />
+      <path d="M8 16h3" />
+    </>
+  ),
+  // A cloud with rain under it.
+  cloud: (
+    <>
+      <path d="M7 15a4 4 0 0 1-.5-8A5 5 0 0 1 16 6a3.5 3.5 0 0 1 1 7" />
+      <path d="M8 18l-1 2" />
+      <path d="M12 18l-1 2" />
+      <path d="M16 18l-1 2" />
+    </>
+  ),
+  compass: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" />
+    </>
+  ),
+  people: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20a6 6 0 0 1 12 0" />
+      <path d="M16 5.5a3 3 0 0 1 0 5.5" />
+      <path d="M18 14a5 5 0 0 1 3 5" />
+    </>
+  ),
+  message: <path d="M4 5h16v11H9l-5 4V5Z" />,
 };
 
 export default function Icon({

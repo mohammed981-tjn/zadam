@@ -47,11 +47,13 @@ export default async function Navbar() {
       hint: "ابدأ من هنا",
       items: [
         { href: "/", label: "الصفحة الرئيسية" },
+        // الأخبار خرجت من الرئيسيّة إلى صفحتها (طلب المالك، 25 سبتمبر)، فبابُها
+        // هنا ثانياً، بعد الرئيسيّة مباشرةً.
+        { href: "/news", label: "الأخبار — جديد سودجري" },
         { href: "/guide", label: "دليل الاستخدام" },
         // كانت تُوعَد من الصفحة الأولى مرّتين ولا توجد. ووجودُها في القائمة
         // يجعلها قابلةً للوصول من كلّ صفحة، لا من الأولى وحدها.
         { href: "/knowledge", label: "قاعدة المعرفة" },
-        { href: "/news", label: "جديد سودجري" },
         { href: "/rain", label: "توقّع الأمطار والخرائط" },
         { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
         { href: "/tools/feasibility", label: "دراسة الجدوى المرحلية" },
@@ -140,8 +142,10 @@ export default async function Navbar() {
 
   groups.push({
     title: "مشاريع ودراسات",
-    hint: "قراءات في أرقام المشاريع الكبرى",
+    hint: "قراءات في أرقام المشاريع الكبرى والاقتصاد",
     items: [
+      { href: "/studies", label: "كلّ الدراسات" },
+      { href: "/studies/exchange-rate", label: "أزمة سعر الصرف والتضخم" },
       { href: "/arc-canal", label: "القناة القوسية" },
       { href: "/export", label: "ممرّ الصادر السوداني" },
       { href: "/export/market", label: "عروض التصدير المنشورة" },

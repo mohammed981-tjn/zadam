@@ -138,6 +138,81 @@ void main() {
         reason: 'an older server sends no route');
   });
 
+  test('the redrawn map: ground, bands and town values parse', () {
+    final g = RainGrid.fromJson({
+      ...json,
+      'layers': [
+        {
+          ...(json['layers'] as List<dynamic>).first as Map<String, dynamic>,
+          'shapes': {
+            'base': 0,
+            'bands': [
+              {
+                'band': 2,
+                'shapes': [
+                  [
+                    [
+                      [30, 10],
+                      [31, 10],
+                      [31, 11],
+                      [30, 10],
+                    ],
+                  ],
+                ],
+              },
+            ],
+          },
+          'towns': [
+            {'name': 'الخرطوم', 'lon': 32.53, 'lat': 15.6, 'side': 't', 'value': 12.4},
+            {'name': 'حلايب', 'lon': 36.64, 'lat': 22.22, 'side': 'l', 'value': null},
+          ],
+        },
+      ],
+      'base': {
+        'frame': {'west': 21, 'south': 8, 'east': 39.5, 'north': 24},
+        'neighbours': [
+          {
+            'code': 'EGY',
+            'ring': [
+              [25, 22],
+              [37, 22],
+              [37, 24],
+              [25, 22],
+            ],
+          },
+        ],
+        'rivers': [
+          {
+            'name': 'النيل',
+            'main': true,
+            'line': [
+              [32.5, 15.6],
+              [31, 22],
+            ],
+          },
+        ],
+        'lakes': <dynamic>[],
+        'states': <dynamic>[],
+      },
+      'neighbourLabels': [
+        {'name': 'مصر', 'lon': 27.5, 'lat': 23.1},
+      ],
+    });
+    final l = g.layers.single;
+    expect(l.shapes!.base, 0);
+    expect(l.shapes!.bands.single.$1, 2);
+    expect(l.shapes!.bands.single.$2.single.single[1], (31.0, 10.0));
+    expect(l.towns.first.value, 12.4);
+    expect(l.towns.last.value, isNull);
+    expect(l.towns.first.side, 't');
+    expect(g.base!.west, 21);
+    expect(g.base!.rivers.single.$2, isTrue);
+    expect(g.base!.labels.single.$1, 'مصر');
+    expect(RainGrid.fromJson(json).base, isNull,
+        reason: 'an older server: the app falls back to squares');
+    expect(RainGrid.fromJson(json).layers.first.shapes, isNull);
+  });
+
   test('bad colours are null, not black', () {
     expect(parseHex('var(--card)'), isNull);
     expect(parseHex('#fff'), isNull);

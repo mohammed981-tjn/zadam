@@ -17,6 +17,8 @@ const orNull = (v: string) => (v.length > 0 ? v : null);
 function refresh() {
   revalidatePath("/admin/news");
   revalidatePath("/news");
+  // Each item has its own page too (/news/[id]); refresh them all with the list.
+  revalidatePath("/news/[id]", "page");
   revalidatePath("/");
 }
 

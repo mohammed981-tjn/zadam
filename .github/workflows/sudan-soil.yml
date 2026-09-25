@@ -30,8 +30,12 @@ jobs:
 
       - run: npm ci
 
+      # Stops itself short of the job's limit so the commit below still runs
+      # and keeps what was read; running the workflow again carries on.
       - name: Fetch the soil
         run: npx tsx scripts/fetch-sudan-soil.ts
+        timeout-minutes: 220
+        continue-on-error: true
 
       - name: Report what will be committed
         run: |
@@ -52,4 +56,7 @@ jobs:
             exit 0
           fi
           git commit -m 'Refresh the Sudan soil map (SoilGrids)'
+          # A long run can end after someone else has pushed; replay this one
+          # commit on top rather than lose the survey to a rejected push.
+          git pull --rebase origin ${GITHUB_REF_NAME}
           git push origin HEAD:${GITHUB_REF_NAME}

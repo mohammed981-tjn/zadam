@@ -1,0 +1,45 @@
+name: Canal groundwater
+
+# Reads the BGS Africa Groundwater Atlas grids (MacDonald et al. 2012) for the
+# Arc Canal corridor and commits data/canal-groundwater.json with the readme
+# that says what the codes mean. See scripts/fetch-canal-groundwater.ts.
+#
+# It runs here because the BGS site is not reachable from the environment this
+# repository is developed in. Manual only, like the other survey workflows.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  groundwater:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Fetch the atlas grids
+        run: npx tsx scripts/fetch-canal-groundwater.ts
+
+      - name: Commit
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/canal-groundwater.json
+          if git diff --cached --quiet; then
+            echo 'Unchanged since the last fetch.'
+            exit 0
+          fi
+          git commit -m 'Fetch the Arc Canal groundwater grids (BGS Africa Groundwater Atlas)'
+          # A long run can end after someone else has pushed; replay this one
+          # commit on top rather than lose the survey to a rejected push.
+          git pull --rebase origin ${GITHUB_REF_NAME}
+          git push origin HEAD:${GITHUB_REF_NAME}

@@ -26,6 +26,67 @@ class RainBand {
   final Color? ink;
 }
 
+/// A point as the server sends it: (longitude, latitude).
+typedef LonLat = (double, double);
+
+/// A polygon: its outer ring, then any holes.
+typedef Shape = List<List<LonLat>>;
+
+/// The smooth bands the website draws a layer with: [base] is the band that
+/// fills the whole country; each entry of [bands] is the area at or above a
+/// higher band, painted over the one before.
+class LayerShapes {
+  const LayerShapes({required this.base, required this.bands});
+
+  final int base;
+  final List<(int, List<Shape>)> bands;
+}
+
+/// A town labelled on the map, with the layer's value there (null for soil).
+class TownValue {
+  const TownValue({
+    required this.name,
+    required this.lon,
+    required this.lat,
+    required this.side,
+    this.value,
+  });
+
+  final String name;
+  final double lon;
+  final double lat;
+
+  /// Which side of the dot the label sits: l, r, t or b.
+  final String side;
+  final double? value;
+}
+
+/// The ground under the data: neighbours, rivers, lakes and state lines.
+class MapBase {
+  const MapBase({
+    required this.west,
+    required this.south,
+    required this.east,
+    required this.north,
+    required this.neighbours,
+    required this.rivers,
+    required this.lakes,
+    required this.states,
+    this.labels = const [],
+  });
+
+  final double west, south, east, north;
+  final List<List<LonLat>> neighbours;
+
+  /// Each river line, and whether it is the Nile or one of its two branches.
+  final List<(List<LonLat>, bool)> rivers;
+  final List<List<LonLat>> lakes;
+  final List<List<LonLat>> states;
+
+  /// The neighbours' names and where to write them.
+  final List<(String, LonLat)> labels;
+}
+
 class MapLayer {
   const MapLayer({
     required this.key,
@@ -34,6 +95,8 @@ class MapLayer {
     required this.unit,
     required this.bands,
     this.numbers = true,
+    this.shapes,
+    this.towns = const [],
   });
 
   final String key;
@@ -45,6 +108,11 @@ class MapLayer {
   /// False for a layer whose value is a class (the soil group): coloured,
   /// with nothing written in the cell.
   final bool numbers;
+
+  /// Null from a server older than the redrawn maps; the app then paints
+  /// the cells as squares.
+  final LayerShapes? shapes;
+  final List<TownValue> towns;
 
   RainBand bandFor(double v) {
     var b = bands.first;
@@ -135,6 +203,7 @@ class RainGrid {
     required this.cells,
     this.towns = fallbackTowns,
     this.canalRoute = const [],
+    this.base,
     this.daily,
   });
 
@@ -150,6 +219,9 @@ class RainGrid {
 
   /// The Arc Canal's line, [lon, lat] pairs; empty from an older server.
   final List<(double, double)> canalRoute;
+
+  /// Null from a server older than the redrawn maps.
+  final MapBase? base;
   final DailyTable? daily;
 
   /// The rain layer's bands, for shading the daily table like the map.
@@ -163,6 +235,11 @@ class RainGrid {
     final daily = json['daily'] as Map<String, dynamic>?;
     final towns = json['towns'] as List<dynamic>?;
     final route = json['canalRoute'] as List<dynamic>?;
+    final baseJson = json['base'] as Map<String, dynamic>?;
+    final frame = baseJson?['frame'] as Map<String, dynamic>?;
+
+    LonLat pt(Object? p) => (n((p as List<dynamic>)[0]), n(p[1]));
+    List<LonLat> ring(Object? r) => (r as List<dynamic>).map(pt).toList();
 
     return RainGrid(
       from: json['from'] as String,
@@ -173,12 +250,37 @@ class RainGrid {
           .toList(),
       layers: (json['layers'] as List<dynamic>).map((l) {
         final m = l as Map<String, dynamic>;
+        final sh = m['shapes'] as Map<String, dynamic>?;
         return MapLayer(
           key: m['key'] as String,
           title: m['title'] as String,
           note: m['note'] as String,
           unit: m['unit'] as String,
           numbers: m['numbers'] as bool? ?? true,
+          shapes: sh == null
+              ? null
+              : LayerShapes(
+                  base: (sh['base'] as num).toInt(),
+                  bands: (sh['bands'] as List<dynamic>).map((b) {
+                    final bm = b as Map<String, dynamic>;
+                    return (
+                      (bm['band'] as num).toInt(),
+                      (bm['shapes'] as List<dynamic>)
+                          .map((s) => (s as List<dynamic>).map(ring).toList())
+                          .toList(),
+                    );
+                  }).toList(),
+                ),
+          towns: ((m['towns'] as List<dynamic>?) ?? const []).map((t) {
+            final tm = t as Map<String, dynamic>;
+            return TownValue(
+              name: tm['name'] as String,
+              lon: n(tm['lon']),
+              lat: n(tm['lat']),
+              side: tm['side'] as String? ?? 't',
+              value: nn(tm['value']),
+            );
+          }).toList(),
           bands: (m['bands'] as List<dynamic>).map((b) {
             final bm = b as Map<String, dynamic>;
             return RainBand(
@@ -210,6 +312,32 @@ class RainGrid {
               return MapTown(m['name'] as String, n(m['lon']), n(m['lat']),
                   above: m['above'] as bool? ?? true);
             }).toList(),
+      base: baseJson == null
+          ? null
+          : MapBase(
+              west: n(frame!['west']),
+              south: n(frame['south']),
+              east: n(frame['east']),
+              north: n(frame['north']),
+              neighbours: (baseJson['neighbours'] as List<dynamic>)
+                  .map((r) => ring((r as Map<String, dynamic>)['ring']))
+                  .toList(),
+              rivers: (baseJson['rivers'] as List<dynamic>).map((r) {
+                final rm = r as Map<String, dynamic>;
+                return (ring(rm['line']), rm['main'] as bool? ?? false);
+              }).toList(),
+              lakes: (baseJson['lakes'] as List<dynamic>)
+                  .map((r) => ring((r as Map<String, dynamic>)['ring']))
+                  .toList(),
+              states: (baseJson['states'] as List<dynamic>)
+                  .map((r) => ring((r as Map<String, dynamic>)['ring']))
+                  .toList(),
+              labels: ((json['neighbourLabels'] as List<dynamic>?) ?? const [])
+                  .map((l) {
+                final lm = l as Map<String, dynamic>;
+                return (lm['name'] as String, (n(lm['lon']), n(lm['lat'])));
+              }).toList(),
+            ),
       canalRoute: route == null
           ? const []
           : route

@@ -61,12 +61,14 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
   // IndexedStack rather than swapping the child, so a half-finished
-  // calculation or a conversation survives a glance at another tab.
-  static const _screens = [
-    HomeScreen(),
-    WaterScreen(),
-    AssistantScreen(),
-    KnowledgeScreen(),
+  // calculation or a conversation survives a glance at another tab. The home
+  // board's tiles switch tabs through the callback rather than pushing a
+  // second copy of the same screen.
+  late final List<Widget> _screens = [
+    HomeScreen(onTab: (i) => setState(() => _index = i)),
+    const WaterScreen(),
+    const AssistantScreen(),
+    const KnowledgeScreen(),
   ];
 
   @override

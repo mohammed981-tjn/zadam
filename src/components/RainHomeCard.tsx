@@ -40,7 +40,7 @@ export default async function RainHomeCard() {
             : "لا مطر يُعتدّ به متوقَّع هذا الأسبوع. اضغط للتفاصيل."}
         </p>
         <div className="mx-auto mt-4 max-w-xl">
-          <RainMap grid={grid} showTowns={false} />
+          <RainMap grid={grid} />
         </div>
       </Link>
     </section>
