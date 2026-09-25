@@ -13,8 +13,13 @@ name: Mobile app
 # repository, so this stops at "installable by hand" — the useful artefact while
 # there is no listing yet.
 
+# Each commit is built once: a pull request builds its branch, and `push`
+# builds only what lands on main. Before 25 September `push` had no branch
+# filter, so every commit on a branch with an open pull request built twice —
+# 169 minutes in one week of a private repository's allowance.
 on:
   push:
+    branches: [main]
     paths:
       - "mobile/**"
       - ".github/workflows/mobile.yml"
@@ -24,9 +29,16 @@ on:
       - ".github/workflows/mobile.yml"
   workflow_dispatch:
 
+# A newer commit on the same branch makes the running build pointless.
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    # A full build takes about six minutes; anything past this is stuck.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: mobile

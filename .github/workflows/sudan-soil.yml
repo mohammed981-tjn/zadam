@@ -5,8 +5,10 @@ name: Sudan soil map
 # scripts/fetch-sudan-soil.ts for what and why.
 #
 # It runs here because SoilGrids is not reachable from the environment this
-# repository is developed in. About an hour and a half: SoilGrids asks for a
-# pause between points, and there are about four hundred.
+# repository is developed in. It reads the SoilGrids raster with GDAL over
+# range requests, every point in one process: a few minutes. (The first two
+# runs asked the throttled query service point by point and spent 462 billed
+# minutes reading 55 cells — see scripts/fetch-sudan-soil.ts.)
 #
 # Manual only, like the corridor map: the ground does not change between
 # merges, and a workflow that commits on push races the next push.
@@ -19,7 +21,7 @@ permissions:
 jobs:
   soil:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -30,12 +32,13 @@ jobs:
 
       - run: npm ci
 
-      # Stops itself short of the job's limit so the commit below still runs
-      # and keeps what was read; running the workflow again carries on.
+      - name: Install GDAL
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gdal-bin
+
+      # No continue-on-error: a run that cannot name the raster's groups, or
+      # disagrees with the cells already read, must not commit anything.
       - name: Fetch the soil
         run: npx tsx scripts/fetch-sudan-soil.ts
-        timeout-minutes: 220
-        continue-on-error: true
 
       - name: Report what will be committed
         run: |
