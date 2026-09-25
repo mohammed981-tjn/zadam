@@ -1,33 +1,31 @@
 "use client";
 
-import Image from "next/image";
 import { useRef, useState } from "react";
-import { SUDAGRI_LOGO } from "@/lib/brand";
 
 /**
- * واجهةُ الرئيسيّة: شعارُ سودجري، وفيديو المزارع عند الطلب.
+ * واجهةُ الرئيسيّة: فيديو المزارع في إطاره، يعمل حين يُطلب.
  *
- * Since the intro became the clip followed by the logo screen (the owner, 25
- * September: «يندمج شاشة البداية مع الفيديو»), the visitor has just watched
- * the clip full-screen; playing it again here would be the repetition the
- * owner asked to avoid. So this starts on the logo, fetches nothing until asked
- * (`preload="none"`), and «شاهد الفيديو» plays it once and returns to the logo.
+ * The intro already plays the clip full-screen and then the logo screen (the
+ * owner, 25 September: «يندمج شاشة البداية مع الفيديو»), and the logo with its
+ * golden sorghum stands beside the headline (the owner again: keep it, it is
+ * the best thing on the screen). So this frame neither repeats the logo nor
+ * plays by itself: it shows the clip's first frame, fetches nothing until
+ * asked (`preload="none"`), and «شاهد الفيديو» plays it once and rewinds.
  *
  * The file is the owner's 8-second clip re-encoded to 960 px, about 0.9 MB,
  * audio dropped and the index at the front so it starts before it has
- * finished downloading. A reader who has asked their device for less motion
- * is shown the logo from the start.
+ * finished downloading.
  */
 export default function HeroVideo() {
   const ref = useRef<HTMLVideoElement>(null);
-  const [ended, setEnded] = useState(true);
+  const [playing, setPlaying] = useState(false);
 
-  const replay = () => {
+  const play = () => {
     const v = ref.current;
     if (!v) return;
-    setEnded(false);
     v.currentTime = 0;
-    void v.play();
+    setPlaying(true);
+    v.play().catch(() => setPlaying(false));
   };
 
   return (
@@ -39,10 +37,10 @@ export default function HeroVideo() {
         preload="none"
         poster="/video/sudan-farmer.jpg"
         onEnded={(e) => {
-          e.currentTarget.currentTime = 0;
-          setEnded(true);
+          e.currentTarget.load(); // back to the poster, the clip's first frame
+          setPlaying(false);
         }}
-        className="aspect-video w-full object-cover motion-reduce:invisible"
+        className="aspect-video w-full object-cover"
         aria-label="مزارعٌ سودانيّ بعمامته وجلابيته في حقل ذرةٍ ناضجة، والنيل خلفه"
       >
         {/* WebM first: the open codec plays in every browser, H.264 in the rest. */}
@@ -50,27 +48,15 @@ export default function HeroVideo() {
         <source src="/video/sudan-farmer.mp4" type="video/mp4" />
       </video>
 
-      {/* The logo, over the rewound video once it has played. */}
-      <div
-        className={`mesh absolute inset-0 flex items-center justify-center bg-background transition-opacity duration-700 ${
-          ended ? "opacity-100" : "pointer-events-none opacity-0 motion-reduce:pointer-events-auto motion-reduce:opacity-100"
-        }`}
-      >
-        <Image
-          src={SUDAGRI_LOGO}
-          alt="شعار سودجري — منصّة سودانية للزراعة والتجارة"
-          placeholder="blur"
-          sizes="(min-width: 768px) 360px, 60vw"
-          className="h-[88%] w-auto object-contain"
-        />
+      {!playing && (
         <button
           type="button"
-          onClick={replay}
-          className="absolute bottom-3 left-3 rounded-full border border-border bg-card/90 px-3 py-1.5 text-xs font-medium shadow-card transition hover:border-primary motion-reduce:hidden"
+          onClick={play}
+          className="absolute bottom-3 left-3 rounded-full border border-border bg-card/90 px-4 py-2 text-sm font-medium shadow-card transition hover:border-primary"
         >
           ▶ شاهد الفيديو
         </button>
-      </div>
+      )}
     </figure>
   );
 }

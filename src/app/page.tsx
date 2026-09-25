@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import Image from "next/image";
+import { SUDAGRI_LOGO } from "@/lib/brand";
 import { PHOTOS } from "@/lib/photos";
 import { PhotoBoard, QuickTabs, type BoardTile, type QuickTab } from "@/components/HomeBoard";
 import { createClient } from "@/lib/supabase/server";
@@ -192,13 +194,18 @@ export default async function Home() {
       <section className="mesh border-b border-border">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
           {/*
-            الواجهةُ الكبيرة: فيديو المزارع مرّةً واحدة ثمّ شعارُ سودجري في
-            مكانه (طلب المالك، 25 سبتمبر). الشعارُ لم يعد صورةً ثانية بجوار
-            العنوان — هو ما يستقرّ عليه الإطارُ بعد الفيديو، بحجمٍ يليق به.
+            فيديو المزارع في إطاره، يعمل حين يُطلب — فالزائرُ رآه على الشاشة
+            كاملةً في المقدّمة. والشعارُ بسنبلته الذهبيّة عاد بجوار العنوان
+            (المالك، 25 سبتمبر: «لا تحذفها، هي أجمل ما في الشاشة»).
           */}
           <HeroVideo />
 
-          <div className="mt-10">
+          {/*
+            `md:flex-row-reverse`: الصفحةُ من اليمين، فيقع الشعارُ يساراً ويبدأ
+            النظرُ بالجملة. وعلى الهاتف `flex-col-reverse`: الشعارُ فوق العنوان.
+          */}
+          <div className="mt-10 flex flex-col-reverse items-center gap-8 md:flex-row-reverse md:gap-12">
+          <div className="min-w-0 flex-1">
           <p className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
             <Icon name="wheat" className="size-5" />
             معرفة زراعية وبيانات مفتوحة — للسودان
@@ -233,6 +240,15 @@ export default async function Home() {
               اقرأ دراسة القناة القوسية
             </Link>
           </div>
+          </div>
+
+          <Image
+            src={SUDAGRI_LOGO}
+            alt="شعار سودجري — منصّة سودانية للزراعة والتجارة"
+            placeholder="blur"
+            sizes="(min-width: 768px) 340px, 240px"
+            className="w-[60vw] max-w-[260px] shrink-0 md:w-[340px] md:max-w-none"
+          />
           </div>
 
           {/*
