@@ -20,9 +20,15 @@
  * a soil survey of anyone's field.
  *
  * SoilGrids asks for about five queries a minute, so ~400 points take about an
- * hour and a half. MOCK=1 writes a file of the right shape without the network.
+ * hour and a half — and far longer when it answers 429s, each of which costs
+ * a minute's wait. So the file is written after every cell, and a run skips
+ * the cells an earlier run already read: a run cut off by the job's time
+ * limit keeps what it read, and the next run carries on from there. The
+ * first run, which wrote only at the end, lost three hours to that limit.
+ *
+ * MOCK=1 writes a file of the right shape without the network.
  */
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { RAIN_CELLS, insideSudan, type LonLat } from "../src/lib/rainMap";
 
 const MOCK = process.env.MOCK === "1";
@@ -70,9 +76,42 @@ export function samplePoints(c: { pLon: number; pLat: number }): LonLat[] {
   return pts;
 }
 
+type Row = { lon: number; lat: number; wrb: string | null; share: number | null; points: number };
+const FILE = "data/sudan-soil.json";
+const key = (r: { lon: number; lat: number }) => `${r.lon},${r.lat}`;
+
+function save(rows: Row[]) {
+  writeFileSync(
+    FILE,
+    JSON.stringify(
+      {
+        fetchedAt: new Date().toISOString().slice(0, 10),
+        mock: MOCK,
+        source: "ISRIC SoilGrids v2.0, WRB classes, 250 m (CC BY 4.0)",
+        cells: rows,
+      },
+      null,
+      1,
+    ) + "\n",
+  );
+}
+
 async function main() {
-  const out: { lon: number; lat: number; wrb: string | null; share: number | null; points: number }[] = [];
+  // Cells an earlier run read with an answer are kept and skipped.
+  const done = new Map<string, Row>();
+  if (!MOCK && existsSync(FILE)) {
+    for (const r of (JSON.parse(readFileSync(FILE, "utf8")) as { cells: Row[] }).cells) {
+      if (r.wrb) done.set(key(r), r);
+    }
+  }
+  console.log(`${done.size} cells already read; ${RAIN_CELLS.length - done.size} to go`);
+  const out: Row[] = [];
   for (const [k, c] of RAIN_CELLS.entries()) {
+    const prev = done.get(key(c));
+    if (prev) {
+      out.push(prev);
+      continue;
+    }
     const votes = new Map<string, number>();
     let points = 0;
     for (const p of samplePoints(c)) {
@@ -97,20 +136,11 @@ async function main() {
       points,
     });
     console.log(`  ${k + 1}/${RAIN_CELLS.length} ${c.lat},${c.lon}: ${best?.[0] ?? "—"} (${points} نقاط)`);
+    // Saved with the cells not yet reached left out, so the file is always
+    // a true record of what has been read.
+    save([...out, ...RAIN_CELLS.slice(k + 1).flatMap((c2) => done.get(key(c2)) ?? [])]);
   }
-  writeFileSync(
-    "data/sudan-soil.json",
-    JSON.stringify(
-      {
-        fetchedAt: new Date().toISOString().slice(0, 10),
-        mock: MOCK,
-        source: "ISRIC SoilGrids v2.0, WRB classes, 250 m (CC BY 4.0)",
-        cells: out,
-      },
-      null,
-      1,
-    ) + "\n",
-  );
+  save(out);
   console.log(`\nwrote ${out.filter((c) => c.wrb).length} of ${out.length} cells`);
 }
 
