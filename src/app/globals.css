@@ -47,6 +47,17 @@
   --mesh-2: color-mix(in oklab, var(--accent) 12%, transparent);
 
   --ring: color-mix(in oklab, var(--primary) 55%, transparent);
+
+  /*
+   * The maps' ground: sea, the neighbours' land, fresh water. Muted so the
+   * data drawn over Sudan carries the colour and the context stays behind it.
+   */
+  --map-sea: #dbe8f0;
+  --map-land: #ebe7dc;
+  --map-land-edge: #d3cdbd;
+  --map-water: #3f86c6;
+  --map-label: #857f70;
+  --map-state: rgb(28 43 30 / 0.3);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -68,6 +79,13 @@
 
     --mesh-1: color-mix(in oklab, var(--primary) 18%, transparent);
     --mesh-2: color-mix(in oklab, var(--accent) 14%, transparent);
+
+    --map-sea: #142a36;
+    --map-land: #20281f;
+    --map-land-edge: #333d30;
+    --map-water: #5b9fdb;
+    --map-label: #8d917f;
+    --map-state: rgb(238 241 232 / 0.3);
   }
 }
 
