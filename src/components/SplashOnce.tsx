@@ -3,7 +3,13 @@
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { SUDAGRI_LOGO } from "@/lib/brand";
-import { SPLASH_FADE_MS, SPLASH_MAX_MS, splashEndsAt } from "@/lib/splash";
+import {
+  SPLASH_FADE_MS,
+  SPLASH_MAX_MS,
+  SPLASH_VIDEO_MAX_MS,
+  SPLASH_VIDEO_START_MS,
+  splashEndsAt,
+} from "@/lib/splash";
 
 /**
  * شاشةُ البداية — مرّةً واحدةً لكلّ زائر، ولا تحجب شيئاً.
@@ -56,8 +62,11 @@ import { SPLASH_FADE_MS, SPLASH_MAX_MS, splashEndsAt } from "@/lib/splash";
  * بينما الصورةُ على الشبكة. فمتصفّحُه يحملُ الآن أنّه رآها، ولن تُعرض له
  * المصلَحةُ أبداً. ورفعُ المفتاح يمنحه إيّاها مرّةً واحدة — وهو بالضبط ما وُجد
  * المفتاحُ له.
+ *
+ * ثمّ `v3` (25 سبتمبر): صارت المقدّمةُ فيديو المزارع ثمّ الشعار، فيراها كلُّ
+ * زائرٍ مرّةً واحدةً بشكلها الجديد.
  */
-const SEEN_KEY = "sudagri:splash:v2";
+const SEEN_KEY = "sudagri:splash:v3";
 
 /**
  * التوقيتُ يتبع الصورةَ لا العكس.
@@ -90,6 +99,8 @@ const SEEN_KEY = "sudagri:splash:v2";
 
 export default function SplashOnce() {
   const ref = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
 
   /*
    * جسرٌ بين `onLoad` والمؤقّت.
@@ -147,35 +158,78 @@ export default function SplashOnce() {
       ending = true;
       el.classList.add("pointer-events-none", "opacity-0");
       window.clearTimeout(hold);
+      videoRef.current?.pause();
       done = window.setTimeout(() => {
         el.hidden = true;
       }, SPLASH_FADE_MS);
     };
 
-    const shown = Date.now();
+    let shown = 0;
 
     /** تُستدعى حين تصل الصورة: تُقرّب النهايةَ أو تُبعدها، ضمن الحدّين. */
     const settle = () => {
-      if (ending) return;
+      if (ending || !shown) return;
       const elapsed = Date.now() - shown;
       window.clearTimeout(hold);
       hold = window.setTimeout(end, Math.max(0, splashEndsAt(elapsed) - elapsed));
     };
 
+    /*
+     * من الفيديو إلى الشعار. يُستدعى حين ينتهي المقطع، أو يتعثّر، أو لا يبدأ
+     * خلال `SPLASH_VIDEO_START_MS`، أو يبلغ `SPLASH_VIDEO_MAX_MS` — أيُّها
+     * أسبق، ومرّةً واحدة. ومن هنا تبدأ ساعةُ شاشة الشعار كما كانت.
+     */
+    const video = videoRef.current;
+    const logo = logoRef.current;
+    let started = 0;
+    let cap = 0;
+    const toLogo = () => {
+      if (ending || shown) return;
+      window.clearTimeout(started);
+      window.clearTimeout(cap);
+      shown = Date.now();
+      video?.classList.add("opacity-0");
+      video?.pause();
+      logo?.classList.remove("opacity-0");
+      hold = window.setTimeout(end, SPLASH_MAX_MS);
+      announce.current = settle;
+      if (loaded.current) settle();
+    };
+
     el.hidden = false;
 
-    // السقفُ أوّلاً، فهو الوعدُ الذي لا يعتمد على شيء: يُنصَب قبل أيّ انتظار،
-    // ويبقى قائماً إن لم تصل الصورةُ أبداً.
-    hold = window.setTimeout(end, SPLASH_MAX_MS);
-    announce.current = settle;
-    if (loaded.current) settle();
+    if (video) {
+      video.addEventListener("ended", toLogo);
+      video.addEventListener("error", toLogo, true);
+      video.addEventListener("playing", () => window.clearTimeout(started), { once: true });
+      started = window.setTimeout(toLogo, SPLASH_VIDEO_START_MS);
+      cap = window.setTimeout(toLogo, SPLASH_VIDEO_MAX_MS);
+      video.play().catch(toLogo);
+    } else {
+      toLogo();
+    }
 
     el.addEventListener("pointerdown", end);
     window.addEventListener("keydown", end);
 
     return () => {
+      // تفكيكٌ قبل أن تنتهي المقدّمة (وهو ما يفعله React في وضع التطوير
+      // الصارم: أثرٌ، فتفكيك، فأثرٌ من جديد): تُخفى ويُمحى أنّها رُئيت، فيعرضها
+      // الأثرُ التالي من أوّلها بدل أن يجدها «مرئيّة» ويتركها عالقة.
+      if (!ending) {
+        el.hidden = true;
+        try {
+          window.localStorage.removeItem(SEEN_KEY);
+        } catch {
+          /* لا شيء يُفعل. */
+        }
+      }
       announce.current = null;
       window.clearTimeout(hold);
+      window.clearTimeout(started);
+      window.clearTimeout(cap);
+      video?.removeEventListener("ended", toLogo);
+      video?.removeEventListener("error", toLogo, true);
       window.clearTimeout(done);
       el.removeEventListener("pointerdown", end);
       window.removeEventListener("keydown", end);
@@ -190,32 +244,44 @@ export default function SplashOnce() {
       // الحقيقيُّ تحتها جاهزٌ لقارئ الشاشة من اللحظة الأولى. وحوارٌ يخطف
       // التركيز كان سيقطع على القارئ الضريرَ صفحةً هو فيها أصلاً.
       aria-hidden
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-6 bg-background opacity-100 transition-opacity duration-500"
+      className="fixed inset-0 z-[60] bg-background opacity-100 transition-opacity duration-500"
     >
       {/*
-        لا `preload` هنا — وهذا مقصود.
-
-        Preloading would pull the full logo into the `<head>` of every page in
-        the platform, including for the visitor who saw this once last week and
-        will never see it again. Left to load normally it is fetched when this
-        overlay is revealed, which is to say only for the visitor it is for.
-
-        `placeholder="blur"` is what covers the gap that opens up: the blurred
-        badge — green ring, gold sorghum, cream — comes inlined with the markup
-        and is on screen before any request is made. There is no longer a state
-        in which this screen is empty.
+        المرحلةُ الأولى: فيديو المزارع على الشاشة كاملة. `preload="none"` لأنّ
+        الغطاءَ نفسَه يُرسَل لكلّ زائر؛ والمقطعُ يُطلب فقط حين يُشغَّل، أي فقط
+        لمن هو له. وبلا `autoPlay` للسبب نفسه: التشغيلُ من الأثر، بعد التحقّق.
       */}
-      <Image
-        src={SUDAGRI_LOGO}
-        alt=""
-        placeholder="blur"
-        onLoad={onImageLoad}
-        sizes="(min-width: 640px) 360px, 80vw"
-        className="w-[80vw] max-w-[380px] animate-[splash-in_700ms_ease-out_both]"
-      />
-      <p className="animate-[splash-in_700ms_200ms_ease-out_both] text-sm text-muted">
-        منصّة سودانية للزراعة والتجارة
-      </p>
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        preload="none"
+        poster="/video/sudan-farmer.jpg"
+        className="absolute inset-0 h-full w-full bg-black object-cover transition-opacity duration-500"
+      >
+        <source src="/video/sudan-farmer.webm" type="video/webm" />
+        <source src="/video/sudan-farmer.mp4" type="video/mp4" />
+      </video>
+
+      {/* المرحلةُ الثانية: الشعار، يظهر فوق المقطع حين ينتهي. */}
+      <div
+        ref={logoRef}
+        className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-background opacity-0 transition-opacity duration-500"
+      >
+        <Image
+          src={SUDAGRI_LOGO}
+          alt=""
+          placeholder="blur"
+          onLoad={onImageLoad}
+          sizes="(min-width: 640px) 360px, 80vw"
+          className="w-[80vw] max-w-[380px]"
+        />
+        <p className="text-sm text-muted">منصّة سودانية للزراعة والتجارة</p>
+      </div>
+
+      <span className="absolute top-5 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
+        المس الشاشة للتخطّي
+      </span>
     </div>
   );
 }

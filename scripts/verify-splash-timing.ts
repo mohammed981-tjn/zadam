@@ -33,6 +33,9 @@ import {
   SPLASH_FADE_MS,
   SPLASH_MAX_MS,
   SPLASH_MIN_MS,
+  SPLASH_INTRO_WORST_MS,
+  SPLASH_VIDEO_MAX_MS,
+  SPLASH_VIDEO_START_MS,
   splashEndsAt,
 } from "../src/lib/splash";
 
@@ -104,6 +107,21 @@ for (let t = 10; t <= 4000; t += 10) {
   previous = now;
 }
 ok(monotonic, "النهايةُ لا تتراجع أبداً كلّما تأخّر الوصول");
+
+section("و) مرحلةُ الفيديو قبل الشعار — لها سقفٌ هي أيضاً");
+
+const CLIP_MS = 8000; // public/video/sudan-farmer.* — ٨ ثوانٍ
+ok(SPLASH_VIDEO_MAX_MS >= CLIP_MS, `سقفُ الفيديو (${SPLASH_VIDEO_MAX_MS}ms) لا يقطع المقطع (${CLIP_MS}ms)`);
+ok(SPLASH_VIDEO_MAX_MS <= CLIP_MS + 1500, "ولا يزيد عليه إلا قليلاً إن توقّف في منتصفه");
+ok(SPLASH_VIDEO_START_MS < 3000, `وفيديو لا يبدأ يُترك بعد ${SPLASH_VIDEO_START_MS}ms إلى الشعار`);
+ok(
+  SPLASH_VIDEO_START_MS + SPLASH_MAX_MS + SPLASH_FADE_MS < 5000,
+  "فشبكةٌ لا تحمل الفيديو لا تُبقي الزائر أكثر من خمس ثوانٍ",
+);
+ok(
+  SPLASH_INTRO_WORST_MS === SPLASH_VIDEO_MAX_MS + SPLASH_MAX_MS + SPLASH_FADE_MS && SPLASH_INTRO_WORST_MS < 12_000,
+  `وأسوأُ المقدّمة كلّها ${SPLASH_INTRO_WORST_MS}ms — مرّةً واحدةً لكلّ زائر، وتُتخطّى بلمسة`,
+);
 
 section(fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`);
 process.exit(fail === 0 ? 0 : 1);

@@ -35,7 +35,12 @@ const ORDINAL =
 /** A line with an equals sign and no Arabic letter is a formula. */
 const isFormula = (line: string) => line.includes("=") && !/[؀-ۿ]/.test(line);
 
-export function parseStudy(md: string): StudyDoc {
+/**
+ * `titled`: whether the headings before the first numbered section are the
+ * document's title (a study) or part of its text (a news item, which has its
+ * own title and is written straight into the body).
+ */
+export function parseStudy(md: string, { titled = true } = {}): StudyDoc {
   const title: string[] = [];
   const blocks: Block[] = [];
   const sections: { id: string; text: string }[] = [];
@@ -53,7 +58,7 @@ export function parseStudy(md: string): StudyDoc {
         const id = `s${sections.length + 1}`;
         sections.push({ id, text });
         blocks.push({ kind: "section", id, text });
-      } else if (!seenSection) {
+      } else if (!seenSection && titled) {
         title.push(text);
       } else {
         blocks.push({ kind: h[1].length >= 3 ? "h4" : "h3", text });
@@ -77,4 +82,16 @@ export function parseStudy(md: string): StudyDoc {
     blocks.push(isFormula(line) ? { kind: "formula", text: line } : { kind: "p", text: line });
   }
   return { title, blocks, sections };
+}
+
+/** The text without its Markdown marks, cut at about `max` characters — for a list of news. */
+export function plainExcerpt(md: string, max = 260): string {
+  const text = md
+    .split(/\r?\n/)
+    .map((l) => l.trim().replace(/^#{1,4}\s+/, "").replace(/^[-*]\s+/, "").replace(/^-{3,}$/, ""))
+    .filter(Boolean)
+    .join(" ");
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  return cut.slice(0, Math.max(cut.lastIndexOf(" "), max - 20)) + "…";
 }

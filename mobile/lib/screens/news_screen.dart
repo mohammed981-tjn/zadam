@@ -127,7 +127,9 @@ class _NewsCard extends StatelessWidget {
                     fontSize: 16, fontWeight: FontWeight.w800, height: 1.5)),
           ],
         ),
-        subtitle: item.summary == null
+        // A summary that only repeats the title says nothing.
+        subtitle: item.summary == null ||
+                item.summary!.trim() == item.title.trim()
             ? null
             : Padding(
                 padding: const EdgeInsets.only(top: 6),
@@ -136,7 +138,7 @@ class _NewsCard extends StatelessWidget {
                         fontSize: 13, color: mutedOn(context), height: 1.7)),
               ),
         children: [
-          Text(item.body, style: const TextStyle(fontSize: 14, height: 1.9)),
+          ...newsBody(item.body, context),
           if (item.linkPath != null) ...[
             const SizedBox(height: 10),
             Text(
@@ -148,4 +150,42 @@ class _NewsCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The body as the website draws it: `#` lines as headings, `-` and `1.`
+/// lines as list items, `---` as a rule — not the marks themselves.
+List<Widget> newsBody(String body, BuildContext context) {
+  final out = <Widget>[];
+  for (final raw in body.split('\n')) {
+    final line = raw.trim();
+    if (line.isEmpty) continue;
+    final heading = RegExp(r'^(#{1,4})\s+(.*)$').firstMatch(line);
+    if (heading != null) {
+      final level = heading.group(1)!.length;
+      out.add(Padding(
+        padding: const EdgeInsets.only(top: 14, bottom: 4),
+        child: Text(heading.group(2)!,
+            style: TextStyle(
+                fontSize: level <= 2 ? 17 : 15,
+                fontWeight: FontWeight.w800,
+                color: level <= 2
+                    ? Theme.of(context).colorScheme.primary
+                    : null)),
+      ));
+    } else if (RegExp(r'^-{3,}$').hasMatch(line)) {
+      out.add(const Divider(height: 24));
+    } else if (RegExp(r'^[-*]\s+').hasMatch(line)) {
+      out.add(Padding(
+        padding: const EdgeInsets.only(right: 8, bottom: 2),
+        child: Text('• ${line.replaceFirst(RegExp(r'^[-*]\s+'), '')}',
+            style: const TextStyle(fontSize: 14, height: 1.8)),
+      ));
+    } else {
+      out.add(Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Text(line, style: const TextStyle(fontSize: 14, height: 1.9)),
+      ));
+    }
+  }
+  return out;
 }

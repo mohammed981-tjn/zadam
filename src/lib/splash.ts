@@ -27,6 +27,28 @@ export const SPLASH_MAX_MS = 2000;
 /** زمنُ التلاشي بعد انتهاء المهلة. */
 export const SPLASH_FADE_MS = 400;
 
+/*
+ * مرحلةُ الفيديو قبل الشعار (طلب المالك، 25 سبتمبر: «يندمج شاشة البداية مع
+ * الفيديو بحيث عندما ينتهي الفيديو تظهر شاشة البداية»).
+ *
+ * The intro now opens on the owner's 8-second clip and the logo screen follows
+ * it. The promises above still hold for the logo screen; these two bound the
+ * clip in front of it, so the whole intro keeps a ceiling:
+ *
+ *   • `VIDEO_START_MS` — if the clip has not started playing by then (a slow
+ *     connection, a browser that will not autoplay), the logo screen comes
+ *     straight away. A stalled video is never a blank screen to wait out.
+ *   • `VIDEO_MAX_MS` — the clip's own length and a little over, so it is not
+ *     cut short, and not a moment more if it stalls midway.
+ *
+ * And a tap or a key ends the whole intro at any point, as before.
+ */
+export const SPLASH_VIDEO_START_MS = 2500;
+export const SPLASH_VIDEO_MAX_MS = 9000;
+
+/** The longest the intro can last, clip and logo screen together, fade included. */
+export const SPLASH_INTRO_WORST_MS = SPLASH_VIDEO_MAX_MS + SPLASH_MAX_MS + SPLASH_FADE_MS;
+
 /**
  * متى تنتهي الشاشة، بالمللي ثانية من لحظة ظهورها.
  *

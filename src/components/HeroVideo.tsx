@@ -5,14 +5,13 @@ import { useRef, useState } from "react";
 import { SUDAGRI_LOGO } from "@/lib/brand";
 
 /**
- * واجهةُ الرئيسيّة: فيديو المزارع مرّةً واحدة، ثمّ شعارُ سودجري في مكانه.
+ * واجهةُ الرئيسيّة: شعارُ سودجري، وفيديو المزارع عند الطلب.
  *
- * The owner's instruction (25 September): the clip should not loop — play
- * once, go back to its first frame, and show the Sudagri logo, as the large
- * front of the homepage. So the video plays muted and inline (the only way a
- * browser starts a video by itself; the clip has no sound worth hearing), and
- * when it ends it is rewound and the logo fades in over it. A small button
- * plays it again for whoever wants to.
+ * Since the intro became the clip followed by the logo screen (the owner, 25
+ * September: «يندمج شاشة البداية مع الفيديو»), the visitor has just watched
+ * the clip full-screen; playing it again here would be the repetition the
+ * owner asked to avoid. So this starts on the logo, fetches nothing until asked
+ * (`preload="none"`), and «شاهد الفيديو» plays it once and returns to the logo.
  *
  * The file is the owner's 8-second clip re-encoded to 960 px, about 0.9 MB,
  * audio dropped and the index at the front so it starts before it has
@@ -21,7 +20,7 @@ import { SUDAGRI_LOGO } from "@/lib/brand";
  */
 export default function HeroVideo() {
   const ref = useRef<HTMLVideoElement>(null);
-  const [ended, setEnded] = useState(false);
+  const [ended, setEnded] = useState(true);
 
   const replay = () => {
     const v = ref.current;
@@ -35,10 +34,9 @@ export default function HeroVideo() {
     <figure className="relative overflow-hidden rounded-3xl bg-card shadow-float">
       <video
         ref={ref}
-        autoPlay
         muted
         playsInline
-        preload="auto"
+        preload="none"
         poster="/video/sudan-farmer.jpg"
         onEnded={(e) => {
           e.currentTarget.currentTime = 0;
@@ -70,7 +68,7 @@ export default function HeroVideo() {
           onClick={replay}
           className="absolute bottom-3 left-3 rounded-full border border-border bg-card/90 px-3 py-1.5 text-xs font-medium shadow-card transition hover:border-primary motion-reduce:hidden"
         >
-          ▶ أعد العرض
+          ▶ شاهد الفيديو
         </button>
       </div>
     </figure>

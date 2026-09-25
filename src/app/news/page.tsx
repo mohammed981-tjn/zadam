@@ -6,6 +6,15 @@ import {
   type Announcement,
 } from "@/lib/announcements";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
+import StudyBody from "@/components/StudyBody";
+import { parseStudy, plainExcerpt } from "@/lib/studyDoc";
+
+/**
+ * A long item — a study pasted in as news — is shown here as its opening
+ * lines and a link to its own page, so one item does not bury the rest of
+ * the list under thirty thousand characters. A short one is shown whole.
+ */
+const LONG = 1200;
 
 export const metadata = {
   title: "أخبار سودجري | جديد المنصّة",
@@ -97,14 +106,28 @@ export default async function NewsPage() {
               <h2 className={`mt-2 font-black leading-snug ${i === 0 ? "text-2xl" : "text-lg"}`}>
                 {a.title}
               </h2>
-              {a.summary && (
+              {/* A summary that only repeats the title says nothing; it is left out. */}
+              {a.summary && a.summary.trim() !== a.title.trim() && (
                 <p className="mt-1 text-sm font-medium leading-7 text-muted">{a.summary}</p>
               )}
 
-              {/* السطورُ محفوظة: مَن كتب فقرتين لم يكتب واحدة. */}
-              <p className="mt-3 whitespace-pre-line text-sm leading-8">
-                {a.body}
-              </p>
+              {/* The body is drawn from its Markdown — headings, lists and
+                  formulas as such, not as `#` and `-` in a paragraph. */}
+              {a.body.length > LONG ? (
+                <>
+                  <p className="mt-3 text-sm leading-8">{plainExcerpt(a.body)}</p>
+                  <Link
+                    href={`/news/${a.id}`}
+                    className="mt-3 inline-flex items-center gap-1 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                  >
+                    اقرأ الخبر كاملاً ←
+                  </Link>
+                </>
+              ) : (
+                <div className="text-sm">
+                  <StudyBody blocks={parseStudy(a.body, { titled: false }).blocks} />
+                </div>
+              )}
 
               {a.link_path && (
                 <Link
