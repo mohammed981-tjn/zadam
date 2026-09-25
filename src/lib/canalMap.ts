@@ -41,42 +41,6 @@ interface RawCorridor {
 
 export const CORRIDOR = raw as unknown as RawCorridor;
 
-/**
- * Elevation averaged into coarser blocks for shading. The full 0.01° grid is
- * five and a half thousand cells — a quarter of a megabyte of SVG for a
- * background tint. Blocks of 2×2 keep the shape at a quarter of the weight.
- */
-export function shadingBlocks(factor = 2) {
-  const { nlat, nlon, step, elevation } = CORRIDOR.grid;
-  const { south, west } = CORRIDOR.bbox;
-  const out: { lon: number; lat: number; size: number; z: number }[] = [];
-  for (let i = 0; i < nlat; i += factor) {
-    for (let j = 0; j < nlon; j += factor) {
-      let sum = 0;
-      let n = 0;
-      for (let di = 0; di < factor && i + di < nlat; di++) {
-        for (let dj = 0; dj < factor && j + dj < nlon; dj++) {
-          sum += elevation[(i + di) * nlon + j + dj];
-          n++;
-        }
-      }
-      out.push({ lon: west + j * step, lat: south + i * step, size: step * factor, z: sum / n });
-    }
-  }
-  return out;
-}
-
-export function elevationRange() {
-  const z = CORRIDOR.grid.elevation;
-  let lo = Infinity;
-  let hi = -Infinity;
-  for (const v of z) {
-    if (v < lo) lo = v;
-    if (v > hi) hi = v;
-  }
-  return { lo, hi };
-}
-
 export { WRB, wrbInfo } from "./soilClasses";
 
 /**
@@ -226,27 +190,32 @@ export interface LandCover {
   /** Percent per class, commonest first. */
   shares: { corridor: { cls: number; pct: number }[]; strip: { cls: number; pct: number }[] };
   along: { cls: number | null; fromKm: number; toKm: number }[];
-  /** Each row's southern edge, and runs of [west edge, blocks, class]. */
-  rows: { lat: number; runs: [number, number, number][] }[];
+  /** Each class but bare ground (the base) as smooth regions: polygons of rings in [lon, lat]. */
+  regions: { cls: number; shapes: [number, number][][][] }[];
+  /** The Nile and the reservoir, and the built-up land, as outlines: polygons of rings in [lon, lat]. */
+  water: [number, number][][][];
+  built: [number, number][][][];
 }
 
 export const LAND_COVER = landRaw as unknown as LandCover;
 
 /**
- * ESA WorldCover's classes in Arabic, in the product's own colours (so the
- * map reads like every other WorldCover map), with what each means for a
- * canal: land already farmed is land with a claim on it; built-up land is
- * where the line costs houses; bare land is what the canal would make new.
+ * ESA WorldCover's classes in Arabic, with what each means for a canal:
+ * land already farmed is land with a claim on it; built-up land is where the
+ * line costs houses; bare land is what the canal would make new. Colours are
+ * softened from the product's own (whose red and magenta shout over the
+ * route) but keep their sense: green for growing, sand for bare, rose-grey
+ * for buildings, blue for water.
  */
 export const WORLDCOVER: Record<number, { ar: string; note: string; fill: string }> = {
-  10: { ar: "أشجار", note: "غابات وأحزمة شجرية", fill: "#006400" },
-  20: { ar: "شجيرات", note: "", fill: "#ffbb22" },
-  30: { ar: "حشائش", note: "مراعٍ موسمية", fill: "#ffff4c" },
-  40: { ar: "أرض مزروعة", note: "مزروعةٌ اليوم — لها أهلٌ وحقوق", fill: "#f096ff" },
-  50: { ar: "مبانٍ", note: "حيث يمرّ الخطّ على بيوتٍ ومنشآت", fill: "#fa0000" },
-  60: { ar: "أرض جرداء", note: "ما تجعله القناة أرضاً جديدة", fill: "#b4b4b4" },
-  80: { ar: "ماء دائم", note: "النيل والخزّان", fill: "#0064c8" },
-  90: { ar: "أرض رطبة", note: "", fill: "#0096a0" },
+  10: { ar: "أشجار", note: "غابات وأحزمة شجرية", fill: "#4f8a4b" },
+  20: { ar: "شجيرات", note: "", fill: "#cdb26a" },
+  30: { ar: "حشائش", note: "مراعٍ موسمية", fill: "#e3d98f" },
+  40: { ar: "أرض مزروعة", note: "مزروعةٌ اليوم — لها أهلٌ وحقوق", fill: "#9fcb74" },
+  50: { ar: "مبانٍ", note: "حيث يمرّ الخطّ على بيوتٍ ومنشآت", fill: "#c9a6a0" },
+  60: { ar: "أرض جرداء", note: "ما تجعله القناة أرضاً جديدة", fill: "#e6e0d2" },
+  80: { ar: "ماء دائم", note: "النيل والخزّان", fill: "#3f86c6" },
+  90: { ar: "أرض رطبة", note: "", fill: "#7fb7b0" },
 };
 
 export const coverInfo = (cls: number | null | string) =>

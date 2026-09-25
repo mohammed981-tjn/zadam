@@ -31,7 +31,13 @@ ok(pts.length === 2 && pts[0].v === "3", "ونقاط الإطار وحدها ت�
 console.log("\nملف الغطاء الأرضي:");
 const strip = LAND_COVER.shares.strip.reduce((a, s) => a + s.pct, 0);
 ok(Math.abs(strip - 100) < 1, `نِسب الشريط تجمع ١٠٠ (${strip})`);
-ok(LAND_COVER.rows.every((r) => Math.abs(r.runs.reduce((a, [, n]) => a + n, 0) * LAND_COVER.block - 0.65) < 0.02), "وكلّ صفٍّ يغطّي عرض الإطار");
+ok(LAND_COVER.regions.some((r) => r.cls === 40) && LAND_COVER.water.length > 0 && LAND_COVER.built.length > 0, "والمزروع والماء والمباني مرسومةٌ مناطق");
+ok(
+  [...LAND_COVER.water, ...LAND_COVER.built, ...LAND_COVER.regions.flatMap((r) => r.shapes)]
+    .flat(2)
+    .every(([lon, lat]) => lon > 32 && lon < 32.75 && lat > 15.05 && lat < 15.97),
+  "وكلّ نقاطها داخل الإطار",
+);
 ok(LAND_COVER.along.at(-1)!.toKm > 90, "والخطّ مغطّى إلى آخره");
 ok(LAND_COVER.shares.strip.every((s, i, a) => i === 0 || a[i - 1].pct >= s.pct), "مرتّبةً من الأكبر في الملف");
 ok(LAND_COVER.shares.corridor.map((s) => s.cls).every((c) => coverInfo(c)?.ar && !coverInfo(c)!.ar.startsWith("صنف")), "ولكلّ صنفٍ اسمٌ عربيّ");

@@ -1,19 +1,25 @@
 import {
   ROUTE,
   PLACES,
-  WHITE_NILE,
-  BLUE_NILE,
-  MAIN_NILE,
   distanceKm,
   type GeoPoint,
 } from "@/lib/arcCanal";
+import {
+  BuiltUp,
+  Contours,
+  NorthArrow,
+  ScaleBar,
+  Soil,
+  Terrain,
+  TerrainLegend,
+  Water,
+  shapePath,
+} from "@/components/map/CorridorGround";
 import {
   CORRIDOR,
   LAND_COVER,
   coverInfo,
   crossingRows,
-  elevationRange,
-  shadingBlocks,
   soilAlongRoute,
   wrbInfo,
 } from "@/lib/canalMap";
@@ -47,28 +53,13 @@ const routePath = geo(ROUTE);
 const n0 = (v: number) => Math.round(v).toLocaleString("ar", { useGrouping: false });
 const n1 = (v: number) => v.toLocaleString("ar", { maximumFractionDigits: 1 });
 
-/** Low ground green, high ground tan — the same ramp as the terrain layer on /rain. */
-function tint(z: number, lo: number, hi: number): string {
-  const t = hi > lo ? (z - lo) / (hi - lo) : 0;
-  const stops = [
-    [0, [217, 234, 211]],
-    [0.35, [181, 213, 155]],
-    [0.6, [230, 220, 160]],
-    [0.85, [209, 178, 118]],
-    [1, [169, 125, 79]],
-  ] as const;
-  for (let k = 1; k < stops.length; k++) {
-    if (t <= stops[k][0]) {
-      const [t0, c0] = stops[k - 1];
-      const [t1, c1] = stops[k];
-      const f = (t - t0) / (t1 - t0);
-      const c = c0.map((v, i) => Math.round(v + f * (c1[i] - v)));
-      return `rgb(${c.join(",")})`;
-    }
-  }
-  return "rgb(169,125,79)";
-}
+/** 10 km at this scale, for the scale bar on every frame. */
+const KM10 = x(west + 10 / 107.3) - x(west);
 
+/**
+ * One frame for all three maps: the same box, clip, north arrow and scale,
+ * so the terrain, the soil and the land cover read against one another.
+ */
 function Frame({
   children,
   label,
@@ -82,23 +73,27 @@ function Frame({
     <svg viewBox={`-2 -2 ${PLOT_W + 4} ${PLOT_H + 4}`} className="h-auto w-full" role="img" aria-label={label}>
       <defs>
         <clipPath id={clipId}>
-          <rect x={0} y={0} width={PLOT_W} height={PLOT_H} />
+          <rect x={0} y={0} width={PLOT_W} height={PLOT_H} rx={8} />
         </clipPath>
       </defs>
-      <g clipPath={`url(#${clipId})`}>{children}</g>
-      <rect x={0} y={0} width={PLOT_W} height={PLOT_H} fill="none" stroke="var(--border)" />
+      <g clipPath={`url(#${clipId})`}>
+        {children}
+        <NorthArrow x={PLOT_W - 18} y={30} />
+        <ScaleBar x={12} y={PLOT_H - 12} px={KM10} km={10} />
+      </g>
+      <rect x={0} y={0} width={PLOT_W} height={PLOT_H} fill="none" stroke="var(--border)" rx={8} />
     </svg>
   );
 }
 
+const P = { x, y };
+
+/** Drainage lines drawn on the map: the larger ones, so the pattern shows. */
+const DRAW_MIN_KM2 = 100;
+
+/** The Nile and the reservoir as they lie, traced from ESA WorldCover's water. */
 function Rivers() {
-  return (
-    <g fill="none" stroke="#2a6db0" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-      <path d={geo(WHITE_NILE)} />
-      <path d={geo(BLUE_NILE)} />
-      <path d={geo(MAIN_NILE)} strokeWidth={4} />
-    </g>
-  );
+  return <Water p={P} />;
 }
 
 function Route() {
@@ -120,6 +115,7 @@ function Places() {
             x={x(p.lon) + 6}
             y={y(p.lat) + 4}
             fontSize={10}
+            fontWeight={600}
             fill="var(--foreground)"
             stroke="var(--card)"
             strokeWidth={3}
@@ -140,8 +136,6 @@ function Places() {
  */
 function LandCoverSection() {
   const lc = LAND_COVER;
-  const cellH = y(south) - y(south + lc.block) + 0.4;
-  const cellW = x(west + lc.block) - x(west);
   // Classes under half a percent are noise at this accuracy; they stay in the file.
   const strip = lc.shares.strip.filter((s) => s.pct >= 0.5);
   const inFrame = (cls: number) => lc.shares.corridor.find((s) => s.cls === cls)?.pct ?? 0;
@@ -151,23 +145,21 @@ function LandCoverSection() {
         <h3 className="font-semibold">الغطاء الأرضي اليوم</h3>
         <p className="text-xs leading-relaxed text-muted">
           ما على الأرض من زرعٍ وبناءٍ وماء، من خريطة الغطاء الأرضي الأوروبية
-          (ESA WorldCover ٢٠٢١) بدقّة ١٠ أمتار، مجمّعةً في مربّعاتٍ نحو كيلومتر.
+          (ESA WorldCover ٢٠٢١) بدقّة ١٠ أمتار، مرسومةً مناطقَ متّصلة (البقع الأصغر
+          من نصف كيلومتر لا تظهر هنا، وتدخل في النِّسب).
         </p>
       </figcaption>
       <div className="grid gap-4 md:grid-cols-2">
         <Frame clipId="corridor-cover" label="خريطة الغطاء الأرضي في ممرّ القناة القوسية مع مسار القناة">
-          {lc.rows.flatMap((r) =>
-            r.runs.map(([lon, n, cls]) => (
-              <rect
-                key={`${r.lat},${lon}`}
-                x={x(lon)}
-                y={y(r.lat + lc.block)}
-                width={cellW * n + 0.4}
-                height={cellH}
-                fill={coverInfo(cls)?.fill ?? "var(--card)"}
-              />
+          {/* Bare ground is the base; every other class is a region over it. */}
+          <rect x={0} y={0} width={PLOT_W} height={PLOT_H} fill={coverInfo(60)!.fill} />
+          {lc.regions.map((r) =>
+            r.shapes.map((s, k) => (
+              <path key={`${r.cls}-${k}`} d={shapePath(P, s)} fill={coverInfo(r.cls)!.fill} fillRule="evenodd" />
             )),
           )}
+          <BuiltUp p={P} />
+          <Water p={P} />
           <Route />
           <Places />
         </Frame>
@@ -213,9 +205,9 @@ function LandCoverSection() {
 }
 
 export default function ArcCanalCorridor() {
-  const { lo, hi } = elevationRange();
-  const blocks = shadingBlocks(2);
-  const segs = CORRIDOR.drainage.segments;
+  // The larger lines only: every one of them is on the crossings list below,
+  // but drawn all together the small ones hide the pattern they belong to.
+  const segs = CORRIDOR.drainage.segments.filter((s) => s.km2 >= DRAW_MIN_KM2);
   const maxKm2 = Math.max(1, ...segs.map((s) => s.km2));
   const width = (km2: number) => 0.6 + 3.4 * (Math.log(km2) / Math.log(maxKm2));
   const soilCells = CORRIDOR.soil.cells.filter((c) => c.wrb);
@@ -227,7 +219,6 @@ export default function ArcCanalCorridor() {
   const soilRuns = soilAlongRoute(ROUTE, distanceKm);
   const namedPlaces = CORRIDOR.nearPlaces.filter((p) => p.name);
   const unnamedPlaces = CORRIDOR.nearPlaces.length - namedPlaces.length;
-  const half = CORRIDOR.soil.step / 2;
 
   return (
     <section className="flex flex-col gap-6">
@@ -250,23 +241,16 @@ export default function ArcCanalCorridor() {
           <figcaption>
             <h3 className="font-semibold">التضاريس ومجاري السيول</h3>
             <p className="text-xs leading-relaxed text-muted">
-              المجاري مشتقّةٌ من الارتفاعات: كلُّ خطٍّ يصرّف {n0(CORRIDOR.drainage.minKm2)} كم² فأكثر،
-              ويزداد سُمكه بمساحة ما يصرّفه.
+              الألوان ارتفاع الأرض، وخطوط الكنتور كل {n0(10)} أمتار. والمجاري مشتقّةٌ
+              من الارتفاعات: المرسوم منها ما يصرّف {n0(DRAW_MIN_KM2)} كم² فأكثر، ويزداد سُمكه
+              بمساحة ما يصرّفه (والجدول أدناه يعدّ كلّ مجرى من {n0(CORRIDOR.drainage.minKm2)} كم²).
             </p>
           </figcaption>
           <Frame clipId="corridor-terrain" label="خريطة تضاريس ممرّ القناة ومجاري السيول المشتقّة منها، مع مسار القناة والطرق والقرى">
-            {blocks.map((b) => (
-              <rect
-                key={`${b.lon},${b.lat}`}
-                x={x(b.lon - CORRIDOR.grid.step / 2)}
-                y={y(b.lat + b.size - CORRIDOR.grid.step / 2)}
-                width={x(west + b.size) - x(west) + 0.4}
-                height={y(south) - y(south + b.size) + 0.4}
-                fill={tint(b.z, lo, hi)}
-              />
-            ))}
+            <Terrain p={P} />
+            <Contours p={P} />
             <Rivers />
-            <g stroke="#3b82c4" strokeLinecap="round" opacity={0.9}>
+            <g stroke="#2f78c0" strokeLinecap="round" opacity={0.85}>
               {segs.map((s, k) => (
                 <line
                   key={k}
@@ -330,11 +314,8 @@ export default function ArcCanalCorridor() {
               <span className="inline-block size-2.5 rounded-full border-2" style={{ borderColor: "#1f5fa8" }} />
               حيث تعبر القناة مجرى
             </li>
-            <li className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-8 rounded-sm" style={{ background: `linear-gradient(to left, ${tint(hi, lo, hi)}, ${tint(lo, lo, hi)})` }} />
-              <span className="figure">{n0(lo)}–{n0(hi)} م</span>
-            </li>
           </ul>
+          <TerrainLegend />
         </figure>
 
         {/* ───────── التربة ───────── */}
@@ -342,24 +323,12 @@ export default function ArcCanalCorridor() {
           <figcaption>
             <h3 className="font-semibold">أنواع التربة</h3>
             <p className="text-xs leading-relaxed text-muted">
-              المجموعة الأرجح في كل مربّعٍ (نحو ١١ كم) بتصنيف WRB العالمي، من
-              SoilGrids بدقّة ٢٥٠ م.
+              المجموعة الأرجح بتصنيف WRB العالمي من SoilGrids، قُرئت كل ١١ كم
+              ورُسمت حدودها ناعمةً بين النقاط — تقريبيّةٌ بقدر تباعدها.
             </p>
           </figcaption>
           <Frame clipId="corridor-soil" label="خريطة أنواع التربة في ممرّ القناة القوسية مع مسار القناة">
-            <rect x={0} y={0} width={PLOT_W} height={PLOT_H} fill="var(--card)" />
-            {soilCells.map((c) => (
-              <rect
-                key={`${c.lon},${c.lat}`}
-                x={x(c.lon - half)}
-                y={y(c.lat + half)}
-                width={x(west + 2 * half) - x(west) + 0.4}
-                height={y(south) - y(south + 2 * half) + 0.4}
-                fill={wrbInfo(c.wrb)!.fill}
-                stroke="var(--card)"
-                strokeWidth={0.6}
-              />
-            ))}
+            <Soil p={P} />
             <Rivers />
             <Route />
             <Places />

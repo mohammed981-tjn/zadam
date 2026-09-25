@@ -22,6 +22,8 @@
 import { writeFileSync } from "node:fs";
 import { fromUrl } from "geotiff";
 import { ROUTE, distanceKm } from "../src/lib/arcCanal";
+import { bandsOf, type Shape } from "../src/lib/contourGrid";
+import { simplify } from "./build-sudan-base";
 import raw from "../data/canal-map.json";
 
 const TILE =
@@ -138,6 +140,34 @@ async function main() {
     else along.push({ cls, fromKm: last ? last.toKm : km, toKm: km });
   });
 
+  // The Nile's banks and the reservoir, and the built-up ground, as smooth
+  // outlines traced from the same samples at 0.002° (about 220 m): the
+  // river the maps draw is where the water is, not a centreline.
+  const outline = (cls: number, step = 2, tol = 0.0006, minPts = 6): Shape[] => {
+    const nx = Math.floor(width / step);
+    const ny = Math.floor(height / step);
+    const values = new Array<number>(nx * ny);
+    for (let r = 0; r < ny; r++) {
+      for (let c = 0; c < nx; c++) {
+        let n = 0;
+        for (let di = 0; di < step; di++) for (let dj = 0; dj < step; dj++) if (at(r * step + di, c * step + dj) === cls) n++;
+        values[r * nx + c] = n / (step * step);
+      }
+    }
+    const g = { values, nx, ny, at: (c: number, r: number) => [west + (c + 0.5) * SAMPLE * step, north - (r + 0.5) * SAMPLE * step] as [number, number] };
+    return bandsOf(g, [0.5])[0]
+      .map((poly) => poly.map((ring) => simplify(ring, tol)).filter((ring) => ring.length > 3))
+      .filter((poly) => poly.length > 0 && poly[0].length >= minPts);
+  };
+  const water = outline(80);
+  const built = outline(50);
+  // Every other class that covers ground here, for the land cover map to
+  // draw as regions over the bare plain. Patches of a single sample are
+  // dropped: at this scale they are noise, and they cost the file weight.
+  const regions = [40, 30, 10, 20, 90]
+    .map((cls) => ({ cls, shapes: outline(cls, 4, 0.0012, 8) }))
+    .filter((r) => r.shapes.length > 0);
+
   writeFileSync(
     "data/canal-landcover.json",
     JSON.stringify({
@@ -148,13 +178,18 @@ async function main() {
       bufferKm: BUFFER_KM,
       shares: { corridor: shares(all), strip: shares(strip) },
       along,
-      rows,
+      water,
+      built,
+      regions,
     }) + "\n",
   );
   console.log("corridor", shares(all));
   console.log(`strip ±${BUFFER_KM} km`, shares(strip));
   console.log("along", along);
   console.log("rects", rows.reduce((a, r) => a + r.runs.length, 0));
+  const pts = (sh: Shape[]) => sh.flat(2).length;
+  console.log(`regions ${regions.map((r) => `${r.cls}:${r.shapes.length}/${pts(r.shapes)}`).join(" ")}`);
+  console.log(`water ${water.length} shapes, ${pts(water)} points; built ${built.length} shapes, ${pts(built)} points`);
 }
 
 if (process.argv[1]?.endsWith("fetch-canal-landcover.ts")) {
