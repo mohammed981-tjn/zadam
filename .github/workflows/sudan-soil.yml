@@ -52,4 +52,7 @@ jobs:
             exit 0
           fi
           git commit -m 'Refresh the Sudan soil map (SoilGrids)'
+          # A long run can end after someone else has pushed; replay this one
+          # commit on top rather than lose the survey to a rejected push.
+          git pull --rebase origin ${GITHUB_REF_NAME}
           git push origin HEAD:${GITHUB_REF_NAME}

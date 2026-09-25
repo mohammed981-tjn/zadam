@@ -1,4 +1,5 @@
 import raw from "../../data/canal-map.json";
+import landRaw from "../../data/canal-landcover.json";
 
 /**
  * خريطة ممرّ القناة القوسية — الوديان والتربة وما يعبره المسار.
@@ -214,3 +215,39 @@ export function soilAlongRoute(
   });
   return runs;
 }
+
+/* ───────────────────────── الغطاء الأرضي ───────────────────────── */
+
+export interface LandCover {
+  fetchedAt: string;
+  source: string;
+  block: number;
+  bufferKm: number;
+  /** Percent per class, commonest first. */
+  shares: { corridor: { cls: number; pct: number }[]; strip: { cls: number; pct: number }[] };
+  along: { cls: number | null; fromKm: number; toKm: number }[];
+  /** Each row's southern edge, and runs of [west edge, blocks, class]. */
+  rows: { lat: number; runs: [number, number, number][] }[];
+}
+
+export const LAND_COVER = landRaw as unknown as LandCover;
+
+/**
+ * ESA WorldCover's classes in Arabic, in the product's own colours (so the
+ * map reads like every other WorldCover map), with what each means for a
+ * canal: land already farmed is land with a claim on it; built-up land is
+ * where the line costs houses; bare land is what the canal would make new.
+ */
+export const WORLDCOVER: Record<number, { ar: string; note: string; fill: string }> = {
+  10: { ar: "أشجار", note: "غابات وأحزمة شجرية", fill: "#006400" },
+  20: { ar: "شجيرات", note: "", fill: "#ffbb22" },
+  30: { ar: "حشائش", note: "مراعٍ موسمية", fill: "#ffff4c" },
+  40: { ar: "أرض مزروعة", note: "مزروعةٌ اليوم — لها أهلٌ وحقوق", fill: "#f096ff" },
+  50: { ar: "مبانٍ", note: "حيث يمرّ الخطّ على بيوتٍ ومنشآت", fill: "#fa0000" },
+  60: { ar: "أرض جرداء", note: "ما تجعله القناة أرضاً جديدة", fill: "#b4b4b4" },
+  80: { ar: "ماء دائم", note: "النيل والخزّان", fill: "#0064c8" },
+  90: { ar: "أرض رطبة", note: "", fill: "#0096a0" },
+};
+
+export const coverInfo = (cls: number | null | string) =>
+  cls == null ? null : (WORLDCOVER[Number(cls)] ?? { ar: `صنف ${cls}`, note: "", fill: "#cccccc" });

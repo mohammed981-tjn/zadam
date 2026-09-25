@@ -9,6 +9,8 @@ import {
 } from "@/lib/arcCanal";
 import {
   CORRIDOR,
+  LAND_COVER,
+  coverInfo,
   crossingRows,
   elevationRange,
   shadingBlocks,
@@ -128,6 +130,85 @@ function Places() {
         </g>
       ))}
     </>
+  );
+}
+
+/**
+ * What covers the ground today, from ESA WorldCover. The number that matters
+ * is the strip either side of the line, not the whole frame: the frame takes
+ * in Omdurman, the line does not.
+ */
+function LandCoverSection() {
+  const lc = LAND_COVER;
+  const cellH = y(south) - y(south + lc.block) + 0.4;
+  const cellW = x(west + lc.block) - x(west);
+  // Classes under half a percent are noise at this accuracy; they stay in the file.
+  const strip = lc.shares.strip.filter((s) => s.pct >= 0.5);
+  const inFrame = (cls: number) => lc.shares.corridor.find((s) => s.cls === cls)?.pct ?? 0;
+  return (
+    <figure className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3">
+      <figcaption>
+        <h3 className="font-semibold">الغطاء الأرضي اليوم</h3>
+        <p className="text-xs leading-relaxed text-muted">
+          ما على الأرض من زرعٍ وبناءٍ وماء، من خريطة الغطاء الأرضي الأوروبية
+          (ESA WorldCover ٢٠٢١) بدقّة ١٠ أمتار، مجمّعةً في مربّعاتٍ نحو كيلومتر.
+        </p>
+      </figcaption>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Frame clipId="corridor-cover" label="خريطة الغطاء الأرضي في ممرّ القناة القوسية مع مسار القناة">
+          {lc.rows.flatMap((r) =>
+            r.runs.map(([lon, n, cls]) => (
+              <rect
+                key={`${r.lat},${lon}`}
+                x={x(lon)}
+                y={y(r.lat + lc.block)}
+                width={cellW * n + 0.4}
+                height={cellH}
+                fill={coverInfo(cls)?.fill ?? "var(--card)"}
+              />
+            )),
+          )}
+          <Route />
+          <Places />
+        </Frame>
+        <div className="flex flex-col gap-3 text-sm">
+          <p className="leading-relaxed">
+            في شريط <span className="figure">{n0(lc.bufferKm)}</span> كم على جانبَي الخطّ:
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {strip.map(({ cls, pct }) => {
+              const c = coverInfo(cls)!;
+              return (
+                <li key={cls} className="flex items-start gap-2">
+                  <span className="mt-1 inline-block size-3.5 shrink-0 rounded-sm border border-border" style={{ background: c.fill }} />
+                  <span>
+                    <strong>{c.ar}</strong> <span className="figure">{n1(pct)}٪</span>
+                    <span className="figure text-xs text-muted"> (في الإطار كلّه {n1(inFrame(cls))}٪)</span>
+                    {c.note && <span className="block text-xs text-muted">{c.note}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <div>
+            <h4 className="mb-1 font-medium">على الخطّ نفسه</h4>
+            <ul className="flex flex-col gap-1 text-sm">
+              {lc.along
+                .filter((r) => r.toKm > r.fromKm)
+                .map((r) => (
+                  <li key={r.fromKm}>
+                    <span className="figure">الكيلو {n1(r.fromKm)}–{n1(r.toKm)}</span>: {coverInfo(r.cls)?.ar ?? "غير معروف"}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p className="text-xs text-muted">
+        الصورة لسنة ٢٠٢١ ودقّتها الإجمالية نحو ٧٧٪ بتقدير منتجيها؛ تكفي لمعرفة
+        غالب الأرض، لا لحصر الحيازات — ذلك مسحٌ ميداني.
+      </p>
+    </figure>
   );
 }
 
@@ -329,6 +410,9 @@ export default function ArcCanalCorridor() {
           })}
         </ul>
       </div>
+
+      {/* ───────── الغطاء الأرضي ───────── */}
+      <LandCoverSection />
 
       {/* ───────── ما يعبره المسار ───────── */}
       <div className="flex flex-col gap-3">
