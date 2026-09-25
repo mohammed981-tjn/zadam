@@ -1,0 +1,12 @@
+{
+ "fetchedAt": "2026-09-25",
+ "source": "BGS Africa Groundwater Atlas — MacDonald et al. 2012, Environ. Res. Lett. 7 024009 (5 km grids)",
+ "page": "https://www2.bgs.ac.uk/groundwater/international/africanGroundwater/mapsDownload.html",
+ "bbox": {
+  "south": 15.1,
+  "west": 32.05,
+  "north": 15.92,
+  "east": 32.7
+ },
+ "maps": []
+}
