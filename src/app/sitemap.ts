@@ -35,6 +35,8 @@ const PUBLIC_ROUTES: {
   { path: "/tools/water", priority: 0.9, changeFrequency: "monthly" },
   { path: "/tools/feasibility", priority: 0.8, changeFrequency: "monthly" },
   { path: "/arc-canal", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/studies", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/studies/exchange-rate", priority: 0.7, changeFrequency: "monthly" },
   { path: "/export", priority: 0.8, changeFrequency: "monthly" },
   { path: "/export/market", priority: 0.7, changeFrequency: "monthly" },
   { path: "/services", priority: 0.7, changeFrequency: "weekly" },
