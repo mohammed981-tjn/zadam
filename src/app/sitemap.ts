@@ -11,7 +11,7 @@ import { SITE_URL } from "@/lib/site";
  * would hand Google a page it can only ever see as a login form, and it would
  * index that form under the platform's name. So a route enters this list only
  * when it renders its real content to someone who has never signed in — the
- * same test `PhotoStrip` applies to its links.
+ * same test the homepage board applies to its tiles.
  *
  * WHY NO DATABASE ROWS
  *

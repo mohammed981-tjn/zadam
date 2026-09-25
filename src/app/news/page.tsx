@@ -62,30 +62,54 @@ export default async function NewsPage() {
       {items.length === 0 ? (
         <div className="mt-8">
           <EmptyState title="لا خبر بعد">
-            حين يُنشر أوّلُ خبر سيظهر هنا وفي أعلى الصفحة الرئيسيّة.
+            حين يُنشر أوّلُ خبر سيظهر هنا، وتفتحه من القائمة ومن تبويب «الأخبار»
+            في الرئيسيّة.
           </EmptyState>
         </div>
       ) : (
-        <ol className="mt-8 flex flex-col gap-5">
-          {items.map((a) => (
+        /*
+         * أحدثُ خبرٍ بطاقةٌ بارزة، وما قبله خطٌّ زمنيّ بتاريخٍ على كلٍّ منه —
+         * طلب المالك (25 سبتمبر) أن تكون الأخبار واضحةً في صفحتها.
+         */
+        <ol className="mt-8 flex flex-col gap-6">
+          {items.map((a, i) => (
             <li
               key={a.id}
-              className="rounded-2xl border border-border bg-card p-5"
+              className={
+                i === 0
+                  ? "rounded-2xl border-2 border-primary/50 bg-card p-6 shadow-raised"
+                  : "relative border-r-2 border-border pr-5"
+              }
             >
-              <p className="text-xs text-muted">
-                {announcementDate(a.published_at!)}
+              {i > 0 && (
+                <span aria-hidden className="absolute -right-[7px] top-1.5 size-3 rounded-full border-2 border-card bg-primary" />
+              )}
+              <p className="flex flex-wrap items-center gap-2 text-xs">
+                {i === 0 && (
+                  <span className="rounded-full bg-primary px-2.5 py-0.5 font-bold text-primary-foreground">
+                    الأحدث
+                  </span>
+                )}
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-medium text-primary">
+                  {announcementDate(a.published_at!)}
+                </span>
               </p>
-              <h2 className="mt-1 text-lg font-bold">{a.title}</h2>
+              <h2 className={`mt-2 font-black leading-snug ${i === 0 ? "text-2xl" : "text-lg"}`}>
+                {a.title}
+              </h2>
+              {a.summary && (
+                <p className="mt-1 text-sm font-medium leading-7 text-muted">{a.summary}</p>
+              )}
 
               {/* السطورُ محفوظة: مَن كتب فقرتين لم يكتب واحدة. */}
-              <p className="mt-2 whitespace-pre-line text-sm leading-7">
+              <p className="mt-3 whitespace-pre-line text-sm leading-8">
                 {a.body}
               </p>
 
               {a.link_path && (
                 <Link
                   href={a.link_path}
-                  className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+                  className="mt-4 inline-flex items-center gap-1 rounded-xl bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-primary-foreground"
                 >
                   {a.link_label} ←
                 </Link>
