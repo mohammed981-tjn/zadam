@@ -1,0 +1,144 @@
+name: SQL gates
+
+# The database guards — CHECK constraints, row-level security, grants,
+# append-only triggers — proven against a real PostgreSQL. Split out of
+# web.yml on 25 September: they read only the migrations, the gate scripts
+# and the base schema, so a change that touches none of those cannot move
+# them, and running them on every pull request billed a private
+# repository's minutes for an answer that could not have changed.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "scripts/*.sh"
+      - "scripts/*.sql"
+      - ".github/workflows/sql-gates.yml"
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "scripts/*.sh"
+      - "scripts/*.sql"
+      - ".github/workflows/sql-gates.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: sql-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ==========================================================================
+  # الحرّاسُ الذين لا تُثبتهم تايبسكربت
+  # ==========================================================================
+  #
+  # WHY A SECOND JOB, AND WHY IT WAS MISSING
+  #
+  # `npm run verify` globs scripts/verify-*.ts — Node only, no services. But the
+  # guards that matter most on this platform are not TypeScript: they are CHECK
+  # constraints, row-level security policies, function grants, and append-only
+  # triggers. A constraint mocked in TypeScript proves nothing about the
+  # constraint, so those gates were written as SQL against a real PostgreSQL.
+  #
+  # And then nothing ran them. 84 checks — the ones proving that `anon` cannot
+  # read the complaints queue, that a machine reply cannot land under a human
+  # one, that a frozen requirement cannot block deleting the live rule — sat
+  # outside every automated run, executed only when someone remembered. A
+  # migration edit could go green here while breaking any of them.
+  #
+  # It runs beside `check` rather than inside it: it needs no Node, no npm
+  # install and no build, and a failure here should read as "a database guard
+  # broke", not as one more red step in a job about typechecking.
+  sql-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # ubuntu-latest ships PostgreSQL, but only the client on some images.
+      # The gates build their own throwaway cluster, so they need the server
+      # binaries — initdb and pg_ctl — not a running service.
+      - name: PostgreSQL binaries
+        run: |
+          sudo apt-get update -qq
+          if [ ! -x "$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)/initdb" ]; then
+            sudo apt-get install -y -qq postgresql
+          fi
+          # pgvector: `knowledge_entries` و`assistant_answers` تحملان عمود
+          # `vector`، والتجهيزةُ تعلنه بنوعه الحقيقيّ لا ببديلٍ نصّيّ — فبديلٌ
+          # نصّيٌّ هو نفسُ العطب الذي بُنيت التجهيزةُ لإزالته.
+          PGMAJOR="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1 | grep -oE '[0-9]+' | tail -1)"
+          sudo apt-get install -y -qq "postgresql-$PGMAJOR-pgvector"
+          ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1
+
+      # The runner is an ordinary user, not root — which is why these scripts
+      # could not run here until the harness learned to skip `su postgres`.
+      - name: ممرّ الصادر
+        run: ./scripts/verify-export-offers.sh
+
+      - name: النفير — الميثاق والفزعة والشورى
+        run: ./scripts/verify-nafir.sh
+
+      - name: الجودية — الوساطة بخطواتها
+        run: ./scripts/verify-judiyya.sh
+
+      - name: الترع — الحدود والنصيب والنوبات
+        run: ./scripts/verify-canals.sh
+
+      - name: الردّ الآلي على الشكاوى
+        run: ./scripts/verify-support-auto-reply.sh
+
+      - name: تدقيقُ عملية الاستثمار
+        run: ./scripts/verify-investment-audit.sh
+
+      # وهذه تسأل السؤال المعاكس. الثلاث فوقها تُثبت ما تمنعه المنصّة؛ هذه
+      # وحدها تُثبت أنّ صاحب الحقّ يمرّ — ومنصّةٌ ترفض كلَّ شيء تنجح في الثلاث.
+      - name: الرحلة الذهبيّة
+        run: ./scripts/verify-farmer-journey.sh
+
+      - name: رحلة المستثمر
+        run: ./scripts/verify-investor-journey.sh
+
+      - name: رحلة الأرض والموسم
+        run: ./scripts/verify-land-season-journey.sh
+
+      # المرحلة ٣ تبدأ من هنا: درجةُ ثقةٍ محسوبةٌ من أدلّةٍ يسحبها صاحبُها ليست
+      # درجةَ ثقة. فالدليلُ يُقفل قبل أن يُحسب عليه شيء.
+      - name: قفلُ الأدلّة
+        run: ./scripts/verify-evidence-lock.sh
+
+      # وعلى الدليل المقفَل يُحسب الرقم: «٧ من ٨» — وأيُّ الثامن. وأكثرُ ما
+      # تحرسه هذه ليس الحساب بل الحاجز: الدالّتان `security definer`، فحاجزُهما
+      # الداخليُّ هو الحدُّ كلُّه بين رقمٍ للمشتري وتعدادٍ لمسوّدات الناس.
+      - name: جاهزيّةُ العرض
+        run: ./scripts/verify-export-readiness.sh
+
+      # وجوازُ المزرعة: السجلُّ لا يعدّ إلّا ما حدث. وأثقلُ ما تحرسه ليس الحساب
+      # بل الصلاحيّة — الهجرةُ تُسقط دالّةً تُرجع مالَ أيّ مزارعٍ يُطلب، و`drop`
+      # تُعيد تنفيذَها إلى `PUBLIC` بلا كلمة.
+      - name: جوازُ المزرعة
+        run: ./scripts/verify-farm-passport.sh
+
+      # وهذه تحرس تضييقَ حارس. `prevent_self_role_escalation` صار يسمح
+      # investor ⇄ farmer، وتوسيعُ ثقبٍ في حارس أخطرُ أنواع التعديل — فتُفحص
+      # الجهتان: أنّ المسموحَ يمرّ، وأنّ كلَّ طريقٍ إلى صلاحيةٍ ما زال يُرَدّ.
+      - name: اختيار الدور
+        run: ./scripts/verify-role-choice.sh
+
+      # واللائحةُ تُعلن عمرَها. وأخطرُ ما تحرسه أنّ ممرّاً لم يُراجَع قطّ يُقرأ
+      # متأخّراً لا حديثاً — و`null > 180` تساوي false، فالصياغةُ الساذجة تشهد
+      # بالحداثة لما لم يفحصه أحد.
+      - name: عمرُ اللائحة
+        run: ./scripts/verify-rules-freshness.sh
+
+      # ودورةُ حياة العقد. وأخطرُ ما تحرسه ليس الانتقالات بل الأسعار: `amount`
+      # عمودٌ مولَّد من `quantity × unit_price`، وكلاهما كان قابلاً للتعديل من
+      # أيّ الطرفين في أيّ وقت — و`sync_contract_total` يعيد حساب الإجماليّ
+      # على الرقم الجديد بإخلاص.
+      - name: دورةُ حياة العقد
+        run: ./scripts/verify-contract-lifecycle.sh
+
+      # والأخبار. وأخطرُ ما تحرسه أنّ المسوّدةَ لا تُرى: هذه أوّلُ جدولٍ يُسرّب
+      # إلى **الخارج** إن أخطأت سياستُه، والصفحةُ التي تعرضه مخزَّنةٌ مؤقّتاً —
+      # فتسريبةٌ واحدةٌ تُخبز في صفحةٍ تُقدَّم لكلّ قادم.
+      - name: الأخبار
+        run: ./scripts/verify-announcements.sh
