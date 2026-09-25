@@ -7,386 +7,610 @@
    "lon": 24,
    "lat": 9.25,
    "wrb": "Vertisols",
-   "share": 42,
+   "share": 50,
    "points": 4
   },
   {
    "lon": 27,
    "lat": 9.25,
    "wrb": "Vertisols",
-   "share": 62,
+   "share": 100,
    "points": 4
   },
   {
    "lon": 28.5,
    "lat": 9.25,
    "wrb": "Vertisols",
-   "share": 60,
+   "share": 100,
    "points": 4
   },
   {
    "lon": 30,
    "lat": 9.25,
    "wrb": "Vertisols",
-   "share": 63,
+   "share": 100,
    "points": 3
   },
   {
    "lon": 31.5,
    "lat": 9.25,
    "wrb": "Vertisols",
-   "share": 59,
+   "share": 100,
    "points": 2
   },
   {
    "lon": 34.5,
    "lat": 9.25,
    "wrb": "Leptosols",
-   "share": 37,
+   "share": 100,
    "points": 2
   },
   {
    "lon": 22.5,
    "lat": 10.75,
    "wrb": "Vertisols",
-   "share": 51,
+   "share": 100,
    "points": 3
   },
   {
    "lon": 24,
-   "lat": 10.75,
-   "wrb": "Vertisols",
-   "share": 41,
-   "points": 5
-  },
-  {
-   "lon": 25.5,
-   "lat": 10.75,
-   "wrb": "Vertisols",
-   "share": 42,
-   "points": 4
-  },
-  {
-   "lon": 27,
-   "lat": 10.75,
-   "wrb": "Vertisols",
-   "share": 35,
-   "points": 5
-  },
-  {
-   "lon": 28.5,
-   "lat": 10.75,
-   "wrb": "Vertisols",
-   "share": 57,
-   "points": 5
-  },
-  {
-   "lon": 30,
-   "lat": 10.75,
-   "wrb": "Vertisols",
-   "share": 55,
-   "points": 5
-  },
-  {
-   "lon": 31.5,
-   "lat": 10.75,
-   "wrb": "Vertisols",
-   "share": 72,
-   "points": 5
-  },
-  {
-   "lon": 33,
    "lat": 10.75,
    "wrb": "Vertisols",
    "share": 80,
+   "points": 5
+  },
+  {
+   "lon": 25.5,
+   "lat": 10.75,
+   "wrb": "Vertisols",
+   "share": 75,
+   "points": 4
+  },
+  {
+   "lon": 27,
+   "lat": 10.75,
+   "wrb": "Vertisols",
+   "share": 60,
+   "points": 5
+  },
+  {
+   "lon": 28.5,
+   "lat": 10.75,
+   "wrb": "Vertisols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 30,
+   "lat": 10.75,
+   "wrb": "Vertisols",
+   "share": 80,
+   "points": 5
+  },
+  {
+   "lon": 31.5,
+   "lat": 10.75,
+   "wrb": "Vertisols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 33,
+   "lat": 10.75,
+   "wrb": "Vertisols",
+   "share": 100,
    "points": 4
   },
   {
    "lon": 34.5,
    "lat": 10.75,
    "wrb": "Vertisols",
-   "share": 68,
+   "share": 100,
    "points": 4
   },
   {
    "lon": 22.5,
    "lat": 12.25,
-   "wrb": "Arenosols",
-   "share": 43,
+   "wrb": "Cambisols",
+   "share": 33,
    "points": 3
   },
   {
    "lon": 24,
    "lat": 12.25,
    "wrb": "Arenosols",
-   "share": 32,
+   "share": 60,
    "points": 5
   },
   {
    "lon": 25.5,
    "lat": 12.25,
    "wrb": "Arenosols",
-   "share": 36,
+   "share": 60,
    "points": 5
   },
   {
    "lon": 27,
    "lat": 12.25,
    "wrb": "Arenosols",
-   "share": 49,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 28.5,
    "lat": 12.25,
    "wrb": "Arenosols",
-   "share": 43,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 30,
    "lat": 12.25,
    "wrb": "Vertisols",
-   "share": 61,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 31.5,
    "lat": 12.25,
    "wrb": "Vertisols",
-   "share": 63,
+   "share": 60,
    "points": 5
   },
   {
    "lon": 33,
    "lat": 12.25,
    "wrb": "Vertisols",
-   "share": 84,
+   "share": 100,
    "points": 4
   },
   {
    "lon": 34.5,
    "lat": 12.25,
    "wrb": "Vertisols",
-   "share": 84,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 36,
    "lat": 12.25,
    "wrb": "Vertisols",
-   "share": 78,
+   "share": 100,
    "points": 3
   },
   {
    "lon": 22.5,
    "lat": 13.75,
    "wrb": "Arenosols",
-   "share": 53,
+   "share": 100,
    "points": 3
   },
   {
    "lon": 24,
-   "lat": 13.75,
-   "wrb": "Leptosols",
-   "share": 30,
-   "points": 5
-  },
-  {
-   "lon": 25.5,
-   "lat": 13.75,
-   "wrb": "Arenosols",
-   "share": 49,
-   "points": 5
-  },
-  {
-   "lon": 27,
-   "lat": 13.75,
-   "wrb": "Arenosols",
-   "share": 46,
-   "points": 5
-  },
-  {
-   "lon": 28.5,
-   "lat": 13.75,
-   "wrb": "Arenosols",
-   "share": 47,
-   "points": 5
-  },
-  {
-   "lon": 30,
    "lat": 13.75,
    "wrb": "Arenosols",
    "share": 60,
    "points": 5
   },
   {
+   "lon": 25.5,
+   "lat": 13.75,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 27,
+   "lat": 13.75,
+   "wrb": "Arenosols",
+   "share": 80,
+   "points": 5
+  },
+  {
+   "lon": 28.5,
+   "lat": 13.75,
+   "wrb": "Arenosols",
+   "share": 80,
+   "points": 5
+  },
+  {
+   "lon": 30,
+   "lat": 13.75,
+   "wrb": "Arenosols",
+   "share": 80,
+   "points": 5
+  },
+  {
    "lon": 31.5,
    "lat": 13.75,
    "wrb": "Arenosols",
-   "share": 53,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 33,
    "lat": 13.75,
    "wrb": "Vertisols",
-   "share": 73,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 34.5,
    "lat": 13.75,
    "wrb": "Vertisols",
-   "share": 89,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 36,
    "lat": 13.75,
    "wrb": "Vertisols",
-   "share": 85,
+   "share": 100,
    "points": 4
   },
   {
    "lon": 22.5,
    "lat": 15.25,
    "wrb": "Arenosols",
-   "share": 52,
+   "share": 100,
    "points": 3
   },
   {
    "lon": 24,
    "lat": 15.25,
    "wrb": "Arenosols",
-   "share": 47,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 25.5,
    "lat": 15.25,
    "wrb": "Arenosols",
-   "share": 46,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 27,
    "lat": 15.25,
    "wrb": "Arenosols",
-   "share": 48,
+   "share": 60,
    "points": 5
   },
   {
    "lon": 28.5,
    "lat": 15.25,
    "wrb": "Arenosols",
-   "share": 62,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 30,
    "lat": 15.25,
    "wrb": "Arenosols",
-   "share": 56,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 31.5,
    "lat": 15.25,
    "wrb": "Arenosols",
-   "share": 51,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 33,
    "lat": 15.25,
-   "wrb": "Vertisols",
-   "share": 48,
+   "wrb": "Fluvisols",
+   "share": 60,
    "points": 5
   },
   {
    "lon": 34.5,
    "lat": 15.25,
    "wrb": "Vertisols",
-   "share": 64,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 36,
    "lat": 15.25,
    "wrb": "Vertisols",
-   "share": 66,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 24,
    "lat": 16.75,
    "wrb": "Arenosols",
-   "share": 82,
+   "share": 100,
    "points": 4
   },
   {
    "lon": 25.5,
    "lat": 16.75,
    "wrb": "Arenosols",
-   "share": 85,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 27,
    "lat": 16.75,
    "wrb": "Arenosols",
-   "share": 63,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 28.5,
    "lat": 16.75,
    "wrb": "Arenosols",
-   "share": 72,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 30,
    "lat": 16.75,
    "wrb": "Arenosols",
-   "share": 63,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 31.5,
    "lat": 16.75,
    "wrb": "Arenosols",
-   "share": 56,
+   "share": 80,
    "points": 5
   },
   {
    "lon": 33,
    "lat": 16.75,
    "wrb": "Arenosols",
-   "share": 43,
+   "share": 60,
    "points": 5
   },
   {
    "lon": 34.5,
    "lat": 16.75,
    "wrb": "Arenosols",
-   "share": 47,
+   "share": 100,
    "points": 5
   },
   {
    "lon": 36,
    "lat": 16.75,
    "wrb": "Arenosols",
-   "share": 36,
+   "share": 40,
    "points": 5
   },
   {
    "lon": 37.5,
    "lat": 16.75,
    "wrb": "Leptosols",
-   "share": 60,
+   "share": 100,
    "points": 3
+  },
+  {
+   "lon": 24,
+   "lat": 18.25,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 4
+  },
+  {
+   "lon": 25.5,
+   "lat": 18.25,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 27,
+   "lat": 18.25,
+   "wrb": "Leptosols",
+   "share": 60,
+   "points": 5
+  },
+  {
+   "lon": 28.5,
+   "lat": 18.25,
+   "wrb": "Arenosols",
+   "share": 60,
+   "points": 5
+  },
+  {
+   "lon": 30,
+   "lat": 18.25,
+   "wrb": "Arenosols",
+   "share": 60,
+   "points": 5
+  },
+  {
+   "lon": 31.5,
+   "lat": 18.25,
+   "wrb": "Leptosols",
+   "share": 60,
+   "points": 5
+  },
+  {
+   "lon": 33,
+   "lat": 18.25,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 34.5,
+   "lat": 18.25,
+   "wrb": "Arenosols",
+   "share": 60,
+   "points": 5
+  },
+  {
+   "lon": 36,
+   "lat": 18.25,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 37.5,
+   "lat": 18.25,
+   "wrb": "Leptosols",
+   "share": 80,
+   "points": 5
+  },
+  {
+   "lon": 24,
+   "lat": 19.75,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 3
+  },
+  {
+   "lon": 25.5,
+   "lat": 19.75,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 27,
+   "lat": 19.75,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 28.5,
+   "lat": 19.75,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 30,
+   "lat": 19.75,
+   "wrb": "Leptosols",
+   "share": 60,
+   "points": 5
+  },
+  {
+   "lon": 31.5,
+   "lat": 19.75,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 33,
+   "lat": 19.75,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 34.5,
+   "lat": 19.75,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 36,
+   "lat": 19.75,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 37.5,
+   "lat": 19.75,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 4
+  },
+  {
+   "lon": 25.5,
+   "lat": 21.25,
+   "wrb": "Arenosols",
+   "share": 80,
+   "points": 5
+  },
+  {
+   "lon": 27,
+   "lat": 21.25,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 28.5,
+   "lat": 21.25,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 30,
+   "lat": 21.25,
+   "wrb": "Arenosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 31.5,
+   "lat": 21.25,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 33,
+   "lat": 21.25,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 34.5,
+   "lat": 21.25,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 36,
+   "lat": 21.25,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 5
+  },
+  {
+   "lon": 37.5,
+   "lat": 21.25,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 4
+  },
+  {
+   "lon": 31.5,
+   "lat": 22.75,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 1
+  },
+  {
+   "lon": 34.5,
+   "lat": 22.75,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 3
+  },
+  {
+   "lon": 36,
+   "lat": 22.75,
+   "wrb": "Leptosols",
+   "share": 100,
+   "points": 4
   }
  ]
 }
