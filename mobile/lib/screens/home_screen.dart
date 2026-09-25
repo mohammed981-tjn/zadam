@@ -385,24 +385,13 @@ class _Heading extends StatelessWidget {
 }
 
 class _Card extends StatelessWidget {
-  const _Card({required this.child, this.onTap});
+  const _Card({required this.child});
 
   final Widget child;
-  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final card = Card(
-      child: Padding(padding: const EdgeInsets.all(18), child: child),
-    );
-
-    if (onTap == null) return card;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: card,
-    );
-  }
+  Widget build(BuildContext context) => Card(
+        child: Padding(padding: const EdgeInsets.all(18), child: child),
+      );
 }
 
