@@ -10,8 +10,10 @@ import { SUDAGRI_LOGO } from "@/lib/brand";
  * The owner, 26 September: «الفيديو بعد ما يخلص تظهر الصورة الشعار بعد
  * الفيديو، يعني ادمجهم». So the clip plays once, muted and inline, and when it
  * ends the Sudagri logo — golden sorghum and all — fades in over it and stays.
- * «أعد العرض» plays it again. The logo beside the headline stays as well —
- * the owner asked for the frame to be merged, not for that one to go.
+ * «أعد العرض» plays it again. The separate logo under the frame was then
+ * removed at the owner's word («احذفها… الفيديو أكبر»), and the frame grew
+ * into its space: taller than 16:9 on a phone (4:5, the clip cropped at the
+ * sides — the farmer stands in the middle), 16:9 from `sm` up.
  *
  * On the visit where the full-screen intro (SplashOnce) has just shown the
  * same clip, playing it again here would be the repetition the owner asked to
@@ -64,7 +66,7 @@ export default function HeroVideo() {
           e.currentTarget.currentTime = 0;
           setEnded(true);
         }}
-        className="aspect-video w-full object-cover"
+        className="aspect-[4/5] w-full object-cover sm:aspect-video"
         aria-label="مزارعٌ سودانيّ بعمامته وجلابيته في حقل ذرةٍ ناضجة، والنيل خلفه"
       >
         {/* WebM first: the open codec plays in every browser, H.264 in the rest. */}
