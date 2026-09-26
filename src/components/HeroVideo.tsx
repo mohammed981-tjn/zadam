@@ -10,8 +10,8 @@ import { SUDAGRI_LOGO } from "@/lib/brand";
  * The owner, 26 September: «الفيديو بعد ما يخلص تظهر الصورة الشعار بعد
  * الفيديو، يعني ادمجهم». So the clip plays once, muted and inline, and when it
  * ends the Sudagri logo — golden sorghum and all — fades in over it and stays.
- * «أعد العرض» plays it again. There is no second logo elsewhere on the page:
- * the frame is the logo's place.
+ * «أعد العرض» plays it again. The logo beside the headline stays as well —
+ * the owner asked for the frame to be merged, not for that one to go.
  *
  * On the visit where the full-screen intro (SplashOnce) has just shown the
  * same clip, playing it again here would be the repetition the owner asked to
