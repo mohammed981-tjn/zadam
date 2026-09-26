@@ -196,6 +196,8 @@ export default function SplashOnce() {
       if (loaded.current) settle();
     };
 
+    // الإطارُ في الرئيسيّة يقرأ هذه فيفتح على الشعار: المقطعُ عُرض للتوّ هنا.
+    document.documentElement.dataset.intro = "1";
     el.hidden = false;
 
     if (video) {
