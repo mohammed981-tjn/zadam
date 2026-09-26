@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import Image from "next/image";
+import { SUDAGRI_LOGO } from "@/lib/brand";
 import { PHOTOS } from "@/lib/photos";
 import { PhotoBoard, QuickTabs, type BoardTile, type QuickTab } from "@/components/HomeBoard";
 import { createClient } from "@/lib/supabase/server";
@@ -193,11 +195,16 @@ export default async function Home() {
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
           {/*
             الفيديو والشعارُ في إطارٍ واحد: يعمل المقطعُ مرّةً ثمّ يظهر الشعار
-            مكانه (المالك، 26 سبتمبر: «ادمجهم»).
+            مكانه (المالك، 26 سبتمبر: «ادمجهم») — والشعارُ بجوار العنوان باقٍ.
           */}
           <HeroVideo />
 
-          <div className="mt-10">
+          {/*
+            والشعارُ بسنبلته الذهبيّة يبقى بجوار العنوان، يساراً (`md:flex-row` في صفحةٍ من اليمين يضع النصَّ يميناً والشعارَ يساراً) — لا يُحذف
+            (المالك، 26 سبتمبر). وعلى الهاتف فوق العنوان.
+          */}
+          <div className="mt-10 flex flex-col-reverse items-center gap-8 md:flex-row md:gap-12">
+          <div className="min-w-0 flex-1">
           <p className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
             <Icon name="wheat" className="size-5" />
             معرفة زراعية وبيانات مفتوحة — للسودان
@@ -232,6 +239,15 @@ export default async function Home() {
               اقرأ دراسة القناة القوسية
             </Link>
           </div>
+          </div>
+
+          <Image
+            src={SUDAGRI_LOGO}
+            alt="شعار سودجري — منصّة سودانية للزراعة والتجارة"
+            placeholder="blur"
+            sizes="(min-width: 768px) 340px, 240px"
+            className="w-[60vw] max-w-[260px] shrink-0 md:w-[340px] md:max-w-none"
+          />
           </div>
 
           {/*
