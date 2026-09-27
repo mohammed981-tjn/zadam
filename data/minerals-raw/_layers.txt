@@ -1,0 +1,30 @@
+INFO: Open of `/tmp/gdb/Africa_GIS.gdb'
+      using driver `OpenFileGDB' successful.
+Layer: AFR_Mineral_Facilities (3D Measured Point)
+Layer: AFR_Mineral_Deposits (3D Measured Point)
+Layer: AFR_Mineral_Exploration (3D Measured Point)
+Layer: AFR_Mineral_Resources_Coal (Multi Polygon)
+Layer: AFR_Mineral_Resources_Copper (Multi Polygon)
+Layer: AFR_Mineral_Resources_Gabon (Multi Polygon)
+Layer: AFR_Mineral_Resources_Mauritania (Multi Polygon)
+Layer: AFR_Mineral_Resources_PGE (Multi Polygon)
+Layer: AFR_Mineral_Resources_Potash (Multi Polygon)
+Layer: AFR_Infra_OG_Pipelines (Multi Line String)
+Layer: AFR_Infra_Power_Stations (3D Point)
+Layer: AFR_OG_Provinces_Continuous (Multi Polygon)
+Layer: AFR_OG_Provinces_Conventional (Multi Polygon)
+Layer: AFR_OG_Resources_Recoverable (Multi Polygon)
+Layer: AFR_Infra_Transport_Ports (3D Measured Point)
+Layer: AFR_Infra_Transport_Rail (Multi Line String)
+Layer: AFR_Political_Cities (3D Point)
+Layer: AFR_NaturalFeatures_Rivers (Multi Line String)
+Layer: AFR_NaturalFeatures_Lakes (Multi Polygon)
+Layer: AFR_Political_ADM0_Boundaries (Multi Polygon)
+Layer: AFR_Political_ADM1_Boundaries (Multi Polygon)
+Layer: AFR_Infra_OG_LNG_Terminals (3D Measured Point)
+Layer: AFR_Infra_Power_Transmission (3D Measured Multi Line String)
+Layer: AFR_Infra_Transport_Road (Multi Line String)
+AFR_Mineral_Facilities: 87 features
+AFR_Mineral_Deposits: 16 features
+AFR_Mineral_Exploration: 20 features
+AFR_Infra_Transport_Ports: 2 features
