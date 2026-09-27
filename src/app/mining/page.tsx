@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import KnowledgeCard from "@/components/KnowledgeCard";
+import MineralsMap, { GROUPS, MINERALS, type MineralSite } from "@/components/MineralsMap";
+import { arDigits } from "@/components/RainMap";
 import type { KnowledgeEntry } from "@/types/database";
 
 export const metadata = {
@@ -20,6 +22,11 @@ export default async function MiningPage() {
     .order("created_at", { ascending: false });
 
   const entries = (data ?? []) as KnowledgeEntry[];
+
+  // Largest group first: oil and gold are what most readers came for.
+  const groups = new Map<string, MineralSite[]>();
+  for (const s of MINERALS.sites) groups.set(s.commodityAr, [...(groups.get(s.commodityAr) ?? []), s]);
+  const byCommodity = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
 
   return (
     <div>
@@ -48,6 +55,70 @@ export default async function MiningPage() {
             واحداً. التفاصيل العملية في البطاقات أدناه، واسأل مساعد سودجري عن أي
             منها.
           </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-12">
+        <h2 className="mb-2 text-xl font-bold">خريطة المعادن في السودان</h2>
+        <p className="mb-6 max-w-3xl text-sm leading-relaxed text-muted">
+          {arDigits(MINERALS.sites.length)} موقعاً: المناجم والمصانع وحقول النفط
+          كما سجّلها المسح الجيولوجي الأمريكي لسنة {arDigits(MINERALS.asOf)}، قبل
+          الحرب، ومعها الرواسب المعروفة. هي خريطة لمكان المعادن، لا لمن يعمل فيها
+          اليوم.
+        </p>
+        <div className="grid gap-8 lg:grid-cols-[3fr_2fr]">
+          <div className="rounded-2xl border border-border bg-card p-3 sm:p-4">
+            <MineralsMap />
+          </div>
+          <div className="flex flex-col gap-2">
+            {byCommodity.map(([commodity, sites]) => (
+              <details key={commodity} className="rounded-xl border border-border bg-card px-4 py-3">
+                <summary className="flex cursor-pointer items-center gap-2 font-bold">
+                  <span
+                    className="inline-block size-3 rounded-full"
+                    style={{ background: GROUPS[sites[0].group].ink }}
+                    aria-hidden
+                  />
+                  {commodity}
+                  <span className="text-sm font-normal text-muted">({arDigits(sites.length)})</span>
+                </summary>
+                <ul className="mt-3 flex flex-col gap-3 text-sm">
+                  {sites.map((s, k) => (
+                    <li key={k} className="border-t border-border pt-2">
+                      <p className="font-medium">
+                        {s.place ?? <span dir="ltr">{s.name}</span>}
+                        {s.place && (
+                          <span className="ms-2 text-xs text-muted" dir="ltr">
+                            {s.name}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {[
+                          s.what,
+                          s.also.length ? `ومعه: ${s.also.join("، ")}` : null,
+                          s.state ? `ولاية ${s.state}` : null,
+                          s.status,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                      {s.operator && (
+                        <p className="text-xs text-muted" dir="ltr">
+                          {s.operator}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              المصدر: المسح الجيولوجي الأمريكي (USGS)، «بيانات جغرافية لصناعات
+              التعدين والبنية المرتبطة بها في أفريقيا»، ٢٠٢١، ملكية عامة. الأسماء
+              بالعربية حيث الاسم العربي مؤكّد، وإلا تُركت كما كتبها المصدر.
+            </p>
+          </div>
         </div>
       </section>
 

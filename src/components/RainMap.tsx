@@ -33,27 +33,27 @@ import { CELL_DEG, LAYERS, SUDAN_BORDER, type Layer, type RainGrid } from "@/lib
 
 const { west, south, east, north } = BASE.frame;
 const KX = Math.cos((16 * Math.PI) / 180);
-const W = 400;
-const H = (W * (north - south)) / ((east - west) * KX);
-const x = (lon: number) => ((lon - west) / (east - west)) * W;
-const y = (lat: number) => H - ((lat - south) / (north - south)) * H;
-const f1 = (n: number) => n.toFixed(1);
+export const W = 400;
+export const H = (W * (north - south)) / ((east - west) * KX);
+export const x = (lon: number) => ((lon - west) / (east - west)) * W;
+export const y = (lat: number) => H - ((lat - south) / (north - south)) * H;
+export const f1 = (n: number) => n.toFixed(1);
 
-const ringPath = (ring: readonly (readonly [number, number])[], close = true) =>
+export const ringPath = (ring: readonly (readonly [number, number])[], close = true) =>
   ring.map(([lon, lat], i) => `${i ? "L" : "M"}${f1(x(lon))} ${f1(y(lat))}`).join("") + (close ? "Z" : "");
 const shapePath = (shape: Shape) => shape.map((r) => ringPath(r)).join("");
 
-const BORDER = ringPath(SUDAN_BORDER);
+export const BORDER = ringPath(SUDAN_BORDER);
 const CANAL = ringPath(ROUTE.map((p) => [p.lon, p.lat] as Pt), false);
 const CANAL_INK = "#0e7c86";
 
-const arDigits = (n: number) => Math.round(n).toLocaleString("ar-SA", { useGrouping: false });
+export const arDigits = (n: number) => Math.round(n).toLocaleString("ar-SA", { useGrouping: false });
 
 /** 200 km at 15°N, in degrees of longitude. */
 const SCALE_KM = 200;
 const SCALE_DEG = SCALE_KM / (111.32 * Math.cos((15 * Math.PI) / 180));
 
-function Ground() {
+export function Ground() {
   return (
     <>
       <rect x={0} y={0} width={W} height={H} fill="var(--map-sea)" />
@@ -75,7 +75,7 @@ function Ground() {
   );
 }
 
-function Water() {
+export function Water() {
   return (
     <g>
       {BASE.rivers.map((r, k) => (
@@ -95,7 +95,7 @@ function Water() {
  * North arrow and scale bar together in the top-left corner, over Libya,
  * where nothing else is drawn; the degree marks along the top and right.
  */
-function Furniture() {
+export function Furniture() {
   const sx = x(22.4);
   const sy = y(23.25);
   const sw = x(22.4 + SCALE_DEG) - sx;
@@ -157,7 +157,7 @@ const SIDES = {
   b: { dx: 0, dy: 11, anchor: "middle" },
 } as const;
 
-function Label({
+export function Label({
   t,
   strong,
 }: {
