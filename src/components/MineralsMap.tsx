@@ -1,4 +1,5 @@
 import raw from "../../data/sudan-minerals.json";
+import { INFRA } from "@/components/InfraMap";
 import { BASE, MAP_LABELS } from "@/lib/mapDraw";
 import { BORDER, Furniture, Ground, H, Label, W, Water, arDigits, f1, ringPath, x, y } from "@/components/RainMap";
 
@@ -48,6 +49,9 @@ export const KINDS: Record<MineralSite["kind"], string> = {
   exploration: "موقع استكشاف",
 };
 
+const BASIN_INK = "#7c3aed";
+const COAL_INK = "#3f3f46";
+
 /** Towns kept few, so the sites stay readable on a phone. */
 const TOWNS = new Set(["بورتسودان", "الخرطوم", "عطبرة", "دنقلا", "الأبيض", "الفاشر", "نيالا", "كسلا", "الدمازين"]);
 
@@ -87,7 +91,20 @@ export default function MineralsMap() {
               ))}
             </g>
           </g>
+          {/*
+            Under the sites: the oil-and-gas basins USGS assesses, the one
+            coal-bearing area inside Sudan, and the oil pipelines to Port Sudan.
+          */}
+          <g clipPath="url(#minerals-sudan)">
+            {INFRA.basins.map((b) => (
+              <path key={b.name} d={b.rings.map((r) => ringPath(r)).join("")} fill={BASIN_INK} fillOpacity={0.09} fillRule="evenodd" stroke={BASIN_INK} strokeOpacity={0.5} strokeWidth={0.8} strokeDasharray="4 2" />
+            ))}
+            {INFRA.coal.map((c, k) => (
+              <path key={k} d={c.rings.map((r) => ringPath(r)).join("")} fill={COAL_INK} fillOpacity={0.3} stroke={COAL_INK} strokeWidth={0.6} />
+            ))}
+          </g>
           <Water />
+          <path d={INFRA.pipelines.map((p) => ringPath(p.line, false)).join("")} fill="none" stroke={GROUPS.fuel.ink} strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
           <path d={BORDER} fill="none" stroke="var(--foreground)" strokeWidth={1.2} strokeLinejoin="round" />
 
           {MAP_LABELS.filter((t) => TOWNS.has(t.name)).map((t) => (
@@ -124,6 +141,20 @@ export default function MineralsMap() {
               {KINDS[k]}
             </li>
           ))}
+        </ul>
+        <ul className="flex flex-wrap gap-x-4 gap-y-1">
+          <li className="flex items-center gap-1.5">
+            <span className="inline-block h-1 w-5 rounded-full" style={{ background: GROUPS.fuel.ink }} />
+            أنابيب النفط
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-5 border border-dashed" style={{ background: `${BASIN_INK}22`, borderColor: BASIN_INK }} />
+            أحواض النفط والغاز: {INFRA.basins.map((b) => b.nameAr).join("، ")}
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-5" style={{ background: `${COAL_INK}55` }} />
+            منطقة حاملة للفحم (العصر الطباشيري الأعلى)
+          </li>
         </ul>
       </figcaption>
     </figure>
