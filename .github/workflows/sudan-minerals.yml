@@ -33,10 +33,11 @@ jobs:
           mkdir -p /tmp/gdb && unzip -q -o /tmp/africa.zip -d /tmp/gdb
           GDB=$(find /tmp/gdb -maxdepth 3 -type d -name '*.gdb' | head -1)
           echo "gdb: $GDB"
-          ogrinfo -ro -so "$GDB" | tee data/minerals-raw/_layers.txt
           mkdir -p data/minerals-raw
-          for L in $(ogrinfo -ro -so "$GDB" | grep -E '\(Point|\(Multi Point' | sed -E 's/^[0-9]+: ([^ ]+) .*/\1/'); do
-            ogr2ogr -f GeoJSON -t_srs EPSG:4326 -spat 21.8 8.6 38.7 23.2 -spat_srs EPSG:4326 \
+          ogrinfo -ro -so "$GDB" | tee data/minerals-raw/_layers.txt
+          # Lines read "Layer: AFR_Mineral_Deposits (3D Measured Point)".
+          for L in $(ogrinfo -ro -so "$GDB" | grep -E '^Layer: AFR_(Mineral|Infra_Transport_Ports)[^ ]* \(.*Point\)' | sed -E 's/^Layer: ([^ ]+) .*/\1/'); do
+            ogr2ogr -f GeoJSON -dim XY -t_srs EPSG:4326 -spat 21.8 8.6 38.7 23.2 -spat_srs EPSG:4326 \
               "data/minerals-raw/$L.geojson" "$GDB" "$L" || echo "skip $L"
             echo "$L: $(grep -o '"type": "Feature"' "data/minerals-raw/$L.geojson" | wc -l) features" | tee -a data/minerals-raw/_layers.txt
           done
