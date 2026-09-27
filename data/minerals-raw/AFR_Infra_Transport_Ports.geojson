@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "AFR_Infra_Transport_Ports",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "FeatureUID": "SDp01", "DsgAttr01": "SDp01a", "Country": "Sudan", "FeatureNam": "Port Sudan", "NameVar": "<Null>", "FeatureTyp": "Bulk Commodities Port", "Latitude": 19.6, "Longitude": 37.233333, "LocConfid": "E", "DsgAttr02": "Y", "DsgAttr03": "Cement", "DsgAttr04": "Sea Bulk Cement", "DsgAttr05": -999.0, "DsgAttr06": "NA", "DsgAttr07": "<Null>", "DsgAttr08": "<Null>", "OperateNam": "Sudan Sea Ports Corporation", "OwnerName": "Sudan Sea Ports Corporation", "Website": "http://sudanports.gov.sd/web/en/", "DsgAttr09": "<Null>", "Label1": "SDp1", "LocSource1": "NGA-WPI-Pub150, Google Maps", "InfSource1": "NGA-WPI-Pub150, SDp002", "ADM1": "Red Sea", "DsgAttr10": "47940" }, "geometry": { "type": "Point", "coordinates": [ 37.23333299989406, 19.599999999606041 ] } },
+{ "type": "Feature", "properties": { "FeatureUID": "SDp01", "DsgAttr01": "SDp01b", "Country": "Sudan", "FeatureNam": "Port Sudan", "NameVar": "<Null>", "FeatureTyp": "Oil and Gas Terminal", "Latitude": 19.6, "Longitude": 37.233333, "LocConfid": "E", "DsgAttr02": "Y", "DsgAttr03": "Oil and Gas Products", "DsgAttr04": "Oil (Unspecified)", "DsgAttr05": -999.0, "DsgAttr06": "NA", "DsgAttr07": "<Null>", "DsgAttr08": "<Null>", "OperateNam": "Sudan Sea Ports Corporation", "OwnerName": "Sudan Sea Ports Corporation", "Website": "http://sudanports.gov.sd/web/en/", "DsgAttr09": "<Null>", "Label1": "<Null>", "LocSource1": "NGA-WPI-Pub150, Google Maps", "InfSource1": "NGA-WPI-Pub150, SDp003", "ADM1": "Red Sea", "DsgAttr10": "47940" }, "geometry": { "type": "Point", "coordinates": [ 37.23333299989406, 19.599999999606041 ] } }
+]
+}
