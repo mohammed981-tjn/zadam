@@ -6,8 +6,7 @@ name: Sudan minerals (USGS)
 # bounding box as GeoJSON under data/minerals-raw/. ScienceBase is not
 # reachable from the environment this repository is developed in; a runner is.
 #
-# Manual only, and short: one download, GDAL clips each point layer to the
-# box. scripts/build-sudan-minerals.ts then reduces the raw files to what the
+# Manual only, and short: one download, GDAL clips each layer to the box. scripts/build-sudan-minerals.ts then reduces the raw files to what the
 # map draws, clipped to the border itself.
 on:
   workflow_dispatch:
@@ -36,9 +35,18 @@ jobs:
           mkdir -p data/minerals-raw
           ogrinfo -ro -so "$GDB" | tee data/minerals-raw/_layers.txt
           # Lines read "Layer: AFR_Mineral_Deposits (3D Measured Point)".
-          for L in $(ogrinfo -ro -so "$GDB" | grep -E '^Layer: AFR_(Mineral|Infra_Transport_Ports)[^ ]* \(.*Point\)' | sed -E 's/^Layer: ([^ ]+) .*/\1/'); do
-            ogr2ogr -f GeoJSON -dim XY -t_srs EPSG:4326 -spat 21.8 8.6 38.7 23.2 -spat_srs EPSG:4326 \
-              "data/minerals-raw/$L.geojson" "$GDB" "$L" || echo "skip $L"
+          # Every mineral, infrastructure and oil-and-gas layer. Lines and
+          # polygons are clipped to the box and simplified to ~1 km, which is
+          # finer than the map can draw and keeps the files small.
+          for L in $(ogrinfo -ro -so "$GDB" | grep -E '^Layer: AFR_(Mineral|Infra|OG)_' | sed -E 's/^Layer: ([^ ]+) .*/\1/'); do
+            if ogrinfo -ro -so "$GDB" | grep -E "^Layer: $L " | grep -q Point; then
+              ogr2ogr -f GeoJSON -dim XY -t_srs EPSG:4326 -spat 21.8 8.6 38.7 23.2 -spat_srs EPSG:4326 \
+                "data/minerals-raw/$L.geojson" "$GDB" "$L" || echo "skip $L"
+            else
+              ogr2ogr -f GeoJSON -dim XY -t_srs EPSG:4326 -spat 21.8 8.6 38.7 23.2 -spat_srs EPSG:4326 \
+                -clipsrc 21.8 8.6 38.7 23.2 -simplify 0.01 -lco COORDINATE_PRECISION=3 \
+                "data/minerals-raw/$L.geojson" "$GDB" "$L" || echo "skip $L"
+            fi
             echo "$L: $(grep -o '"type": "Feature"' "data/minerals-raw/$L.geojson" | wc -l) features" | tee -a data/minerals-raw/_layers.txt
           done
           du -sh data/minerals-raw
@@ -49,6 +57,6 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add data/minerals-raw
           if git diff --cached --quiet; then echo 'unchanged'; exit 0; fi
-          git commit -m 'Fetch Sudan mineral layers (USGS Africa GIS, 2021)'
+          git commit -m 'Fetch Sudan mineral and infrastructure layers (USGS Africa GIS, 2021)'
           git pull --rebase origin ${GITHUB_REF_NAME}
           git push origin HEAD:${GITHUB_REF_NAME}

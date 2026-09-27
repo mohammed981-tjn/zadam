@@ -1,5 +1,6 @@
 import Link from "next/link";
 import DailyRainTable from "@/components/DailyRainTable";
+import InfraMap, { FUEL_INK, INFRA } from "@/components/InfraMap";
 import RainMap from "@/components/RainMap";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import WeekForecast from "@/components/WeekForecast";
@@ -42,6 +43,9 @@ export default async function RainPage({
   // map — except the lands, whose empty map is itself the answer.
   const available = grid ? availableLayers(grid) : [];
   const layer = available.find((l) => l.key === layerKey) ?? layerFor("rain");
+  // Roads, rail and power: a web-only tab drawn from fixed data, not a
+  // layer of the grid, so the app's /api/rain is unchanged.
+  const infra = layerKey === "infra";
   const landCount = grid ? grid.cells.reduce((a, c) => a + (c.lands ?? 0), 0) : 0;
 
   return (
@@ -61,10 +65,10 @@ export default async function RainPage({
       <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-6">
         {grid ? (
           <>
-            {/* Two rows of three on a phone rather than six squeezed tabs. */}
-            <nav aria-label="طبقة الخريطة" className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {/* Two rows on a phone rather than seven squeezed tabs. */}
+            <nav aria-label="طبقة الخريطة" className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
               {available.map((l) => {
-                const active = l.key === layer.key;
+                const active = !infra && l.key === layer.key;
                 return (
                   <Link
                     key={l.key}
@@ -81,7 +85,19 @@ export default async function RainPage({
                   </Link>
                 );
               })}
+              <Link
+                href="/rain?layer=infra"
+                scroll={false}
+                aria-current={infra ? "page" : undefined}
+                className={`rounded-full border px-1 py-1.5 text-center text-sm font-medium transition ${
+                  infra ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"
+                }`}
+              >
+                البنية
+              </Link>
             </nav>
+            {infra ? <InfraSection /> : (
+            <>
             <h2 className="text-lg font-bold">{layer.note}</h2>
             <p className="mb-3 mt-1 text-xs text-muted">
               {layer.key === "elev"
@@ -113,6 +129,8 @@ export default async function RainPage({
                   </div>
                 ))}
               </dl>
+            )}
+            </>
             )}
           </>
         ) : (
@@ -149,5 +167,37 @@ export default async function RainPage({
         <span dir="ltr">Natural Earth</span>.
       </p>
     </div>
+  );
+}
+
+/** The roads, rail and power tab: the map, then the largest stations. */
+function InfraSection() {
+  return (
+    <>
+      <h2 className="text-lg font-bold">الطرق والسكك الحديدية والكهرباء</h2>
+      <p className="mb-3 mt-1 text-xs text-muted">
+        كيف يصل المحصول إلى السوق وإلى بورتسودان، وأين تمرّ الشبكة لمن يفكّر في طلمبةٍ كهربائية بدل
+        الديزل. بياناتٌ من قبل الحرب: الخطّ المرسوم خطٌّ بُني، لا خطٌّ يعمل اليوم بالضرورة.
+      </p>
+      <InfraMap />
+      <h3 className="mt-6 font-bold">أكبر محطات الكهرباء</h3>
+      <ul className="mt-2 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+        {INFRA.stations.slice(0, 12).map((s) => (
+          <li key={s.name} className="flex items-baseline gap-2">
+            <span className="inline-block size-2.5 shrink-0 rounded-full" style={{ background: FUEL_INK[s.fuel].ink }} aria-hidden />
+            <span className="font-medium">{s.nameAr ?? <span dir="ltr">{s.name}</span>}</span>
+            <span className="text-xs text-muted">
+              {s.mw != null && `${Math.round(s.mw).toLocaleString("ar-SA")} ميغاواط`}
+              {s.state && ` · ${s.state}`}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-muted">
+        المصدر: المسح الجيولوجي الأمريكي (<span dir="ltr">USGS</span>)، ٢٠٢١، ملكية عامة — الطرق والسكك من{" "}
+        <span dir="ltr">OpenStreetMap</span>، والكهرباء من بيانات <span dir="ltr">African Energy</span>. تُعرض
+        الطرق الرئيسية فقط.
+      </p>
+    </>
   );
 }
