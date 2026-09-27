@@ -262,6 +262,22 @@ export default function RainMap({
             );
           })}
 
+          {/*
+            No verified land listed yet: say so on the map itself. An empty
+            white country read as an unfinished map (the owner, 27 September).
+          */}
+          {layer.key === "lands" && lands.length === 0 && (
+            <g>
+              <rect x={W / 2 - 118} y={H * 0.44 - 22} width={236} height={40} rx={8} fill="var(--card)" stroke="var(--border)" />
+              <text x={W / 2} y={H * 0.44 - 4} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--foreground)">
+                لا أراضٍ موثّقة معروضة بعد
+              </text>
+              <text x={W / 2} y={H * 0.44 + 11} textAnchor="middle" fontSize={9} fill="var(--muted)">
+                تظهر هنا حين يوثّق المزارعون أراضيهم ويعرضونها
+              </text>
+            </g>
+          )}
+
           {showTowns &&
             towns.map((t) => (
               <Label key={t.name} t={t} strong={t.value == null || layer.key === "lands" ? null : fmt(t.value)} />
