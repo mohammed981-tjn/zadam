@@ -81,6 +81,31 @@ export default async function ArcCanalPage() {
         />
       </header>
 
+      {/*
+        فيلم سودغري (المالك، 2 أكتوبر: «بعدما تكمل اللقطات نزّلها في صفحة القناة»):
+        الماء من السدّ إلى القناة إلى الحقل، والمزارع، ثمّ الشعار. Generated,
+        like the two pictures, and captioned the same way for the same reason.
+        It plays only when asked, with its narration: `preload="none"` so a
+        visitor who came for the numbers downloads nothing but the poster.
+      */}
+      <figure className="flex flex-col gap-2">
+        <video
+          controls
+          playsInline
+          preload="none"
+          poster="/video/canal-film.jpg"
+          className="aspect-video w-full rounded-xl border border-border bg-black object-cover"
+          aria-label="فيلم سودغري: من الماء تبدأ الحياة"
+        >
+          {/* WebM first: the open codec plays in every browser, H.264 in the rest. */}
+          <source src="/video/canal-film.webm" type="video/webm" />
+          <source src="/video/canal-film.mp4" type="video/mp4" />
+        </video>
+        <figcaption className="text-xs text-muted">
+          فيلمٌ مولَّدٌ لأغراض العرض، ٢٩ ثانية — رؤيةٌ للماء والريّ والطاقة في السودان، وليس القناةَ القوسية ولا موقعاً قائماً.
+        </figcaption>
+      </figure>
+
       {/* The four numbers the whole study turns on. */}
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
