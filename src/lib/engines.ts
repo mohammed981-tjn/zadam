@@ -222,10 +222,16 @@ export function buildEngines(env: EngineEnv): Engine[] {
    * a stale id fails only its own call. OpenRouter validates its whole `models`
    * array before routing, which is what made a list there only as reliable as
    * its worst entry.
+   *
+   * The pin is only worth carrying while it answers. "gemini-2.5-flash" began
+   * answering 404 ("no longer available to new users") in September, so on
+   * 25 September, when the alias was overloaded (503), both Gemini entries
+   * failed and the visitor got no model answer at all. The 404 itself named
+   * the successor, and that is the pin now.
    */
   if (env.geminiKey) {
     engines.push(geminiEngine(env.geminiKey));
-    engines.push(geminiEngine(env.geminiKey, "gemini-2.5-flash"));
+    engines.push(geminiEngine(env.geminiKey, "gemini-3.8-flash"));
   }
 
   if (env.openRouterKey) {

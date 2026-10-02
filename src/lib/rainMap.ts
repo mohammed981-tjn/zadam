@@ -516,6 +516,15 @@ async function fetchLandCounts(): Promise<Map<string, number> | null> {
 }
 
 /**
+ * How long the rain page waits for Open-Meteo. Eight seconds ran out six times
+ * in the last week of September on cold requests for the 90-cell grid and the
+ * town table, and the page then showed no map at all; a visitor who opened the
+ * rain page would rather wait a little more for it. Vercel's function limit is
+ * well above this.
+ */
+const PAGE_WAIT_MS = 15_000;
+
+/**
  * One forecast request for the whole grid, cached three hours like the
  * station table, and the elevation beside it. The land count only when asked
  * for: the homepage card shows rain alone and should not query the database.
@@ -529,8 +538,9 @@ export async function fetchRainGrid({ lands = false } = {}): Promise<RainGrid | 
       fetch(
         forecastUrl(RAIN_CELLS.map((c) => ({ latitude: c.pLat, longitude: c.pLon }))),
         // A slow upstream must not hold the homepage: after 8 s the card is
-        // simply left out.
-        { next: { revalidate: 10_800 }, signal: AbortSignal.timeout(8_000) },
+        // simply left out. The rain page (the one that asks for lands) is
+        // where the visitor came for the map, so it waits longer.
+        { next: { revalidate: 10_800 }, signal: AbortSignal.timeout(lands ? PAGE_WAIT_MS : 8_000) },
       ),
       fetchElevations(RAIN_CELLS),
       lands ? fetchLandCounts() : Promise.resolve(null),
@@ -602,7 +612,7 @@ export async function fetchDailyTable(): Promise<DailyTable | null> {
   try {
     const res = await fetch(
       forecastUrl(FORECAST_TOWNS.map((t) => ({ latitude: t.lat, longitude: t.lon }))),
-      { next: { revalidate: 10_800 }, signal: AbortSignal.timeout(8_000) },
+      { next: { revalidate: 10_800 }, signal: AbortSignal.timeout(PAGE_WAIT_MS) },
     );
     if (!res.ok) {
       console.error("daily table: Open-Meteo answered", res.status);

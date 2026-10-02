@@ -119,6 +119,7 @@ export default async function Navbar() {
       hint: "محفظتك وخططك",
       items: [
         { href: "/dashboard", label: "محفظتي" },
+        { href: "/projects", label: "المشاريع المطروحة" },
         { href: "/plan", label: "خطط استثمارك" },
       ],
     });
