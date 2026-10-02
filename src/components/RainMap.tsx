@@ -75,6 +75,28 @@ export function Ground() {
   );
 }
 
+/**
+ * Relief shading over the whole frame (scripts/build-sudan-relief.py): white
+ * where the ground is flat, grey on slopes turned from the light. Multiplied
+ * onto whatever is drawn beneath, so the colours keep their meaning and Jebel
+ * Marra, the Nuba Mountains and the Red Sea Hills show through them. Goes after
+ * the layer's colours and before the water, borders and labels.
+ */
+export function Relief() {
+  return (
+    <image
+      href="/maps/sudan-relief.webp"
+      x={0}
+      y={0}
+      width={W}
+      height={H}
+      preserveAspectRatio="none"
+      style={{ mixBlendMode: "multiply" }}
+      aria-hidden
+    />
+  );
+}
+
 export function Water() {
   return (
     <g>
@@ -245,6 +267,7 @@ export default function RainMap({
             </g>
           </g>
 
+          <Relief />
           <Water />
           <path d={BORDER} fill="none" stroke="var(--foreground)" strokeWidth={1.2} strokeLinejoin="round" />
 
