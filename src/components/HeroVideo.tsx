@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } 
 import { SUDAGRI_LOGO } from "@/lib/brand";
 
 /**
- * واجهةُ الرئيسيّة: أفلامُ سودجري الثلاثة، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
+ * واجهةُ الرئيسيّة: أفلامُ سوداغري الثلاثة، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
  *
  * The owner, 2 October: all three films on the homepage, none removed, each
  * ending on the Sudagri logo. A sideways revolving door came first (its side
@@ -24,10 +24,12 @@ import { SUDAGRI_LOGO } from "@/lib/brand";
  * step, so the card that was second is now playing. Drag right (or up) for the
  * previous film, which swings in from the left. It goes round: after the third
  * comes the first. A few seconds after the first film starts the frame leans
- * aside once on its own, so a visitor sees the deck behind it. When a film
- * ends (each on the logo card) the deck moves on by itself; after one full
- * round it returns to the first and waits for a tap rather than streaming to
- * an idle tab.
+ * aside once on its own, so a visitor sees the deck behind it.
+ *
+ * Only the first film plays by itself (the owner, 2 October: «الفلم الأول يعمل
+ * تلقائياً والبقية عند التمرير»). A film that ends stays on its logo card and
+ * leans aside again towards the deck; the next one plays when the visitor
+ * moves to it. So nothing streams that nobody asked for after the first.
  *
  * The frame claims drags (`touch-action: none` on the frame only); the page
  * scrolls from everywhere else.
@@ -159,10 +161,10 @@ export default function HeroVideo() {
    * previous film, or the third): the front film leaves the same way and the
    * chosen one swings in from the left.
    */
-  const slideTo = (to: number, play = true) => {
+  const slideTo = (to: number) => {
     if (moving.current) return;
-    armed.current = play;
-    setIdle(!play);
+    armed.current = true;
+    setIdle(false);
     if (prefersCalm()) {
       setPose(REST);
       setProgress(0);
@@ -341,14 +343,22 @@ export default function HeroVideo() {
             }}
             onEnded={() => {
               setProgress(1);
-              // Every film ends on the logo card; hold it a moment, then slide on —
-              // and after the last, back to the first, to wait for a tap.
-              const last = idx === N - 1;
-              window.setTimeout(() => slideTo(idx + 1, !last), 1200);
+              // Every film ends on the logo card and stays there; the frame
+              // leans towards the deck once, to say the next film is a swipe away.
+              window.setTimeout(() => {
+                if (moving.current || drag.current) return;
+                setEasing("transform 380ms ease-in");
+                setPose({ x: -9, y: 0, ry: 12, s: 0.98, o: 1 });
+                window.setTimeout(() => {
+                  if (moving.current || drag.current) return;
+                  setEasing("transform 560ms cubic-bezier(.3,1.6,.5,1)");
+                  setPose(REST);
+                }, 380);
+              }, 900);
             }}
             draggable={false}
             className="pointer-events-none aspect-[4/5] w-full object-cover sm:aspect-video"
-            aria-label={`فيلم سودجري: ${film.label}`}
+            aria-label={`فيلم سوداغري: ${film.label}`}
           >
             {/* WebM first: the open codec plays in every browser, H.264 in the rest. */}
             <source src={`${base}.webm`} type="video/webm" />
@@ -372,7 +382,7 @@ export default function HeroVideo() {
           >
             <Image
               src={SUDAGRI_LOGO}
-              alt="شعار سودجري — منصّة سودانية للزراعة والتجارة"
+              alt="شعار سوداغري — منصّة سودانية للزراعة والتجارة"
               placeholder="blur"
               sizes="(min-width: 768px) 420px, 70vw"
               className="h-[90%] w-auto object-contain"
@@ -395,7 +405,7 @@ export default function HeroVideo() {
       <p className="mt-2 text-center text-xs text-muted">اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق</p>
 
       {/* One button per film, each with its own progress line. */}
-      <nav aria-label="أفلام سودجري" className="mt-2 grid grid-cols-3 gap-2">
+      <nav aria-label="أفلام سوداغري" className="mt-2 grid grid-cols-3 gap-2">
         {FILMS.map((f, i) => {
           const active = i === idx;
           const fill = active ? progress : 0;

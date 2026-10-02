@@ -11,7 +11,7 @@
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="سودجري"
+        android:label="سوداغري"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

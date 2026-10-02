@@ -1,4 +1,4 @@
-/// جديد سودجري: شاشة الأخبار وحدها، تُفتح من القائمة ومن لوحة الرئيسية.
+/// جديد سوداغري: شاشة الأخبار وحدها، تُفتح من القائمة ومن لوحة الرئيسية.
 ///
 /// The owner, 25 September: the news was unclear mixed into the home screen,
 /// and should have a screen of its own. Each item shows its date, title and
@@ -36,7 +36,7 @@ class _NewsScreenState extends State<NewsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('جديد سودجري')),
+      appBar: AppBar(title: const Text('جديد سوداغري')),
       body: RefreshIndicator(
         onRefresh: () async => setState(() => _future = _api.news()),
         child: FutureBuilder<List<NewsItem>>(

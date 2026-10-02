@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/adminGuard";
 import ExportReviewCard from "@/components/ExportReviewCard";
 import { formatMinor } from "@/lib/exportOffers";
 
-export const metadata = { title: "طابور مراجعة الصادر · سودجري" };
+export const metadata = { title: "طابور مراجعة الصادر · سوداغري" };
 
 interface QueueRow {
   id: string;

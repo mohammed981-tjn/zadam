@@ -23,7 +23,7 @@ async function load(id: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const a = await load((await params).id);
-  return a ? { title: `${a.title} | جديد سودجري` } : { title: "خبر | سودجري" };
+  return a ? { title: `${a.title} | جديد سوداغري` } : { title: "خبر | سوداغري" };
 }
 
 /**
@@ -55,7 +55,7 @@ export default async function NewsItemPage({ params }: { params: Promise<{ id: s
         {a.summary && a.summary.trim() !== a.title.trim() && (
           <p className="mt-2 font-medium leading-7 text-muted">{a.summary}</p>
         )}
-        <ShareWhatsApp path={`/news/${a.id}`} text={`${a.title} — جديد سودجري:`} className="mt-4" />
+        <ShareWhatsApp path={`/news/${a.id}`} text={`${a.title} — جديد سوداغري:`} className="mt-4" />
       </header>
 
       {doc.sections.length > 2 && (

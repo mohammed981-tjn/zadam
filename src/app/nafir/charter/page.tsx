@@ -14,7 +14,7 @@ import {
 import { signCharter, verifyLeader, withdrawSignature } from "../actions";
 
 export const metadata = {
-  title: "ميثاق النفير | سودجري",
+  title: "ميثاق النفير | سوداغري",
   description:
     "مرجعيّةٌ وقيمٌ للقادة وللقاعدة، لكلّ قيمةٍ آليّةٌ تُمارَس بها في المنصّة — ويُوقَّع علناً.",
 };
@@ -169,7 +169,7 @@ export default async function CharterPage({
         )}
       </section>
 
-      <ShareWhatsApp path="/nafir/charter" text="ميثاق النفير على سودجري — قيمٌ تعمل لا تُعلَّق. اقرأه ووقّع:" className="mt-6" />
+      <ShareWhatsApp path="/nafir/charter" text="ميثاق النفير على سوداغري — قيمٌ تعمل لا تُعلَّق. اقرأه ووقّع:" className="mt-6" />
     </NafirShell>
   );
 }

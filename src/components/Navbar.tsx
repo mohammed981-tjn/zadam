@@ -49,7 +49,7 @@ export default async function Navbar() {
         { href: "/", label: "الصفحة الرئيسية" },
         // الأخبار خرجت من الرئيسيّة إلى صفحتها (طلب المالك، 25 سبتمبر)، فبابُها
         // هنا ثانياً، بعد الرئيسيّة مباشرةً.
-        { href: "/news", label: "الأخبار — جديد سودجري" },
+        { href: "/news", label: "الأخبار — جديد سوداغري" },
         { href: "/guide", label: "دليل الاستخدام" },
         // كانت تُوعَد من الصفحة الأولى مرّتين ولا توجد. ووجودُها في القائمة
         // يجعلها قابلةً للوصول من كلّ صفحة، لا من الأولى وحدها.
@@ -205,7 +205,7 @@ export default async function Navbar() {
           {/*
             السنبلةُ هنا، والشعارُ في الواجهة — وهذا ما طلبه المالك حرفيّاً.
 
-            This header read `🌾 سودجري` until the logo was put here, which is
+            This header read `🌾 سوداغري` until the logo was put here, which is
             what «صور السنبله الصفرا التي حزفتها» was about: the sorghum he
             missed was this one, not the one inside the artwork. The same
             sentence asked for the logo to get «مكان أوسع وصورة أكبر», and both
@@ -235,7 +235,7 @@ export default async function Navbar() {
             it survives anything failing to draw.
           */}
           <span aria-hidden="true">🌾</span>
-          سودجري
+          سوداغري
         </Link>
 
         <div className="flex items-center gap-3">

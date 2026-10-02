@@ -12,7 +12,7 @@ import {
 import { ECONOMIC_FACTS } from "@/lib/economics";
 import type { ProviderService, ServiceProvider } from "@/types/database";
 
-export const metadata = { title: "الخدمات التعاقدية — سودجري" };
+export const metadata = { title: "الخدمات التعاقدية — سوداغري" };
 
 const BASIS_LABEL: Record<string, string> = {
   feddans: "يُحسب من مساحة الموسم",

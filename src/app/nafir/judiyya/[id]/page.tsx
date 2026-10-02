@@ -13,7 +13,7 @@ import {
 } from "@/lib/nafir";
 import { accept, approve, commit, confirm, withdraw, writeSettlement } from "../actions";
 
-export const metadata = { title: "طلب جودية | سودجري", robots: { index: false } };
+export const metadata = { title: "طلب جودية | سوداغري", robots: { index: false } };
 
 /**
  * One case, as whoever is looking can act on it. Row-level security decides

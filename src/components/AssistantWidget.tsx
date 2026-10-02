@@ -19,13 +19,13 @@ type Msg = { role: "user" | "assistant"; text: string; source?: string };
  */
 const SOURCE_LABEL: Record<string, string> = {
   calculator: "محسوبة داخل المنصة بمنهجية FAO-56",
-  canal: "من ملفّ القناة القوسية في قاعدة سودجري",
+  canal: "من ملفّ القناة القوسية في قاعدة سوداغري",
   market: "من قاعدة FAOSTAT المحمَّلة في المنصّة",
   climate: "متوسّطات مناخية مقيسة — NASA POWER",
-  knowledge: "من قاعدة معرفة سودجري المراجَعة",
+  knowledge: "من قاعدة معرفة سوداغري المراجَعة",
   platform: "من حالة المنصة الحالية",
-  cache: "معرفة عامة خارج قاعدة سودجري المتحقَّقة",
-  model: "معرفة عامة خارج قاعدة سودجري المتحقَّقة",
+  cache: "معرفة عامة خارج قاعدة سوداغري المتحقَّقة",
+  model: "معرفة عامة خارج قاعدة سوداغري المتحقَّقة",
 };
 
 export default function AssistantWidget() {
@@ -165,7 +165,7 @@ export default function AssistantWidget() {
           style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
         >
           <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
-            <span className="font-bold">🌾 مساعد سودجري</span>
+            <span className="font-bold">🌾 مساعد سوداغري</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowLeadForm((v) => !v)}
@@ -218,7 +218,7 @@ export default function AssistantWidget() {
             {showLeadForm && (
               <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
                 <p className="mb-2 text-sm font-medium">
-                  هل تريد أن يتواصل معك فريق سودجري مباشرة؟
+                  هل تريد أن يتواصل معك فريق سوداغري مباشرة؟
                 </p>
                 <form onSubmit={handleLeadSubmit} className="flex flex-col gap-2">
                   <input
@@ -330,12 +330,12 @@ export default function AssistantWidget() {
             className={`flex touch-none items-center gap-2 rounded-full bg-primary py-3 pe-5 ps-4 text-primary-foreground shadow-xl ring-2 ring-primary/25 transition hover:opacity-90 ${
               dragging ? "scale-105 cursor-grabbing" : "cursor-grab"
             }`}
-            aria-label="افتح مساعد سودجري — يمكنك سحب الزر لتحريكه"
+            aria-label="افتح مساعد سوداغري — يمكنك سحب الزر لتحريكه"
             aria-expanded={open}
           >
             <span className="text-2xl leading-none">💬</span>
             <span className="whitespace-nowrap text-sm font-bold">
-              اسأل سودجري
+              اسأل سوداغري
             </span>
           </button>
         </div>

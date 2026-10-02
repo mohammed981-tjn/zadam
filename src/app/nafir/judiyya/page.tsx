@@ -13,7 +13,7 @@ import {
 import { openCase, verifyMediator, volunteer } from "./actions";
 
 export const metadata = {
-  title: "الجودية | سودجري",
+  title: "الجودية | سوداغري",
   description:
     "وساطة الأجاويد في نزاعات الماء والحدود والمرعى: يلتزم الطرفان بالحكم قبل سماعه، ويختاران أجاويد محايدين، ويُختم الصلح بإقرارهما — ويبقى بين أهله.",
 };

@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/Explain";
 import { SPECIES_LABEL, PURPOSE_LABEL } from "@/lib/livestock";
 import type { Herd } from "@/types/database";
 
-export const metadata = { title: "دورات الإنتاج الحيواني | سودجري" };
+export const metadata = { title: "دورات الإنتاج الحيواني | سوداغري" };
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 

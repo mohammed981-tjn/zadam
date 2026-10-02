@@ -5,7 +5,7 @@ import { SUDAN_STATES, ar, type CanalSummary } from "@/lib/nafir";
 import { createCanal } from "./actions";
 
 export const metadata = {
-  title: "الترع | سودجري",
+  title: "الترع | سوداغري",
   description:
     "الترعة موردٌ مشترك: أعضاؤها، ونوبات مائها، وواجب صيانتها بقدر فدادين كلٍّ منهم — ونفيرُ تطهيرها.",
 };

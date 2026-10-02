@@ -4,7 +4,7 @@ import { nafirViewer } from "@/lib/nafirViewer";
 import { FAZA_CAUSES, FAZA_NEEDS, SUDAN_STATES } from "@/lib/nafir";
 import { createFaza } from "../../actions";
 
-export const metadata = { title: "اطلب فزعة | سودجري" };
+export const metadata = { title: "اطلب فزعة | سوداغري" };
 
 export default async function NewFazaPage({
   searchParams,
