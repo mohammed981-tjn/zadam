@@ -1,7 +1,7 @@
 import raw from "../../data/sudan-infra.json";
 import type { InfraData } from "@/lib/infra";
 import { BASE, MAP_LABELS } from "@/lib/mapDraw";
-import { BORDER, Furniture, Ground, H, Label, W, Water, arDigits, f1, ringPath, x, y } from "@/components/RainMap";
+import { BORDER, Furniture, Ground, H, Label, W, Relief, Water, arDigits, f1, ringPath, x, y } from "@/components/RainMap";
 
 /**
  * الطرق والسكك الحديدية والكهرباء على خريطة السودان.
@@ -57,6 +57,7 @@ export default function InfraMap() {
               ))}
             </g>
           </g>
+          <Relief />
           <Water />
 
           <g clipPath="url(#infra-sudan)" fill="none" strokeLinecap="round" strokeLinejoin="round">

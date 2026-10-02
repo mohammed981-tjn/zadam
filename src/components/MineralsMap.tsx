@@ -1,7 +1,7 @@
 import raw from "../../data/sudan-minerals.json";
 import { INFRA } from "@/components/InfraMap";
 import { BASE, MAP_LABELS } from "@/lib/mapDraw";
-import { BORDER, Furniture, Ground, H, Label, W, Water, arDigits, f1, ringPath, x, y } from "@/components/RainMap";
+import { BORDER, Furniture, Ground, H, Label, W, Relief, Water, arDigits, f1, ringPath, x, y } from "@/components/RainMap";
 
 /**
  * خريطة معادن السودان — المناجم والمصانع والحقول والرواسب المعروفة.
@@ -103,6 +103,7 @@ export default function MineralsMap() {
               <path key={k} d={c.rings.map((r) => ringPath(r)).join("")} fill={COAL_INK} fillOpacity={0.3} stroke={COAL_INK} strokeWidth={0.6} />
             ))}
           </g>
+          <Relief />
           <Water />
           <path d={INFRA.pipelines.map((p) => ringPath(p.line, false)).join("")} fill="none" stroke={GROUPS.fuel.ink} strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
           <path d={BORDER} fill="none" stroke="var(--foreground)" strokeWidth={1.2} strokeLinejoin="round" />
