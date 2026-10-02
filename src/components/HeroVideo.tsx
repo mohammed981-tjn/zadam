@@ -27,6 +27,13 @@ import { SUDAGRI_LOGO } from "@/lib/brand";
  * from `sm` up. Muted to start, as autoplay requires; «بالصوت» turns the
  * narration on and the choice carries across films.
  *
+ * A door nobody knows turns is a wall, so the turning shows before anyone
+ * touches it (the owner, 2 October: «الزائر لا يعرف… بيّن طرف الصور التالية
+ * ليفهم أنها ستدور»): the next and previous films stand at the frame's sides,
+ * their edges angled away like the other panels of a revolving door, each a
+ * button that turns the door to it; and a few seconds after the first film
+ * starts, the door rocks once on its own, as if pushed.
+ *
  * The page still scrolls under a finger: the frame claims only horizontal
  * drags (`touch-action: pan-y`), and only once a drag is clearly sideways.
  *
@@ -39,6 +46,7 @@ const INTRO_WAIT_MAX_MS = 16000;
 /** How far the door swings before the next film takes its place. */
 const SWING_MS = 260;
 const SETTLE_MS = 380;
+const NUDGE_AFTER_MS = 2600;
 
 type Film = { key: string; label: string };
 const FILMS: Film[] = [
@@ -79,11 +87,15 @@ export default function HeroVideo() {
   const turning = useRef(false);
   const tall = useSyncExternalStore(subscribe, isNarrow, () => false);
   const film = FILMS[idx];
-  const base = `/video/${film.key}-${tall ? "tall" : "wide"}`;
+  const cut = tall ? "tall" : "wide";
+  const base = `/video/${film.key}-${cut}`;
+  const next = FILMS[wrap(idx + 1)];
+  const prev = FILMS[wrap(idx - 1)];
 
   // Start the programme: now, or once the full-screen intro has finished.
   useEffect(() => {
     let cap = 0;
+    const nudge: number[] = [];
     const start = () => {
       window.clearTimeout(cap);
       const v = ref.current;
@@ -96,6 +108,23 @@ export default function HeroVideo() {
       armed.current = true;
       v.load();
       v.play().catch(() => setIdle(true));
+      // The door rocks once on its own, so a visitor sees that it turns.
+      nudge.push(
+        window.setTimeout(() => {
+          if (turning.current || drag.current) return;
+          setEasing("transform 420ms ease-in-out");
+          setAngle(18);
+        }, NUDGE_AFTER_MS),
+        window.setTimeout(() => {
+          if (turning.current || drag.current) return;
+          setAngle(-6);
+        }, NUDGE_AFTER_MS + 420),
+        window.setTimeout(() => {
+          if (turning.current || drag.current) return;
+          setEasing(`transform ${SETTLE_MS}ms cubic-bezier(.2,.8,.2,1)`);
+          setAngle(0);
+        }, NUDGE_AFTER_MS + 840),
+      );
     };
     // After every mount effect has run, so SplashOnce has set `data-intro`.
     const t = window.setTimeout(() => {
@@ -109,6 +138,7 @@ export default function HeroVideo() {
     return () => {
       window.clearTimeout(t);
       window.clearTimeout(cap);
+      nudge.forEach((n) => window.clearTimeout(n));
       window.removeEventListener("sudagri:intro-done", start);
     };
   }, []);
@@ -210,13 +240,46 @@ export default function HeroVideo() {
 
   return (
     <div>
-      <div style={{ perspective: "1400px" }}>
+      <div className="relative" style={{ perspective: "1400px" }}>
+        {/*
+          The neighbouring panels of the door: the next film on the left (in a
+          right-to-left page the next waits on the left), the previous on the
+          right, their outer edges turned away behind the frame.
+        */}
+        {[
+          { f: next, side: "left", dir: 1 as const, to: idx + 1, label: "الفيلم التالي", arrow: "‹" },
+          { f: prev, side: "right", dir: -1 as const, to: idx - 1, label: "الفيلم السابق", arrow: "›" },
+        ].map((p) => (
+          <button
+            key={p.side}
+            type="button"
+            onClick={() => turnTo(p.to, p.dir)}
+            aria-label={`${p.label}: ${p.f.label}`}
+            className={`absolute inset-y-[8%] z-0 w-[15%] overflow-hidden rounded-2xl shadow-card sm:w-[10%] ${
+              p.side === "left" ? "left-0" : "right-0"
+            }`}
+            style={{
+              transform: p.side === "left" ? "rotateY(-30deg)" : "rotateY(30deg)",
+              transformOrigin: p.side === "left" ? "right center" : "left center",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- a poster frame, already sized for the web */}
+            <img src={`/video/${p.f.key}-${cut}.jpg`} alt="" className="h-full w-full object-cover brightness-75" />
+            <span
+              className={`absolute inset-y-0 flex items-center px-1 text-2xl font-bold text-white drop-shadow ${
+                p.side === "left" ? "left-0" : "right-0"
+              }`}
+            >
+              {p.arrow}
+            </span>
+          </button>
+        ))}
         <figure
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="relative cursor-grab touch-pan-y select-none overflow-hidden rounded-3xl bg-card shadow-float active:cursor-grabbing"
+          className="relative z-10 mx-auto w-[74%] cursor-grab touch-pan-y select-none overflow-hidden rounded-3xl bg-card shadow-float active:cursor-grabbing sm:w-[84%]"
           style={{
             transform: `rotateY(${angle}deg)`,
             transition: easing,
@@ -260,24 +323,6 @@ export default function HeroVideo() {
             {muted ? "🔊 بالصوت" : "🔇 بلا صوت"}
           </button>
 
-          {/* Side handles for a mouse: the same turn as a drag. */}
-          <button
-            type="button"
-            onClick={() => turnTo(idx + 1, 1)}
-            aria-label="الفيلم التالي"
-            className="absolute left-2 top-1/2 hidden -translate-y-1/2 rounded-full border border-border bg-card/80 px-3 py-2 text-lg shadow-card transition hover:border-primary sm:block"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={() => turnTo(idx - 1, -1)}
-            aria-label="الفيلم السابق"
-            className="absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-full border border-border bg-card/80 px-3 py-2 text-lg shadow-card transition hover:border-primary sm:block"
-          >
-            ›
-          </button>
-
           {/* Less motion asked for: the logo until a film is chosen. */}
           <div
             className={`mesh absolute inset-0 flex items-center justify-center bg-background transition-opacity duration-700 ${
@@ -305,7 +350,9 @@ export default function HeroVideo() {
         </figure>
       </div>
 
-      <p className="mt-2 text-center text-xs text-muted sm:hidden">اسحب الإطار بإصبعك لتدور بين الأفلام</p>
+      <p className="mt-2 text-center text-xs text-muted">
+        ↔ اسحب أو اضغط طرف الفيلم المجاور ليدور الباب
+      </p>
 
       {/* One button per film, each with its own progress line. */}
       <nav aria-label="أفلام سودجري" className="mt-2 grid grid-cols-3 gap-2">
