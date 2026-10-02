@@ -87,7 +87,7 @@ export default async function ArcCanalDossier() {
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-semibold">ملفّ القناة في قاعدة سوداغري</h2>
+        <h2 className="text-xl font-semibold">ملفّ القناة في قاعدة سودغري</h2>
         <p className="leading-relaxed text-muted">
           كل بند تقني أو تضاريسي أو تشغيلي عن المشروع، في جدول يُحدَّث ولا
           يُعاد نشره. وكل بند يحمل حالته: <strong>مقيس</strong> من مصدر مفتوح،

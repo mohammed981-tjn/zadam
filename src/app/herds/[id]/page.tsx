@@ -6,7 +6,7 @@ import { completeHerdStage, setHerdBudget } from "@/app/herds/actions";
 import { SPECIES_LABEL, PURPOSE_LABEL, HERD_STAGE_LABEL } from "@/lib/livestock";
 import type { Herd, HerdStage } from "@/types/database";
 
-export const metadata = { title: "دورة إنتاج حيواني | سوداغري" };
+export const metadata = { title: "دورة إنتاج حيواني | سودغري" };
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 

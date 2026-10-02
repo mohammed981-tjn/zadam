@@ -13,7 +13,7 @@ import { summarise, ROUTE_LENGTH_KM, ROUTE } from "@/lib/arcCanal";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 
 export const metadata = {
-  title: "القناة القوسية — دراسة سوداغري | سوداغري",
+  title: "القناة القوسية — دراسة سودغري | سودغري",
 };
 
 /**
@@ -49,7 +49,7 @@ export default async function ArcCanalPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-10">
       <header className="flex flex-col gap-4">
-        <p className="text-sm text-muted">دراسة سوداغري · قياس وحساب</p>
+        <p className="text-sm text-muted">دراسة سودغري · قياس وحساب</p>
         <h1 className="text-3xl font-bold leading-tight">
           القناة القوسية — دراسة الأرض والتصميم
         </h1>
@@ -260,7 +260,7 @@ export default async function ArcCanalPage() {
           أسعار وحدةٍ مذكورة. يمكنك أن تعيد كل حساب منها بنفسك.
         </p>
         <p className="leading-relaxed">
-          هذه دراسة سوداغري وحدها، ولا تمثّل جهةً رسمية ولا أصحاب المشروع.
+          هذه دراسة سودغري وحدها، ولا تمثّل جهةً رسمية ولا أصحاب المشروع.
         </p>
       </section>
     </main>

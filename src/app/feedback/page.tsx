@@ -3,7 +3,7 @@ import FeedbackForm from "@/components/FeedbackForm";
 import { FEEDBACK_KIND_LABEL, type FeedbackKind } from "@/lib/feedback";
 import type { Feedback, FeedbackStatus } from "@/types/database";
 
-export const metadata = { title: "ملاحظات واقتراحات — سوداغري" };
+export const metadata = { title: "ملاحظات واقتراحات — سودغري" };
 export const dynamic = "force-dynamic";
 
 const STATUS: Record<
@@ -61,7 +61,7 @@ function Note({ note, mine }: { note: Feedback; mine?: boolean }) {
       {note.ai_reply && (
         <div className="mt-3 rounded-lg border-s-2 border-s-accent bg-accent/5 px-3 py-2">
           <p className="mb-1 text-xs font-medium text-accent">
-            ردٌّ آليٌّ من مساعد سوداغري — ولم يقرأه موظّفٌ بعد
+            ردٌّ آليٌّ من مساعد سودغري — ولم يقرأه موظّفٌ بعد
           </p>
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
             {note.ai_reply}
@@ -163,7 +163,7 @@ export default async function FeedbackPage() {
           <p className="text-sm leading-relaxed text-muted">
             وإن لم يردّ موظّفٌ خلال{" "}
             <strong>{arabicInterval(policy.auto_reply_after)}</strong>، يصلك ردٌّ
-            آليٌّ من مساعد سوداغري بما تعرفه المنصّة عن سؤالك — ثمّ يراجعه موظّف.
+            آليٌّ من مساعد سودغري بما تعرفه المنصّة عن سؤالك — ثمّ يراجعه موظّف.
             فلا تنتظر في صمت.
           </p>
         )}

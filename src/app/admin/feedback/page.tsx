@@ -4,7 +4,7 @@ import { FEEDBACK_KIND_LABEL, type FeedbackKind } from "@/lib/feedback";
 import type { Feedback, FeedbackStatus } from "@/types/database";
 import { replyToFeedback, deleteFeedback } from "./actions";
 
-export const metadata = { title: "ملاحظات الزوّار | سوداغري" };
+export const metadata = { title: "ملاحظات الزوّار | سودغري" };
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<FeedbackStatus, string> = {

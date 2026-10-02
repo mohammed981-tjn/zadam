@@ -15,7 +15,7 @@ const tajawal = Tajawal({
 });
 
 
-const TITLE = "سوداغري | معرفة زراعية واستثمار ذكي في السودان";
+const TITLE = "سودغري | معرفة زراعية واستثمار ذكي في السودان";
 const DESCRIPTION =
   "منصة تخدم كل مزارع ومستثمر سوداني: قاعدة معرفة زراعية موثّقة عن المحاصيل والثروة الحيوانية، ومشاريع استثمار زراعي موثّقة قانونياً بمتابعة ميدانية دورية.";
 
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   openGraph: {
     type: "website",
-    siteName: "سوداغري",
+    siteName: "سودغري",
     locale: "ar_SD",
     url: SITE_URL,
     title: TITLE,
@@ -100,7 +100,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               أرسل ملاحظة أو اقتراحاً
             </Link>
             <p className="pt-2 text-sm text-muted">
-              سوداغري — منصة استثمار زراعي رقمي في السودان · MVP تجريبي
+              سودغري — منصة استثمار زراعي رقمي في السودان · MVP تجريبي
             </p>
           </div>
         </footer>

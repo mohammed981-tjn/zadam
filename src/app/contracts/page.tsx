@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/Explain";
 
-export const metadata = { title: "عقود الخدمات | سوداغري" };
+export const metadata = { title: "عقود الخدمات | سودغري" };
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 

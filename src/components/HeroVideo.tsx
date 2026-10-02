@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } 
 import { SUDAGRI_LOGO } from "@/lib/brand";
 
 /**
- * واجهةُ الرئيسيّة: أفلامُ سوداغري الثلاثة، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
+ * واجهةُ الرئيسيّة: أفلامُ سودغري الثلاثة، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
  *
  * The owner, 2 October: all three films on the homepage, none removed, each
  * ending on the Sudagri logo. A sideways revolving door came first (its side
@@ -373,7 +373,7 @@ export default function HeroVideo() {
             }}
             draggable={false}
             className="pointer-events-none aspect-[4/5] w-full object-cover sm:aspect-video"
-            aria-label={`فيلم سوداغري: ${film.label}`}
+            aria-label={`فيلم سودغري: ${film.label}`}
           >
             {/* WebM first: the open codec plays in every browser, H.264 in the rest. */}
             <source src={`${base}.webm`} type="video/webm" />
@@ -397,7 +397,7 @@ export default function HeroVideo() {
           >
             <Image
               src={SUDAGRI_LOGO}
-              alt="شعار سوداغري — منصّة سودانية للزراعة والتجارة"
+              alt="شعار سودغري — منصّة سودانية للزراعة والتجارة"
               placeholder="blur"
               sizes="(min-width: 768px) 420px, 70vw"
               className="h-[90%] w-auto object-contain"
@@ -420,7 +420,7 @@ export default function HeroVideo() {
       <p className="mt-2 text-center text-xs text-muted">اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق</p>
 
       {/* One button per film, each with its own progress line. */}
-      <nav aria-label="أفلام سوداغري" className="mt-2 grid grid-cols-3 gap-2">
+      <nav aria-label="أفلام سودغري" className="mt-2 grid grid-cols-3 gap-2">
         {FILMS.map((f, i) => {
           const active = i === idx;
           const fill = active ? progress : 0;

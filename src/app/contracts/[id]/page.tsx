@@ -11,7 +11,7 @@ import type {
   MilestoneStatus,
 } from "@/types/database";
 
-export const metadata = { title: "عقد خدمات | سوداغري" };
+export const metadata = { title: "عقد خدمات | سودغري" };
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 

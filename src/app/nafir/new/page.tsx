@@ -4,7 +4,7 @@ import { nafirViewer } from "@/lib/nafirViewer";
 import { NAFIR_KINDS, SUDAN_STATES, tomorrowIso } from "@/lib/nafir";
 import { createCall } from "../actions";
 
-export const metadata = { title: "ادعُ إلى نفير | سوداغري" };
+export const metadata = { title: "ادعُ إلى نفير | سودغري" };
 
 /**
  * The call, in the order the tradition makes it: what work, where, which day,

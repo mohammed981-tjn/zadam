@@ -15,7 +15,7 @@ import {
 } from "@/lib/nafir";
 import { decide, leave, requestJoin, setMember, setTurns } from "../actions";
 
-export const metadata = { title: "ترعة | سوداغري" };
+export const metadata = { title: "ترعة | سودغري" };
 
 const hhmm = (t: string) => t.slice(0, 5);
 
@@ -91,7 +91,7 @@ export default async function CanalPage({
 
       {isMember && (
         <>
-          <ShareWhatsApp path={`/nafir/canals/${canal.id}`} text={`ترعة ${canal.name} على سوداغري — اطلب الانضمام لترى النوبات وواجب الصيانة:`} className="mt-4" />
+          <ShareWhatsApp path={`/nafir/canals/${canal.id}`} text={`ترعة ${canal.name} على سودغري — اطلب الانضمام لترى النوبات وواجب الصيانة:`} className="mt-4" />
 
           {/* ───────── الأعضاء والنصيب ───────── */}
           <section className="mt-6">

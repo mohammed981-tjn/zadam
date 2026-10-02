@@ -6,7 +6,7 @@ import { nafirViewer } from "@/lib/nafirViewer";
 import { NAFIR_KINDS, ar, dateAr, type NafirCall, type NafirJoin } from "@/lib/nafir";
 import { closeCall, joinCall, leaveCall } from "../actions";
 
-export const metadata = { title: "دعوة نفير | سوداغري" };
+export const metadata = { title: "دعوة نفير | سودغري" };
 
 /**
  * One call: what, where, when; who has answered by the name they chose; and,

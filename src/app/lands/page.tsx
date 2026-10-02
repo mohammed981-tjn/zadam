@@ -6,7 +6,7 @@ import { WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
 import type { Land } from "@/types/database";
 import LandDocuments from "@/components/LandDocuments";
 
-export const metadata = { title: "أراضيّ | سوداغري" };
+export const metadata = { title: "أراضيّ | سودغري" };
 
 const VERIFICATION_LABEL: Record<Land["verification"], string> = {
   unverified: "غير محقّقة",

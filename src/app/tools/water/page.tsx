@@ -3,7 +3,7 @@ import ShareWhatsApp from "@/components/ShareWhatsApp";
 import WeekForecast from "@/components/WeekForecast";
 
 export const metadata = {
-  title: "حاسبة الاحتياج المائي | سوداغري",
+  title: "حاسبة الاحتياج المائي | سودغري",
   description:
     "احسب كم يحتاج محصولك من الماء بمعيار FAO-56، شهراً بشهر، حسب منطقتك وطريقة الري.",
 };

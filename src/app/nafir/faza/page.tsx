@@ -4,7 +4,7 @@ import { nafirViewer } from "@/lib/nafirViewer";
 import { FAZA_CAUSES, FAZA_NEEDS, ageAr, type FazaRequest } from "@/lib/nafir";
 
 export const metadata = {
-  title: "الفزعة | سوداغري",
+  title: "الفزعة | سودغري",
   description: "مَن أصابته جائحةٌ في زرعه أو ماشيته يطلب عوناً — يداً أو آلةً أو بذراً — ويفزع له جيرانه.",
 };
 

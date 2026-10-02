@@ -119,7 +119,7 @@ export default function NavMenu({
             className="flex w-full items-center gap-2 border-b border-border bg-primary/10 px-4 py-3 text-right text-sm font-bold text-primary transition hover:bg-primary/15"
           >
             <span aria-hidden>💬</span>
-            اسأل مساعد سوداغري
+            اسأل مساعد سودغري
           </button>
 
           {groups.map((group) => {

@@ -171,7 +171,7 @@ function resolvePlatform(input: LocalAnswerInput): LocalAnswer | null {
     confidence: 1,
     usedTitles: [],
     answer:
-      "لا توجد حالياً أي فرصة استثمار مطروحة على منصة سوداغري، ولم يُفتح باب المساهمة بعد. " +
+      "لا توجد حالياً أي فرصة استثمار مطروحة على منصة سودغري، ولم يُفتح باب المساهمة بعد. " +
       "المنصة في مرحلة التأسيس: نبني أدوات تخطيط الموسم وحساب الري وتوثيق الأرض أولاً، " +
       "ولن تُعرض أي فرصة قبل أن تكون مستنداتها مكتملة ومراجَعة.\n\n" +
       "ما يمكنك فعله الآن: سجّل أرضك إن كنت مزارعاً، أو استخدم حاسبة الاحتياج المائي وخطة الموسم. " +
@@ -497,7 +497,7 @@ function resolveKnowledge(input: LocalAnswerInput): LocalAnswer | null {
     .filter((s) => s.score >= top.score * 0.25)
     .map((s) => s.entry.title);
 
-  const lines = ["من قاعدة معرفة سوداغري:", "", blocks.join("\n\n")];
+  const lines = ["من قاعدة معرفة سودغري:", "", blocks.join("\n\n")];
 
   if (related.length > 0) {
     lines.push("", `مواضيع قريبة في القاعدة: ${related.join("، ")}.`);
@@ -900,7 +900,7 @@ function resolveCanal(input: LocalAnswerInput): LocalAnswer | null {
       confidence: 1,
       usedTitles: headline.map((f) => f.label),
       answer: [
-        "دراسة سوداغري للقناة القوسية، في أربعة أرقام:",
+        "دراسة سودغري للقناة القوسية، في أربعة أرقام:",
         "",
         ...headline.map(
           (f) => `${f.label}: ${f.value ?? "لم يُحدَّد بعد"}${f.unit ? ` ${f.unit}` : ""}`,
@@ -928,7 +928,7 @@ function resolveCanal(input: LocalAnswerInput): LocalAnswer | null {
     confidence: 1,
     usedTitles: quoted.map((s) => s.fact.label),
     answer: [
-      "من ملفّ القناة القوسية في قاعدة سوداغري:",
+      "من ملفّ القناة القوسية في قاعدة سودغري:",
       "",
       blocks.join("\n\n"),
       "",
@@ -1163,7 +1163,7 @@ const LIVENESS_TERMS = ["المساعد يعمل", "المساعد العام ي
  * «ماذا تقدم وزارة الزراعة لمزارعي القطن في الجزيرة» opens with the same two
  * words and is about the ministry. A question about the platform is short —
  * the logged ones are two words — and one that goes on to name somebody else is
- * about somebody else. Six words is the line: «ماذا تقدم منصة سوداغري للمزارع»
+ * about somebody else. Six words is the line: «ماذا تقدم منصة سودغري للمزارع»
  * is five, and the ministry question is eight.
  */
 const INTRO_TERMS = [
@@ -1174,24 +1174,24 @@ const INTRO_TERMS = [
   "شنو بتقدمو",
   "ايش تقدم",
   "وش تقدم",
-  "ما هي سوداغري",
-  "ماهي سوداغري",
+  "ما هي سودغري",
+  "ماهي سودغري",
   "ما هي المنصه",
   "ما هي منصه",
   "ماهي منصه",
   "ماهي المنصه",
   "ما هذه المنصه",
-  "ما هو سوداغري",
-  "شنو سوداغري",
-  // The name was written سودجري and سودغري before سوداغري was settled (2 October); visitors still type them.
+  "ما هو سودغري",
+  "شنو سودغري",
+  // The name was written سودجري, and briefly سوداغري, before سودغري was settled (2 October); visitors still type them.
   "ما هي سودجري",
   "ماهي سودجري",
   "ما هو سودجري",
   "شنو سودجري",
-  "ما هي سودغري",
-  "ماهي سودغري",
-  "ما هو سودغري",
-  "شنو سودغري",
+  "ما هي سوداغري",
+  "ماهي سوداغري",
+  "ما هو سوداغري",
+  "شنو سوداغري",
   "شنو المنصه دي",
 ].map(normalizeArabic);
 const INTRO_MAX_WORDS = 6;
@@ -1202,7 +1202,7 @@ function platformIntro(): LocalAnswer {
     confidence: 1,
     usedTitles: [],
     answer: [
-      "سوداغري منصّة زراعية سودانية، وأغلب ما فيها مجاني ويعمل بلا تسجيل:",
+      "سودغري منصّة زراعية سودانية، وأغلب ما فيها مجاني ويعمل بلا تسجيل:",
       "",
       "• حاسبة الاحتياج المائي: كم يحتاج فدان محصولك من الماء على مناخ ولايتك وطريقة ريّك.",
       "• دراسة الجدوى المرحلية: أين آخر نقطة آمنة للتوقّف قبل أن تُنفق أكثر.",
@@ -1236,7 +1236,7 @@ function resolveCapability(input: LocalAnswerInput): LocalAnswer | null {
       confidence: 1,
       usedTitles: [],
       answer:
-        "لا. أنا أقرأ من قاعدة سوداغري ولا أكتب فيها، وهذا قيد مقصود لا نقص: " +
+        "لا. أنا أقرأ من قاعدة سودغري ولا أكتب فيها، وهذا قيد مقصود لا نقص: " +
         "كل مُدخل في قاعدة المعرفة يمرّ بمراجعة بشرية ويُنشر بمصدره ودولته " +
         "المرجعية، ومساعدٌ يضيف نصّاً بنفسه يفتح الباب لمعلومة بلا سند داخل " +
         "المكان الذي يُفترض أن يكون كل ما فيه موثّقاً.\n\n" +
@@ -1283,7 +1283,7 @@ function resolveCapability(input: LocalAnswerInput): LocalAnswer | null {
     confidence: 1,
     usedTitles: [],
     answer: [
-      "أجيب من بيانات سوداغري نفسها قبل أن ألجأ إلى أي نموذج لغوي. ما أحسبه بنفسي:",
+      "أجيب من بيانات سودغري نفسها قبل أن ألجأ إلى أي نموذج لغوي. ما أحسبه بنفسي:",
       "",
       `الاحتياج المائي لأي من ${CROPS.length} محاصيل، بمنهجية FAO-56، على مناخ ` +
         `${STATIONS.length} محطة سودانية وبأربع طرق ريّ — بالمتر المكعّب للفدان ` +
@@ -1357,7 +1357,7 @@ export function bestEffortAnswer(
     confidence: 0,
     usedTitles: top.map((e) => e.title),
     answer: [
-      "لم أستطع الوصول لمحرك المعرفة العامة الآن، وهذه أقرب المواد في قاعدة سوداغري لسؤالك — قد لا تجيبه مباشرة:",
+      "لم أستطع الوصول لمحرك المعرفة العامة الآن، وهذه أقرب المواد في قاعدة سودغري لسؤالك — قد لا تجيبه مباشرة:",
       "",
       blocks.join("\n\n"),
       "",
