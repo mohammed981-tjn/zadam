@@ -5,47 +5,38 @@ import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } 
 import { SUDAGRI_LOGO } from "@/lib/brand";
 
 /**
- * واجهةُ الرئيسيّة: أفلامُ سودجري الثلاثة كبابِ فندقٍ دوّار.
+ * واجهةُ الرئيسيّة: أفلامُ سودجري الثلاثة، تنزلق كمن ينزلق من زحليقةٍ إلى حوض.
  *
- * The owner, 2 October: all three films on the homepage, none removed; then
- * «اجعل الفيديوهات الثلاثة مثل باب الفندق الدوار، بإصبعك يمكن تغيّر
- * الفيديوهات، ودائماً اجعل ختام كل فيديو شعار سودغري».
+ * The owner, 2 October: all three films on the homepage, none removed, each
+ * ending on the Sudagri logo. A sideways revolving door came first; its side
+ * panels made the frame narrow, and the owner asked instead for a vertical
+ * motion «مثل سقوط الشخص من مزلقة إلى حوض سباحة».
  *
- * So the frame turns. Drag it sideways and it follows the finger, rotating
- * about its vertical axis; let go past a fifth of its width and it swings
- * through, and the next film is on its far side. It goes round and round —
- * after the third comes the first again, as a revolving door has no last
- * panel. Each film ends on the Sudagri logo card (the farmer clip had none,
- * so its web copy now carries one), and when a film ends the door turns by
- * itself to the next. After one full round it turns back to the first film
- * and waits for a tap, rather than downloading films for a visitor who has
- * left the tab open. One button per film under the frame, each with its own
- * progress line, turns the door straight to that film.
+ * So the frame keeps its full width, and under it lies a "pool": a strip
+ * showing the next film beneath moving water, labelled «التالي». Drag the frame
+ * down (or tap the pool) and it tilts back and slides down the chute, dives
+ * into the pool with rings spreading on the water, and the next film rises out
+ * of it and settles with a small bounce. Drag up for the previous film. It goes
+ * round: after the third comes the first. A few seconds after the first film
+ * starts, the frame dips once towards the pool on its own and bobs back, so a
+ * visitor sees which way it goes. When a film ends (each on the logo card) it
+ * slides on to the next by itself; after one full round it returns to the
+ * first and waits for a tap rather than streaming to an idle tab.
+ *
+ * The frame claims vertical drags (`touch-action: none` on the frame only);
+ * the page scrolls from everywhere else, and a drag that is clearly sideways
+ * is let go.
  *
  * Each film comes in two cuts, chosen by the frame's shape: 4:5 below `sm`
- * (the vertical cut, shots framed on their subject, captions inside), 16:9
- * from `sm` up. Muted to start, as autoplay requires; «بالصوت» turns the
- * narration on and the choice carries across films.
- *
- * A door nobody knows turns is a wall, so the turning shows before anyone
- * touches it (the owner, 2 October: «الزائر لا يعرف… بيّن طرف الصور التالية
- * ليفهم أنها ستدور»): the next and previous films stand at the frame's sides,
- * their edges angled away like the other panels of a revolving door, each a
- * button that turns the door to it; and a few seconds after the first film
- * starts, the door rocks once on its own, as if pushed.
- *
- * The page still scrolls under a finger: the frame claims only horizontal
- * drags (`touch-action: pan-y`), and only once a drag is clearly sideways.
- *
- * On the visit where the full-screen intro (SplashOnce) is showing, the films
- * wait for it to finish (`sudagri:intro-done`), with a ceiling in case the
- * event is lost. A reader who asked for less motion is shown the logo; the
- * door then turns without animation and nothing plays by itself.
+ * (vertical cut), 16:9 from `sm` up. Muted to start, as autoplay requires;
+ * «بالصوت» turns the narration on and the choice carries across films. On the
+ * visit where the full-screen intro (SplashOnce) is showing, the films wait for
+ * it (`sudagri:intro-done`), with a ceiling. A reader who asked for less
+ * motion is shown the logo, and films change without the slide.
  */
 const INTRO_WAIT_MAX_MS = 16000;
-/** How far the door swings before the next film takes its place. */
-const SWING_MS = 260;
-const SETTLE_MS = 380;
+const DIVE_MS = 420;
+const RISE_MS = 620;
 const NUDGE_AFTER_MS = 2600;
 
 type Film = { key: string; label: string };
@@ -69,6 +60,10 @@ const isNarrow = () => typeof window.matchMedia === "function" && window.matchMe
 const prefersCalm = () =>
   typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/** Where the frame is: translateY in % of its height, tilt about X, scale, opacity. */
+type Pose = { y: number; rx: number; s: number; o: number };
+const REST: Pose = { y: 0, rx: 0, s: 1, o: 1 };
+
 export default function HeroVideo() {
   const ref = useRef<HTMLVideoElement>(null);
   /** Set once the programme has started; from then on a new film plays as it mounts. */
@@ -80,22 +75,22 @@ export default function HeroVideo() {
   const [calm, setCalm] = useState(false);
   const [muted, setMuted] = useState(true);
   const [progress, setProgress] = useState(0);
-  /** The door's angle in degrees, and whether it is moving under its own power. */
-  const [angle, setAngle] = useState(0);
-  const [easing, setEasing] = useState<string>("none");
-  const drag = useRef<{ x: number; y: number; w: number; on: boolean } | null>(null);
-  const turning = useRef(false);
+  const [pose, setPose] = useState<Pose>(REST);
+  const [easing, setEasing] = useState("none");
+  /** Bumped to replay the rings on the water. */
+  const [splash, setSplash] = useState(0);
+  const drag = useRef<{ x: number; y: number; h: number; on: boolean } | null>(null);
+  const moving = useRef(false);
   const tall = useSyncExternalStore(subscribe, isNarrow, () => false);
   const film = FILMS[idx];
   const cut = tall ? "tall" : "wide";
   const base = `/video/${film.key}-${cut}`;
   const next = FILMS[wrap(idx + 1)];
-  const prev = FILMS[wrap(idx - 1)];
 
   // Start the programme: now, or once the full-screen intro has finished.
   useEffect(() => {
     let cap = 0;
-    const nudge: number[] = [];
+    const timers: number[] = [];
     const start = () => {
       window.clearTimeout(cap);
       const v = ref.current;
@@ -108,22 +103,19 @@ export default function HeroVideo() {
       armed.current = true;
       v.load();
       v.play().catch(() => setIdle(true));
-      // The door rocks once on its own, so a visitor sees that it turns.
-      nudge.push(
+      // Once, on its own: a dip towards the pool and a bob back, so the way it moves shows.
+      timers.push(
         window.setTimeout(() => {
-          if (turning.current || drag.current) return;
-          setEasing("transform 420ms ease-in-out");
-          setAngle(18);
+          if (moving.current || drag.current) return;
+          setEasing("transform 380ms ease-in");
+          setPose({ y: 7, rx: 10, s: 0.98, o: 1 });
+          setSplash((n) => n + 1);
         }, NUDGE_AFTER_MS),
         window.setTimeout(() => {
-          if (turning.current || drag.current) return;
-          setAngle(-6);
-        }, NUDGE_AFTER_MS + 420),
-        window.setTimeout(() => {
-          if (turning.current || drag.current) return;
-          setEasing(`transform ${SETTLE_MS}ms cubic-bezier(.2,.8,.2,1)`);
-          setAngle(0);
-        }, NUDGE_AFTER_MS + 840),
+          if (moving.current || drag.current) return;
+          setEasing("transform 560ms cubic-bezier(.3,1.6,.5,1)");
+          setPose(REST);
+        }, NUDGE_AFTER_MS + 380),
       );
     };
     // After every mount effect has run, so SplashOnce has set `data-intro`.
@@ -138,7 +130,7 @@ export default function HeroVideo() {
     return () => {
       window.clearTimeout(t);
       window.clearTimeout(cap);
-      nudge.forEach((n) => window.clearTimeout(n));
+      timers.forEach((n) => window.clearTimeout(n));
       window.removeEventListener("sudagri:intro-done", start);
     };
   }, []);
@@ -153,37 +145,38 @@ export default function HeroVideo() {
   }, [idx, tall]);
 
   /**
-   * Turn the door to film `to`. `dir` is the way it swings: +1 or −1. The
-   * leaving panel swings out to ±90°, the film changes while the door is
-   * edge-on, and the new panel swings in from ∓90° to rest.
+   * Move to film `to`. Forward (`dir` 1): the frame tilts back, slides down the
+   * chute and dives into the pool; rings spread; the next film rises out of
+   * the water and settles with a bounce. Back (`dir` −1): the same, upwards.
    */
-  const turnTo = (to: number, dir: 1 | -1, play = true) => {
-    if (turning.current) return;
+  const slideTo = (to: number, dir: 1 | -1, play = true) => {
+    if (moving.current) return;
     armed.current = play;
     setIdle(!play);
     if (prefersCalm()) {
-      setAngle(0);
+      setPose(REST);
       setProgress(0);
       setIdx(wrap(to));
       return;
     }
-    turning.current = true;
-    setEasing(`transform ${SWING_MS}ms ease-in`);
-    setAngle(dir * 90);
+    moving.current = true;
+    setEasing(`transform ${DIVE_MS}ms cubic-bezier(.55,0,.9,.45), opacity ${DIVE_MS}ms ease-in`);
+    setPose(dir > 0 ? { y: 38, rx: 30, s: 0.86, o: 0 } : { y: -38, rx: -30, s: 0.86, o: 0 });
+    if (dir > 0) window.setTimeout(() => setSplash((n) => n + 1), DIVE_MS * 0.6);
     window.setTimeout(() => {
       setEasing("none");
-      setAngle(-dir * 90);
+      setPose(dir > 0 ? { y: 22, rx: -12, s: 0.94, o: 0 } : { y: -22, rx: 12, s: 0.94, o: 0 });
       setProgress(0);
       setIdx(wrap(to));
-      // Two frames so the jump to the far edge is painted before the swing in.
+      // Two frames so the jump to the water is painted before the rise.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          setEasing(`transform ${SETTLE_MS}ms cubic-bezier(.2,.8,.2,1)`);
-          setAngle(0);
-          window.setTimeout(() => (turning.current = false), SETTLE_MS);
+          setEasing(`transform ${RISE_MS}ms cubic-bezier(.25,1.45,.5,1), opacity ${RISE_MS * 0.5}ms ease-out`);
+          setPose(REST);
+          window.setTimeout(() => (moving.current = false), RISE_MS);
         }),
       );
-    }, SWING_MS);
+    }, DIVE_MS);
   };
 
   const go = (i: number) => {
@@ -196,13 +189,13 @@ export default function HeroVideo() {
       v.play().catch(() => setIdle(true));
       return;
     }
-    turnTo(i, i > idx ? 1 : -1);
+    slideTo(i, i > idx ? 1 : -1);
   };
 
-  // ── the finger on the door ──
+  // ── the finger on the frame ──
   const onPointerDown = (e: PointerEvent<HTMLElement>) => {
-    if (turning.current || (e.target as HTMLElement).closest("button")) return;
-    drag.current = { x: e.clientX, y: e.clientY, w: e.currentTarget.clientWidth, on: false };
+    if (moving.current || (e.target as HTMLElement).closest("button")) return;
+    drag.current = { x: e.clientX, y: e.clientY, h: e.currentTarget.clientHeight, on: false };
   };
   const onPointerMove = (e: PointerEvent<HTMLElement>) => {
     const d = drag.current;
@@ -210,24 +203,28 @@ export default function HeroVideo() {
     const dx = e.clientX - d.x;
     const dy = e.clientY - d.y;
     if (!d.on) {
-      if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return;
+      if (Math.abs(dy) < 8) return;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        drag.current = null; // sideways: not ours
+        return;
+      }
       d.on = true;
       e.currentTarget.setPointerCapture(e.pointerId);
       setEasing("none");
     }
-    setAngle(Math.max(-80, Math.min(80, (dx / d.w) * 110)));
+    const f = Math.max(-1, Math.min(1, dy / d.h));
+    setPose({ y: f * 30, rx: f * 22, s: 1 - Math.abs(f) * 0.08, o: 1 });
   };
   const onPointerUp = (e: PointerEvent<HTMLElement>) => {
     const d = drag.current;
     drag.current = null;
     if (!d?.on) return;
-    const dx = e.clientX - d.x;
-    if (Math.abs(dx) > d.w * 0.2) {
-      // In a right-to-left page the next panel waits on the left: pull it in by dragging right.
-      turnTo(dx > 0 ? idx + 1 : idx - 1, dx > 0 ? 1 : -1);
+    const dy = e.clientY - d.y;
+    if (Math.abs(dy) > d.h * 0.18) {
+      slideTo(dy > 0 ? idx + 1 : idx - 1, dy > 0 ? 1 : -1);
     } else {
-      setEasing(`transform ${SETTLE_MS}ms cubic-bezier(.2,.8,.2,1)`);
-      setAngle(0);
+      setEasing("transform 520ms cubic-bezier(.3,1.6,.5,1)");
+      setPose(REST);
     }
   };
 
@@ -240,51 +237,26 @@ export default function HeroVideo() {
 
   return (
     <div>
-      <div className="relative" style={{ perspective: "1400px" }}>
-        {/*
-          The neighbouring panels of the door: the next film on the left (in a
-          right-to-left page the next waits on the left), the previous on the
-          right, their outer edges turned away behind the frame.
-        */}
-        {[
-          { f: next, side: "left", dir: 1 as const, to: idx + 1, label: "الفيلم التالي", arrow: "‹" },
-          { f: prev, side: "right", dir: -1 as const, to: idx - 1, label: "الفيلم السابق", arrow: "›" },
-        ].map((p) => (
-          <button
-            key={p.side}
-            type="button"
-            onClick={() => turnTo(p.to, p.dir)}
-            aria-label={`${p.label}: ${p.f.label}`}
-            className={`absolute inset-y-[8%] z-0 w-[15%] overflow-hidden rounded-2xl shadow-card sm:w-[10%] ${
-              p.side === "left" ? "left-0" : "right-0"
-            }`}
-            style={{
-              transform: p.side === "left" ? "rotateY(-30deg)" : "rotateY(30deg)",
-              transformOrigin: p.side === "left" ? "right center" : "left center",
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- a poster frame, already sized for the web */}
-            <img src={`/video/${p.f.key}-${cut}.jpg`} alt="" className="h-full w-full object-cover brightness-75" />
-            <span
-              className={`absolute inset-y-0 flex items-center px-1 text-2xl font-bold text-white drop-shadow ${
-                p.side === "left" ? "left-0" : "right-0"
-              }`}
-            >
-              {p.arrow}
-            </span>
-          </button>
-        ))}
+      <style>{`
+        @keyframes sudagri-ring { from { transform: translate(-50%,-50%) scale(.15); opacity: .85 } to { transform: translate(-50%,-50%) scale(1.9); opacity: 0 } }
+        @keyframes sudagri-water { from { background-position: 0 0, 0 0 } to { background-position: 160px 0, -120px 0 } }
+        @media (prefers-reduced-motion: reduce) { .sudagri-anim { animation: none !important } }
+      `}</style>
+
+      {/* Clipped at the pool's bottom edge only, so a sinking frame never shows beneath it. */}
+      <div style={{ clipPath: "inset(-60px -60px 0 -60px)" }}>
+      <div style={{ perspective: "1100px", perspectiveOrigin: "50% 100%" }}>
         <figure
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="relative z-10 mx-auto w-[74%] cursor-grab touch-pan-y select-none overflow-hidden rounded-3xl bg-card shadow-float active:cursor-grabbing sm:w-[84%]"
+          className="relative z-10 cursor-grab touch-none select-none overflow-hidden rounded-3xl bg-card shadow-float active:cursor-grabbing"
           style={{
-            transform: `rotateY(${angle}deg)`,
+            transform: `translateY(${pose.y}%) rotateX(${pose.rx}deg) scale(${pose.s})`,
+            transformOrigin: "50% 100%",
+            opacity: pose.o,
             transition: easing,
-            // The far face of a turning door is the next film, not a mirror of this one.
-            backfaceVisibility: "hidden",
           }}
         >
           <video
@@ -300,10 +272,10 @@ export default function HeroVideo() {
             }}
             onEnded={() => {
               setProgress(1);
-              // Every film ends on the logo card; hold it a moment, then the door turns on —
+              // Every film ends on the logo card; hold it a moment, then slide on —
               // and after the last, back to the first, to wait for a tap.
               const last = idx === N - 1;
-              window.setTimeout(() => turnTo(idx + 1, 1, !last), 1200);
+              window.setTimeout(() => slideTo(idx + 1, 1, !last), 1200);
             }}
             draggable={false}
             className="pointer-events-none aspect-[4/5] w-full object-cover sm:aspect-video"
@@ -350,9 +322,50 @@ export default function HeroVideo() {
         </figure>
       </div>
 
-      <p className="mt-2 text-center text-xs text-muted">
-        ↔ اسحب أو اضغط طرف الفيلم المجاور ليدور الباب
-      </p>
+      {/*
+        The pool: the next film under moving water. Tapping it is the same dive
+        as dragging the frame down; the rings spread from where the frame lands.
+      */}
+      <button
+        type="button"
+        onClick={() => slideTo(idx + 1, 1)}
+        aria-label={`الفيلم التالي: ${next.label}`}
+        className="relative z-20 -mt-3 block h-16 w-full overflow-hidden rounded-b-3xl rounded-t-lg border border-border shadow-card sm:h-20"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- a poster frame, already sized for the web */}
+        <img
+          src={`/video/${next.key}-${cut}.jpg`}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-top"
+        />
+        <span
+          aria-hidden
+          className="sudagri-anim absolute inset-0"
+          style={{
+            background:
+              "repeating-linear-gradient(100deg, rgba(120,190,230,.35) 0 18px, rgba(40,110,170,.25) 18px 40px), linear-gradient(to bottom, rgba(14,90,140,.55), rgba(10,60,100,.75))",
+            animation: "sudagri-water 6s linear infinite",
+          }}
+        />
+        {[0, 1, 2].map((k) => (
+          <span
+            key={`${splash}-${k}`}
+            aria-hidden
+            className="sudagri-anim pointer-events-none absolute left-1/2 top-1 h-24 w-56 rounded-[50%] border-2 border-white/80"
+            style={{
+              opacity: 0,
+              animation: splash ? `sudagri-ring 900ms ease-out ${k * 140}ms both` : "none",
+            }}
+          />
+        ))}
+        <span className="relative flex h-full items-center justify-center gap-2 text-sm font-bold text-white drop-shadow sm:text-base">
+          <span aria-hidden className="sudagri-anim inline-block animate-bounce">⬇</span>
+          التالي: {next.label}
+        </span>
+      </button>
+      </div>
+
+      <p className="mt-2 text-center text-xs text-muted">اسحب الإطار لأسفل لينزلق إلى الحوض ويطلع الفيلم التالي — ولأعلى للسابق</p>
 
       {/* One button per film, each with its own progress line. */}
       <nav aria-label="أفلام سودجري" className="mt-2 grid grid-cols-3 gap-2">
