@@ -64,6 +64,17 @@ const subscribe = (on: () => void) => {
   return () => m.removeEventListener("change", on);
 };
 const isNarrow = () => typeof window.matchMedia === "function" && window.matchMedia(NARROW).matches;
+/**
+ * The visitor asked to save data, or the connection is 2G: the first film does
+ * not start by itself either, it waits on its poster for «▶ شاهد». A film is
+ * megabytes; on a metered Sudanese connection that is a cost the visitor should
+ * choose. (`navigator.connection` is Chromium-only; elsewhere this is false.)
+ */
+const frugal = () => {
+  const c = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
+    .connection;
+  return !!c && (c.saveData === true || /(^|-)2g$/.test(c.effectiveType ?? ""));
+};
 const prefersCalm = () =>
   typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -107,6 +118,10 @@ export default function HeroVideo() {
       if (!v) return;
       if (prefersCalm()) {
         setCalm(true);
+        setIdle(true);
+        return;
+      }
+      if (frugal()) {
         setIdle(true);
         return;
       }

@@ -289,28 +289,38 @@ export default async function Home() {
         <PhotoBoard tiles={BOARD} />
       </section>
 
-      {/* ───────────────────────── الحالة ───────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-10">
-        <div className="flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-5">
-          <Icon name="shield" className="mt-0.5 size-5 shrink-0 text-accent" />
-          <p className="text-sm leading-relaxed">
-            <strong className="font-bold">
-              لا توجد فرص استثمار مطروحة حالياً
-            </strong>{" "}
-            — ولن يُعرض مشروع قبل توثيقه قانونياً ومعاينته ميدانياً. أمّا
-            الأدوات وقاعدة المعرفة فتعمل الآن، مجاناً وبلا تسجيل.
-          </p>
-        </div>
-      </section>
+      {/* ───────────────────────── الحالة ─────────────────────────
+       * حين لا يُنشر مشروع فقط: كانت تظهر دائماً، فتقول «لا توجد فرص» فوق
+       * قائمةِ المشاريع نفسها يوم يُنشر أوّلها.
+       */}
+      {!(projects && projects.length > 0) && (
+        <section className="mx-auto max-w-6xl px-4 py-10">
+          <div className="flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-5">
+            <Icon name="shield" className="mt-0.5 size-5 shrink-0 text-accent" />
+            <p className="text-sm leading-relaxed">
+              <strong className="font-bold">
+                لا توجد فرص استثمار مطروحة حالياً
+              </strong>{" "}
+              — ولن يُعرض مشروع قبل توثيقه قانونياً ومعاينته ميدانياً. أمّا
+              الأدوات وقاعدة المعرفة فتعمل الآن، مجاناً وبلا تسجيل.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ───────────────────────── المشاريع ─────────────────────────
        * يظهر حين يُنشر مشروعٌ فقط.
        */}
       {projects && projects.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pb-14">
-          <h2 className="mb-6 font-bold" style={{ fontSize: "var(--text-title)" }}>
-            المشاريع المتاحة
-          </h2>
+        <section className="mx-auto max-w-6xl px-4 py-10">
+          <div className="mb-6 flex items-baseline justify-between gap-4">
+            <h2 className="font-bold" style={{ fontSize: "var(--text-title)" }}>
+              المشاريع المتاحة
+            </h2>
+            <Link href="/projects" className="text-sm font-medium text-primary hover:underline">
+              كلّ المشاريع ←
+            </Link>
+          </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {(projects as Project[]).map((project) => (
               <ProjectCard key={project.id} project={project} />
