@@ -62,13 +62,9 @@ export default async function ArcCanalPage() {
         <ShareWhatsApp path="/arc-canal" text="القناة القوسية — دراسة الأرض والتصميم بالقياسات:" className="my-3" />
 
         {/*
-          صورتان على هذه الصفحة، وكلتاهما بتعليقٍ صريح — وذلك شرطٌ لا زينة.
-
-          This page argues from 41 SRTM elevations, SoilGrids profiles, a canal
-          sized by Manning's equation and a cost built from quantities. A
-          photograph placed on it without a caption makes a claim the numbers do
-          not: that the canal exists. Both pictures here are generated, and the
-          captions say so in the same words a reader would use.
+          صورتان على هذه الصفحة، وكلتاهما مولَّدة. كان تحت كلٍّ منهما سطرٌ
+          يقول ذلك، وحذفه المالك في 2 أكتوبر («احذف التعليقات من الصور كلها»)؛
+          والنصّ البديل (`alt`) يصف ما في الصورة ولا يزعم أنّها القناة.
 
           They sit below the opening paragraph rather than above the title, so
           the first thing on the page stays the sentence that says what this is.
@@ -77,18 +73,16 @@ export default async function ArcCanalPage() {
           className="overflow-hidden rounded-xl border border-border"
           src={PHOTOS.nileDam}
           alt="سدّ خرسانيّ على نهر واسع، وخزانه خلفه، وأرض قاحلة حوله"
-          caption="صورةٌ مولَّدةٌ لأغراض العرض — ليست خزّان جبل أولياء ولا أيّ سدٍّ قائم."
         />
       </header>
 
       {/*
         فيلم سودغري (المالك، 2 أكتوبر: «بعدما تكمل اللقطات نزّلها في صفحة القناة»):
         الماء من السدّ إلى القناة إلى الحقل، والمزارع، ثمّ الشعار. Generated,
-        like the two pictures, and captioned the same way for the same reason.
-        It plays only when asked, with its narration: `preload="none"` so a
+        like the two pictures, and without a caption like them. It plays only when asked, with its narration: `preload="none"` so a
         visitor who came for the numbers downloads nothing but the poster.
       */}
-      <figure className="flex flex-col gap-2">
+      <figure>
         <video
           controls
           playsInline
@@ -101,9 +95,6 @@ export default async function ArcCanalPage() {
           <source src="/video/canal-film.webm" type="video/webm" />
           <source src="/video/canal-film.mp4" type="video/mp4" />
         </video>
-        <figcaption className="text-xs text-muted">
-          فيلمٌ مولَّدٌ لأغراض العرض، ٢٩ ثانية — رؤيةٌ للماء والريّ والطاقة في السودان، وليس القناةَ القوسية ولا موقعاً قائماً.
-        </figcaption>
       </figure>
 
       {/* The four numbers the whole study turns on. */}
@@ -201,7 +192,6 @@ export default async function ArcCanalPage() {
           className="overflow-hidden rounded-xl border border-border"
           src={PHOTOS.canalRegulator}
           alt="قنطرة خرسانية ببوابات فولاذية على ترعة ريّ، والماء الطيني يمرّ تحتها"
-          caption="صورةٌ مولَّدةٌ لأغراض العرض — لا تمثّل القناة المقترحة ولا منشأةً قائمة."
         />
 
         <p className="leading-relaxed">
