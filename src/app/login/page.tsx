@@ -16,7 +16,7 @@ export default async function LoginPage({
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
       <h1 className="mb-2 text-2xl font-bold">تسجيل الدخول</h1>
-      <p className="mb-6 text-sm text-muted">ادخل بحسابك على سوداغري.</p>
+      <p className="mb-6 text-sm text-muted">ادخل بحسابك على سودغري.</p>
 
       {message && (
         <p className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
@@ -92,7 +92,7 @@ export default async function LoginPage({
               </button>
               <span className="text-xs text-muted">
                 تحقّق من مجلد الرسائل غير المرغوبة أيضاً — الرسالة تصل باسم
-                مزوّد الخدمة لا باسم سوداغري.
+                مزوّد الخدمة لا باسم سودغري.
               </span>
             </div>
           </details>

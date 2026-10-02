@@ -4,7 +4,7 @@ import NafirShell from "@/components/nafir/NafirShell";
 import { nafirViewer } from "@/lib/nafirViewer";
 import { NAFIR_KINDS, ageAr, ar, type FazaPledge, type NafirCall, type NafirJoin } from "@/lib/nafir";
 
-export const metadata = { title: "سجلّ عطائي | سوداغري", robots: { index: false } };
+export const metadata = { title: "سجلّ عطائي | سودغري", robots: { index: false } };
 
 /**
  * What this household gave and what it received — for its own eyes only.

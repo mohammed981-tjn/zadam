@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { completePasswordReset } from "@/app/login/actions";
 
-export const metadata = { title: "كلمة مرور جديدة | سوداغري" };
+export const metadata = { title: "كلمة مرور جديدة | سودغري" };
 
 export default async function ResetConfirmPage({
   searchParams,

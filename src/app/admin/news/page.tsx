@@ -11,7 +11,7 @@ import {
   deleteAnnouncement,
 } from "./actions";
 
-export const metadata = { title: "الأخبار | إدارة سوداغري" };
+export const metadata = { title: "الأخبار | إدارة سودغري" };
 
 /**
  * شاشةُ الأخبار — الكتابةُ أوّلاً ثمّ السجلّ.

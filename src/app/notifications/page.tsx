@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { markAllRead } from "./actions";
 
-export const metadata = { title: "الإشعارات — سوداغري" };
+export const metadata = { title: "الإشعارات — سودغري" };
 
 interface Notification {
   id: string;

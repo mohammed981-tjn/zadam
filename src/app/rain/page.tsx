@@ -8,7 +8,7 @@ import { SOIL_CLASSES, SOIL_FETCHED_AT, availableLayers, fetchDailyTable, fetchR
 import { WRB } from "@/lib/soilClasses";
 
 export const metadata = {
-  title: "توقّع الأمطار والخرائط | سوداغري",
+  title: "توقّع الأمطار والخرائط | سودغري",
   description:
     "خريطة السودان للأيام السبعة القادمة — المطر والحرارة وحاجة الجوّ من الماء — ومعها التضاريس والتربة والأراضي الموثّقة ومسار القناة القوسية، وجدول المطر يوماً بيوم لخمس عشرة مدينة.",
 };

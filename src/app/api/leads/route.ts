@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     if (recipients.length > 0) {
       const outcome = await sendEmail({
         to: recipients,
-        subject: `سوداغري — طلب تواصل جديد: ${capped.full_name}`,
+        subject: `سودغري — طلب تواصل جديد: ${capped.full_name}`,
         // The contact goes in the body rather than only in reply-to, because it
         // is as likely to be a phone number as an address.
         text: [
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
           `الصفة: ${capped.role}`,
           capped.interest ? `الاهتمام: ${capped.interest}` : null,
           "",
-          "وصل عبر نموذج التواصل في سوداغري.",
+          "وصل عبر نموذج التواصل في سودغري.",
         ]
           .filter((line) => line !== null)
           .join("\n"),
@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      message: "تم استلام بياناتك، سيتواصل معك فريق سوداغري قريباً.",
+      message: "تم استلام بياناتك، سيتواصل معك فريق سودغري قريباً.",
     });
   } catch (err) {
     console.error("leads: unhandled error", err);

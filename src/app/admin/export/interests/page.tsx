@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/adminGuard";
 import InterestCard from "@/components/InterestCard";
 
-export const metadata = { title: "طلبات المشترين · سوداغري" };
+export const metadata = { title: "طلبات المشترين · سودغري" };
 
 interface Row {
   id: string;

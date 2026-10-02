@@ -4,7 +4,7 @@ import ProjectCard from "@/components/ProjectCard";
 import type { Project } from "@/types/database";
 
 export const metadata = {
-  title: "المشاريع المطروحة · سوداغري",
+  title: "المشاريع المطروحة · سودغري",
   description:
     "المشاريع الزراعية المطروحة للاستثمار في السودان — ولا يُعرض مشروع قبل توثيق حيازته ومعاينته ميدانياً.",
 };

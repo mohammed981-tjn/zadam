@@ -12,7 +12,7 @@ import {
 } from "@/lib/services";
 import type { ProviderService, ServiceProvider } from "@/types/database";
 
-export const metadata = { title: "جهتي ومقدّم خدماتي | سوداغري" };
+export const metadata = { title: "جهتي ومقدّم خدماتي | سودغري" };
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 

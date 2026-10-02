@@ -1,4 +1,4 @@
-/// مساعد سوداغري on the phone.
+/// مساعد سودغري on the phone.
 ///
 /// A thin client over the website's /api/assistant route. Everything that makes
 /// the assistant worth asking — the retrieval, the local resolvers that answer
@@ -45,7 +45,7 @@ class _Message {
 const _sourceLabels = {
   'platform': 'من بيانات المنصة',
   'calculator': 'محسوب بمحرك الري',
-  'knowledge': 'من قاعدة معرفة سوداغري',
+  'knowledge': 'من قاعدة معرفة سودغري',
   'cache': 'إجابة محفوظة',
   'model': 'من المعرفة العامة',
 };
@@ -104,7 +104,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('مساعد سوداغري')),
+      appBar: AppBar(title: const Text('مساعد سودغري')),
       body: Column(
         children: [
           Expanded(

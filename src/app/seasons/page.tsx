@@ -5,7 +5,7 @@ import { CROPS } from "@/lib/agronomy";
 import PublishRecordToggle from "@/components/PublishRecordToggle";
 import type { Season } from "@/types/database";
 
-export const metadata = { title: "مواسمي | سوداغري" };
+export const metadata = { title: "مواسمي | سودغري" };
 
 export default async function SeasonsPage({
   searchParams,
