@@ -189,7 +189,7 @@ export default async function Home() {
   return (
     <div>
       {/* ───────────────────────── الواجهة ───────────────────────── */}
-      <section className="mesh border-b border-border">
+      <section className="mesh overflow-x-clip border-b border-border">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
           {/*
             الفيديو والشعارُ في إطارٍ واحد: يعمل المقطعُ مرّةً ثمّ يظهر الشعار
