@@ -5,28 +5,32 @@ import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } 
 import { SUDAGRI_LOGO } from "@/lib/brand";
 
 /**
- * واجهةُ الرئيسيّة: أفلامُ سودجري الثلاثة، رزمةَ بطاقاتٍ رأسيّة.
+ * واجهةُ الرئيسيّة: أفلامُ سودجري الثلاثة، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
  *
  * The owner, 2 October: all three films on the homepage, none removed, each
- * ending on the Sudagri logo. A sideways revolving door came first; its side
- * panels made the frame narrow. Then a "pool" under the frame. Then the owner
- * asked for the three to show vertically, «الشريحة الأولى إلى بعدها تنزل عنها
- * ٢ سم وكذا» — each card a step below the one before.
+ * ending on the Sudagri logo. A sideways revolving door came first (its side
+ * panels made the frame narrow), then a "pool" under the frame, then a stack
+ * stepping downwards. What the owner asked for in the end: the three in a row
+ * sideways, the playing film in front at its full size, the next one behind it
+ * a step to the right and a step higher, and the third a step beyond that —
+ * «في شكل 3D».
  *
- * So the films are a stack. The playing film is on top at full width; behind
- * it, the next two films' cards stand out below it one step each, a little
- * narrower and darker, each with its name on the strip that shows. Drag the
- * frame down (or tap a card) and the top film drops away while the stack rises
- * a step, so the card that was second is now playing. Drag up for the previous
- * film, which comes down onto the stack. It goes round: after the third comes
- * the first. A few seconds after the first film starts the frame dips once on
- * its own, so a visitor sees that it moves. When a film ends (each on the logo
- * card) the stack moves on by itself; after one full round it returns to the
- * first and waits for a tap rather than streaming to an idle tab.
+ * So the films are a deck seen in depth. The playing film is in front; behind
+ * it the next two cards stand out to the right and above, one step each,
+ * smaller, darker and turned a little away, each with its name down its
+ * visible edge. The deck borrows the page's right-hand margin, so the frame
+ * loses almost none of its width. Drag the frame left (or down, or tap a card)
+ * and it turns away and slips off to the left while the deck comes forward a
+ * step, so the card that was second is now playing. Drag right (or up) for the
+ * previous film, which swings in from the left. It goes round: after the third
+ * comes the first. A few seconds after the first film starts the frame leans
+ * aside once on its own, so a visitor sees the deck behind it. When a film
+ * ends (each on the logo card) the deck moves on by itself; after one full
+ * round it returns to the first and waits for a tap rather than streaming to
+ * an idle tab.
  *
- * The frame claims vertical drags (`touch-action: none` on the frame only);
- * the page scrolls from everywhere else, and a drag that is clearly sideways
- * is let go.
+ * The frame claims drags (`touch-action: none` on the frame only); the page
+ * scrolls from everywhere else.
  *
  * Each film comes in two cuts, chosen by the frame's shape: 4:5 below `sm`
  * (vertical cut), 16:9 from `sm` up. Muted to start, as autoplay requires;
@@ -61,9 +65,11 @@ const isNarrow = () => typeof window.matchMedia === "function" && window.matchMe
 const prefersCalm = () =>
   typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** Where the frame is: translateY in % of its height, tilt about X, scale, opacity. */
-type Pose = { y: number; rx: number; s: number; o: number };
-const REST: Pose = { y: 0, rx: 0, s: 1, o: 1 };
+/** Where the frame is: translate in % of its size, turn about Y, scale, opacity. */
+type Pose = { x: number; y: number; ry: number; s: number; o: number };
+const REST: Pose = { x: 0, y: 0, ry: 0, s: 1, o: 1 };
+/** Gone off to the left, turned away: where a film leaves and where the previous one comes from. */
+const AWAY: Pose = { x: -55, y: 4, ry: 38, s: 0.86, o: 0 };
 
 export default function HeroVideo() {
   const ref = useRef<HTMLVideoElement>(null);
@@ -78,9 +84,9 @@ export default function HeroVideo() {
   const [progress, setProgress] = useState(0);
   const [pose, setPose] = useState<Pose>(REST);
   const [easing, setEasing] = useState("none");
-  /** The stack is rising a step while the top film drops away. */
+  /** The deck is coming forward a step while the front film leaves. */
   const [rising, setRising] = useState(false);
-  const drag = useRef<{ x: number; y: number; h: number; on: boolean } | null>(null);
+  const drag = useRef<{ x: number; y: number; w: number; h: number; on: boolean } | null>(null);
   const moving = useRef(false);
   const tall = useSyncExternalStore(subscribe, isNarrow, () => false);
   const film = FILMS[idx];
@@ -105,12 +111,12 @@ export default function HeroVideo() {
       armed.current = true;
       v.load();
       v.play().catch(() => setIdle(true));
-      // Once, on its own: a dip towards the cards below and a bob back, so the way it moves shows.
+      // Once, on its own: the frame leans aside and back, so the deck behind it shows.
       timers.push(
         window.setTimeout(() => {
           if (moving.current || drag.current) return;
           setEasing("transform 380ms ease-in");
-          setPose({ y: 7, rx: 10, s: 0.98, o: 1 });
+          setPose({ x: -9, y: 0, ry: 12, s: 0.98, o: 1 });
         }, NUDGE_AFTER_MS),
         window.setTimeout(() => {
           if (moving.current || drag.current) return;
@@ -146,13 +152,14 @@ export default function HeroVideo() {
   }, [idx, tall]);
 
   /**
-   * Move to film `to`. Forward (`dir` 1): the top film tilts and drops away
-   * while the stack rises a step, so the second card lands where the frame
-   * was, already showing the film's first picture; the frame is then swapped
-   * in under it without a jump. Back (`dir` −1): the top film lifts away and
-   * the previous film comes down onto the stack.
+   * Move to film `to`. To the next film: the front film turns away and slips
+   * off to the left while the deck comes forward a step, so the second card
+   * lands where the frame was, already showing the film's first picture; the
+   * frame is then swapped in over it without a jump. Anywhere else (the
+   * previous film, or the third): the front film leaves the same way and the
+   * chosen one swings in from the left.
    */
-  const slideTo = (to: number, dir: 1 | -1, play = true) => {
+  const slideTo = (to: number, play = true) => {
     if (moving.current) return;
     armed.current = play;
     setIdle(!play);
@@ -163,25 +170,24 @@ export default function HeroVideo() {
       return;
     }
     moving.current = true;
+    const fromDeck = wrap(to) === wrap(idx + 1);
     setEasing(`transform ${DROP_MS}ms cubic-bezier(.55,0,.9,.45), opacity ${DROP_MS}ms ease-in`);
-    setPose(dir > 0 ? { y: 30, rx: 24, s: 0.9, o: 0 } : { y: -30, rx: -24, s: 0.9, o: 0 });
-    // Forward to the next film only: the stack rises a step under the falling frame.
-    if (dir > 0 && wrap(to) === wrap(idx + 1)) setRising(true);
+    setPose(AWAY);
+    if (fromDeck) setRising(true);
     window.setTimeout(() => {
-      const fromStack = dir > 0 && wrap(to) === wrap(idx + 1);
       setEasing("none");
       setRising(false);
-      setPose(fromStack ? REST : { y: -14, rx: 0, s: 1.02, o: 0 });
+      setPose(fromDeck ? REST : AWAY);
       setProgress(0);
       setIdx(wrap(to));
-      if (fromStack) {
+      if (fromDeck) {
         window.setTimeout(() => (moving.current = false), 60);
         return;
       }
-      // Two frames so the start above the stack is painted before the descent.
+      // Two frames so the start off to the left is painted before the swing in.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          setEasing(`transform ${SETTLE_MS}ms cubic-bezier(.25,1.35,.5,1), opacity ${SETTLE_MS * 0.5}ms ease-out`);
+          setEasing(`transform ${SETTLE_MS}ms cubic-bezier(.25,1.3,.5,1), opacity ${SETTLE_MS * 0.5}ms ease-out`);
           setPose(REST);
           window.setTimeout(() => (moving.current = false), SETTLE_MS);
         }),
@@ -199,39 +205,45 @@ export default function HeroVideo() {
       v.play().catch(() => setIdle(true));
       return;
     }
-    slideTo(i, i > idx ? 1 : -1);
+    slideTo(i);
   };
 
-  // ── the finger on the frame ──
+  // ── the finger on the frame: left or down for the next film, right or up for the previous ──
   const onPointerDown = (e: PointerEvent<HTMLElement>) => {
     if (moving.current || (e.target as HTMLElement).closest("button")) return;
-    drag.current = { x: e.clientX, y: e.clientY, h: e.currentTarget.clientHeight, on: false };
+    const r = e.currentTarget.getBoundingClientRect();
+    drag.current = { x: e.clientX, y: e.clientY, w: r.width, h: r.height, on: false };
+  };
+  /** How far along the drag is, −1…1, positive towards the next film. */
+  const along = (d: NonNullable<typeof drag.current>, e: PointerEvent<HTMLElement>) => {
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    const f = Math.abs(dx) > Math.abs(dy) ? -dx / d.w : dy / d.h;
+    return Math.max(-1, Math.min(1, f));
   };
   const onPointerMove = (e: PointerEvent<HTMLElement>) => {
     const d = drag.current;
     if (!d) return;
-    const dx = e.clientX - d.x;
-    const dy = e.clientY - d.y;
     if (!d.on) {
-      if (Math.abs(dy) < 8) return;
-      if (Math.abs(dx) > Math.abs(dy)) {
-        drag.current = null; // sideways: not ours
-        return;
-      }
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8) return;
       d.on = true;
       e.currentTarget.setPointerCapture(e.pointerId);
       setEasing("none");
     }
-    const f = Math.max(-1, Math.min(1, dy / d.h));
-    setPose({ y: f * 30, rx: f * 22, s: 1 - Math.abs(f) * 0.08, o: 1 });
+    const f = along(d, e);
+    setPose(
+      f > 0
+        ? { x: -f * 40, y: f * 3, ry: f * 30, s: 1 - f * 0.1, o: 1 }
+        : { x: -f * 12, y: 0, ry: f * 10, s: 1 + f * 0.03, o: 1 },
+    );
   };
   const onPointerUp = (e: PointerEvent<HTMLElement>) => {
     const d = drag.current;
     drag.current = null;
     if (!d?.on) return;
-    const dy = e.clientY - d.y;
-    if (Math.abs(dy) > d.h * 0.18) {
-      slideTo(dy > 0 ? idx + 1 : idx - 1, dy > 0 ? 1 : -1);
+    const f = along(d, e);
+    if (Math.abs(f) > 0.18) {
+      slideTo(f > 0 ? idx + 1 : idx - 1);
     } else {
       setEasing("transform 520ms cubic-bezier(.3,1.6,.5,1)");
       setPose(REST);
@@ -248,58 +260,61 @@ export default function HeroVideo() {
   return (
     <div>
       <style>{`
-        @keyframes sudagri-deal { from { opacity: 0; translate: 0 18px } to { opacity: 1; translate: 0 0 } }
+        @keyframes sudagri-deal { from { opacity: 0; translate: 24px 0 } to { opacity: 1; translate: 0 0 } }
         @media (prefers-reduced-motion: reduce) { .sudagri-anim { animation: none !important; transition: none !important } }
       `}</style>
 
       {/*
-        The stack. Each card behind is the frame's own size, scaled from its
-        bottom edge and moved down one step, so a strip of it — one step tall —
-        stands out below the card in front. The wrapper leaves room for two
-        steps and clips there, so a dropping frame never shows beneath it.
+        The deck. Each card behind is the frame's own size, moved a step right
+        and a step up, scaled from its top-right corner and turned a little
+        away, so a strip of it stands out beyond the card in front. The wrapper
+        leaves room for two steps on the right and on top, and reaches into the
+        page's right margin for them; it clips at the sides so a film leaving to
+        the left never widens the page.
       */}
       <div
-        className="relative pb-[calc(var(--step)*2)] [--step:44px] sm:[--step:56px]"
-        style={{ clipPath: "inset(-60px -60px 0 -60px)" }}
+        className="relative -mr-4 pr-[calc(var(--sx)*2)] pt-[calc(var(--sy)*2)] [--sx:18px] [--sy:12px] sm:[--sx:40px] sm:[--sy:22px]"
+        style={{ clipPath: "inset(-40px 0 -60px -16px)", perspective: "1400px", perspectiveOrigin: "30% 40%" }}
       >
         {behind.map(({ k, film: f, i }) => {
-            const at = rising ? k - 1 : k;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => slideTo(i, 1)}
-                aria-label={`${k === 1 ? "الفيلم التالي" : "ثمّ"}: ${f.label}`}
-                className="sudagri-anim absolute inset-x-0 top-0 block aspect-[4/5] overflow-hidden rounded-3xl border border-border bg-card shadow-card sm:aspect-video"
+          const at = rising ? k - 1 : k;
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => slideTo(i)}
+              aria-label={`${k === 1 ? "الفيلم التالي" : "ثمّ"}: ${f.label}`}
+              className="sudagri-anim absolute left-0 right-[calc(var(--sx)*2)] top-[calc(var(--sy)*2)] block aspect-[4/5] overflow-hidden rounded-3xl border border-white/40 bg-card shadow-float sm:aspect-video"
+              style={{
+                transform: `translate3d(calc(var(--sx) * ${at}), calc(var(--sy) * ${-at}), ${-at * 30}px) rotateY(${-at * 4}deg) scale(${1 - 0.03 * at})`,
+                transformOrigin: "100% 0%",
+                zIndex: 3 - k,
+                transition: rising ? `transform ${DROP_MS}ms cubic-bezier(.3,.7,.4,1)` : "none",
+                animation: "sudagri-deal 500ms ease-out both",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- a poster frame, already sized for the web */}
+              <img src={`/video/${f.key}-${cut}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              {/* Light from the front: the edge that stands out is lit, the rest falls into shade. */}
+              <span
+                aria-hidden
+                className="absolute inset-0 transition-opacity duration-300"
                 style={{
-                  transform: `translateY(calc(var(--step) * ${at})) scale(${1 - 0.05 * at})`,
-                  transformOrigin: "50% 100%",
-                  zIndex: 3 - k,
-                  transition: rising ? `transform ${DROP_MS}ms cubic-bezier(.3,.7,.4,1)` : "none",
-                  animation: "sudagri-deal 500ms ease-out both",
+                  background: "linear-gradient(to left, rgba(255,255,255,.18), rgba(0,0,0,.55) 22%, rgba(0,0,0,.7))",
+                  opacity: at === 0 ? 0 : 0.75 + 0.15 * at,
                 }}
+              />
+              <span
+                className="absolute inset-y-0 right-0 flex w-[var(--sx)] items-center justify-center overflow-hidden text-[11px] font-bold text-white transition-opacity duration-300 [writing-mode:vertical-rl] sm:text-sm"
+                style={{ opacity: at === 0 ? 0 : 1 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element -- a poster frame, already sized for the web */}
-                <img src={`/video/${f.key}-${cut}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                <span
-                  aria-hidden
-                  className="absolute inset-0 bg-black transition-opacity duration-300"
-                  style={{ opacity: 0.1 + 0.12 * at }}
-                />
-                <span
-                  className="absolute inset-x-0 bottom-0 flex h-[var(--step)] items-center justify-center gap-2 bg-gradient-to-t from-black/70 to-black/20 text-sm font-bold text-white transition-opacity duration-300 sm:text-base"
-                  style={{ opacity: at === 0 ? 0 : 1 }}
-                >
-                  <span aria-hidden className="sudagri-anim inline-block animate-bounce">
-                    ⬆
-                  </span>
-                  {k === 1 ? "التالي" : "ثمّ"}: {f.label}
-                </span>
-              </button>
-            );
-          })}
+                <span className="truncate drop-shadow">{f.label}</span>
+              </span>
+            </button>
+          );
+        })}
 
-        <div className="relative z-10" style={{ perspective: "1100px", perspectiveOrigin: "50% 100%" }}>
+        <div className="relative z-10" style={{ perspective: "1100px", perspectiveOrigin: "100% 50%" }}>
         <figure
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -307,8 +322,8 @@ export default function HeroVideo() {
           onPointerCancel={onPointerUp}
           className="relative cursor-grab touch-none select-none overflow-hidden rounded-3xl bg-card shadow-float active:cursor-grabbing"
           style={{
-            transform: `translateY(${pose.y}%) rotateX(${pose.rx}deg) scale(${pose.s})`,
-            transformOrigin: "50% 100%",
+            transform: `translate(${pose.x}%, ${pose.y}%) rotateY(${pose.ry}deg) scale(${pose.s})`,
+            transformOrigin: "0% 50%",
             opacity: pose.o,
             transition: easing,
           }}
@@ -329,7 +344,7 @@ export default function HeroVideo() {
               // Every film ends on the logo card; hold it a moment, then slide on —
               // and after the last, back to the first, to wait for a tap.
               const last = idx === N - 1;
-              window.setTimeout(() => slideTo(idx + 1, 1, !last), 1200);
+              window.setTimeout(() => slideTo(idx + 1, !last), 1200);
             }}
             draggable={false}
             className="pointer-events-none aspect-[4/5] w-full object-cover sm:aspect-video"
@@ -377,7 +392,7 @@ export default function HeroVideo() {
         </div>
       </div>
 
-      <p className="mt-2 text-center text-xs text-muted">اسحب الإطار لأسفل أو المس البطاقة التي تحته للفيلم التالي — ولأعلى للسابق</p>
+      <p className="mt-2 text-center text-xs text-muted">اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق</p>
 
       {/* One button per film, each with its own progress line. */}
       <nav aria-label="أفلام سودجري" className="mt-2 grid grid-cols-3 gap-2">
