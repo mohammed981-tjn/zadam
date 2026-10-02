@@ -5,10 +5,11 @@ import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } 
 import { SUDAGRI_LOGO } from "@/lib/brand";
 
 /**
- * واجهةُ الرئيسيّة: أفلامُ سودغري الثلاثة، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
+ * واجهةُ الرئيسيّة: أفلامُ سودغري، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
  *
  * The owner, 2 October: all three films on the homepage, none removed, each
- * ending on the Sudagri logo. A sideways revolving door came first (its side
+ * ending on the Sudagri logo; then a fourth, the generated film that also
+ * plays on the arc-canal page («ارفق نسخة للفيديو الجديد في الرئيسية تكمل ٤»). A sideways revolving door came first (its side
  * panels made the frame narrow), then a "pool" under the frame, then a stack
  * stepping downwards. What the owner asked for in the end: the three in a row
  * sideways, the playing film in front at its full size, the next one behind it
@@ -46,12 +47,17 @@ const DROP_MS = 420;
 const SETTLE_MS = 560;
 const NUDGE_AFTER_MS = 2600;
 
-type Film = { key: string; label: string };
+/** `wide`: where the 16:9 cut lives when it is shared with another page rather than `/video/{key}-wide`. */
+type Film = { key: string; label: string; wide?: string };
 const FILMS: Film[] = [
   { key: "film", label: "من السدّ إلى الحقل" },
   { key: "promo", label: "من الماء تبدأ الحياة" },
   { key: "farmer", label: "مزارعٌ من السودان" },
+  // The same file the arc-canal page plays, so a visitor who watched it there has it cached.
+  { key: "canal", label: "رؤيةُ سودغري", wide: "/video/canal-film" },
 ];
+/** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
+const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
 const N = FILMS.length;
 const wrap = (i: number) => ((i % N) + N) % N;
 
@@ -104,7 +110,7 @@ export default function HeroVideo() {
   const tall = useSyncExternalStore(subscribe, isNarrow, () => false);
   const film = FILMS[idx];
   const cut = tall ? "tall" : "wide";
-  const base = `/video/${film.key}-${cut}`;
+  const base = filmBase(film, cut);
   /** The cards behind the frame: the next film, then the one after. */
   const behind = [1, 2].map((k) => ({ k, film: FILMS[wrap(idx + k)], i: wrap(idx + k) }));
 
@@ -311,7 +317,7 @@ export default function HeroVideo() {
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- a poster frame, already sized for the web */}
-              <img src={`/video/${f.key}-${cut}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <img src={`${filmBase(f, cut)}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
               {/* Light from the front: the edge that stands out is lit, the rest falls into shade. */}
               <span
                 aria-hidden
@@ -420,7 +426,7 @@ export default function HeroVideo() {
       <p className="mt-2 text-center text-xs text-muted">اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق</p>
 
       {/* One button per film, each with its own progress line. */}
-      <nav aria-label="أفلام سودغري" className="mt-2 grid grid-cols-3 gap-2">
+      <nav aria-label="أفلام سودغري" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {FILMS.map((f, i) => {
           const active = i === idx;
           const fill = active ? progress : 0;
