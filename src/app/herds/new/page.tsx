@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import HerdForm from "@/components/HerdForm";
 
-export const metadata = { title: "دورة إنتاج حيواني جديدة | سودجري" };
+export const metadata = { title: "دورة إنتاج حيواني جديدة | سوداغري" };
 
 export default async function NewHerdPage() {
   const supabase = await createClient();

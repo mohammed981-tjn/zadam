@@ -268,7 +268,7 @@ export function buildEngines(env: EngineEnv): Engine[] {
  *
  * On 6 September 2026 the assistant answered a Sudanese farmer with this:
  *
- *     أنا مساعد سودجري، و悉悉ُك في منصة سودجري
+ *     أنا مساعد سوداغري، و悉悉ُك في منصة سوداغري
  *     فتأتي رية الإشعاع不是在 موعد ثابت
  *     أو في فهم opportunities on the platform
  *

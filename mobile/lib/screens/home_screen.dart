@@ -36,7 +36,7 @@ class _Section {
 }
 
 final _sections = <_Section>[
-  _Section('الأخبار', 'جديد سودجري', Icons.newspaper, const Color(0xFF1F7A3D),
+  _Section('الأخبار', 'جديد سوداغري', Icons.newspaper, const Color(0xFF1F7A3D),
       screen: () => const NewsScreen()),
   _Section('توقّع الأمطار', 'الخريطة والجدول', Icons.umbrella,
       const Color(0xFF2A6DB0),
@@ -96,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('🌾 سودجري')),
+      appBar: AppBar(title: const Text('🌾 سوداغري')),
       drawer: _Menu(onOpen: (s) {
         Navigator.of(context).pop();
         _open(s);
@@ -263,7 +263,7 @@ class _Menu extends StatelessWidget {
           children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
-              child: Text('🌾 سودجري',
+              child: Text('🌾 سوداغري',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             ),
             const Divider(),
@@ -331,7 +331,7 @@ class _NoProjects extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'نحن لا نعرض مشروعاً حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة '
-            'ميدانية، وموافقة الجهة الزراعية. سجّل اهتمامك عبر مساعد سودجري '
+            'ميدانية، وموافقة الجهة الزراعية. سجّل اهتمامك عبر مساعد سوداغري '
             'وسنبلغك أول ما يُطرح مشروع موثّق.',
             textAlign: TextAlign.center,
             style: TextStyle(

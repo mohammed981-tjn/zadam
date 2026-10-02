@@ -1,5 +1,5 @@
 name: sudagri
-description: "تطبيق سودجري — حاسبة الاحتياج المائي والمساعد الزراعي وقاعدة المعرفة."
+description: "تطبيق سوداغري — حاسبة الاحتياج المائي والمساعد الزراعي وقاعدة المعرفة."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EXTRACTION_LABEL, type ExtractionMethod } from "@/lib/provenance";
 import RegistryForms from "@/components/RegistryForms";
 
-export const metadata = { title: "سجلّ إثبات المنشأ | سودجري" };
+export const metadata = { title: "سجلّ إثبات المنشأ | سوداغري" };
 
 interface SiteRow {
   id: string;

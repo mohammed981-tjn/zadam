@@ -14,7 +14,7 @@ import {
 } from "@/lib/nafir";
 
 export const metadata = {
-  title: "النفير — العمل المشترك | سودجري",
+  title: "النفير — العمل المشترك | سوداغري",
   description:
     "النفير والفزعة والشورى: قيم الريف السوداني أدواتٍ تعمل — دعوةٌ إلى عملٍ جماعي، ونجدةٌ لمن أصابته جائحة، وقادةٌ يُسألون علناً.",
 };
@@ -88,7 +88,7 @@ export default async function NafirPage({
             اقرأ الميثاق ووقّع
           </Link>
         </div>
-        <ShareWhatsApp path="/nafir" text="النفير على سودجري — ادعُ جيرانك إلى العمل، أو لبِّ نداءهم:" className="mt-4" />
+        <ShareWhatsApp path="/nafir" text="النفير على سوداغري — ادعُ جيرانك إلى العمل، أو لبِّ نداءهم:" className="mt-4" />
       </header>
 
       {/* ───────── دعواتٌ مفتوحة ───────── */}

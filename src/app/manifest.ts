@@ -26,8 +26,8 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "سودجري — منصّة سودانية للزراعة والتجارة",
-    short_name: "سودجري",
+    name: "سوداغري — منصّة سودانية للزراعة والتجارة",
+    short_name: "سوداغري",
     description:
       "معرفة زراعية وبيانات مفتوحة للسودان: الغلّة والمناخ والتربة والاحتياج المائي، وتوثيق المواسم والأراضي.",
     lang: "ar",

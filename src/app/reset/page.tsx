@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requestPasswordReset } from "@/app/login/actions";
 
-export const metadata = { title: "إعادة تعيين كلمة المرور | سودجري" };
+export const metadata = { title: "إعادة تعيين كلمة المرور | سوداغري" };
 
 export default async function ResetPage({
   searchParams,

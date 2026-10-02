@@ -418,7 +418,7 @@ const CANAL_FACTS: CanalFactRow[] = [
     value: "قناة ١٫٩ م × محطة واحدة",
     unit: null,
     status: "derived",
-    source: "حساب سودجري",
+    source: "حساب سوداغري",
     note: null,
   },
   {
@@ -623,7 +623,7 @@ console.log("\nماذا يستطيع المساعد:");
   );
 
   // «ماذا تقدم» asks about the platform, not the assistant's arithmetic.
-  for (const q of ["ماذا تقدم", "شنو بتقدم", "ما هي منصة سودجري"]) {
+  for (const q of ["ماذا تقدم", "شنو بتقدم", "ما هي منصة سوداغري"]) {
     const intro = answerLocally(base(q));
     ok(
       intro?.source === "platform" && intro.answer.includes("حاسبة الاحتياج المائي"),
@@ -632,7 +632,7 @@ console.log("\nماذا يستطيع المساعد:");
   }
   ok(
     answerLocally(base("ماذا تقدم وزارة الزراعة لمزارعي القطن في الجزيرة"))
-      ?.answer.includes("سودجري منصّة") !== true,
+      ?.answer.includes("سوداغري منصّة") !== true,
     "و«ماذا تقدم وزارة الزراعة…» ليس سؤالاً عن المنصّة",
   );
 

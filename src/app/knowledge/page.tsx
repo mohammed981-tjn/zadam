@@ -19,7 +19,7 @@ import ShareWhatsApp from "@/components/ShareWhatsApp";
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "قاعدة المعرفة الزراعية · سودجري",
+  title: "قاعدة المعرفة الزراعية · سوداغري",
   description:
     "تجارب زراعية موثّقة، كلٌّ منها بدولتها المرجعية وبتنبيهٍ متى تحتاج المعلومة تحققاً محلياً قبل تطبيقها في السودان.",
 };

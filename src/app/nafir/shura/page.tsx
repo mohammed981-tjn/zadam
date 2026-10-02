@@ -5,7 +5,7 @@ import { ageAr, ar, type ShuraItem } from "@/lib/nafir";
 import { answerShura, askShura, toggleSupport } from "../actions";
 
 export const metadata = {
-  title: "الشورى | سودجري",
+  title: "الشورى | سوداغري",
   description: "«وأمرُهم شورى بينهم» — يُسأل القادة علناً، ويُجيبون بأسمائهم، ويبقى السؤال ظاهراً بعمره حتى يُجاب.",
 };
 
