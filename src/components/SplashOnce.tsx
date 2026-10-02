@@ -161,6 +161,8 @@ export default function SplashOnce() {
       videoRef.current?.pause();
       done = window.setTimeout(() => {
         el.hidden = true;
+        // The homepage film waits for this rather than playing unseen beneath.
+        window.dispatchEvent(new Event("sudagri:intro-done"));
       }, SPLASH_FADE_MS);
     };
 
@@ -196,7 +198,7 @@ export default function SplashOnce() {
       if (loaded.current) settle();
     };
 
-    // الإطارُ في الرئيسيّة يقرأ هذه فيفتح على الشعار: المقطعُ عُرض للتوّ هنا.
+    // الإطارُ في الرئيسيّة يقرأ هذه فينتظر نهاية المقدّمة قبل أن يعرض فيلمه.
     document.documentElement.dataset.intro = "1";
     el.hidden = false;
 

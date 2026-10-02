@@ -1,49 +1,79 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SUDAGRI_LOGO } from "@/lib/brand";
 
 /**
- * واجهةُ الرئيسيّة: الفيديو والشعار في إطارٍ واحد.
+ * واجهةُ الرئيسيّة: الفيديو الترويجيّ والشعار في إطارٍ واحد.
  *
- * The owner, 26 September: «الفيديو بعد ما يخلص تظهر الصورة الشعار بعد
- * الفيديو، يعني ادمجهم». So the clip plays once, muted and inline, and when it
- * ends the Sudagri logo — golden sorghum and all — fades in over it and stays.
- * «أعد العرض» plays it again. The separate logo under the frame was then
- * removed at the owner's word («احذفها… الفيديو أكبر»), and the frame grew
- * into its space: taller than 16:9 on a phone (4:5, the clip cropped at the
- * sides — the farmer stands in the middle), 16:9 from `sm` up.
+ * The owner, 2 October: the promo cut from his clips and stills goes here
+ * («الاثنان… في الصفحة الرئيسية»). It plays once, muted and inline, with its
+ * narration written on screen; «بالصوت» turns the voice on. When it ends the
+ * Sudagri logo fades in over the same frame and stays, as before, and
+ * «أعد العرض» plays it again.
  *
- * On the visit where the full-screen intro (SplashOnce) has just shown the
- * same clip, playing it again here would be the repetition the owner asked to
- * avoid, so the frame opens straight on the logo. SplashOnce marks that with
- * `data-intro` on <html>; this reads it after every mount effect has run, so
- * the order the two components mount in does not matter.
+ * Two cuts of the same film, chosen by the frame's shape, not by guessing the
+ * device: the frame is 4:5 below `sm` and 16:9 from `sm` up, so a phone gets
+ * the vertical cut (each shot framed on its subject, the captions inside the
+ * frame) and a wide screen the wide one. A 16:9 film cropped to 4:5 would cut
+ * the captions in half.
+ *
+ * On the visit where the full-screen intro (SplashOnce) is showing, the film
+ * waits for it to finish rather than playing unseen underneath. SplashOnce
+ * marks the intro with `data-intro` on <html> and announces its end with the
+ * `sudagri:intro-done` event; a ceiling stops a lost event from leaving the
+ * frame on its poster.
  *
  * A reader who asked their device for less motion is shown the logo.
- *
- * The file is the owner's 8-second clip re-encoded to 960 px, about 0.9 MB,
- * audio dropped and the index at the front so it starts before it has
- * finished downloading.
  */
+const INTRO_WAIT_MAX_MS = 16000;
+
+/** True below `sm`, where the frame is 4:5. The server renders the wide cut. */
+const NARROW = "(max-width: 639.98px)";
+const subscribe = (on: () => void) => {
+  if (typeof window.matchMedia !== "function") return () => {};
+  const m = window.matchMedia(NARROW);
+  m.addEventListener("change", on);
+  return () => m.removeEventListener("change", on);
+};
+const isNarrow = () => typeof window.matchMedia === "function" && window.matchMedia(NARROW).matches;
+
 export default function HeroVideo() {
   const ref = useRef<HTMLVideoElement>(null);
   const [ended, setEnded] = useState(false);
+  const tall = useSyncExternalStore(subscribe, isNarrow, () => false);
+  const [muted, setMuted] = useState(true);
 
   useEffect(() => {
-    const t = window.setTimeout(() => {
+    const calm =
+      typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let cap = 0;
+    const start = () => {
+      window.clearTimeout(cap);
       const v = ref.current;
-      const calm =
-        typeof window.matchMedia === "function" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (!v || calm || document.documentElement.dataset.intro === "1") {
+      if (!v || calm) {
         setEnded(true);
         return;
       }
+      v.load();
       v.play().catch(() => setEnded(true));
+    };
+
+    // After every mount effect has run, so SplashOnce has set `data-intro`.
+    const t = window.setTimeout(() => {
+      if (document.documentElement.dataset.intro === "1") {
+        window.addEventListener("sudagri:intro-done", start, { once: true });
+        cap = window.setTimeout(start, INTRO_WAIT_MAX_MS);
+      } else {
+        start();
+      }
     }, 0);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(cap);
+      window.removeEventListener("sudagri:intro-done", start);
+    };
   }, []);
 
   const replay = () => {
@@ -54,27 +84,48 @@ export default function HeroVideo() {
     v.play().catch(() => setEnded(true));
   };
 
+  const toggleSound = () => {
+    const v = ref.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+  };
+
+  const cut = tall ? "tall" : "wide";
+
   return (
     <figure className="relative overflow-hidden rounded-3xl bg-card shadow-float">
       <video
+        key={cut}
         ref={ref}
-        muted
+        muted={muted}
         playsInline
-        preload="metadata"
-        poster="/video/sudan-farmer.jpg"
+        preload="none"
+        poster={`/video/promo-${cut}.jpg`}
         onEnded={(e) => {
           e.currentTarget.currentTime = 0;
           setEnded(true);
         }}
         className="aspect-[4/5] w-full object-cover sm:aspect-video"
-        aria-label="مزارعٌ سودانيّ بعمامته وجلابيته في حقل ذرةٍ ناضجة، والنيل خلفه"
+        aria-label="فيلم سودجري: فجرٌ على النيل، وقنواتُ الريّ والسدود، ومزارعٌ سودانيّ في حقله، ومضخّةٌ بالطاقة الشمسية، ثمّ شعار سودجري"
       >
         {/* WebM first: the open codec plays in every browser, H.264 in the rest. */}
-        <source src="/video/sudan-farmer.webm" type="video/webm" />
-        <source src="/video/sudan-farmer.mp4" type="video/mp4" />
+        <source src={`/video/promo-${cut}.webm`} type="video/webm" />
+        <source src={`/video/promo-${cut}.mp4`} type="video/mp4" />
       </video>
 
-      {/* The logo, in the same frame, once the clip has played. */}
+      {!ended && (
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={!muted}
+          className="absolute bottom-3 left-3 rounded-full border border-border bg-card/90 px-4 py-2 text-sm font-medium shadow-card transition hover:border-primary"
+        >
+          {muted ? "🔊 بالصوت" : "🔇 بلا صوت"}
+        </button>
+      )}
+
+      {/* The logo, in the same frame, once the film has played. */}
       <div
         className={`mesh absolute inset-0 flex items-center justify-center bg-background transition-opacity duration-700 ${
           ended ? "opacity-100" : "pointer-events-none opacity-0"
