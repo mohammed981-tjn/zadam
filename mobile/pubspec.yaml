@@ -39,6 +39,10 @@ dependencies:
   # auth, realtime and storage machinery this build has no use for yet.
   http: ^1.2.0
 
+  # The films screen: the platform's own films, played in the app (and, on
+  # Android, protected from screenshots and recording while open).
+  video_player: ^2.9.5
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
