@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import 'films_screen.dart';
 import 'mining_screen.dart';
 import 'nafir_screen.dart';
 import 'news_screen.dart';
@@ -38,6 +39,8 @@ class _Section {
 final _sections = <_Section>[
   _Section('الأخبار', 'جديد سودغري', Icons.newspaper, const Color(0xFF1F7A3D),
       screen: () => const NewsScreen()),
+  _Section('الأفلام', 'سودغري بالصورة', Icons.movie, const Color(0xFF9C2F2F),
+      screen: () => const FilmsScreen()),
   _Section('توقّع الأمطار', 'الخريطة والجدول', Icons.umbrella,
       const Color(0xFF2A6DB0),
       screen: () => const RainScreen()),
