@@ -359,6 +359,10 @@ export default function HeroVideo() {
             muted={muted}
             playsInline
             preload="none"
+            // Watched here, not saved (src/proxy.ts has the rest): no pop-out, no casting, no "Save video as".
+            disablePictureInPicture
+            disableRemotePlayback
+            onContextMenu={(e) => e.preventDefault()}
             poster={`${base}.jpg`}
             onTimeUpdate={(e) => {
               const v = e.currentTarget;
