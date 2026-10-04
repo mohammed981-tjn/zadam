@@ -5,7 +5,8 @@ name: Narration
 # an anonymous caller only a few lines, so the lines are split across jobs, a
 # couple each; a line already in tts/fusha is not spoken again. The finished
 # files are committed back to the branch that asked for them, never to main.
-# HF_TOKEN, if the repository has one, raises the allowance.
+# HF_TOKEN, if the repository has one, raises the allowance. The lines spell the
+# name as it is said, «سوداقري» (the owner, 4 October), not as it is written.
 on:
   push:
     branches: [claude/project-review-analysis-dt7lsy]
