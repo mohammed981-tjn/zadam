@@ -37,6 +37,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # contents: write to publish the APK to the «app-latest» release.
+    permissions:
+      contents: write
     # A full build takes about six minutes; anything past this is stuck.
     timeout-minutes: 30
     defaults:
@@ -115,23 +118,33 @@ jobs:
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
             --dart-define=SITE_URL="$SITE_URL"
 
-      # The APK is kept from push builds only. A branch with an open pull
-      # request builds every commit twice — once for the push, once for the
-      # pull request — and two copies of a 50 MB file for every commit, kept a
-      # month, filled the account's artifact storage on 24 September 2026 and
-      # failed a build that had compiled and passed every test.
+      # The APK goes to a GitHub release, not an artifact. Artifacts count
+      # against the account's storage quota, which filled twice (24 September,
+      # and again on 3 October, when the build passed and the APK never
+      # appeared: "Artifact storage quota has been hit"). A release asset does
+      # not count against it, and «app-latest» is one fixed address the owner
+      # can open on the phone every time: the newest build replaces the file.
+      # Push builds only: a pull request's build is a check, not a delivery.
       #
-      # And an upload that fails does not fail the build: by this step the app
+      # And a publish that fails does not fail the build: by this step the app
       # has been analysed, tested and assembled, which is what this workflow
       # proves. The file is a convenience for installing it by hand.
-      - uses: actions/upload-artifact@v4
+      - name: Publish the APK
         if: github.event_name != 'pull_request'
         continue-on-error: true
-        with:
-          name: sudagri-apk
-          path: mobile/build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-          retention-days: 7
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk sudagri.apk
+          notes="آخر نسخة من تطبيق سودغري — البناء رقم ${{ github.run_number }} من ${GITHUB_SHA::7}. نزّل sudagri.apk وثبّته على هاتف أندرويد."
+          if gh release view app-latest >/dev/null 2>&1; then
+            gh release edit app-latest --notes "$notes"
+          else
+            gh release create app-latest --title "تطبيق سودغري — آخر نسخة" --notes "$notes" --prerelease --target "$GITHUB_SHA"
+          fi
+          gh release upload app-latest sudagri.apk --clobber
+          echo "### APK: https://github.com/${{ github.repository }}/releases/download/app-latest/sudagri.apk" >> "$GITHUB_STEP_SUMMARY"
 
       # Without these a crash report from an obfuscated build is unreadable
       # noise. They are only useful next to the exact APK they came from, hence
@@ -143,4 +156,4 @@ jobs:
           name: sudagri-symbols-${{ github.run_number }}
           path: mobile/build/symbols
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 14
