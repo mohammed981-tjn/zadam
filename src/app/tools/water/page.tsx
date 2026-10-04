@@ -1,6 +1,7 @@
 import WaterCalculator from "@/components/WaterCalculator";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import WeekForecast from "@/components/WeekForecast";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
   title: "حاسبة الاحتياج المائي | سودغري",
@@ -19,6 +20,10 @@ export default function WaterToolPage() {
         وتخصم المطر الفعّال، وتقسم على كفاءة طريقة الري.
       </p>
       <ShareWhatsApp path="/tools/water" text="كم يحتاج محصولك من الماء؟ حاسبة مجانية على مناخ ولايتك:" className="my-3" />
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/water-wide" poster="/video/water-wide.jpg" label="فيلم سودغري: ماءٌ في مكانه" />
+      </figure>
       <p className="mb-6 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
         البيانات المناخية المستخدمة{" "}
         <strong className="font-bold">معدلات استرشادية</strong> للتخطيط، وليست

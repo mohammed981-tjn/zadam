@@ -11,6 +11,7 @@ import {
 } from "@/lib/services";
 import { ECONOMIC_FACTS } from "@/lib/economics";
 import type { ProviderService, ServiceProvider } from "@/types/database";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = { title: "الخدمات التعاقدية — سودغري" };
 
@@ -68,6 +69,10 @@ export default async function ServicesPage({
         الكمية في كل بند <strong>تُشتق</strong> من موسمك أو قطيعك — لا تُكتب
         يدوياً — فيمكن لطرفَي العقد إعادة حسابها.
       </p>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/services-wide" poster="/video/services-wide.jpg" label="فيلم سودغري: خدمةٌ تصل إلى الحقل" />
+      </figure>
 
       {/*
         Why the sector, before what the services are.

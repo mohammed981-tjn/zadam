@@ -3,6 +3,7 @@ import NafirShell, { button, field } from "@/components/nafir/NafirShell";
 import { nafirViewer } from "@/lib/nafirViewer";
 import { SUDAN_STATES, ar, type CanalSummary } from "@/lib/nafir";
 import { createCanal } from "./actions";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
   title: "الترع | سودغري",
@@ -34,6 +35,10 @@ export default async function CanalsPage({
         أهلُها صيانتها زادت غلّتها أضعافاً. سجّل ترعتك، واقبل جيرانك أعضاءً،
         واكتب جدول النوبات، وادعُ إلى نفير تطهيرها.
       </p>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/canals-wide" poster="/video/canals-wide.jpg" label="فيلم سودغري: نفير تطهير الترعة" />
+      </figure>
 
       <ul className="mt-6 grid gap-3 sm:grid-cols-2">
         {canals.length === 0 && (

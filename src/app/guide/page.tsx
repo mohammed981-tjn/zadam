@@ -12,6 +12,7 @@ import { assessProject, WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk"
 import { computeTrust } from "@/lib/trust";
 import { RISK_WEIGHTS, type RiskProfile } from "@/lib/portfolio";
 import { INVESTMENT_LIVE } from "@/lib/config";
+import FilmPlayer from "@/components/FilmPlayer";
 
 /*
  * The guide reads the platform instead of describing it from memory.
@@ -284,6 +285,10 @@ export default async function GuidePage() {
           الدليل يشرح كل شاشة، وما تفعله بالضبط، وما لا تفعله.
         </p>
       </header>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/inhand-wide" poster="/video/inhand-wide.jpg" label="فيلم سودغري: معلومتك في يدك — المنصّة في يد أسرة" />
+      </figure>
 
       <nav
         aria-label="محتويات الدليل"

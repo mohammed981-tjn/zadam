@@ -50,24 +50,13 @@ const NUDGE_AFTER_MS = 2600;
 /** `wide`: where the 16:9 cut lives when it is shared with another page rather than `/video/{key}-wide`. */
 type Film = { key: string; label: string; wide?: string };
 const FILMS: Film[] = [
-  // In the order of a story (the owner, 4 October: «ترتيب الفيديوهات لا يعجبني»):
-  // the vision, the land through the year, knowing, the hands, the values that
-  // bind them, the platform in a family's hand; then the earlier water films.
-  // The same file the arc-canal page plays, so a visitor who watched it there has it cached.
-  { key: "canal", label: "رؤيةُ سودغري", wide: "/video/canal-film" },
-  // Prompts 1–5 in their order: first rain, gum arabic, Port Sudan, Butana camels, karkadeh.
-  { key: "seasons", label: "مواسمُ السودان" },
-  // Prompts 11–18 in their order: the phone in the field, the pump, the soil test, sesame, the seed store, dakwa, the cooperative.
-  { key: "know", label: "من المعرفة إلى المائدة" },
-  // Prompts 6–10 in their order: date harvest, the nafir harvest, veterinarian, tractor, fishermen.
-  { key: "hands", label: "أيادٍ تصنع الخير" },
-  // The owner's nafir clips in the order of their prompts, each whole; the same file plays on /nafir.
-  { key: "nafir", label: "النفير… قيمٌ تعمل" },
-  // A son shows his mother the platform on his phone (two clips, 4 October); its narration follows in Arabic and English.
-  { key: "inhand", label: "معلومتك في يدك" },
-  { key: "farmer", label: "مزارعٌ من السودان" },
-  { key: "film", label: "من السدّ إلى الحقل" },
-  { key: "promo", label: "من الماء تبدأ الحياة" },
+  // One film on the homepage (the owner, 4 October: «اعمل فلم واحد شامل في
+  // الرئيسية ووزّع باقي المقاطع كلٌّ في صفحته»): the vision from the owner's
+  // film, the year on the land, the hands, the nafir and the platform, then the
+  // market. Every clip it borrows plays whole on its own page: /export, /herds,
+  // /services, /tools/water, /rain, /seasons, /projects, /knowledge, /guide,
+  // /lands, /arc-canal, and the nafir pages.
+  { key: "sudagri", label: "سودغري — من الماء إلى السوق" },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
@@ -124,8 +113,10 @@ export default function HeroVideo() {
   const film = FILMS[idx];
   const cut = tall ? "tall" : "wide";
   const base = filmBase(film, cut);
+  /** More than one film: the deck behind the frame, the swipe and the buttons. One film is just the frame. */
+  const deck = N > 1;
   /** The cards behind the frame: the next film, then the one after. */
-  const behind = [1, 2].map((k) => ({ k, film: FILMS[wrap(idx + k)], i: wrap(idx + k) }));
+  const behind = deck ? [1, 2].map((k) => ({ k, film: FILMS[wrap(idx + k)], i: wrap(idx + k) })) : [];
 
   // Start the programme: now, or once the full-screen intro has finished.
   useEffect(() => {
@@ -148,7 +139,7 @@ export default function HeroVideo() {
       v.load();
       v.play().catch(() => setIdle(true));
       // Once, on its own: the frame leans aside and back, so the deck behind it shows.
-      timers.push(
+      if (N > 1) timers.push(
         window.setTimeout(() => {
           if (moving.current || drag.current) return;
           setEasing("transform 380ms ease-in");
@@ -246,7 +237,7 @@ export default function HeroVideo() {
 
   // ── the finger on the frame: left or down for the next film, right or up for the previous ──
   const onPointerDown = (e: PointerEvent<HTMLElement>) => {
-    if (moving.current || (e.target as HTMLElement).closest("button")) return;
+    if (!deck || moving.current || (e.target as HTMLElement).closest("button")) return;
     const r = e.currentTarget.getBoundingClientRect();
     drag.current = { x: e.clientX, y: e.clientY, w: r.width, h: r.height, on: false };
   };
@@ -309,7 +300,11 @@ export default function HeroVideo() {
         the left never widens the page.
       */}
       <div
-        className="relative -mr-4 pr-[calc(var(--sx)*2)] pt-[calc(var(--sy)*2)] [--sx:18px] [--sy:12px] sm:[--sx:40px] sm:[--sy:22px]"
+        className={
+          deck
+            ? "relative -mr-4 pr-[calc(var(--sx)*2)] pt-[calc(var(--sy)*2)] [--sx:18px] [--sy:12px] sm:[--sx:40px] sm:[--sy:22px]"
+            : "relative"
+        }
         style={{ clipPath: "inset(-40px 0 -60px -16px)", perspective: "1400px", perspectiveOrigin: "30% 40%" }}
       >
         {behind.map(({ k, film: f, i }) => {
@@ -356,7 +351,7 @@ export default function HeroVideo() {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="relative cursor-grab touch-none select-none overflow-hidden rounded-3xl bg-card shadow-float active:cursor-grabbing"
+          className={`relative select-none overflow-hidden rounded-3xl bg-card shadow-float ${deck ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
           style={{
             transform: `translate(${pose.x}%, ${pose.y}%) rotateY(${pose.ry}deg) scale(${pose.s})`,
             transformOrigin: "0% 50%",
@@ -381,6 +376,11 @@ export default function HeroVideo() {
             }}
             onEnded={() => {
               setProgress(1);
+              // One film: it ends on the logo card, with «شاهد» to see it again.
+              if (!deck) {
+                setIdle(true);
+                return;
+              }
               // Every film ends on the logo card and stays there; the frame
               // leans towards the deck once, to say the next film is a swipe away.
               window.setTimeout(() => {
@@ -440,9 +440,16 @@ export default function HeroVideo() {
         </div>
       </div>
 
-      <p className="mt-2 text-center text-xs text-muted">اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق</p>
+      {deck && (
+        <p className="mt-2 text-center text-xs text-muted">اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق</p>
+      )}
 
-      {/* One button per film, each with its own progress line. */}
+      {/* One button per film, each with its own progress line; one film has a progress line alone. */}
+      {!deck ? (
+        <div aria-hidden className="mt-2 h-1 overflow-hidden rounded-full bg-border">
+          <div className="h-full bg-primary transition-[width] duration-300" style={{ width: `${progress * 100}%` }} />
+        </div>
+      ) : (
       <nav aria-label="أفلام سودغري" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {FILMS.map((f, i) => {
           const active = i === idx;
@@ -470,6 +477,7 @@ export default function HeroVideo() {
           );
         })}
       </nav>
+      )}
     </div>
   );
 }

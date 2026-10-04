@@ -11,6 +11,7 @@ import {
   type JudiyyaMediator,
 } from "@/lib/nafir";
 import { openCase, verifyMediator, volunteer } from "./actions";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
   title: "الجودية | سودغري",
@@ -54,6 +55,10 @@ export default async function JudiyyaPage({
         محايدون يرضاهم الطرفان، والتزامٌ بحكمهم قبل سماعه، وصلحٌ لا غالب فيه ولا
         مغلوب. هنا تُمشى خطواتها كما هي — ويبقى النزاع بين أهله، لا يراه غيرهم.
       </p>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/judiyya-wide" poster="/video/judiyya-wide.jpg" label="فيلم سودغري: الجودية" />
+      </figure>
 
       <dl className="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-border bg-border text-center">
         <div className="bg-card p-3">

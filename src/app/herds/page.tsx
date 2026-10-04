@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/Explain";
 import { SPECIES_LABEL, PURPOSE_LABEL } from "@/lib/livestock";
 import type { Herd } from "@/types/database";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = { title: "دورات الإنتاج الحيواني | سودغري" };
 
@@ -40,6 +41,10 @@ export default async function HerdsPage() {
           دورة جديدة
         </Link>
       </div>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/herds-wide" poster="/video/herds-wide.jpg" label="فيلم سودغري: ثروةٌ تمشي على الأرض" />
+      </figure>
 
       {herds.length === 0 ? (
         <EmptyState
