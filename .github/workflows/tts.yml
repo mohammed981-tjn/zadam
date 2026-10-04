@@ -54,7 +54,7 @@ jobs:
           import json, os, shutil, time
           from gradio_client import Client
           tok = os.environ.get("HF_TOKEN") or None
-          c = Client("NightPrince/Fasih-TTS", hf_token=tok)
+          c = Client("NightPrince/Fasih-TTS", token=tok) if tok else Client("NightPrince/Fasih-TTS")
           lines = {l["id"]: l["text"] for l in json.load(open("tts/lines.json", encoding="utf-8"))}
           for i in os.environ["IDS"].split(","):
               for attempt in range(2):
