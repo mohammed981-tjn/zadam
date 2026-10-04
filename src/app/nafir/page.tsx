@@ -92,7 +92,7 @@ export default async function NafirPage({
         <ShareWhatsApp path="/nafir" text="النفير على سودغري — ادعُ جيرانك إلى العمل، أو لبِّ نداءهم:" className="mt-4" />
       </header>
 
-      {/* The owner's nafir clips (4 October): the call, the harvest, the meal, the judiyya, clearing the canal, the leader in it, the promise kept, care in the work, the shura, the call on a phone, the palm offshoot. */}
+      {/* The owner's nafir clips (4 October), each whole and in the order of their prompts: the call, the harvest, clearing the canal, the meal, the judiyya, the shura, the leader in the canal, the palm offshoot, the promise kept, care in the work, the call on a phone. */}
       <figure className="mb-10">
         <FilmPlayer base="/video/nafir-wide" poster="/video/nafir-wide.jpg" label="فيلم سودغري: النفير… قيمٌ تعمل" />
       </figure>

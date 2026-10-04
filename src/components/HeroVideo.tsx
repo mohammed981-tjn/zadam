@@ -50,21 +50,24 @@ const NUDGE_AFTER_MS = 2600;
 /** `wide`: where the 16:9 cut lives when it is shared with another page rather than `/video/{key}-wide`. */
 type Film = { key: string; label: string; wide?: string };
 const FILMS: Film[] = [
-  { key: "film", label: "من السدّ إلى الحقل" },
-  { key: "promo", label: "من الماء تبدأ الحياة" },
-  { key: "farmer", label: "مزارعٌ من السودان" },
+  // In the order of a story (the owner, 4 October: «ترتيب الفيديوهات لا يعجبني»):
+  // the vision, the land through the year, knowing, the hands, the values that
+  // bind them, the platform in a family's hand; then the earlier water films.
   // The same file the arc-canal page plays, so a visitor who watched it there has it cached.
   { key: "canal", label: "رؤيةُ سودغري", wide: "/video/canal-film" },
-  // From the owner's ten new prompts (backlog 78, 80): first rain, gum arabic, karkadeh, Butana camels, Port Sudan.
+  // Prompts 1–5 in their order: first rain, gum arabic, Port Sudan, Butana camels, karkadeh.
   { key: "seasons", label: "مواسمُ السودان" },
-  // The second five (backlog 80): tractor, the nafir harvest, date harvest, veterinarian, fishermen.
+  // Prompts 11–18 in their order: the phone in the field, the pump, the soil test, sesame, the seed store, dakwa, the cooperative.
+  { key: "know", label: "من المعرفة إلى المائدة" },
+  // Prompts 6–10 in their order: date harvest, the nafir harvest, veterinarian, tractor, fishermen.
   { key: "hands", label: "أيادٍ تصنع الخير" },
+  // The owner's nafir clips in the order of their prompts, each whole; the same file plays on /nafir.
+  { key: "nafir", label: "النفير… قيمٌ تعمل" },
   // A son shows his mother the platform on his phone (two clips, 4 October); its narration follows in Arabic and English.
   { key: "inhand", label: "معلومتك في يدك" },
-  // The owner's nafir clips (4 October); the same file plays on /nafir.
-  { key: "nafir", label: "النفير… قيمٌ تعمل" },
-  // Prompts 11–18: the phone in the field, the soil test, the pump, sesame, the seed store, dakwa, the cooperative.
-  { key: "know", label: "من المعرفة إلى المائدة" },
+  { key: "farmer", label: "مزارعٌ من السودان" },
+  { key: "film", label: "من السدّ إلى الحقل" },
+  { key: "promo", label: "من الماء تبدأ الحياة" },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
