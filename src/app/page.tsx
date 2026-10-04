@@ -283,9 +283,10 @@ export default async function Home() {
 
       {/* ───────────────────────── اللوحة ───────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 pt-10">
-        <h2 className="mb-4 font-bold" style={{ fontSize: "var(--text-section)" }}>
+        <h2 className="font-bold" style={{ fontSize: "var(--text-section)" }}>
           أقسام سودغري
         </h2>
+        <p className="mb-4 mt-1 text-sm text-muted">المس أيَّ بطاقة لتفتح قسمها.</p>
         <PhotoBoard tiles={BOARD} />
       </section>
 
