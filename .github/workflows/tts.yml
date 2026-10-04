@@ -35,6 +35,8 @@ jobs:
   speak:
     needs: plan
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       max-parallel: 6
@@ -64,32 +66,19 @@ jobs:
                   except Exception as e:
                       print("failed", i, str(e)[:200]); time.sleep(20)
           PY
+      # Straight onto the branch: the account's artifact storage is full
+      # (it filled on 3 October and again now), and a few small files need no artifact.
       - if: matrix.ids != 'none'
-        uses: actions/upload-artifact@v4
-        with:
-          name: narration-${{ strategy.job-index }}
-          path: out/*.wav
-          if-no-files-found: ignore
-          retention-days: 1
-
-  collect:
-    needs: speak
-    if: always()
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: narration-*
-          merge-multiple: true
-          path: tts/fusha
-      - run: |
-          ls tts/fusha | wc -l
+        run: |
+          mkdir -p tts/fusha
+          cp out/*.wav tts/fusha/ 2>/dev/null || exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tts/fusha
           git diff --cached --quiet && exit 0
-          git commit -m "Narration: $(git diff --cached --name-only | wc -l) more lines in the Fasih voice"
-          git push
+          git commit -m "Narration: lines ${{ matrix.ids }} in the Fasih voice"
+          for n in 1 2 3 4 5 6 7 8 9 10; do
+            git pull --rebase -q origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((RANDOM % 10 + 3))
+          done
+          exit 1
