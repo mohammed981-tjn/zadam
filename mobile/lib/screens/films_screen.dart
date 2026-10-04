@@ -39,6 +39,7 @@ const films = <Film>[
   Film('canal', 'رؤيةُ سودغري'),
   Film('seasons', 'مواسمُ السودان'),
   Film('hands', 'أيادٍ تصنع الخير'),
+  Film('inhand', 'معلومتك في يدك'),
 ];
 
 class FilmsScreen extends StatelessWidget {
