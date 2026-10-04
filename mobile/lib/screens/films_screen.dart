@@ -33,15 +33,15 @@ class Film {
 
 /// In the homepage's order (src/components/HeroVideo.tsx).
 const films = <Film>[
-  Film('film', 'من السدّ إلى الحقل'),
-  Film('promo', 'من الماء تبدأ الحياة'),
-  Film('farmer', 'مزارعٌ من السودان'),
   Film('canal', 'رؤيةُ سودغري'),
   Film('seasons', 'مواسمُ السودان'),
-  Film('hands', 'أيادٍ تصنع الخير'),
-  Film('inhand', 'معلومتك في يدك'),
-  Film('nafir', 'النفير… قيمٌ تعمل'),
   Film('know', 'من المعرفة إلى المائدة'),
+  Film('hands', 'أيادٍ تصنع الخير'),
+  Film('nafir', 'النفير… قيمٌ تعمل'),
+  Film('inhand', 'معلومتك في يدك'),
+  Film('farmer', 'مزارعٌ من السودان'),
+  Film('film', 'من السدّ إلى الحقل'),
+  Film('promo', 'من الماء تبدأ الحياة'),
 ];
 
 class FilmsScreen extends StatelessWidget {
