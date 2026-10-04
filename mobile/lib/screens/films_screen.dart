@@ -31,8 +31,10 @@ class Film {
   String get poster => '${ApiConfig.siteUrl}/video/$key-tall.jpg';
 }
 
-/// In the homepage's order (src/components/HeroVideo.tsx).
+/// The homepage's one film first (src/components/HeroVideo.tsx), then the
+/// films the website shows on its other pages, all in one place here.
 const films = <Film>[
+  Film('sudagri', 'سودغري — من الماء إلى السوق'),
   Film('canal', 'رؤيةُ سودغري'),
   Film('seasons', 'مواسمُ السودان'),
   Film('know', 'من المعرفة إلى المائدة'),

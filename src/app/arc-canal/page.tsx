@@ -88,6 +88,16 @@ export default async function ArcCanalPage() {
         <FilmPlayer base="/video/canal-film" poster="/video/canal-film.jpg" label="فيلم سودغري: من الماء تبدأ الحياة" />
       </figure>
 
+      {/* The two earlier water films, from the homepage to the canal they tell of (the owner, 4 October). */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <figure>
+          <FilmPlayer base="/video/film-wide" poster="/video/film-wide.jpg" label="فيلم سودغري: من السدّ إلى الحقل" />
+        </figure>
+        <figure>
+          <FilmPlayer base="/video/promo-wide" poster="/video/promo-wide.jpg" label="فيلم سودغري: من الماء تبدأ الحياة" />
+        </figure>
+      </div>
+
       {/* The four numbers the whole study turns on. */}
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[

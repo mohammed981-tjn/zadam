@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
 import type { Project } from "@/types/database";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
   title: "المشاريع المطروحة · سودغري",
@@ -56,6 +57,10 @@ export default async function ProjectsPage() {
         — لا أنّ الموسم سيربح. تلك تبقى مخاطرةً تخصّك، وفي صفحة كلّ مشروع
         تفصيلُها ودرجةُ مخاطرته.
       </p>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/projects-wide" poster="/video/projects-wide.jpg" label="فيلم سودغري: حين نتّفق نزرع أكثر" />
+      </figure>
 
       {error ? (
         <p className="mt-8 rounded-2xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">

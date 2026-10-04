@@ -60,7 +60,7 @@ export function PhotoBoard({ tiles }: { tiles: BoardTile[] }) {
         <li key={t.href + t.title} className={i === 0 ? "col-span-2" : undefined}>
           <Link
             href={t.href}
-            className="group relative block overflow-hidden rounded-2xl shadow-card transition hover:shadow-float"
+            className="group relative block overflow-hidden rounded-2xl shadow-card transition hover:shadow-float active:scale-[0.98]"
           >
             <Image
               src={t.photo}
@@ -77,6 +77,13 @@ export function PhotoBoard({ tiles }: { tiles: BoardTile[] }) {
                 {t.title}
               </span>
               <span className="mt-1 line-clamp-2 block text-[11px] leading-snug opacity-90 sm:text-xs">{t.note}</span>
+              {/*
+                The owner, 4 October: a visitor took the tiles for pictures with
+                captions and never thought to tap them. A button says it does.
+              */}
+              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-primary shadow-card transition group-hover:bg-primary group-hover:text-white sm:text-xs">
+                ادخل <span aria-hidden>←</span>
+              </span>
             </span>
           </Link>
         </li>

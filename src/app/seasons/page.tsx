@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CROPS } from "@/lib/agronomy";
 import PublishRecordToggle from "@/components/PublishRecordToggle";
 import type { Season } from "@/types/database";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = { title: "مواسمي | سودغري" };
 
@@ -42,6 +43,10 @@ export default async function SeasonsPage({
           موسم جديد
         </Link>
       </div>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/harvest-wide" poster="/video/harvest-wide.jpg" label="فيلم سودغري: من الحصاد إلى تقاوي العام القادم" />
+      </figure>
 
       {errorMessage && (
         <p className="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm">

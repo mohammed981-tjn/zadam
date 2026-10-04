@@ -5,6 +5,7 @@ import { STATIONS } from "@/lib/agronomy";
 import { WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
 import type { Land } from "@/types/database";
 import LandDocuments from "@/components/LandDocuments";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = { title: "أراضيّ | سودغري" };
 
@@ -57,6 +58,10 @@ export default async function LandsPage() {
           سجّل أرضاً
         </Link>
       </div>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/farmer-wide" poster="/video/farmer-wide.jpg" label="فيلم سودغري: مزارعٌ من السودان" />
+      </figure>
 
       {lands.length === 0 ? (
         <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted">

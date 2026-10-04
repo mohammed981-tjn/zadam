@@ -12,6 +12,7 @@ import {
   type CharterValue,
 } from "@/lib/nafir";
 import { signCharter, verifyLeader, withdrawSignature } from "../actions";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
   title: "ميثاق النفير | سودغري",
@@ -57,6 +58,10 @@ export default async function CharterPage({
     <NafirShell active="/nafir/charter" ok={ok} error={error}>
       <h1 className="text-2xl font-black sm:text-3xl">ميثاق النفير</h1>
       <p className="mt-2 text-sm text-muted">النسخة {ar(CHARTER_VERSION)} · وقّعه {ar(sigs.length)}</p>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/charter-wide" poster="/video/charter-wide.jpg" label="فيلم سودغري: الفسيلة والوفاء والإتقان" />
+      </figure>
 
       {/* ───────── المرجعيّة ───────── */}
       <section className="mt-6">

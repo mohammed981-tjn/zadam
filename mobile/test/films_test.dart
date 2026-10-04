@@ -14,6 +14,6 @@ void main() {
   test('the website files the app plays exist', () {
     // Kept in step with src/components/HeroVideo.tsx; a key here with no
     // phone cut in public/video would open a black screen.
-    expect(films.map((f) => f.key), ['canal', 'seasons', 'know', 'hands', 'nafir', 'inhand', 'farmer', 'film', 'promo']);
+    expect(films.map((f) => f.key), ['sudagri', 'canal', 'seasons', 'know', 'hands', 'nafir', 'inhand', 'farmer', 'film', 'promo']);
   });
 }

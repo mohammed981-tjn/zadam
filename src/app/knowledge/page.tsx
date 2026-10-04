@@ -4,6 +4,7 @@ import KnowledgeCard from "@/components/KnowledgeCard";
 import { topicLabel } from "@/lib/format";
 import type { KnowledgeEntry } from "@/types/database";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
+import FilmPlayer from "@/components/FilmPlayer";
 
 /*
  * ساعةٌ بين البناء والبناء.
@@ -92,6 +93,10 @@ export default async function KnowledgePage({
         والمناخ والسوق. اقرأها على أنّها نقطةُ بداية للسؤال، لا جواباً نهائياً.
       </p>
       <ShareWhatsApp path="/knowledge" text="قاعدة معرفة زراعية سودانية — كل معلومة بمصدرها:" className="my-3" />
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/knowledge-wide" poster="/video/knowledge-wide.jpg" label="فيلم سودغري: معلومتك في يدك" />
+      </figure>
 
       {error ? (
         <p className="mt-8 rounded-2xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">

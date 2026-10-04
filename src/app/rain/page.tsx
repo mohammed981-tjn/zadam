@@ -6,6 +6,7 @@ import ShareWhatsApp from "@/components/ShareWhatsApp";
 import WeekForecast from "@/components/WeekForecast";
 import { SOIL_CLASSES, SOIL_FETCHED_AT, availableLayers, fetchDailyTable, fetchRainGrid, layerFor } from "@/lib/rainMap";
 import { WRB } from "@/lib/soilClasses";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
   title: "توقّع الأمطار والخرائط | سودغري",
@@ -60,6 +61,10 @@ export default async function RainPage({
         text="توقّع الأمطار في السودان للأيام السبعة القادمة — خريطة وجدول بالأرقام:"
         className="my-3"
       />
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/rain-wide" poster="/video/rain-wide.jpg" label="فيلم سودغري: مع أوّل مطرة" />
+      </figure>
 
       {/* ───────── الخريطة ───────── */}
       <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-6">

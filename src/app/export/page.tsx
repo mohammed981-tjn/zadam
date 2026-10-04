@@ -12,6 +12,7 @@ import {
   type Source,
 } from "@/lib/exportTrade";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
   title: "ممرّ الصادر السوداني — دراسة سودغري | سودغري",
@@ -70,6 +71,10 @@ export default function ExportPage() {
           الفارقُ ليس السوق ولا الجمارك — بل <strong>الإثبات</strong>.
         </p>
         <ShareWhatsApp path="/export" text="ممرّ الصادر السوداني — البوّابات الأربع لكل شحنة:" className="my-3" />
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/export-wide" poster="/video/export-wide.jpg" label="فيلم سودغري: من حقول السودان إلى أسواق العالم" />
+      </figure>
       </header>
 
       <section className="grid gap-px overflow-hidden rounded-lg border bg-gray-200 sm:grid-cols-2">

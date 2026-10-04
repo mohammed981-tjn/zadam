@@ -3,6 +3,7 @@ import NafirShell, { button, field, ghost } from "@/components/nafir/NafirShell"
 import { nafirViewer } from "@/lib/nafirViewer";
 import { ageAr, ar, type ShuraItem } from "@/lib/nafir";
 import { answerShura, askShura, toggleSupport } from "../actions";
+import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
   title: "الشورى | سودغري",
@@ -88,6 +89,10 @@ export default async function ShuraPage({
         والجواب باسم مَن أجاب. يجيب القادة الموقّعون على الميثاق بعد التحقّق
         منهم، والإدارة.
       </p>
+
+      <figure className="my-6">
+        <FilmPlayer base="/video/shura-wide" poster="/video/shura-wide.jpg" label="فيلم سودغري: الشورى" />
+      </figure>
 
       {user ? (
         <form action={askShura} className="mt-5 flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
