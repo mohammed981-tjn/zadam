@@ -52,8 +52,10 @@ type Film = { key: string; label: string; wide?: string };
 const FILMS: Film[] = [
   // One film on the homepage (the owner, 4 October: «اعمل فلم واحد شامل في
   // الرئيسية ووزّع باقي المقاطع كلٌّ في صفحته»): the vision from the owner's
-  // film, the year on the land, the hands, the nafir and the platform, then the
-  // market. Every clip it borrows plays whole on its own page: /export, /herds,
+  // film, then every clip whole and in chapters (the owner chose the whole-clip
+  // cut over a two-minute one: «كل ثانية مهمة، لا تقصّه»): water and land, the
+  // crops, the herds and the river, the nafir, the platform, then the market,
+  // the port and the round logo once. Each clip also plays on its own page: /export, /herds,
   // /services, /tools/water, /rain, /seasons, /projects, /knowledge, /guide,
   // /lands, /arc-canal, and the nafir pages.
   { key: "sudagri", label: "سودغري — من الماء إلى السوق" },
