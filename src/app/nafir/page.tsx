@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import NafirShell, { button, ghost } from "@/components/nafir/NafirShell";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
+import FilmPlayer from "@/components/FilmPlayer";
 import {
   FAZA_CAUSES,
   NAFIR_KINDS,
@@ -90,6 +91,11 @@ export default async function NafirPage({
         </div>
         <ShareWhatsApp path="/nafir" text="النفير على سودغري — ادعُ جيرانك إلى العمل، أو لبِّ نداءهم:" className="mt-4" />
       </header>
+
+      {/* The owner's nafir clips (4 October): the call, the harvest, the meal, the judiyya, the leader in the canal, the promise kept, care in the work, the shura, the call on a phone, the palm offshoot. */}
+      <figure className="mb-10">
+        <FilmPlayer base="/video/nafir-wide" poster="/video/nafir-wide.jpg" label="فيلم سودغري: النفير… قيمٌ تعمل" />
+      </figure>
 
       {/* ───────── دعواتٌ مفتوحة ───────── */}
       <section className="mb-10">
