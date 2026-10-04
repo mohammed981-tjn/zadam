@@ -59,6 +59,8 @@ const FILMS: Film[] = [
   { key: "seasons", label: "مواسمُ السودان" },
   // The second five (backlog 80): tractor, date harvest, veterinarian so far; the nafir and the fishermen join it.
   { key: "hands", label: "أيادٍ تصنع الخير" },
+  // A son shows his mother the platform on his phone (two clips, 4 October); its narration follows in Arabic and English.
+  { key: "inhand", label: "معلومتك في يدك" },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
@@ -434,7 +436,7 @@ export default function HeroVideo() {
       <p className="mt-2 text-center text-xs text-muted">اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق</p>
 
       {/* One button per film, each with its own progress line. */}
-      <nav aria-label="أفلام سودغري" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <nav aria-label="أفلام سودغري" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         {FILMS.map((f, i) => {
           const active = i === idx;
           const fill = active ? progress : 0;
