@@ -1,0 +1,45 @@
+name: Narration probe
+
+# Tries spellings of a word against the Fasih voice, one variant per job (the
+# Space allows an anonymous caller only a few lines), and commits each to
+# tts/probe so the owner can hear which one says the name right.
+on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: ["tts/probe/variants.json"]
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      ids: ${{ steps.p.outputs.ids }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: echo "ids=$(python3 -c "import json;print(json.dumps([v['id'] for v in json.load(open('tts/probe/variants.json'))]))")" >> "$GITHUB_OUTPUT"
+  speak:
+    needs: plan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        id: ${{ fromJson(needs.plan.outputs.ids) }}
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          ID: ${{ matrix.id }}
+        run: |
+          pip install -q gradio_client
+          python3 - <<'PY'
+          import json, os, shutil
+          from gradio_client import Client
+          v = {x["id"]: x for x in json.load(open("tts/probe/variants.json", encoding="utf-8"))}[os.environ["ID"]]
+          r = Client("NightPrince/Fasih-TTS").predict(text=v["text"], auto_diacritize=v["diac"], temperature=0.5, api_name="/predict")
+          shutil.copy(r, f"tts/probe/{v['id']}.wav")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tts/probe && git commit -qm "Narration probe: variant ${{ matrix.id }}"
+          for n in 1 2 3 4 5 6 7 8; do git pull --rebase -q origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0; sleep $((RANDOM % 8 + 3)); done; exit 1

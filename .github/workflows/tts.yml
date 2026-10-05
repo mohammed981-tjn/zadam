@@ -1,0 +1,86 @@
+name: Narration
+
+# The films' Arabic narration in one Modern Standard Arabic voice (the owner,
+# 4 October), spoken by the Fasih-TTS Space on Hugging Face. The Space allows
+# an anonymous caller only a few lines, so the lines are split across jobs, a
+# couple each; a line already in tts/fusha is not spoken again. The finished
+# files are committed back to the branch that asked for them, never to main.
+# HF_TOKEN, if the repository has one, raises the allowance. The lines spell the
+# name the way the voice says it right, «سوداكْري» — the owner chose it from six
+# spellings in tts/probe (4 October) — not as it is written.
+on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: ["tts/lines.json", ".github/workflows/tts.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: narration-${{ github.ref }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      chunks: ${{ steps.p.outputs.chunks }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          lines = json.load(open("tts/lines.json", encoding="utf-8"))
+          todo = [l["id"] for l in lines if not os.path.exists(f"tts/fusha/{l['id']}.wav")]
+          chunks = [",".join(todo[i:i + 2]) for i in range(0, len(todo), 2)] or ["none"]
+          print("chunks=" + json.dumps(chunks))
+          PY
+
+  speak:
+    needs: plan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        ids: ${{ fromJson(needs.plan.outputs.chunks) }}
+    steps:
+      - uses: actions/checkout@v4
+        if: matrix.ids != 'none'
+      - if: matrix.ids != 'none'
+        env:
+          IDS: ${{ matrix.ids }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install -q gradio_client
+          mkdir -p out
+          python3 - <<'PY'
+          import json, os, shutil, time
+          from gradio_client import Client
+          tok = os.environ.get("HF_TOKEN") or None
+          c = Client("NightPrince/Fasih-TTS", token=tok) if tok else Client("NightPrince/Fasih-TTS")
+          lines = {l["id"]: l["text"] for l in json.load(open("tts/lines.json", encoding="utf-8"))}
+          for i in os.environ["IDS"].split(","):
+              for attempt in range(2):
+                  try:
+                      r = c.predict(text=lines[i], auto_diacritize=True, temperature=0.5, api_name="/predict")
+                      shutil.copy(r, f"out/{i}.wav"); print("spoke", i); break
+                  except Exception as e:
+                      print("failed", i, str(e)[:200]); time.sleep(20)
+          PY
+      # Straight onto the branch: the account's artifact storage is full
+      # (it filled on 3 October and again now), and a few small files need no artifact.
+      - if: matrix.ids != 'none'
+        run: |
+          mkdir -p tts/fusha
+          cp out/*.wav tts/fusha/ 2>/dev/null || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tts/fusha
+          git diff --cached --quiet && exit 0
+          git commit -m "Narration: lines ${{ matrix.ids }} in the Fasih voice"
+          for n in 1 2 3 4 5 6 7 8 9 10; do
+            git pull --rebase -q origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((RANDOM % 10 + 3))
+          done
+          exit 1
