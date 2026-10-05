@@ -3,7 +3,8 @@ import { topicLabel } from "@/lib/format";
 
 export default function KnowledgeCard({ entry }: { entry: KnowledgeEntry }) {
   return (
-    <div className="reveal flex flex-col gap-2 rounded-2xl border border-border bg-card p-5 shadow-card transition duration-200 hover:shadow-raised">
+    // The id is where the news page points each day's new entries.
+    <div id={`k-${entry.id}`} className="reveal flex scroll-mt-24 flex-col gap-2 rounded-2xl border border-border bg-card p-5 shadow-card transition duration-200 hover:shadow-raised">
       <div className="flex items-center justify-between gap-2">
         <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
           {entry.crop}

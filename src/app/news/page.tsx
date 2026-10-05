@@ -8,6 +8,15 @@ import {
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import StudyBody from "@/components/StudyBody";
 import { parseStudy, plainExcerpt } from "@/lib/studyDoc";
+import { topicLabel } from "@/lib/format";
+import type { KnowledgeEntry } from "@/types/database";
+
+/** How far back the knowledge base's daily additions are shown here. */
+const KNOWLEDGE_DAYS = 7;
+/** The start of that window, read when the page is built (it is rebuilt every ten minutes). */
+function knowledgeSince(): string {
+  return new Date(Date.now() - KNOWLEDGE_DAYS * 86_400_000).toISOString();
+}
 
 /**
  * A long item — a study pasted in as news — is shown here as its opening
@@ -59,6 +68,35 @@ export default async function NewsPage() {
 
   const items = (data ?? []) as Announcement[];
 
+  /*
+   * جديدُ قاعدة المعرفة (المالك، 5 أكتوبر: «تلك الإضافات أيضاً محلّها صفحة
+   * الأخبار كلّ يوم، زائداً محلّها القديم في قاعدة المعرفة»). The daily
+   * additions are read from knowledge_entries itself, not copied into
+   * announcements: one row, two places to read it, and nothing to forget to
+   * post. The same filters as /knowledge: no mining, nothing assistant-only.
+   */
+  const since = knowledgeSince();
+  const { data: kData, error: kError } = await supabase
+    .from("knowledge_entries")
+    .select("id, crop, topic, title, content, source_country, source_note, created_at")
+    .neq("crop", "تعدين")
+    .eq("assistant_only", false)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  if (kError) console.error("news: knowledge read failed", kError);
+  const fresh = (kData ?? []) as Pick<
+    KnowledgeEntry,
+    "id" | "crop" | "topic" | "title" | "content" | "source_country" | "source_note" | "created_at"
+  >[];
+  const byDay: { day: string; entries: typeof fresh }[] = [];
+  for (const e of fresh) {
+    const day = announcementDate(e.created_at);
+    const last = byDay[byDay.length - 1];
+    if (last && last.day === day) last.entries.push(e);
+    else byDay.push({ day, entries: [e] });
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="text-2xl font-bold">جديد سودغري</h1>
@@ -67,6 +105,47 @@ export default async function NewsPage() {
         متاحة. والأقدمُ يبقى — فالصفحةُ سجلٌّ لا واجهةُ عرض.
       </p>
       <ShareWhatsApp path="/news" text="جديد سودغري:" className="my-3" />
+
+      {byDay.length > 0 && (
+        <section aria-labelledby="fresh-knowledge" className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+          <h2 id="fresh-knowledge" className="text-lg font-black">جديد قاعدة المعرفة</h2>
+          <p className="mt-1 text-xs leading-6 text-muted">
+            ما يُضاف كلَّ يوم، وكلُّ مدخلٍ بمصدره. يبقى بعد ذلك في{" "}
+            <Link href="/knowledge" className="text-primary underline">قاعدة المعرفة</Link>.
+          </p>
+          <ol className="mt-4 flex flex-col gap-5">
+            {byDay.map((d) => (
+              <li key={d.day}>
+                <p className="mb-2">
+                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{d.day}</span>
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {d.entries.map((e) => (
+                    <li key={e.id}>
+                      <details className="group rounded-xl border border-border bg-card p-3">
+                        <summary className="flex cursor-pointer list-none items-start gap-2">
+                          <span className="mt-0.5 shrink-0 rounded-full bg-border/60 px-2 py-0.5 text-[11px]">{e.crop}</span>
+                          <span className="font-bold leading-7">{e.title}</span>
+                          <span aria-hidden className="mr-auto shrink-0 text-muted transition group-open:rotate-90">‹</span>
+                        </summary>
+                        <p className="mt-3 whitespace-pre-line text-sm leading-7">{e.content}</p>
+                        <p className="mt-3 text-xs leading-6 text-muted">
+                          {topicLabel(e.topic)}
+                          {e.source_country ? ` · ${e.source_country}` : ""}
+                          {e.source_note ? ` · المصدر: ${e.source_note}` : ""}
+                        </p>
+                        <Link href={`/knowledge#k-${e.id}`} className="mt-2 inline-block text-xs font-medium text-primary">
+                          في قاعدة المعرفة ←
+                        </Link>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       {items.length === 0 ? (
         <div className="mt-8">
