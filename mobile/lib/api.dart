@@ -91,7 +91,7 @@ class Project {
       );
 }
 
-/// One item of «جديد سودغري», as the website's /news page shows it.
+/// One item of «جديد سوداقري», as the website's /news page shows it.
 class NewsItem {
   const NewsItem({
     required this.title,

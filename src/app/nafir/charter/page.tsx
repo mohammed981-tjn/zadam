@@ -15,7 +15,7 @@ import { signCharter, verifyLeader, withdrawSignature } from "../actions";
 import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
-  title: "ميثاق النفير | سودغري",
+  title: "ميثاق النفير | سوداقري",
   description:
     "مرجعيّةٌ وقيمٌ للقادة وللقاعدة، لكلّ قيمةٍ آليّةٌ تُمارَس بها في المنصّة — ويُوقَّع علناً.",
 };
@@ -60,7 +60,7 @@ export default async function CharterPage({
       <p className="mt-2 text-sm text-muted">النسخة {ar(CHARTER_VERSION)} · وقّعه {ar(sigs.length)}</p>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/charter-wide" poster="/video/charter-wide.jpg" label="فيلم سودغري: الفسيلة والوفاء والإتقان" />
+        <FilmPlayer base="/video/charter-wide" poster="/video/charter-wide.jpg" label="فيلم سوداقري: الفسيلة والوفاء والإتقان" />
       </figure>
 
       {/* ───────── المرجعيّة ───────── */}
@@ -174,7 +174,7 @@ export default async function CharterPage({
         )}
       </section>
 
-      <ShareWhatsApp path="/nafir/charter" text="ميثاق النفير على سودغري — قيمٌ تعمل لا تُعلَّق. اقرأه ووقّع:" className="mt-6" />
+      <ShareWhatsApp path="/nafir/charter" text="ميثاق النفير على سوداقري — قيمٌ تعمل لا تُعلَّق. اقرأه ووقّع:" className="mt-6" />
     </NafirShell>
   );
 }

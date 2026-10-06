@@ -6,7 +6,7 @@ import ContractBuilder, {
   type BuilderSeason,
 } from "@/components/ContractBuilder";
 
-export const metadata = { title: "عقد خدمات جديد | سودغري" };
+export const metadata = { title: "عقد خدمات جديد | سوداقري" };
 
 export default async function NewContractPage({
   searchParams,

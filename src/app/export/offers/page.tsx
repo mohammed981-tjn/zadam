@@ -11,7 +11,7 @@ import {
 } from "@/lib/exportOffers";
 
 export const metadata = {
-  title: "عروضي للتصدير · سودغري",
+  title: "عروضي للتصدير · سوداقري",
   description: "حوّل موسماً موثَّقاً إلى عرضٍ يراه المشترون.",
 };
 

@@ -6,7 +6,7 @@ import { nafirViewer } from "@/lib/nafirViewer";
 import { FAZA_CAUSES, FAZA_NEEDS, ageAr, type FazaPledge, type FazaRequest } from "@/lib/nafir";
 import { closeFaza, markKept, pledgeFaza } from "../../actions";
 
-export const metadata = { title: "طلب فزعة | سودغري" };
+export const metadata = { title: "طلب فزعة | سوداقري" };
 
 /**
  * A request and its pledges. The one who asked is the only one who can say a

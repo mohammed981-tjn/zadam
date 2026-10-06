@@ -15,7 +15,7 @@ import {
 } from "@/lib/nafir";
 
 export const metadata = {
-  title: "النفير — العمل المشترك | سودغري",
+  title: "النفير — العمل المشترك | سوداقري",
   description:
     "النفير والفزعة والشورى: قيم الريف السوداني أدواتٍ تعمل — دعوةٌ إلى عملٍ جماعي، ونجدةٌ لمن أصابته جائحة، وقادةٌ يُسألون علناً.",
 };
@@ -89,12 +89,12 @@ export default async function NafirPage({
             اقرأ الميثاق ووقّع
           </Link>
         </div>
-        <ShareWhatsApp path="/nafir" text="النفير على سودغري — ادعُ جيرانك إلى العمل، أو لبِّ نداءهم:" className="mt-4" />
+        <ShareWhatsApp path="/nafir" text="النفير على سوداقري — ادعُ جيرانك إلى العمل، أو لبِّ نداءهم:" className="mt-4" />
       </header>
 
       {/* The owner's nafir clips (4 October), each whole and in the order of their prompts: the call, the harvest, clearing the canal, the meal, the judiyya, the shura, the leader in the canal, the palm offshoot, the promise kept, care in the work, the call on a phone. */}
       <figure className="mb-10">
-        <FilmPlayer base="/video/nafir-wide" poster="/video/nafir-wide.jpg" label="فيلم سودغري: النفير… قيمٌ تعمل" />
+        <FilmPlayer base="/video/nafir-wide" poster="/video/nafir-wide.jpg" label="فيلم سوداقري: النفير… قيمٌ تعمل" />
       </figure>
 
       {/* ───────── دعواتٌ مفتوحة ───────── */}

@@ -6,7 +6,7 @@ import { SPECIES_LABEL, PURPOSE_LABEL } from "@/lib/livestock";
 import type { Herd } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
 
-export const metadata = { title: "دورات الإنتاج الحيواني | سودغري" };
+export const metadata = { title: "دورات الإنتاج الحيواني | سوداقري" };
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -43,7 +43,7 @@ export default async function HerdsPage() {
       </div>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/herds-wide" poster="/video/herds-wide.jpg" label="فيلم سودغري: ثروةٌ تمشي على الأرض" />
+        <FilmPlayer base="/video/herds-wide" poster="/video/herds-wide.jpg" label="فيلم سوداقري: ثروةٌ تمشي على الأرض" />
       </figure>
 
       {herds.length === 0 ? (

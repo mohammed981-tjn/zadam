@@ -6,7 +6,7 @@ import { SERVICE_KIND_LABEL, SERVICE_UNIT_LABEL, SERVICE_BY_KEY } from "@/lib/se
 import type { ProviderService, ServiceProvider } from "@/types/database";
 import { verifyProvider, unverifyProvider, setProviderActive } from "./actions";
 
-export const metadata = { title: "توثيق مقدّمي الخدمة | سودغري" };
+export const metadata = { title: "توثيق مقدّمي الخدمة | سوداقري" };
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 

@@ -5,7 +5,7 @@ import type { Project } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
-  title: "المشاريع المطروحة · سودغري",
+  title: "المشاريع المطروحة · سوداقري",
   description:
     "المشاريع الزراعية المطروحة للاستثمار في السودان — ولا يُعرض مشروع قبل توثيق حيازته ومعاينته ميدانياً.",
 };
@@ -59,7 +59,7 @@ export default async function ProjectsPage() {
       </p>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/projects-wide" poster="/video/projects-wide.jpg" label="فيلم سودغري: حين نتّفق نزرع أكثر" />
+        <FilmPlayer base="/video/projects-wide" poster="/video/projects-wide.jpg" label="فيلم سوداقري: حين نتّفق نزرع أكثر" />
       </figure>
 
       {error ? (

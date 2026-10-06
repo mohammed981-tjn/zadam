@@ -6,7 +6,7 @@ import { createCanal } from "./actions";
 import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
-  title: "الترع | سودغري",
+  title: "الترع | سوداقري",
   description:
     "الترعة موردٌ مشترك: أعضاؤها، ونوبات مائها، وواجب صيانتها بقدر فدادين كلٍّ منهم — ونفيرُ تطهيرها.",
 };
@@ -37,7 +37,7 @@ export default async function CanalsPage({
       </p>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/canals-wide" poster="/video/canals-wide.jpg" label="فيلم سودغري: نفير تطهير الترعة" />
+        <FilmPlayer base="/video/canals-wide" poster="/video/canals-wide.jpg" label="فيلم سوداقري: نفير تطهير الترعة" />
       </figure>
 
       <ul className="mt-6 grid gap-3 sm:grid-cols-2">

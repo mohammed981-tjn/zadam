@@ -14,7 +14,7 @@ import ShareWhatsApp from "@/components/ShareWhatsApp";
 import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
-  title: "القناة القوسية — دراسة سودغري | سودغري",
+  title: "القناة القوسية — دراسة سوداقري | سوداقري",
 };
 
 /**
@@ -50,7 +50,7 @@ export default async function ArcCanalPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-10">
       <header className="flex flex-col gap-4">
-        <p className="text-sm text-muted">دراسة سودغري · قياس وحساب</p>
+        <p className="text-sm text-muted">دراسة سوداقري · قياس وحساب</p>
         <h1 className="text-3xl font-bold leading-tight">
           القناة القوسية — دراسة الأرض والتصميم
         </h1>
@@ -78,23 +78,23 @@ export default async function ArcCanalPage() {
       </header>
 
       {/*
-        فيلم سودغري (المالك، 2 أكتوبر: «بعدما تكمل اللقطات نزّلها في صفحة القناة»):
+        فيلم سوداقري (المالك، 2 أكتوبر: «بعدما تكمل اللقطات نزّلها في صفحة القناة»):
         الماء من السدّ إلى القناة إلى الحقل، والمزارع، ثمّ الشعار. Generated,
         like the two pictures, and without a caption like them. It plays only
         when asked, with its narration, and is watched here, not saved
         (FilmPlayer).
       */}
       <figure>
-        <FilmPlayer base="/video/canal-film" poster="/video/canal-film.jpg" label="فيلم سودغري: من الماء تبدأ الحياة" />
+        <FilmPlayer base="/video/canal-film" poster="/video/canal-film.jpg" label="فيلم سوداقري: من الماء تبدأ الحياة" />
       </figure>
 
       {/* The two earlier water films, from the homepage to the canal they tell of (the owner, 4 October). */}
       <div className="grid gap-4 sm:grid-cols-2">
         <figure>
-          <FilmPlayer base="/video/film-wide" poster="/video/film-wide.jpg" label="فيلم سودغري: من السدّ إلى الحقل" />
+          <FilmPlayer base="/video/film-wide" poster="/video/film-wide.jpg" label="فيلم سوداقري: من السدّ إلى الحقل" />
         </figure>
         <figure>
-          <FilmPlayer base="/video/promo-wide" poster="/video/promo-wide.jpg" label="فيلم سودغري: من الماء تبدأ الحياة" />
+          <FilmPlayer base="/video/promo-wide" poster="/video/promo-wide.jpg" label="فيلم سوداقري: من الماء تبدأ الحياة" />
         </figure>
       </div>
 
@@ -276,7 +276,7 @@ export default async function ArcCanalPage() {
           أسعار وحدةٍ مذكورة. يمكنك أن تعيد كل حساب منها بنفسك.
         </p>
         <p className="leading-relaxed">
-          هذه دراسة سودغري وحدها، ولا تمثّل جهةً رسمية ولا أصحاب المشروع.
+          هذه دراسة سوداقري وحدها، ولا تمثّل جهةً رسمية ولا أصحاب المشروع.
         </p>
       </section>
     </main>

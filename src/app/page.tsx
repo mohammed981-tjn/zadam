@@ -212,7 +212,7 @@ export default async function Home() {
           </h1>
 
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
-            سودغري منصّة معرفة زراعية وبيانات للسودان. لا يُعرض رقمٌ دون مصدره
+            سوداقري منصّة معرفة زراعية وبيانات للسودان. لا يُعرض رقمٌ دون مصدره
             ومنهجه: الغلّة من FAOSTAT، والمناخ من NASA POWER، والتربة من
             SoilGrids، والاحتياج المائي محسوبٌ بمحرّك FAO-56 داخل المنصّة نفسها.
           </p>
@@ -284,7 +284,7 @@ export default async function Home() {
       {/* ───────────────────────── اللوحة ───────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 pt-10">
         <h2 className="font-bold" style={{ fontSize: "var(--text-section)" }}>
-          أقسام سودغري
+          أقسام سوداقري
         </h2>
         <p className="mb-4 mt-1 text-sm text-muted">المس أيَّ بطاقة لتفتح قسمها.</p>
         <PhotoBoard tiles={BOARD} />

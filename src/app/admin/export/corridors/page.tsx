@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { recordCorridorReview } from "./actions";
 
-export const metadata = { title: "مراجعة قواعد الممرّات | سودغري" };
+export const metadata = { title: "مراجعة قواعد الممرّات | سوداقري" };
 
 const date = (iso: string) =>
   new Date(iso).toLocaleDateString("ar-EG", {

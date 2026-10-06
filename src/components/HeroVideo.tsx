@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } 
 import { SUDAGRI_LOGO } from "@/lib/brand";
 
 /**
- * واجهةُ الرئيسيّة: أفلامُ سودغري، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
+ * واجهةُ الرئيسيّة: أفلامُ سوداقري، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
  *
  * The owner, 2 October: all three films on the homepage, none removed, each
  * ending on the Sudagri logo; then a fourth, the generated film that also
@@ -58,7 +58,7 @@ const FILMS: Film[] = [
   // the port and the round logo once. Each clip also plays on its own page: /export, /herds,
   // /services, /tools/water, /rain, /seasons, /projects, /knowledge, /guide,
   // /lands, /arc-canal, and the nafir pages.
-  { key: "sudagri", label: "سودغري — من الماء إلى السوق" },
+  { key: "sudagri", label: "سوداقري — من الماء إلى السوق" },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
@@ -398,7 +398,7 @@ export default function HeroVideo() {
             }}
             draggable={false}
             className="pointer-events-none aspect-[4/5] w-full object-cover sm:aspect-video"
-            aria-label={`فيلم سودغري: ${film.label}`}
+            aria-label={`فيلم سوداقري: ${film.label}`}
           >
             {/* WebM first: the open codec plays in every browser, H.264 in the rest. */}
             <source src={`${base}.webm`} type="video/webm" />
@@ -422,7 +422,7 @@ export default function HeroVideo() {
           >
             <Image
               src={SUDAGRI_LOGO}
-              alt="شعار سودغري — منصّة سودانية للزراعة والتجارة"
+              alt="شعار سوداقري — منصّة سودانية للزراعة والتجارة"
               placeholder="blur"
               sizes="(min-width: 768px) 420px, 70vw"
               className="h-[90%] w-auto object-contain"
@@ -452,7 +452,7 @@ export default function HeroVideo() {
           <div className="h-full bg-primary transition-[width] duration-300" style={{ width: `${progress * 100}%` }} />
         </div>
       ) : (
-      <nav aria-label="أفلام سودغري" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <nav aria-label="أفلام سوداقري" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {FILMS.map((f, i) => {
           const active = i === idx;
           const fill = active ? progress : 0;

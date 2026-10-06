@@ -3,7 +3,7 @@ import NafirShell, { button, field } from "@/components/nafir/NafirShell";
 import { nafirViewer } from "@/lib/nafirViewer";
 import { joinCase } from "../../actions";
 
-export const metadata = { title: "دعوة إلى الجودية | سودغري", robots: { index: false } };
+export const metadata = { title: "دعوة إلى الجودية | سوداقري", robots: { index: false } };
 
 /**
  * The other side arrives here from the link. Nothing about the case is shown

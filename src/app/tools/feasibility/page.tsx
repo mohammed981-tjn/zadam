@@ -4,7 +4,7 @@ import { loadCropMarkets } from "@/lib/marketData";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 
 export const metadata = {
-  title: "دراسة الجدوى المرحلية — سودغري",
+  title: "دراسة الجدوى المرحلية — سوداقري",
 };
 
 /**
@@ -33,7 +33,7 @@ export default async function FeasibilityPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-3">
-        <p className="text-sm text-muted">أداة · سودغري</p>
+        <p className="text-sm text-muted">أداة · سوداقري</p>
         <h1 className="text-3xl font-bold leading-tight">
           دراسة الجدوى المرحلية
         </h1>

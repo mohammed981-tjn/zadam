@@ -1,4 +1,4 @@
-/// سودغري — the mobile app.
+/// سوداقري — the mobile app.
 ///
 /// Four screens: the platform's own landing page, the FAO-56 water requirement,
 /// the assistant, and the knowledge base. Registering land and documenting a
@@ -32,7 +32,7 @@ class SudagriApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'سودغري',
+      title: 'سوداقري',
       debugShowCheckedModeBanner: false,
       theme: sudagriLight,
       darkTheme: sudagriDark,

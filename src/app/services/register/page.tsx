@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ProviderForm from "@/components/ProviderForm";
 
-export const metadata = { title: "تسجيل مقدّم خدمة | سودغري" };
+export const metadata = { title: "تسجيل مقدّم خدمة | سوداقري" };
 
 export default async function RegisterProviderPage() {
   const supabase = await createClient();

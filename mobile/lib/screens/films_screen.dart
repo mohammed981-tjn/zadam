@@ -1,4 +1,4 @@
-/// أفلام سودغري في التطبيق — تُشاهَد ولا تُصوَّر.
+/// أفلام سوداقري في التطبيق — تُشاهَد ولا تُصوَّر.
 ///
 /// The same films as the website's homepage, in its order, each a tile with its
 /// poster. A film opens on a screen of its own that is protected while it is
@@ -34,8 +34,8 @@ class Film {
 /// The homepage's one film first (src/components/HeroVideo.tsx), then the
 /// films the website shows on its other pages, all in one place here.
 const films = <Film>[
-  Film('sudagri', 'سودغري — من الماء إلى السوق'),
-  Film('canal', 'رؤيةُ سودغري'),
+  Film('sudagri', 'سوداقري — من الماء إلى السوق'),
+  Film('canal', 'رؤيةُ سوداقري'),
   Film('seasons', 'مواسمُ السودان'),
   Film('know', 'من المعرفة إلى المائدة'),
   Film('hands', 'أيادٍ تصنع الخير'),
@@ -54,7 +54,7 @@ class FilmsScreen extends StatelessWidget {
     final muted = mutedOn(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('🎬 أفلام سودغري')),
+      appBar: AppBar(title: const Text('🎬 أفلام سوداقري')),
       body: ApiConfig.siteUrl.isEmpty
           ? Center(
               child: Padding(
@@ -236,7 +236,7 @@ class _FilmPlayerScreenState extends State<FilmPlayerScreen> {
                 ? const Padding(
                     padding: EdgeInsets.all(32),
                     child: Text(
-                      'الفيلم متوقّف أثناء تسجيل الشاشة.\nأفلام سودغري تُشاهَد على المنصّة.',
+                      'الفيلم متوقّف أثناء تسجيل الشاشة.\nأفلام سوداقري تُشاهَد على المنصّة.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white70, height: 1.8),
                     ),

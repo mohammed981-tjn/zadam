@@ -15,7 +15,7 @@ import ShareWhatsApp from "@/components/ShareWhatsApp";
 import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
-  title: "ممرّ الصادر السوداني — دراسة سودغري | سودغري",
+  title: "ممرّ الصادر السوداني — دراسة سوداقري | سوداقري",
   description:
     "أبوابُ العالم مفتوحةٌ أمام صادرات السودان بلا رسوم، والشحنات تُردّ. دراسةٌ في البوّابات الأربع التي تمرّ بها كل شحنة — المنشأ والصحّة والمطابقة والمال — وفي اللوائح الأوروبية القادمة ومواعيدها.",
 };
@@ -73,7 +73,7 @@ export default function ExportPage() {
         <ShareWhatsApp path="/export" text="ممرّ الصادر السوداني — البوّابات الأربع لكل شحنة:" className="my-3" />
 
       <figure className="my-6">
-        <FilmPlayer base="/video/export-wide" poster="/video/export-wide.jpg" label="فيلم سودغري: من حقول السودان إلى أسواق العالم" />
+        <FilmPlayer base="/video/export-wide" poster="/video/export-wide.jpg" label="فيلم سوداقري: من حقول السودان إلى أسواق العالم" />
       </figure>
       </header>
 
@@ -215,7 +215,7 @@ export default function ExportPage() {
           تُلتقط في حينها لا تُصنع بعد الحصاد.
         </p>
         <p className="leading-relaxed text-gray-700">
-          وسودغري تبني هذا الجانب: سجلُّ الموسم بمراحله وأدلّته المصوّرة
+          وسوداقري تبني هذا الجانب: سجلُّ الموسم بمراحله وأدلّته المصوّرة
           بإحداثيّاتها وتواريخها، وسجلُّ إثبات المنشأ للتعدين بسلسلة عهدةٍ لا
           تقبل التعديل، وتوثيقُ مقدّمي الخدمة. ونشرُ سجلّك يبقى قرارك وحدك — لا
           يُنشر شيءٌ عنك إلا بإذنك.
