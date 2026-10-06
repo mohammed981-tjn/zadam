@@ -13,7 +13,7 @@ import { ECONOMIC_FACTS } from "@/lib/economics";
 import type { ProviderService, ServiceProvider } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
 
-export const metadata = { title: "الخدمات التعاقدية — سودغري" };
+export const metadata = { title: "الخدمات التعاقدية — سوداقري" };
 
 const BASIS_LABEL: Record<string, string> = {
   feddans: "يُحسب من مساحة الموسم",
@@ -71,7 +71,7 @@ export default async function ServicesPage({
       </p>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/services-wide" poster="/video/services-wide.jpg" label="فيلم سودغري: خدمةٌ تصل إلى الحقل" />
+        <FilmPlayer base="/video/services-wide" poster="/video/services-wide.jpg" label="فيلم سوداقري: خدمةٌ تصل إلى الحقل" />
       </figure>
 
       {/*

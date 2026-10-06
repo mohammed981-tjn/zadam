@@ -26,9 +26,9 @@ import FilmPlayer from "@/components/FilmPlayer";
  */
 
 export const metadata = {
-  title: "دليل الاستخدام | سودغري",
+  title: "دليل الاستخدام | سوداقري",
   description:
-    "شرح كامل لكل أداة في سودغري: المساعد، وحاسبة المياه، وتسجيل الأرض، وإدارة الموسم، وسجلّ إثبات المنشأ — وما يعمل الآن وما لم يُفتح بعد.",
+    "شرح كامل لكل أداة في سوداقري: المساعد، وحاسبة المياه، وتسجيل الأرض، وإدارة الموسم، وسجلّ إثبات المنشأ — وما يعمل الآن وما لم يُفتح بعد.",
 };
 
 const pct = (v: number) => `${Math.round(v * 100)}٪`;
@@ -82,7 +82,7 @@ const SECTIONS = [
   ["status", "ما يعمل الآن وما لم يُفتح بعد"],
   ["account", "إنشاء الحساب والدخول"],
   ["nav", "التنقّل داخل المنصة"],
-  ["assistant", "مساعد سودغري"],
+  ["assistant", "مساعد سوداقري"],
   ["water", "حاسبة الاحتياج المائي"],
   ["lands", "تسجيل الأرض وتوثيقها"],
   ["seasons", "إدارة الموسم الزراعي"],
@@ -277,7 +277,7 @@ export default async function GuidePage() {
       <header className="pb-8">
         <p className="text-sm font-medium text-primary">دليل الاستخدام</p>
         <h1 className="mt-2 text-2xl font-black leading-snug sm:text-3xl">
-          كل ما في سودغري، وكيف تستعمله
+          كل ما في سوداقري، وكيف تستعمله
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
           منصة واحدة تجمع معرفة زراعية موثّقة، وأدوات حساب حقيقية للمزارع،
@@ -287,7 +287,7 @@ export default async function GuidePage() {
       </header>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/inhand-wide" poster="/video/inhand-wide.jpg" label="فيلم سودغري: معلومتك في يدك — المنصّة في يد أسرة" />
+        <FilmPlayer base="/video/inhand-wide" poster="/video/inhand-wide.jpg" label="فيلم سوداقري: معلومتك في يدك — المنصّة في يد أسرة" />
       </figure>
 
       <nav
@@ -324,7 +324,7 @@ export default async function GuidePage() {
                 LIVE,
                 `${knowledgeCount ?? 0} مُدخلاً، مفتوحة للجميع بلا تسجيل.`,
               ],
-              ["مساعد سودغري", LIVE, "يجيب فوراً وبلا تسجيل."],
+              ["مساعد سوداقري", LIVE, "يجيب فوراً وبلا تسجيل."],
               ["حاسبة الاحتياج المائي", LIVE, "حساب كامل بلا تسجيل."],
               ["تسجيل الأراضي وتوثيقها", LIVE, "يتطلب حساباً."],
               ["تخطيط الموسم ودفتر الحسابات", LIVE, "يتطلب حساباً."],
@@ -421,7 +421,7 @@ export default async function GuidePage() {
           <Note title="رسالة التفعيل ليست احتيالاً" tone="warn">
             <p>
               إن وصلتك رسالة تفعيل عند التسجيل بالبريد فستكون بالإنجليزية وباسم
-              خدمة الاستضافة التقنية (Supabase) لا باسم سودغري. هذا طبيعي
+              خدمة الاستضافة التقنية (Supabase) لا باسم سوداقري. هذا طبيعي
               ومتوقّع — افتحها واضغط الرابط.
             </p>
           </Note>
@@ -467,7 +467,7 @@ export default async function GuidePage() {
         {/* ---------------- assistant ---------------- */}
         <Section
           id="assistant"
-          title="مساعد سودغري"
+          title="مساعد سوداقري"
           who={["للمزارع", "للمستثمر", "للمعدّن"]}
         >
           <p className="text-muted">
@@ -832,7 +832,7 @@ export default async function GuidePage() {
             <p>
               الدراسات التي روجعت قبل بناء المنصة افترضت إيراداً بين ٣٠٠٠ و٥٠٠٠
               دولار للفدان — أي أربعة إلى ستة أضعاف ما تعطيه الحبوب المروية في
-              السودان فعلاً. أرقام سودغري مبنية على اقتصاديات واقعية، وستبدو أقل
+              السودان فعلاً. أرقام سوداقري مبنية على اقتصاديات واقعية، وستبدو أقل
               بريقاً من أي عرض آخر قد يصلك. هذا مقصود.
             </p>
           </Note>
@@ -975,7 +975,7 @@ export default async function GuidePage() {
         {/* ---------------- limits ---------------- */}
         <Section id="limits" title="حدود المنصة" who={["للجميع"]}>
           <p className="text-muted">
-            ما لا تفعله سودغري، مكتوباً صراحة، لأن معرفته جزء من استعمالها
+            ما لا تفعله سوداقري، مكتوباً صراحة، لأن معرفته جزء من استعمالها
             الصحيح.
           </p>
           <ul className="list-disc space-y-2 pr-5">
@@ -1014,7 +1014,7 @@ export default async function GuidePage() {
         <p className="mt-3">
           بقي سؤال؟{" "}
           <Link href="/" className="text-primary underline">
-            اسأل مساعد سودغري
+            اسأل مساعد سوداقري
           </Link>
           .
         </p>

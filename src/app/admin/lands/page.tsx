@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { verifyLand, rejectLand } from "@/app/lands/actions";
 import type { Land, LandDocument } from "@/types/database";
 
-export const metadata = { title: "توثيق الأراضي | سودغري" };
+export const metadata = { title: "توثيق الأراضي | سوداقري" };
 
 const date = (iso: string) =>
   new Date(iso).toLocaleDateString("ar-EG", {

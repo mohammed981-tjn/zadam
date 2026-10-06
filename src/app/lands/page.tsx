@@ -7,7 +7,7 @@ import type { Land } from "@/types/database";
 import LandDocuments from "@/components/LandDocuments";
 import FilmPlayer from "@/components/FilmPlayer";
 
-export const metadata = { title: "أراضيّ | سودغري" };
+export const metadata = { title: "أراضيّ | سوداقري" };
 
 const VERIFICATION_LABEL: Record<Land["verification"], string> = {
   unverified: "غير محقّقة",
@@ -60,7 +60,7 @@ export default async function LandsPage() {
       </div>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/farmer-wide" poster="/video/farmer-wide.jpg" label="فيلم سودغري: مزارعٌ من السودان" />
+        <FilmPlayer base="/video/farmer-wide" poster="/video/farmer-wide.jpg" label="فيلم سوداقري: مزارعٌ من السودان" />
       </figure>
 
       {lands.length === 0 ? (

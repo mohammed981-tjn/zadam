@@ -5,7 +5,7 @@ import { PULSE_QUESTIONS, PULSE_SCALE, ar, currentPeriod, type NafirIndicators }
 import { submitPulse } from "../actions";
 
 export const metadata = {
-  title: "نبض الثقة | سودغري",
+  title: "نبض الثقة | سوداقري",
   description: "أربعة أسئلةٍ في كلّ ربع سنة عن الثقة والتعاون — لا يقرأ إجابتك أحد، وتُعلن مجمّعةً فقط.",
 };
 

@@ -26,9 +26,9 @@ function knowledgeSince(): string {
 const LONG = 1200;
 
 export const metadata = {
-  title: "أخبار سودغري | جديد المنصّة",
+  title: "أخبار سوداقري | جديد المنصّة",
   description:
-    "ما استجدّ في سودغري: بيانات أُضيفت، دراسات نُشرت، وأدوات صارت متاحة.",
+    "ما استجدّ في سوداقري: بيانات أُضيفت، دراسات نُشرت، وأدوات صارت متاحة.",
 };
 
 /*
@@ -99,12 +99,12 @@ export default async function NewsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-bold">جديد سودغري</h1>
+      <h1 className="text-2xl font-bold">جديد سوداقري</h1>
       <p className="mt-2 text-sm leading-7 text-muted">
         ما استجدّ في المنصّة: بياناتٌ أُضيفت، ودراساتٌ نُشرت، وأدواتٌ صارت
         متاحة. والأقدمُ يبقى — فالصفحةُ سجلٌّ لا واجهةُ عرض.
       </p>
-      <ShareWhatsApp path="/news" text="جديد سودغري:" className="my-3" />
+      <ShareWhatsApp path="/news" text="جديد سوداقري:" className="my-3" />
 
       {byDay.length > 0 && (
         <section aria-labelledby="fresh-knowledge" className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-5">

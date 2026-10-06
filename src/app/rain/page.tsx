@@ -9,7 +9,7 @@ import { WRB } from "@/lib/soilClasses";
 import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
-  title: "توقّع الأمطار والخرائط | سودغري",
+  title: "توقّع الأمطار والخرائط | سوداقري",
   description:
     "خريطة السودان للأيام السبعة القادمة — المطر والحرارة وحاجة الجوّ من الماء — ومعها التضاريس والتربة والأراضي الموثّقة ومسار القناة القوسية، وجدول المطر يوماً بيوم لخمس عشرة مدينة.",
 };
@@ -63,7 +63,7 @@ export default async function RainPage({
       />
 
       <figure className="my-6">
-        <FilmPlayer base="/video/rain-wide" poster="/video/rain-wide.jpg" label="فيلم سودغري: مع أوّل مطرة" />
+        <FilmPlayer base="/video/rain-wide" poster="/video/rain-wide.jpg" label="فيلم سوداقري: مع أوّل مطرة" />
       </figure>
 
       {/* ───────── الخريطة ───────── */}

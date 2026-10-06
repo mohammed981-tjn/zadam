@@ -9,7 +9,7 @@ import {
   deleteCanalImage,
 } from "./actions";
 
-export const metadata = { title: "صور القناة القوسية | سودغري" };
+export const metadata = { title: "صور القناة القوسية | سوداقري" };
 export const dynamic = "force-dynamic";
 
 /**

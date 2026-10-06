@@ -6,7 +6,7 @@ import InterestForm from "@/components/InterestForm";
 import { ReadinessBadge } from "@/components/ExportReadiness";
 
 export const metadata = {
-  title: "عروض التصدير المنشورة · سودغري",
+  title: "عروض التصدير المنشورة · سوداقري",
   description:
     "إرسالياتٌ سودانية راجعها موظّفٌ وتأكّد أنّ أدلّتها تسند ما تقوله: المنشأ بإحداثيّته، والأدلّة ببصماتها.",
 };
@@ -174,7 +174,7 @@ export default async function ExportMarketPage() {
           does not say who reads it, or when, is a form people fill in once. */}
       <p className="mt-8 rounded-xl border border-border bg-background p-4 text-sm leading-7 text-muted">
         <strong>كيف يسير الأمر:</strong> تُرسل طلب اهتمام على العرض بلا حساب —
-        اسمٌ ووسيلةُ اتّصال. يصل الطلبُ فريقَ سودغري، فنراجعه ونصلك ونعرّفك على
+        اسمٌ ووسيلةُ اتّصال. يصل الطلبُ فريقَ سوداقري، فنراجعه ونصلك ونعرّفك على
         المصدِّر ومعه <strong>ملفُّ الإرسالية</strong>: إحداثيّةُ المنشأ وسلسلةُ
         العهدة وبصماتُ الأدلّة والمستنداتُ المطلوبة لوجهتك. ولك أن تراسلنا في{" "}
         <Link href="/feedback" className="text-primary underline">

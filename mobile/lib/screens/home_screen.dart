@@ -37,9 +37,9 @@ class _Section {
 }
 
 final _sections = <_Section>[
-  _Section('الأخبار', 'جديد سودغري', Icons.newspaper, const Color(0xFF1F7A3D),
+  _Section('الأخبار', 'جديد سوداقري', Icons.newspaper, const Color(0xFF1F7A3D),
       screen: () => const NewsScreen()),
-  _Section('الأفلام', 'سودغري بالصورة', Icons.movie, const Color(0xFF9C2F2F),
+  _Section('الأفلام', 'سوداقري بالصورة', Icons.movie, const Color(0xFF9C2F2F),
       screen: () => const FilmsScreen()),
   _Section('توقّع الأمطار', 'الخريطة والجدول', Icons.umbrella,
       const Color(0xFF2A6DB0),
@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('🌾 سودغري')),
+      appBar: AppBar(title: const Text('🌾 سوداقري')),
       drawer: _Menu(onOpen: (s) {
         Navigator.of(context).pop();
         _open(s);
@@ -266,7 +266,7 @@ class _Menu extends StatelessWidget {
           children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
-              child: Text('🌾 سودغري',
+              child: Text('🌾 سوداقري',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             ),
             const Divider(),
@@ -334,7 +334,7 @@ class _NoProjects extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'نحن لا نعرض مشروعاً حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة '
-            'ميدانية، وموافقة الجهة الزراعية. سجّل اهتمامك عبر مساعد سودغري '
+            'ميدانية، وموافقة الجهة الزراعية. سجّل اهتمامك عبر مساعد سوداقري '
             'وسنبلغك أول ما يُطرح مشروع موثّق.',
             textAlign: TextAlign.center,
             style: TextStyle(

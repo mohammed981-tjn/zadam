@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * فيلمٌ من أفلام سودغري بأزرار تشغيله، يُشاهَد ولا يُحمَّل.
+ * فيلمٌ من أفلام سوداقري بأزرار تشغيله، يُشاهَد ولا يُحمَّل.
  *
  * The owner, 3 October: the films are to be watched on the platform, not
  * saved from it. The browser's own controls are kept (they are what a reader

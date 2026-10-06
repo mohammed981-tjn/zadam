@@ -7,7 +7,7 @@ export async function proxy(request: NextRequest) {
 }
 
 /**
- * أفلام سودغري تُشاهَد على المنصّة لا خارجها (المالك، 3 أكتوبر: «الفيديو لا
+ * أفلام سوداقري تُشاهَد على المنصّة لا خارجها (المالك، 3 أكتوبر: «الفيديو لا
  * يمكن تحميله من الصفحة لأيّ جهة، فينتشر حصرياً على المنصّة»).
  *
  * Nothing a browser can play can be made impossible to copy — a screen

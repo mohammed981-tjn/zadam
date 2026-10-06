@@ -6,7 +6,7 @@ import { answerShura, askShura, toggleSupport } from "../actions";
 import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
-  title: "الشورى | سودغري",
+  title: "الشورى | سوداقري",
   description: "«وأمرُهم شورى بينهم» — يُسأل القادة علناً، ويُجيبون بأسمائهم، ويبقى السؤال ظاهراً بعمره حتى يُجاب.",
 };
 
@@ -91,7 +91,7 @@ export default async function ShuraPage({
       </p>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/shura-wide" poster="/video/shura-wide.jpg" label="فيلم سودغري: الشورى" />
+        <FilmPlayer base="/video/shura-wide" poster="/video/shura-wide.jpg" label="فيلم سوداقري: الشورى" />
       </figure>
 
       {user ? (

@@ -6,7 +6,7 @@ import PublishRecordToggle from "@/components/PublishRecordToggle";
 import type { Season } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
 
-export const metadata = { title: "مواسمي | سودغري" };
+export const metadata = { title: "مواسمي | سوداقري" };
 
 export default async function SeasonsPage({
   searchParams,
@@ -45,7 +45,7 @@ export default async function SeasonsPage({
       </div>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/harvest-wide" poster="/video/harvest-wide.jpg" label="فيلم سودغري: من الحصاد إلى تقاوي العام القادم" />
+        <FilmPlayer base="/video/harvest-wide" poster="/video/harvest-wide.jpg" label="فيلم سوداقري: من الحصاد إلى تقاوي العام القادم" />
       </figure>
 
       {errorMessage && (

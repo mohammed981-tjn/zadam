@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import LandForm from "@/components/LandForm";
 
-export const metadata = { title: "سجّل أرضك | سودغري" };
+export const metadata = { title: "سجّل أرضك | سوداقري" };
 
 export default async function NewLandPage() {
   const supabase = await createClient();

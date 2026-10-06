@@ -133,11 +133,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk sudagri.apk
-          notes="آخر نسخة من تطبيق سودغري — البناء رقم ${{ github.run_number }} من ${GITHUB_SHA::7}. نزّل sudagri.apk وثبّته على هاتف أندرويد."
+          notes="آخر نسخة من تطبيق سوداقري — البناء رقم ${{ github.run_number }} من ${GITHUB_SHA::7}. نزّل sudagri.apk وثبّته على هاتف أندرويد."
           if gh release view app-latest >/dev/null 2>&1; then
             gh release edit app-latest --notes "$notes"
           else
-            gh release create app-latest --title "تطبيق سودغري — آخر نسخة" --notes "$notes" --prerelease --target "$GITHUB_SHA"
+            gh release create app-latest --title "تطبيق سوداقري — آخر نسخة" --notes "$notes" --prerelease --target "$GITHUB_SHA"
           fi
           gh release upload app-latest sudagri.apk --clobber
           echo "### APK: https://github.com/${{ github.repository }}/releases/download/app-latest/sudagri.apk" >> "$GITHUB_STEP_SUMMARY"

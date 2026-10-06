@@ -4,7 +4,7 @@ import WeekForecast from "@/components/WeekForecast";
 import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
-  title: "حاسبة الاحتياج المائي | سودغري",
+  title: "حاسبة الاحتياج المائي | سوداقري",
   description:
     "احسب كم يحتاج محصولك من الماء بمعيار FAO-56، شهراً بشهر، حسب منطقتك وطريقة الري.",
 };
@@ -22,7 +22,7 @@ export default function WaterToolPage() {
       <ShareWhatsApp path="/tools/water" text="كم يحتاج محصولك من الماء؟ حاسبة مجانية على مناخ ولايتك:" className="my-3" />
 
       <figure className="my-6">
-        <FilmPlayer base="/video/water-wide" poster="/video/water-wide.jpg" label="فيلم سودغري: ماءٌ في مكانه" />
+        <FilmPlayer base="/video/water-wide" poster="/video/water-wide.jpg" label="فيلم سوداقري: ماءٌ في مكانه" />
       </figure>
       <p className="mb-6 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
         البيانات المناخية المستخدمة{" "}

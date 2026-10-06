@@ -181,7 +181,7 @@ section("D) إجابةٌ بلغةٍ أخرى فشلٌ لا إجابة");
  * an English clause inside an Arabic sentence, and returned 200 while doing it.
  */
 ok(
-  wrongScriptReason("أنا مساعد سودغري، و悉悉ُك في منصة سودغري") !== null,
+  wrongScriptReason("أنا مساعد سوداقري، و悉悉ُك في منصة سوداقري") !== null,
   "حروفٌ صينيّةٌ داخل كلمةٍ عربيّة تُردّ",
 );
 ok(
@@ -214,7 +214,7 @@ ok(
 // وفي السلسلة: المحرّكُ المخلِّط يُعامَل كالساقط، فيُجرَّب ما بعده.
 const gibberish: Engine = {
   name: "leaky",
-  generate: async () => "أنا مساعد سودغري، و悉悉ُك في منصة سودغري",
+  generate: async () => "أنا مساعد سوداقري، و悉悉ُك في منصة سوداقري",
 };
 const afterLeak = await generateWithFallback(
   [gibberish, good("standby", "إجابةٌ عربيّةٌ سليمة")],

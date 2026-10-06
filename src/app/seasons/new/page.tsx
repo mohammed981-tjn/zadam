@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SeasonForm from "@/components/SeasonForm";
 
-export const metadata = { title: "موسم جديد | سودغري" };
+export const metadata = { title: "موسم جديد | سوداقري" };
 
 export default async function NewSeasonPage() {
   const supabase = await createClient();

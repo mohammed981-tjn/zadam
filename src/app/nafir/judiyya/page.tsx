@@ -14,7 +14,7 @@ import { openCase, verifyMediator, volunteer } from "./actions";
 import FilmPlayer from "@/components/FilmPlayer";
 
 export const metadata = {
-  title: "الجودية | سودغري",
+  title: "الجودية | سوداقري",
   description:
     "وساطة الأجاويد في نزاعات الماء والحدود والمرعى: يلتزم الطرفان بالحكم قبل سماعه، ويختاران أجاويد محايدين، ويُختم الصلح بإقرارهما — ويبقى بين أهله.",
 };
@@ -57,7 +57,7 @@ export default async function JudiyyaPage({
       </p>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/judiyya-wide" poster="/video/judiyya-wide.jpg" label="فيلم سودغري: الجودية" />
+        <FilmPlayer base="/video/judiyya-wide" poster="/video/judiyya-wide.jpg" label="فيلم سوداقري: الجودية" />
       </figure>
 
       <dl className="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-border bg-border text-center">

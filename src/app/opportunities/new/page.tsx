@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import OpportunityForm from "@/components/OpportunityForm";
 
 export const metadata = {
-  title: "ارفع فرصة زراعية | سودغري",
+  title: "ارفع فرصة زراعية | سوداقري",
 };
 
 export default async function NewOpportunityPage() {
