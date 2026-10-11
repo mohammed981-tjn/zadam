@@ -20,6 +20,8 @@
  * product exact however large the consignment.
  */
 
+import type { Locale } from "@/lib/i18n";
+
 export type OfferStatus =
   | "draft"
   | "submitted"
@@ -35,6 +37,18 @@ export const OFFER_STATUS_LABEL: Record<OfferStatus, string> = {
   withdrawn: "مسحوب",
 };
 
+export const OFFER_STATUS_LABEL_EN: Record<OfferStatus, string> = {
+  draft: "Draft",
+  submitted: "Awaiting review",
+  published: "Published",
+  rejected: "Returned for fixes",
+  withdrawn: "Withdrawn",
+};
+
+export function offerStatusLabel(status: OfferStatus, locale: Locale = "ar"): string {
+  return (locale === "en" ? OFFER_STATUS_LABEL_EN : OFFER_STATUS_LABEL)[status];
+}
+
 /**
  * What the farmer is told each state means for them — which is not the same as
  * what the state is called. "rejected" names the reviewer's act; the farmer
@@ -47,6 +61,82 @@ export const OFFER_STATUS_HELP: Record<OfferStatus, string> = {
   rejected: "عاد إليك بسببٍ مكتوب. أصلحه وأعد الإرسال.",
   withdrawn: "سحبتَه. لم يعد معروضاً.",
 };
+
+export const OFFER_STATUS_HELP_EN: Record<OfferStatus, string> = {
+  draft: "Not sent yet. You can change it as you like.",
+  submitted: "It has reached review. You can withdraw it until a decision is made.",
+  published: "Buyers can see it now.",
+  rejected: "It came back to you with a written reason. Fix it and send it again.",
+  withdrawn: "You withdrew it. It is no longer offered.",
+};
+
+export function offerStatusHelp(status: OfferStatus, locale: Locale = "ar"): string {
+  return (locale === "en" ? OFFER_STATUS_HELP_EN : OFFER_STATUS_HELP)[status];
+}
+
+/**
+ * English names for the seeded reference rows, keyed by their `code`. The
+ * tables carry Arabic only; a row added later from the admin board has no
+ * entry here and is shown in Arabic as stored.
+ */
+const REFERENCE_NAME_EN: Record<string, string> = {
+  // export_commodities
+  gum_arabic: "Gum arabic",
+  live_sheep: "Live sheep",
+  sesame: "Sesame",
+  sorghum: "Sorghum",
+  hibiscus: "Hibiscus (karkadeh)",
+  groundnut: "Groundnuts",
+  // export_destinations
+  EU: "European Union",
+  SA: "Saudi Arabia",
+  AE: "United Arab Emirates",
+  CN: "China",
+  TR: "Turkey",
+  // export_uom
+  kg: "kilogram",
+  ton: "tonne",
+  head: "head",
+  sack: "sack",
+  // export_document_types
+  phytosanitary: "Phytosanitary certificate",
+  veterinary: "Veterinary certificate",
+  origin_rex: "Statement of origin (Registered Exporter)",
+  eudr_dds: "Due-diligence statement — Deforestation Regulation",
+  saber_coc: "Certificate of conformity (SABER)",
+  lab_report: "Laboratory report",
+  packing_list: "Packing list",
+  invoice: "Commercial invoice",
+};
+
+const REFERENCE_NOTE_EN: Record<string, string> = {
+  phytosanitary: "For grains and seeds",
+  veterinary: "For live animals and meat",
+  origin_rex: "Replaced the government certificate of origin in the European Union",
+  eudr_dds: "Covers small buyers from 30 June 2027",
+  saber_coc: "Mandatory for every import into Saudi Arabia since 2018; obtained by the importer",
+  lab_report: "Aflatoxin and salmonella",
+};
+
+/** A seeded document type's note in the reader's language. */
+export function referenceNote(
+  code: string | null | undefined,
+  noteAr: string | null,
+  locale: Locale = "ar",
+): string | null {
+  if (locale !== "en" || !code || !noteAr) return noteAr;
+  return REFERENCE_NOTE_EN[code] ?? noteAr;
+}
+
+/** A reference row's name in the reader's language, falling back to the stored Arabic. */
+export function referenceName(
+  code: string | null | undefined,
+  nameAr: string,
+  locale: Locale = "ar",
+): string {
+  if (locale !== "en" || !code) return nameAr;
+  return REFERENCE_NAME_EN[code] ?? nameAr;
+}
 
 /** Four decimal places, matching `quantity numeric(16,4)`. */
 export const QUANTITY_SCALE = 4;
@@ -167,13 +257,21 @@ export interface OriginInput {
  * `export_origin_polygon_required_above_four_ha` learns nothing about what to
  * do next.
  */
-export function originProblem(origin: OriginInput): string | null {
-  if (!origin.plotRef.trim()) return "اسم القطعة أو رقمها مطلوب.";
+export function originProblem(
+  origin: OriginInput,
+  locale: Locale = "ar",
+): string | null {
+  const en = locale === "en";
+  if (!origin.plotRef.trim()) {
+    return en ? "The plot's name or number is required." : "اسم القطعة أو رقمها مطلوب.";
+  }
 
   const lat = parseDecimal(origin.latitude.replace(/^-/, ""), 6);
   const lon = parseDecimal(origin.longitude.replace(/^-/, ""), 6);
   if (lat === null || lon === null) {
-    return "الإحداثيّة مطلوبة، رقماً عشرياً — مثال: 13.183333 و30.216667.";
+    return en
+      ? "Coordinates are required, as decimal numbers — e.g. 13.183333 and 30.216667."
+      : "الإحداثيّة مطلوبة، رقماً عشرياً — مثال: 13.183333 و30.216667.";
   }
 
   const area = origin.areaHectares.trim()
@@ -181,10 +279,10 @@ export function originProblem(origin: OriginInput): string | null {
     : null;
 
   if (area !== null && area >= BigInt(40000) && !origin.boundary.trim()) {
-    return (
-      "القطعة أكبر من أربعة هكتارات، واللائحة الأوروبية تطلب لها مضلَّع حدودٍ " +
-      "كاملاً لا نقطةً واحدة."
-    );
+    return en
+      ? "The plot is larger than four hectares, and the European regulation requires a full boundary polygon for it, not a single point."
+      : "القطعة أكبر من أربعة هكتارات، واللائحة الأوروبية تطلب لها مضلَّع حدودٍ " +
+          "كاملاً لا نقطةً واحدة.";
   }
 
   return null;

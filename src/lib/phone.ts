@@ -14,11 +14,14 @@
  * would otherwise be told their number is invalid.
  */
 
+import type { Locale } from "./i18n";
+
 export interface Country {
   code: string;
   /** Country calling code, no plus. */
   dial: string;
   name: string;
+  nameEn: string;
   /** Expected length of the national number after any trunk zero is removed. */
   nationalDigits: number[];
 }
@@ -29,15 +32,15 @@ export interface Country {
  * use than one of nine when almost every visitor wants the first entry.
  */
 export const COUNTRIES: Country[] = [
-  { code: "SD", dial: "249", name: "السودان", nationalDigits: [9] },
-  { code: "EG", dial: "20", name: "مصر", nationalDigits: [10] },
-  { code: "SA", dial: "966", name: "السعودية", nationalDigits: [9] },
-  { code: "AE", dial: "971", name: "الإمارات", nationalDigits: [9] },
-  { code: "QA", dial: "974", name: "قطر", nationalDigits: [8] },
-  { code: "KW", dial: "965", name: "الكويت", nationalDigits: [8] },
-  { code: "TR", dial: "90", name: "تركيا", nationalDigits: [10] },
-  { code: "GB", dial: "44", name: "بريطانيا", nationalDigits: [10] },
-  { code: "US", dial: "1", name: "أمريكا وكندا", nationalDigits: [10] },
+  { code: "SD", dial: "249", name: "السودان", nameEn: "Sudan", nationalDigits: [9] },
+  { code: "EG", dial: "20", name: "مصر", nameEn: "Egypt", nationalDigits: [10] },
+  { code: "SA", dial: "966", name: "السعودية", nameEn: "Saudi Arabia", nationalDigits: [9] },
+  { code: "AE", dial: "971", name: "الإمارات", nameEn: "UAE", nationalDigits: [9] },
+  { code: "QA", dial: "974", name: "قطر", nameEn: "Qatar", nationalDigits: [8] },
+  { code: "KW", dial: "965", name: "الكويت", nameEn: "Kuwait", nationalDigits: [8] },
+  { code: "TR", dial: "90", name: "تركيا", nameEn: "Turkey", nationalDigits: [10] },
+  { code: "GB", dial: "44", name: "بريطانيا", nameEn: "United Kingdom", nationalDigits: [10] },
+  { code: "US", dial: "1", name: "أمريكا وكندا", nameEn: "USA and Canada", nationalDigits: [10] },
 ];
 
 const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
@@ -68,17 +71,30 @@ export type PhoneResult =
  * owner can never be reached and never log in again if they forget which digits
  * they mistyped.
  */
-export function toE164(dial: string, typed: string): PhoneResult {
+export function toE164(
+  dial: string,
+  typed: string,
+  locale: Locale = "ar",
+): PhoneResult {
+  const en = locale === "en";
   const cleanDial = toWesternDigits(dial).replace(/\D/g, "");
   const country = COUNTRIES.find((c) => c.dial === cleanDial);
   if (!country) {
-    return { ok: false, message: "اختر مفتاح الدولة من القائمة." };
+    return {
+      ok: false,
+      message: en
+        ? "Choose the country code from the list."
+        : "اختر مفتاح الدولة من القائمة.",
+    };
   }
 
   let national = toWesternDigits(typed).replace(/\D/g, "");
 
   if (national.length === 0) {
-    return { ok: false, message: "أدخل رقم جوالك." };
+    return {
+      ok: false,
+      message: en ? "Enter your mobile number." : "أدخل رقم جوالك.",
+    };
   }
 
   // A visitor may paste the full international form into the national field,
@@ -91,10 +107,12 @@ export function toE164(dial: string, typed: string): PhoneResult {
   if (national.startsWith("0")) national = national.slice(1);
 
   if (!country.nationalDigits.includes(national.length)) {
-    const expected = country.nationalDigits.join(" أو ");
+    const expected = country.nationalDigits.join(en ? " or " : " أو ");
     return {
       ok: false,
-      message: `رقم ${country.name} يتكوّن من ${expected} أرقام بعد مفتاح الدولة، وأنت أدخلت ${national.length}.`,
+      message: en
+        ? `A number in ${country.nameEn} has ${expected} digits after the country code; you entered ${national.length}.`
+        : `رقم ${country.name} يتكوّن من ${expected} أرقام بعد مفتاح الدولة، وأنت أدخلت ${national.length}.`,
     };
   }
 

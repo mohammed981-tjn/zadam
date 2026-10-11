@@ -4,24 +4,46 @@ import { createClient } from "@/lib/supabase/server";
 import Explain from "@/components/Explain";
 import MilestoneProof from "@/components/MilestoneProof";
 import { setMilestoneStatus, setContractStatus } from "@/app/contracts/actions";
-import { SERVICE_UNIT_LABEL } from "@/lib/services";
+import { SERVICE_CATALOGUE, serviceUnitLabel } from "@/lib/services";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
 import type {
   ContractMilestone,
   MilestoneEvidence,
   MilestoneStatus,
 } from "@/types/database";
 
-export const metadata = { title: "عقد خدمات | سوداقري" };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return { title: tr(locale, "عقد خدمات | سوداقري", "Service contract | Sudagri") };
+}
+
+/**
+ * A phase title in the reader's language. Titles are stored as the catalogue's
+ * Arabic name at the time of signing; one that still matches the catalogue is
+ * shown in English, anything else as written.
+ */
+function phaseTitle(title: string, locale: Locale): string {
+  if (locale !== "en") return title;
+  return SERVICE_CATALOGUE.find((d) => d.name === title)?.nameEn ?? title;
+}
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
-const STATUS: Record<MilestoneStatus, { label: string; className: string }> = {
-  pending: { label: "لم تبدأ", className: "text-muted" },
-  in_progress: { label: "جارية", className: "text-accent" },
-  submitted: { label: "سُلّمت — بانتظار الاعتماد", className: "text-accent" },
-  approved: { label: "معتمدة", className: "text-primary" },
-  paid: { label: "مدفوعة", className: "text-primary" },
-  rejected: { label: "مرفوضة", className: "text-danger" },
+const STATUS: Record<
+  MilestoneStatus,
+  { label: string; labelEn: string; className: string }
+> = {
+  pending: { label: "لم تبدأ", labelEn: "Not started", className: "text-muted" },
+  in_progress: { label: "جارية", labelEn: "In progress", className: "text-accent" },
+  submitted: {
+    label: "سُلّمت — بانتظار الاعتماد",
+    labelEn: "Submitted — awaiting approval",
+    className: "text-accent",
+  },
+  approved: { label: "معتمدة", labelEn: "Approved", className: "text-primary" },
+  paid: { label: "مدفوعة", labelEn: "Paid", className: "text-primary" },
+  rejected: { label: "مرفوضة", labelEn: "Rejected", className: "text-danger" },
 };
 
 /**
@@ -48,6 +70,14 @@ const EVIDENCE_KIND_LABEL: Record<string, string> = {
   note: "ملاحظة",
 };
 
+const EVIDENCE_KIND_LABEL_EN: Record<string, string> = {
+  photo: "Photo",
+  invoice: "Invoice",
+  inspection: "Inspection",
+  report: "Report",
+  note: "Note",
+};
+
 /**
  * The capture date, in Khartoum time.
  *
@@ -56,8 +86,8 @@ const EVIDENCE_KIND_LABEL: Record<string, string> = {
  * nine in the evening in Khartoum must not read as the following day because
  * the page was rendered in UTC.
  */
-function captured(iso: string): string {
-  return new Date(iso).toLocaleString("ar-EG", {
+function captured(iso: string, locale: Locale = "ar"): string {
+  return new Date(iso).toLocaleString(locale === "en" ? "en-GB" : "ar-EG", {
     timeZone: "Africa/Khartoum",
     year: "numeric",
     month: "long",
@@ -72,37 +102,49 @@ type MilestoneActor = "provider" | "client";
 /** حالُ العقد نفسِه — لا حالُ مراحله. */
 const CONTRACT_STATE: Record<
   string,
-  { label: string; className: string; says: string }
+  { label: string; labelEn: string; className: string; says: string; saysEn: string }
 > = {
   draft: {
     label: "مسودة",
+    labelEn: "Draft",
     className: "bg-muted/10 text-muted",
     says: "لم يُعرض بعد على مقدّم الخدمة. عدّل ما شئت — المراحل والأسعار ما تزال قابلة للتغيير، ولا عمل يبدأ.",
+    saysEn: "Not yet proposed to the service provider. Change what you like — the phases and prices can still be changed, and no work starts.",
   },
   proposed: {
     label: "معروض",
+    labelEn: "Proposed",
     className: "bg-accent/10 text-accent",
     says: "بانتظار قبول مقدّم الخدمة. والشروط تجمّدت لحظة العرض: لا يُغيَّر سعر ولا كمية ولا تُضاف مرحلة أو تُحذف، حتى يُسحب العرض.",
+    saysEn: "Waiting for the service provider to accept. The terms froze the moment it was proposed: no price or quantity changes, and no phase is added or removed, until the proposal is withdrawn.",
   },
   active: {
     label: "سارٍ",
+    labelEn: "Active",
     className: "bg-primary/10 text-primary",
     says: "وقّع الطرفان. المراحل تتحرّك الآن، والدفع يتبع الإثبات.",
+    saysEn: "Both parties have signed. The phases now move forward, and payment follows proof.",
   },
   completed: {
     label: "منجز",
+    labelEn: "Completed",
     className: "bg-primary/10 text-primary",
     says: "أُقفل بعد اعتماد كل مراحله.",
+    saysEn: "Closed after all of its phases were approved.",
   },
   cancelled: {
     label: "ملغى",
+    labelEn: "Cancelled",
     className: "bg-danger/10 text-danger",
     says: "أُلغي قبل أن يسري.",
+    saysEn: "Cancelled before it took effect.",
   },
   disputed: {
     label: "متنازع عليه",
+    labelEn: "Disputed",
     className: "bg-danger/10 text-danger",
     says: "أُعلن عليه نزاع. ولا يتحرّك بعدها إلا بقرار من الإدارة.",
+    saysEn: "A dispute has been declared. It moves only on a decision by the administrators.",
   },
 };
 
@@ -120,25 +162,27 @@ const CONTRACT_STATE: Record<
 function contractMoves(
   status: string,
   who: { isClient: boolean; isProvider: boolean; isAdmin: boolean },
+  locale: Locale = "ar",
 ): { status: string; label: string; danger?: boolean }[] {
   const { isClient, isProvider, isAdmin } = who;
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const moves: { status: string; label: string; danger?: boolean }[] = [];
 
   if (status === "draft") {
-    if (isClient) moves.push({ status: "proposed", label: "اعرضه على مقدّم الخدمة" });
-    if (isClient) moves.push({ status: "cancelled", label: "ألغِ المسودة", danger: true });
+    if (isClient) moves.push({ status: "proposed", label: t("اعرضه على مقدّم الخدمة", "Propose it to the service provider") });
+    if (isClient) moves.push({ status: "cancelled", label: t("ألغِ المسودة", "Cancel the draft"), danger: true });
   } else if (status === "proposed") {
-    if (isProvider) moves.push({ status: "active", label: "أقبل العقد" });
-    if (isClient) moves.push({ status: "draft", label: "اسحب العرض للتعديل" });
+    if (isProvider) moves.push({ status: "active", label: t("أقبل العقد", "Accept the contract") });
+    if (isClient) moves.push({ status: "draft", label: t("اسحب العرض للتعديل", "Withdraw the proposal to edit it") });
     if (isClient || isProvider) {
-      moves.push({ status: "cancelled", label: "ألغِ العقد", danger: true });
+      moves.push({ status: "cancelled", label: t("ألغِ العقد", "Cancel the contract"), danger: true });
     }
   } else if (status === "active") {
-    if (isClient) moves.push({ status: "completed", label: "أقفل العقد" });
+    if (isClient) moves.push({ status: "completed", label: t("أقفل العقد", "Close the contract") });
   } else if (status === "disputed" && isAdmin) {
-    moves.push({ status: "active", label: "أعِده سارياً" });
-    moves.push({ status: "completed", label: "أقفله منجزاً" });
-    moves.push({ status: "cancelled", label: "أقفله ملغى", danger: true });
+    moves.push({ status: "active", label: t("أعِده سارياً", "Make it active again") });
+    moves.push({ status: "completed", label: t("أقفله منجزاً", "Close it as completed") });
+    moves.push({ status: "cancelled", label: t("أقفله ملغى", "Close it as cancelled"), danger: true });
   }
 
   // والنزاعُ بابٌ لا يُغلق: من «سارٍ» ومن «منجز» ومن «ملغى» سواء، ولأيّ الطرفين.
@@ -147,7 +191,7 @@ function contractMoves(
     ["active", "completed", "cancelled"].includes(status) &&
     (isClient || isProvider)
   ) {
-    moves.push({ status: "disputed", label: "أعلن نزاعاً", danger: true });
+    moves.push({ status: "disputed", label: t("أعلن نزاعاً", "Declare a dispute"), danger: true });
   }
 
   return moves;
@@ -156,19 +200,24 @@ function contractMoves(
 const NEXT: Partial<
   Record<
     MilestoneStatus,
-    { status: string; label: string; actor: MilestoneActor }
+    { status: string; label: string; labelEn: string; actor: MilestoneActor }
   >
 > = {
-  pending: { status: "in_progress", label: "ابدأ التنفيذ", actor: "provider" },
-  in_progress: { status: "submitted", label: "سلّم المرحلة", actor: "provider" },
-  submitted: { status: "approved", label: "اعتمد المرحلة", actor: "client" },
-  approved: { status: "paid", label: "سجّل الدفع", actor: "client" },
+  pending: { status: "in_progress", label: "ابدأ التنفيذ", labelEn: "Start the work", actor: "provider" },
+  in_progress: { status: "submitted", label: "سلّم المرحلة", labelEn: "Submit the phase", actor: "provider" },
+  submitted: { status: "approved", label: "اعتمد المرحلة", labelEn: "Approve the phase", actor: "client" },
+  approved: { status: "paid", label: "سجّل الدفع", labelEn: "Record the payment", actor: "client" },
 };
 
 /** What the other side is waiting for, so a disabled screen still explains itself. */
 const WAITING_ON: Record<MilestoneActor, string> = {
   provider: "بانتظار مقدّم الخدمة",
   client: "بانتظار العميل",
+};
+
+const WAITING_ON_EN: Record<MilestoneActor, string> = {
+  provider: "Waiting for the service provider",
+  client: "Waiting for the client",
 };
 
 export default async function ContractPage({
@@ -186,6 +235,9 @@ export default async function ContractPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const en = locale === "en";
 
   // RLS returns the contract only to its two parties and to admins, so a
   // stranger's request lands on notFound rather than on a permission message
@@ -271,43 +323,46 @@ export default async function ContractPage({
     .filter((m) => m.status === "paid")
     .reduce((s, m) => s + Number(m.amount), 0);
 
-  const state = CONTRACT_STATE[contract.status] ?? {
-    label: contract.status,
-    className: "bg-muted/10 text-muted",
-    says: "",
-  };
+  const rawState = CONTRACT_STATE[contract.status];
+  const state = rawState
+    ? {
+        label: en ? rawState.labelEn : rawState.label,
+        className: rawState.className,
+        says: en ? rawState.saysEn : rawState.says,
+      }
+    : { label: contract.status, className: "bg-muted/10 text-muted", says: "" };
   const moves = contractMoves(contract.status, {
     // `isClient` أعلاه يشمل الإدارة عمداً، فيُستخرج الدورُ الصريحُ هنا حتّى
     // لا يُعرض على المدير زرُّ العميل وزرُّ الإدارة معاً على النزاع نفسه.
     isClient: contract.client_id === user.id,
     isProvider,
     isAdmin,
-  });
+  }, locale);
   // والعملُ لا يتحرّك إلّا على عقدٍ سارٍ — قاعدةٌ في الزناد، ومرآتُها هنا حتّى
   // لا يُعرض زرٌّ ترفضه القاعدة.
   const contractRunning = contract.status === "active";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{contract.title}</h1>
+      <h1 className="text-2xl font-bold" dir="auto">{contract.title}</h1>
       <p className="mt-2 text-sm text-muted">
-        مع {contract.service_providers?.name ?? "مقدّم خدمة"} —{" "}
-        {milestones.length} مراحل
+        {t("مع", "With")} <bdi>{contract.service_providers?.name ?? t("مقدّم خدمة", "a service provider")}</bdi> —{" "}
+        {milestones.length} {t("مراحل", "phases")}
       </p>
 
       <div className="mt-6 grid gap-3 rounded-2xl border border-border bg-card p-5 sm:grid-cols-3">
         <div>
-          <p className="text-xs text-muted">إجمالي العقد</p>
+          <p className="text-xs text-muted">{t("إجمالي العقد", "Contract total")}</p>
           <p className="text-lg font-bold">
             {n0(contract.total_amount)} {contract.currency}
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted">المدفوع</p>
+          <p className="text-xs text-muted">{t("المدفوع", "Paid")}</p>
           <p className="text-lg font-bold">{n0(paid)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted">المتبقّي</p>
+          <p className="text-xs text-muted">{t("المتبقّي", "Remaining")}</p>
           <p className="text-lg font-bold">
             {n0(Number(contract.total_amount) - paid)}
           </p>
@@ -336,7 +391,7 @@ export default async function ContractPage({
           </span>
           {contract.signed_at && (
             <span className="text-xs text-muted">
-              وُقّع {captured(contract.signed_at)}
+              {t("وُقّع", "Signed")} {captured(contract.signed_at, locale)}
             </span>
           )}
         </div>
@@ -365,8 +420,8 @@ export default async function ContractPage({
         ) : (
           <p className="mt-4 text-xs text-muted">
             {contract.status === "proposed"
-              ? "بانتظار الطرف الآخر — لا خطوة لك الآن."
-              : "لا خطوة متاحة لك على هذا العقد الآن."}
+              ? t("بانتظار الطرف الآخر — لا خطوة لك الآن.", "Waiting for the other party — there is nothing for you to do now.")
+              : t("لا خطوة متاحة لك على هذا العقد الآن.", "There is no step available to you on this contract right now.")}
           </p>
         )}
       </div>
@@ -374,9 +429,10 @@ export default async function ContractPage({
       <Explain tone="why">
         {/* Stated once, at the top, so nobody has to discover the rule by
             being refused by it. */}
-        الدفع يتبع الإثبات: لا تُعتمد مرحلة قبل رفع صورة أو تقرير من الموقع، ولا
-        تُعتمد قبل اعتماد المرحلة التي تسبقها، ولا يُسجَّل دفع قبل الاعتماد. هذه
-        قواعد في قاعدة البيانات نفسها — لا يمكن تجاوزها من أي شاشة.
+        {t(
+          "الدفع يتبع الإثبات: لا تُعتمد مرحلة قبل رفع صورة أو تقرير من الموقع، ولا تُعتمد قبل اعتماد المرحلة التي تسبقها، ولا يُسجَّل دفع قبل الاعتماد. هذه قواعد في قاعدة البيانات نفسها — لا يمكن تجاوزها من أي شاشة.",
+          "Payment follows proof: a phase is not approved before a photo or report from the site is uploaded, nor before the phase before it is approved, and no payment is recorded before approval. These rules live in the database itself — no screen can get around them.",
+        )}
       </Explain>
 
       <ol className="mt-6 flex flex-col gap-4">
@@ -400,28 +456,30 @@ export default async function ContractPage({
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-bold">
-                  {m.seq}. {m.title}
+                  {m.seq}. <bdi>{phaseTitle(m.title, locale)}</bdi>
                 </h2>
                 <span className={`text-sm ${STATUS[m.status].className}`}>
-                  {STATUS[m.status].label}
+                  {en ? STATUS[m.status].labelEn : STATUS[m.status].label}
                 </span>
               </div>
 
               <p className="mt-1 text-sm text-muted">
-                {n0(m.quantity)} {SERVICE_UNIT_LABEL[m.unit]} ×{" "}
+                {n0(m.quantity)} {serviceUnitLabel(m.unit, locale)} ×{" "}
                 {n0(m.unit_price)} = <strong>{n0(m.amount)}</strong>
                 {m.planned_start && (
                   <>
                     {" "}
-                    — من {m.planned_start}
-                    {m.planned_end && ` إلى ${m.planned_end}`}
+                    — {t("من", "from")} {m.planned_start}
+                    {m.planned_end && ` ${t("إلى", "to")} ${m.planned_end}`}
                   </>
                 )}
               </p>
 
               {evidence.length === 0 ? (
                 <p className="mt-2 text-xs text-muted">
-                  {m.requires_evidence ? "لا يوجد إثبات بعد" : "لا يتطلب إثباتاً"}
+                  {m.requires_evidence
+                    ? t("لا يوجد إثبات بعد", "No proof yet")
+                    : t("لا يتطلب إثباتاً", "No proof required")}
                 </p>
               ) : (
                 <ul className="mt-3 flex flex-col gap-2">
@@ -432,16 +490,16 @@ export default async function ContractPage({
                     >
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <span className="font-medium">
-                          {EVIDENCE_KIND_LABEL[p.kind] ?? p.kind}
+                          {(en ? EVIDENCE_KIND_LABEL_EN : EVIDENCE_KIND_LABEL)[p.kind] ?? p.kind}
                         </span>
-                        {p.caption && <span>{p.caption}</span>}
+                        {p.caption && <span dir="auto">{p.caption}</span>}
                       </div>
 
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted">
                         <span>
                           {p.captured_at
-                            ? `التُقط ${captured(p.captured_at)}`
-                            : "بلا تاريخ التقاط"}
+                            ? `${t("التُقط", "Taken")} ${captured(p.captured_at, locale)}`
+                            : t("بلا تاريخ التقاط", "No capture date")}
                         </span>
 
                         {/*
@@ -462,7 +520,7 @@ export default async function ContractPage({
                             {p.latitude.toFixed(4)}, {p.longitude.toFixed(4)}
                           </a>
                         ) : (
-                          <span>بلا إحداثيات</span>
+                          <span>{t("بلا إحداثيات", "No coordinates")}</span>
                         )}
                       </div>
                     </li>
@@ -478,7 +536,10 @@ export default async function ContractPage({
 
               {blocked && (
                 <p className="mt-3 text-xs text-danger">
-                  ارفع إثبات تنفيذ واحداً على الأقل قبل الاعتماد.
+                  {t(
+                    "ارفع إثبات تنفيذ واحداً على الأقل قبل الاعتماد.",
+                    "Upload at least one proof of delivery before approval.",
+                  )}
                 </p>
               )}
 
@@ -489,8 +550,12 @@ export default async function ContractPage({
                       مقدّم الخدمة» على مسودّةٍ يرسل العميلَ يطالب رجلاً لم
                       يتّفق معه بعد. */}
                   {contractRunning
-                    ? `${WAITING_ON[next.actor]}: ${next.label}.`
-                    : `المراحل لا تتحرّك ما دام العقد «${state.label}» — لا عمل قبل الاتفاق.`}
+                    ? en
+                      ? `${WAITING_ON_EN[next.actor]}: ${next.labelEn}.`
+                      : `${WAITING_ON[next.actor]}: ${next.label}.`
+                    : en
+                      ? `Phases do not move while the contract is “${state.label}” — no work before agreement.`
+                      : `المراحل لا تتحرّك ما دام العقد «${state.label}» — لا عمل قبل الاتفاق.`}
                 </p>
               )}
 
@@ -504,7 +569,7 @@ export default async function ContractPage({
                     disabled={blocked}
                     className="rounded-lg border border-primary px-4 py-1.5 text-sm font-medium text-primary disabled:opacity-40"
                   >
-                    {next.label}
+                    {en ? next.labelEn : next.label}
                   </button>
                 </form>
               )}
@@ -519,7 +584,9 @@ export default async function ContractPage({
             href={`/seasons/${contract.season_id}`}
             className="text-primary underline"
           >
-            عرض الموسم الذي بُني عليه هذا العقد ←
+            {en
+              ? "View the season this contract was built on →"
+              : "عرض الموسم الذي بُني عليه هذا العقد ←"}
           </Link>
         </p>
       )}

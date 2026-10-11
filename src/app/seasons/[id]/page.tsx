@@ -1,14 +1,22 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { CROPS, STATIONS, IRRIGATION_LABEL } from "@/lib/agronomy";
-import type { IrrigationMethod } from "@/lib/agronomy";
 import {
-  STAGE_TEMPLATES,
   disbursementDecision,
   summariseLedger,
   LEDGER_LABEL,
   type LedgerCategory,
 } from "@/lib/season";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
+import {
+  cropName as cropLabel,
+  disbursementReasonEn,
+  irrigationLabel,
+  ledgerLabel,
+  stageActivities,
+  stageName,
+  stationName as stationLabel,
+} from "@/lib/farmLabelsEn";
 import { returnBand } from "@/lib/risk";
 import type {
   LedgerEntryRow,
@@ -37,6 +45,10 @@ export default async function SeasonPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
   const { data: seasonRow } = await supabase
     .from("seasons")
@@ -79,11 +91,8 @@ export default async function SeasonPage({
   );
 
   const band = returnBand(season.crop_key);
-  const cropName =
-    CROPS.find((c) => c.key === season.crop_key)?.name ?? season.crop_key;
-  const stationName =
-    STATIONS.find((s) => s.key === season.station_key)?.name ??
-    season.station_key;
+  const cropName = cropLabel(season.crop_key, locale);
+  const stationName = stationLabel(season.station_key, locale);
 
   const gateInput = stages.map((s) => ({
     key: s.stage_key,
@@ -109,12 +118,18 @@ export default async function SeasonPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{season.name}</h1>
+      <h1 className="text-2xl font-bold" {...arText}>
+        {season.name}
+      </h1>
       <p className="mt-1 text-sm text-muted">
-        {cropName} · {stationName} · {season.feddans} فدان ·{" "}
-        {IRRIGATION_LABEL[season.irrigation as IrrigationMethod] ??
-          season.irrigation}
-        {season.location ? ` · ${season.location}` : ""}
+        {cropName} · {stationName} · {season.feddans} {t("فدان", "feddans")}{" "}
+        · {irrigationLabel(season.irrigation, locale)}
+        {season.location && (
+          <>
+            {" · "}
+            <span {...arText}>{season.location}</span>
+          </>
+        )}
       </p>
 
       {error && (
@@ -130,25 +145,39 @@ export default async function SeasonPage({
             ? Number(season.harvest_kg) / Number(season.feddans)
             : null
         }
+        locale={locale}
       />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         {[
           {
-            l: "التقدّم",
+            l: t("التقدّم", "Progress"),
             v: `${progress}%`,
-            s: `${doneCount} من ${stages.length} مراحل`,
+            s: t(
+              `${doneCount} من ${stages.length} مراحل`,
+              `${doneCount} of ${stages.length} stages`,
+            ),
           },
           {
-            l: "مصروف",
+            l: t("مصروف", "Spent"),
             v: `$${n0(summary.costs)}`,
-            s: `من ميزانية $${n0(plannedBudget)}`,
+            s: t(
+              `من ميزانية $${n0(plannedBudget)}`,
+              `of a $${n0(plannedBudget)} budget`,
+            ),
           },
-          { l: "مُفرَج عنه", v: `$${n0(released)}`, s: "بعد اعتماد المراحل" },
           {
-            l: "صافي الربح",
+            l: t("مُفرَج عنه", "Released"),
+            v: `$${n0(released)}`,
+            s: t("بعد اعتماد المراحل", "after stages are signed off"),
+          },
+          {
+            l: t("صافي الربح", "Net profit"),
             v: `$${n0(summary.profit)}`,
-            s: `$${summary.profitPerFeddan.toFixed(0)} للفدان`,
+            s: t(
+              `$${summary.profitPerFeddan.toFixed(0)} للفدان`,
+              `$${summary.profitPerFeddan.toFixed(0)} per feddan`,
+            ),
           },
         ].map((c) => (
           <div
@@ -163,12 +192,18 @@ export default async function SeasonPage({
       </div>
 
       <section className="mt-10">
-        <h2 className="mb-4 text-lg font-bold">خط الموسم</h2>
+        <h2 className="mb-4 text-lg font-bold">
+          {t("خط الموسم", "Season timeline")}
+        </h2>
         <ol className="flex flex-col gap-4">
           {stages.map((s, i) => {
             const decision = disbursementDecision(gateInput, i);
             const ev = evidenceFor(s.id);
-            const template = STAGE_TEMPLATES[s.stage_key];
+            const activities = stageActivities(s.stage_key, locale);
+            const reason =
+              locale === "en"
+                ? disbursementReasonEn(gateInput, i)
+                : decision.reason;
 
             return (
               <li
@@ -181,30 +216,33 @@ export default async function SeasonPage({
                   <div>
                     <h3 className="font-bold">
                       {s.completed ? "✅ " : ""}
-                      {template?.name ?? s.stage_key}
+                      {stageName(s.stage_key, locale)}
                     </h3>
                     <p className="text-xs text-muted">
-                      {s.planned_start} ← {s.planned_end}
+                      {s.planned_start} {locale === "en" ? "→" : "←"}{" "}
+                      {s.planned_end}
                       {Number(s.planned_water_m3) > 0
-                        ? ` · ${n0(Number(s.planned_water_m3))} م³`
+                        ? ` · ${n0(Number(s.planned_water_m3))} ${t("م³", "m³")}`
                         : ""}
                     </p>
                   </div>
-                  <div className="text-left">
+                  <div className="text-end">
                     <p className="font-bold">${n0(Number(s.budget))}</p>
                     <p
                       className={`text-xs font-medium ${
                         decision.released ? "text-primary" : "text-accent"
                       }`}
                     >
-                      {decision.released ? "مُفرَج عنه" : "محجوز"}
+                      {decision.released
+                        ? t("مُفرَج عنه", "Released")
+                        : t("محجوز", "Held")}
                     </p>
                   </div>
                 </div>
 
-                {template && (
-                  <ul className="mt-3 list-disc space-y-1 pr-5 text-xs text-muted">
-                    {template.activities.map((a) => (
+                {activities.length > 0 && (
+                  <ul className="mt-3 list-disc space-y-1 ps-5 text-xs text-muted">
+                    {activities.map((a) => (
                       <li key={a}>{a}</li>
                     ))}
                   </ul>
@@ -212,7 +250,7 @@ export default async function SeasonPage({
 
                 {!decision.released && (
                   <p className="mt-3 rounded-lg bg-background px-3 py-2 text-xs text-muted">
-                    {decision.reason}
+                    {reason}
                   </p>
                 )}
 
@@ -222,6 +260,7 @@ export default async function SeasonPage({
                       <li
                         key={e.id}
                         className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary"
+                        {...arText}
                       >
                         {e.caption}
                       </li>
@@ -245,7 +284,7 @@ export default async function SeasonPage({
                           type="submit"
                           className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
                         >
-                          اعتمد المرحلة
+                          {t("اعتمد المرحلة", "Sign off stage")}
                         </button>
                       </form>
                     )}
@@ -258,22 +297,28 @@ export default async function SeasonPage({
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-4 text-lg font-bold">دفتر الحسابات</h2>
+        <h2 className="mb-4 text-lg font-bold">
+          {t("دفتر الحسابات", "Ledger")}
+        </h2>
 
         {summary.byCategory.length > 0 && (
           <div className="mb-4 overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">
-              <thead className="bg-card text-right">
+              <thead className="bg-card text-start">
                 <tr>
-                  <th className="px-4 py-3">البند</th>
-                  <th className="px-4 py-3">المبلغ</th>
-                  <th className="px-4 py-3">النسبة من التكلفة</th>
+                  <th className="px-4 py-3">{t("البند", "Item")}</th>
+                  <th className="px-4 py-3">{t("المبلغ", "Amount")}</th>
+                  <th className="px-4 py-3">
+                    {t("النسبة من التكلفة", "Share of cost")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {summary.byCategory.map((c) => (
                   <tr key={c.category} className="border-t border-border">
-                    <td className="px-4 py-2">{c.label}</td>
+                    <td className="px-4 py-2">
+                      {ledgerLabel(c.category, locale)}
+                    </td>
                     <td className="px-4 py-2">${n0(c.amount)}</td>
                     <td className="px-4 py-2">
                       {summary.costs > 0
@@ -284,7 +329,7 @@ export default async function SeasonPage({
                   </tr>
                 ))}
                 <tr className="border-t border-border bg-card font-bold">
-                  <td className="px-4 py-2">الإيراد</td>
+                  <td className="px-4 py-2">{t("الإيراد", "Revenue")}</td>
                   <td className="px-4 py-2">${n0(summary.revenue)}</td>
                   <td className="px-4 py-2">—</td>
                 </tr>
@@ -300,17 +345,17 @@ export default async function SeasonPage({
           >
             <input type="hidden" name="season_id" value={season.id} />
             <label className="flex flex-col gap-1 text-xs">
-              البند
+              {t("البند", "Item")}
               <select name="category" className={field} defaultValue="seeds">
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {LEDGER_LABEL[c]}
+                    {ledgerLabel(c, locale)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="flex flex-col gap-1 text-xs">
-              المبلغ ($)
+              {t("المبلغ ($)", "Amount ($)")}
               <input
                 type="number"
                 name="amount"
@@ -321,25 +366,31 @@ export default async function SeasonPage({
               />
             </label>
             <label className="flex flex-col gap-1 text-xs">
-              الوصف
+              {t("الوصف", "Description")}
               <input name="description" className={field} />
             </label>
             <button
               type="submit"
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
-              أضف قيداً
+              {t("أضف قيداً", "Add entry")}
             </button>
           </form>
         )}
 
         {band && (
           <p className="mt-4 text-sm text-muted">
-            للمقارنة: الوسيط المتوقع لهذا المحصول{" "}
+            {t(
+              "للمقارنة: الوسيط المتوقع لهذا المحصول",
+              "For comparison: the expected median for this crop is",
+            )}{" "}
             <span className="font-bold text-foreground">
               ${band.p50.toFixed(0)}
             </span>{" "}
-            صافي ربح للفدان، ونتيجتك حتى الآن{" "}
+            {t(
+              "صافي ربح للفدان، ونتيجتك حتى الآن",
+              "net profit per feddan, and your result so far is",
+            )}{" "}
             <span className="font-bold text-foreground">
               ${summary.profitPerFeddan.toFixed(0)}
             </span>
@@ -355,7 +406,10 @@ export default async function SeasonPage({
             <input type="hidden" name="season_id" value={season.id} />
             <label className="mb-3 block max-w-xs text-sm">
               <span className="mb-1 block font-medium">
-                الوزن المحصود (كجم) — اختياري
+                {t(
+                  "الوزن المحصود (كجم) — اختياري",
+                  "Harvested weight (kg) — optional",
+                )}
               </span>
               <input
                 name="harvest_kg"
@@ -364,18 +418,25 @@ export default async function SeasonPage({
                 min={0}
                 step="any"
                 className={field + " w-full"}
-                placeholder={`مثلاً: ${n0(season.feddans * 250)}`}
+                placeholder={t(
+                  `مثلاً: ${n0(season.feddans * 250)}`,
+                  `e.g. ${n0(season.feddans * 250)}`,
+                )}
               />
               <span className="mt-1 block text-xs text-muted">
-                يُقسَم على {season.feddans} فدان ويُقارَن بالمتوسّط الوطني. لا يدخل
-                في أيّ درجة.
+                {locale === "en"
+                  ? `Divided by ${season.feddans} feddans and compared with the national average. It does not count towards any score.`
+                  : `يُقسَم على ${season.feddans} فدان ويُقارَن بالمتوسّط الوطني. لا يدخل في أيّ درجة.`}
               </span>
             </label>
             <button
               type="submit"
               className="rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground hover:opacity-90"
             >
-              أغلق الموسم واحتسبه في سجلي
+              {t(
+                "أغلق الموسم واحتسبه في سجلي",
+                "Close the season and count it in my record",
+              )}
             </button>
           </form>
         )}

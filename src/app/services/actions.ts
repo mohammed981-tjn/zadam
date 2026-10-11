@@ -3,11 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 import {
   SERVICE_BY_KEY,
   type ServiceKey,
   type ServiceKind,
   SERVICE_KIND_LABEL,
+  serviceName,
 } from "@/lib/services";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -35,13 +38,15 @@ export async function registerProvider(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const name = str(formData, "name");
   const kind = str(formData, "kind") as ServiceKind;
 
-  if (!name) return { ok: false, message: "اسم الجهة مطلوب." };
+  if (!name) return { ok: false, message: t("اسم الجهة مطلوب.", "The organisation's name is required.") };
   if (!(kind in SERVICE_KIND_LABEL)) {
-    return { ok: false, message: "اختر نوع النشاط." };
+    return { ok: false, message: t("اختر نوع النشاط.", "Choose the type of activity.") };
   }
 
   // Regions arrive as one comma-separated field because asking a visitor to add
@@ -63,14 +68,16 @@ export async function registerProvider(
   });
 
   if (error) {
-    return { ok: false, message: `تعذّر التسجيل: ${error.message}` };
+    return { ok: false, message: `${t("تعذّر التسجيل:", "Registration failed:")} ${error.message}` };
   }
 
   revalidatePath("/services");
   return {
     ok: true,
-    message:
+    message: t(
       "تم تسجيل جهتك. ستظهر في الكتالوج بعد توثيقها من الإدارة — سنُشعرك عند التوثيق.",
+      "Your organisation is registered. It will appear in the catalogue once the administrators verify it — we will let you know when they do.",
+    ),
   };
 }
 
@@ -93,16 +100,19 @@ export async function addServiceOffer(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
   const providerId = str(formData, "provider_id");
   const serviceKey = str(formData, "service_key") as ServiceKey;
   const definition = SERVICE_BY_KEY[serviceKey];
 
-  if (!providerId) return { ok: false, message: "الجهة غير محددة." };
-  if (!definition) return { ok: false, message: "خدمة غير معروفة." };
+  if (!providerId) return { ok: false, message: t("الجهة غير محددة.", "No organisation selected.") };
+  if (!definition) return { ok: false, message: t("خدمة غير معروفة.", "Unknown service.") };
 
   const price = Number(formData.get("price_per_unit"));
   if (!Number.isFinite(price) || price < 0) {
-    return { ok: false, message: "أدخل سعراً صحيحاً." };
+    return { ok: false, message: t("أدخل سعراً صحيحاً.", "Enter a valid price.") };
   }
 
   const leadTime = Number(formData.get("lead_time_days")) || 0;
@@ -119,12 +129,18 @@ export async function addServiceOffer(
   });
 
   if (error) {
-    return { ok: false, message: `تعذّر إضافة الخدمة: ${error.message}` };
+    return { ok: false, message: `${t("تعذّر إضافة الخدمة:", "Could not add the service:")} ${error.message}` };
   }
 
   revalidatePath("/services");
   revalidatePath("/services/mine");
-  return { ok: true, message: `أُضيفت «${definition.name}» إلى عروضك.` };
+  return {
+    ok: true,
+    message: t(
+      `أُضيفت «${definition.name}» إلى عروضك.`,
+      `“${serviceName(serviceKey, "en")}” has been added to your offers.`,
+    ),
+  };
 }
 
 /**
@@ -150,6 +166,8 @@ export async function setProviderPaused(formData: FormData) {
   if (!id) redirect("/services/mine");
 
   const paused = formData.get("paused") === "true";
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const { data, error } = await supabase
     .from("service_providers")
@@ -163,13 +181,16 @@ export async function setProviderPaused(formData: FormData) {
   if (error) {
     console.error("services: pause toggle failed", error);
     redirect(
-      `/services/mine?error=${encodeURIComponent("تعذّر تنفيذ العملية. حاول مرة أخرى.")}`,
+      `/services/mine?error=${encodeURIComponent(t("تعذّر تنفيذ العملية. حاول مرة أخرى.", "The action could not be completed. Please try again."))}`,
     );
   }
   if (!data?.length) {
     redirect(
       `/services/mine?error=${encodeURIComponent(
-        "لم يتغيّر شيء — تأكّد أنك ما زلت مسجّل الدخول بالحساب المالك للجهة.",
+        t(
+          "لم يتغيّر شيء — تأكّد أنك ما زلت مسجّل الدخول بالحساب المالك للجهة.",
+          "Nothing changed — make sure you are still signed in with the account that owns this organisation.",
+        ),
       )}`,
     );
   }
@@ -177,8 +198,8 @@ export async function setProviderPaused(formData: FormData) {
   redirect(
     `/services/mine?message=${encodeURIComponent(
       paused
-        ? "أُخفيت جهتك من الدليل. تظهر لك وحدك حتى تعيد تفعيلها."
-        : "عادت جهتك إلى الدليل.",
+        ? t("أُخفيت جهتك من الدليل. تظهر لك وحدك حتى تعيد تفعيلها.", "Your organisation is hidden from the directory. Only you can see it until you switch it back on.")
+        : t("عادت جهتك إلى الدليل.", "Your organisation is back in the directory."),
     )}`,
   );
 }

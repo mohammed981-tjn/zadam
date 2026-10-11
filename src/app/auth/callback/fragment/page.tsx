@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 /**
  * The half of the callback a server cannot do.
@@ -27,6 +29,8 @@ import { createClient } from "@/lib/supabase/client";
 export default function AuthFragmentPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   useEffect(() => {
     /*
@@ -39,6 +43,7 @@ export default function AuthFragmentPage() {
      * instead of splitting them across a synchronous half and an async half.
      */
     let cancelled = false;
+    const say = (ar: string, en: string) => tr(locale, ar, en);
 
     async function complete() {
       const hash = window.location.hash.startsWith("#")
@@ -53,7 +58,12 @@ export default function AuthFragmentPage() {
 
       if (described) {
         if (!cancelled) {
-          setError("انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.");
+          setError(
+            say(
+              "انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.",
+              "The link has expired or has already been used. Request a new one.",
+            ),
+          );
         }
         return;
       }
@@ -61,7 +71,10 @@ export default function AuthFragmentPage() {
       if (!accessToken || !refreshToken) {
         if (!cancelled) {
           setError(
-            "الرابط لا يحمل بيانات صالحة. اطلب رابطاً جديداً، وافتحه كاملاً كما وصلك.",
+            say(
+              "الرابط لا يحمل بيانات صالحة. اطلب رابطاً جديداً، وافتحه كاملاً كما وصلك.",
+              "The link does not carry valid data. Request a new one, and open it in full exactly as you received it.",
+            ),
           );
         }
         return;
@@ -76,7 +89,12 @@ export default function AuthFragmentPage() {
       if (cancelled) return;
 
       if (sessionError) {
-        setError("تعذّر إكمال الرابط. اطلب رابطاً جديداً.");
+        setError(
+          say(
+            "تعذّر إكمال الرابط. اطلب رابطاً جديداً.",
+            "The link could not be completed. Request a new one.",
+          ),
+        );
         return;
       }
 
@@ -90,23 +108,23 @@ export default function AuthFragmentPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, locale]);
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16 text-center">
       {error ? (
         <>
-          <h1 className="mb-2 text-xl font-bold">الرابط لم يعد صالحاً</h1>
+          <h1 className="mb-2 text-xl font-bold">{t("الرابط لم يعد صالحاً", "This link is no longer valid")}</h1>
           <p className="mb-6 text-sm leading-relaxed text-muted">{error}</p>
           <Link
             href="/reset"
             className="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
           >
-            اطلب رابطاً جديداً
+            {t("اطلب رابطاً جديداً", "Request a new link")}
           </Link>
         </>
       ) : (
-        <p className="text-sm text-muted">جارٍ التحقّق من الرابط…</p>
+        <p className="text-sm text-muted">{t("جارٍ التحقّق من الرابط…", "Checking the link…")}</p>
       )}
     </div>
   );

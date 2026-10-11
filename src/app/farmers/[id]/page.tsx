@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CROPS } from "@/lib/agronomy";
 import { computeTrust, type SeasonRecord } from "@/lib/trust";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -52,6 +54,28 @@ const TENURE_LABEL: Record<string, string> = {
   unspecified: "غير محدّدة",
 };
 
+const TENURE_LABEL_EN: Record<string, string> = {
+  owned: "Owned",
+  leased: "Leased",
+  communal: "Communal",
+  unspecified: "Unspecified",
+};
+
+const CROP_EN: Record<string, string> = {
+  wheat: "Wheat",
+  sorghum: "Sorghum",
+  maize: "Maize",
+  cotton: "Cotton",
+  groundnut: "Groundnut",
+  sesame: "Sesame",
+  alfalfa: "Alfalfa",
+  onion: "Onion",
+  tomato: "Tomato",
+  sugarcane: "Sugarcane",
+  millet: "Millet",
+  dates: "Date palm",
+};
+
 export default async function FarmerPage({
   params,
 }: {
@@ -59,6 +83,10 @@ export default async function FarmerPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const locale = await getLocale();
+  const en = locale === "en";
+  const t = (ar: string, english: string) => tr(locale, ar, english);
+  const arText = en ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
   /*
    * The record is read with the service-role client, and the reason is the gap
@@ -147,14 +175,15 @@ export default async function FarmerPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{profile.full_name}</h1>
+      <h1 className="text-2xl font-bold" {...arText}>{profile.full_name}</h1>
       <p className="mt-1 text-sm text-muted">
         {profile.country ? `${profile.country} · ` : ""}
-        منضمّ منذ {new Date(profile.created_at).toLocaleDateString("ar-EG")}
+        {t("منضمّ منذ", "Member since")}{" "}
+        {new Date(profile.created_at).toLocaleDateString(en ? "en-GB" : "ar-EG")}
       </p>
 
       <div className="mt-6 rounded-2xl border border-border bg-card p-6">
-        <p className="text-xs text-muted">مؤشر الثقة</p>
+        <p className="text-xs text-muted">{t("مؤشر الثقة", "Trust score")}</p>
         {/*
           A score is a judgement, and a judgement drawn from a record we failed
           to read is a judgement drawn from nothing. When the record is
@@ -165,8 +194,10 @@ export default async function FarmerPage({
           <>
             <p className="mt-1 text-3xl font-black text-muted">—</p>
             <p className="mt-2 text-sm text-muted">
-              لا يمكن حساب المؤشر قبل قراءة السجلّ. وغياب الرقم هنا لا يعني أن
-              السجلّ خالٍ.
+              {t(
+                "لا يمكن حساب المؤشر قبل قراءة السجلّ. وغياب الرقم هنا لا يعني أن السجلّ خالٍ.",
+                "The score cannot be calculated before the record is read. A missing number here does not mean the record is empty.",
+              )}
             </p>
           </>
         ) : (
@@ -179,10 +210,10 @@ export default async function FarmerPage({
                 <span className="text-lg text-muted">/100</span>
               </p>
             )}
-            <p className={`text-sm font-medium ${bandTone}`}>
+            <p className={`text-sm font-medium ${bandTone}`} {...arText}>
               {trust.bandLabel}
             </p>
-            <p className="mt-2 text-sm text-muted">{trust.summary}</p>
+            <p className="mt-2 text-sm text-muted" {...arText}>{trust.summary}</p>
           </>
         )}
 
@@ -191,12 +222,12 @@ export default async function FarmerPage({
             {trust.factors.map((f) => (
               <div key={f.key}>
                 <div className="flex items-baseline justify-between text-sm">
-                  <span className="font-medium">{f.label}</span>
+                  <span className="font-medium" {...arText}>{f.label}</span>
                   {/* «—» لا صفر: الصفرُ حكمٌ، والشرطةُ اعترافٌ بأنّ لا سجلَّ
                       يُحكم به. وشريطٌ فارغٌ يُقرأ صفراً، فلا شريطَ أصلاً. */}
                   <span className="text-xs text-muted">
                     {f.score === null
-                      ? `لا يُقاس · ${f.weight}`
+                      ? `${t("لا يُقاس", "Not measured")} · ${f.weight}`
                       : `${Math.round(f.score * f.weight)}/${f.weight}`}
                   </span>
                 </div>
@@ -208,44 +239,55 @@ export default async function FarmerPage({
                     />
                   </div>
                 )}
-                <p className="mt-1 text-xs text-muted">{f.detail}</p>
+                <p className="mt-1 text-xs text-muted" {...arText}>{f.detail}</p>
               </div>
             ))}
           </div>
         )}
 
         <p className="mt-5 border-t border-border pt-4 text-xs leading-relaxed text-muted">
-          كل رقم أعلاه محسوب من مواسم سجّلها هذا المنفّذ ووثّق مراحلها بأدلة —
-          لا من تقييم كتبه عن نفسه ولا من انطباعات. وتفاصيل مصروفاته تبقى خاصة
-          به: ما يظهر هنا مجاميع فقط.
+          {t(
+            "كل رقم أعلاه محسوب من مواسم سجّلها هذا المنفّذ ووثّق مراحلها بأدلة — لا من تقييم كتبه عن نفسه ولا من انطباعات. وتفاصيل مصروفاته تبقى خاصة به: ما يظهر هنا مجاميع فقط.",
+            "Every figure above is calculated from seasons this operator recorded and backed with evidence at each stage — not from a self-assessment or impressions. Their spending details stay private: only totals are shown here.",
+          )}
         </p>
       </div>
 
       {lands.length > 0 && (
         <section className="mt-8">
           <h2 className="mb-2 text-lg font-bold">
-            الأرض الموثّقة ({lands.length})
+            {t("الأرض الموثّقة", "Verified land")} ({lands.length})
           </h2>
           <p className="mb-4 text-xs leading-relaxed text-muted">
-            راجع موظّفٌ مستنداتِ كلّ قطعةٍ هنا وأثبت أنّها لصاحب هذا السجل. وما
-            لم يُوثَّق لا يظهر — <strong>لا لأنّه غيرُ موجود</strong>، بل لأنّ
-            المنصّة لا تشهد بما لم تفحصه.
+            {t(
+              "راجع موظّفٌ مستنداتِ كلّ قطعةٍ هنا وأثبت أنّها لصاحب هذا السجل. وما لم يُوثَّق لا يظهر —",
+              "A staff member reviewed the documents for each plot here and confirmed it belongs to the owner of this record. Anything not verified is not shown —",
+            )}{" "}
+            <strong>{t("لا لأنّه غيرُ موجود", "not because it doesn't exist")}</strong>
+            {t(
+              "، بل لأنّ المنصّة لا تشهد بما لم تفحصه.",
+              ", but because the platform does not vouch for what it has not checked.",
+            )}
           </p>
           <ul className="flex flex-col gap-3">
             {lands.map((l) => (
               <li key={l.id} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-medium">{l.name}</span>
+                  <span className="font-medium" {...arText}>{l.name}</span>
                   <span className="text-xs text-muted">
-                    {TENURE_LABEL[l.tenure] ?? l.tenure}
+                    {(en ? TENURE_LABEL_EN : TENURE_LABEL)[l.tenure] ?? l.tenure}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-muted">
-                  {[l.state, l.locality].filter(Boolean).join(" · ") || "—"}
-                  {l.feddans ? ` · ${n0(Number(l.feddans))} فدان` : ""}
+                  <span {...arText}>
+                    {[l.state, l.locality].filter(Boolean).join(" · ") || "—"}
+                  </span>
+                  {l.feddans
+                    ? ` · ${n0(Number(l.feddans))} ${t("فدان", "feddans")}`
+                    : ""}
                 </p>
                 {l.verification_note && (
-                  <p className="mt-1 text-xs text-muted">{l.verification_note}</p>
+                  <p className="mt-1 text-xs text-muted" {...arText}>{l.verification_note}</p>
                 )}
               </li>
             ))}
@@ -258,37 +300,43 @@ export default async function FarmerPage({
 
       <section className="mt-8">
         <h2 className="mb-4 text-lg font-bold">
-          المواسم{recordUnavailable ? "" : ` (${seasons.length})`}
+          {t("المواسم", "Seasons")}{recordUnavailable ? "" : ` (${seasons.length})`}
         </h2>
         {recordUnavailable ? (
           <p className="rounded-2xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">
-            تعذّر قراءة سجلّ المواسم الآن — <strong>والخلل عندنا</strong>، فلا
-            تقرأ هذا على أنه سجلّ فارغ. أعد المحاولة بعد قليل.
+            {t("تعذّر قراءة سجلّ المواسم الآن —", "We couldn't read the season record just now —")}{" "}
+            <strong>{t("والخلل عندنا", "the fault is ours")}</strong>
+            {t(
+              "، فلا تقرأ هذا على أنه سجلّ فارغ. أعد المحاولة بعد قليل.",
+              ", so don't read this as an empty record. Try again in a moment.",
+            )}
           </p>
         ) : seasons.length === 0 ? (
           <p className="rounded-2xl border border-border bg-card p-5 text-sm text-muted">
-            لا توجد مواسم مسجّلة لهذا المنفّذ.
+            {t("لا توجد مواسم مسجّلة لهذا المنفّذ.", "This operator has no recorded seasons.")}
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
             {seasons.map((s) => {
               const crop =
-                CROPS.find((c) => c.key === s.crop_key)?.name ?? s.crop_key;
+                (en ? CROP_EN[s.crop_key] : undefined) ??
+                CROPS.find((c) => c.key === s.crop_key)?.name ??
+                s.crop_key;
               return (
                 <li
                   key={s.season_id}
                   className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-5"
                 >
                   <div>
-                    <p className="font-medium">{s.name}</p>
+                    <p className="font-medium" {...arText}>{s.name}</p>
                     <p className="text-sm text-muted">
-                      {crop} · {n0(Number(s.feddans))} فدان · زراعة{" "}
-                      {s.planting_date}
+                      {crop} · {n0(Number(s.feddans))} {t("فدان", "feddans")} ·{" "}
+                      {t("زراعة", "planted")} {s.planting_date}
                     </p>
                   </div>
-                  <div className="text-left text-sm">
+                  <div className="text-end text-sm">
                     <p className="text-muted">
-                      {s.stages_completed}/{s.stages_total} مراحل
+                      {s.stages_completed}/{s.stages_total} {t("مراحل", "stages")}
                     </p>
                     <span
                       className={`text-xs font-medium ${
@@ -300,10 +348,10 @@ export default async function FarmerPage({
                       }`}
                     >
                       {s.status === "completed"
-                        ? "مكتمل"
+                        ? t("مكتمل", "Completed")
                         : s.status === "abandoned"
-                          ? "متوقف"
-                          : "جارٍ"}
+                          ? t("متوقف", "Stopped")
+                          : t("جارٍ", "In progress")}
                     </span>
                   </div>
                 </li>

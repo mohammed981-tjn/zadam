@@ -3,11 +3,15 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { INVESTMENT_LIVE } from "@/lib/config";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export async function invest(formData: FormData) {
   const projectId = String(formData.get("project_id") ?? "");
   const slug = String(formData.get("slug") ?? "");
   const shares = Number(formData.get("shares") ?? 0);
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   /*
    * The price is deliberately NOT read from the request.
    *
@@ -27,7 +31,10 @@ export async function invest(formData: FormData) {
   if (!INVESTMENT_LIVE) {
     redirect(
       `/projects/${slug}?error=${encodeURIComponent(
-        "الاستثمار غير مفتوح بعد. سجّل اهتمامك وسنبلغك فور إتاحته.",
+        t(
+          "الاستثمار غير مفتوح بعد. سجّل اهتمامك وسنبلغك فور إتاحته.",
+          "Investment is not open yet. Register your interest and we will let you know as soon as it opens.",
+        ),
       )}`,
     );
   }
@@ -39,13 +46,13 @@ export async function invest(formData: FormData) {
 
   if (!user) {
     redirect(
-      `/login?error=${encodeURIComponent("سجّل الدخول أولاً للاستثمار")}`,
+      `/login?error=${encodeURIComponent(t("سجّل الدخول أولاً للاستثمار", "Sign in first to invest"))}`,
     );
   }
 
   if (!Number.isFinite(shares) || shares < 1) {
     redirect(
-      `/projects/${slug}?error=${encodeURIComponent("عدد الحصص غير صالح")}`,
+      `/projects/${slug}?error=${encodeURIComponent(t("عدد الحصص غير صالح", "Invalid number of shares"))}`,
     );
   }
 
@@ -58,7 +65,7 @@ export async function invest(formData: FormData) {
 
   if (!projectRow) {
     redirect(
-      `/projects/${slug}?error=${encodeURIComponent("الفرصة غير موجودة.")}`,
+      `/projects/${slug}?error=${encodeURIComponent(t("الفرصة غير موجودة.", "This opportunity does not exist."))}`,
     );
   }
 
@@ -73,7 +80,10 @@ export async function invest(formData: FormData) {
   if (project.is_demo) {
     redirect(
       `/projects/${slug}?error=${encodeURIComponent(
-        "هذا نموذج توضيحي وليس فرصة استثمار حقيقية.",
+        t(
+          "هذا نموذج توضيحي وليس فرصة استثمار حقيقية.",
+          "This is an illustrative example, not a real investment opportunity.",
+        ),
       )}`,
     );
   }
@@ -83,7 +93,10 @@ export async function invest(formData: FormData) {
   if (project.status !== "open") {
     redirect(
       `/projects/${slug}?error=${encodeURIComponent(
-        "هذه الفرصة ليست مفتوحة للاستثمار حالياً.",
+        t(
+          "هذه الفرصة ليست مفتوحة للاستثمار حالياً.",
+          "This opportunity is not open for investment right now.",
+        ),
       )}`,
     );
   }
@@ -106,14 +119,19 @@ export async function invest(formData: FormData) {
   if (remaining <= 0) {
     redirect(
       `/projects/${slug}?error=${encodeURIComponent(
-        "اكتمل حجز حصص هذه الفرصة.",
+        t(
+          "اكتمل حجز حصص هذه الفرصة.",
+          "All shares in this opportunity have been taken.",
+        ),
       )}`,
     );
   }
   if (shares > remaining) {
     redirect(
       `/projects/${slug}?error=${encodeURIComponent(
-        `المتبقّي ${remaining} حصة فقط — اطلب هذا العدد أو أقل.`,
+        locale === "en"
+          ? `Only ${remaining} shares remain — request that many or fewer.`
+          : `المتبقّي ${remaining} حصة فقط — اطلب هذا العدد أو أقل.`,
       )}`,
     );
   }

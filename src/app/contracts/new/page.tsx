@@ -5,8 +5,13 @@ import ContractBuilder, {
   type BuilderOffer,
   type BuilderSeason,
 } from "@/components/ContractBuilder";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
-export const metadata = { title: "عقد خدمات جديد | سوداقري" };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return { title: tr(locale, "عقد خدمات جديد | سوداقري", "New service contract | Sudagri") };
+}
 
 export default async function NewContractPage({
   searchParams,
@@ -25,6 +30,8 @@ export default async function NewContractPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   // RLS limits seasons to the caller's own, and services to those of verified
   // active providers, so neither query needs a filter for it.
@@ -54,18 +61,19 @@ export default async function NewContractPage({
     }[]
   ).map((o) => ({
     provider_id: o.provider_id,
-    provider_name: o.service_providers?.name ?? "مزوّد",
+    provider_name: o.service_providers?.name ?? t("مزوّد", "Provider"),
     service_key: o.service_key,
     price_per_unit: Number(o.price_per_unit),
   }));
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-bold">عقد خدمات جديد</h1>
+      <h1 className="text-2xl font-bold">{t("عقد خدمات جديد", "New service contract")}</h1>
       <p className="mb-8 mt-2 text-sm leading-relaxed text-muted">
-        اختر موسمك والخدمات التي تحتاجها، وسيولّد النظام مراحل العقد بتواريخها
-        ومبالغها — محسوبة من موسمك لا مكتوبة يدوياً. كل مرحلة تُدفع بعد إثبات
-        تنفيذها.
+        {t(
+          "اختر موسمك والخدمات التي تحتاجها، وسيولّد النظام مراحل العقد بتواريخها ومبالغها — محسوبة من موسمك لا مكتوبة يدوياً. كل مرحلة تُدفع بعد إثبات تنفيذها.",
+          "Choose your season and the services you need, and the system will generate the contract's phases with their dates and amounts — computed from your season, not typed in by hand. Each phase is paid after proof that it was delivered.",
+        )}
       </p>
 
       <ContractBuilder

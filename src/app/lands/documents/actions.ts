@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { sanitisePhotoMetadata } from "@/lib/exif";
 import { evidenceFileExists } from "@/lib/evidenceFile";
 import { LAND_DOCUMENT_KINDS } from "@/lib/landDocuments";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 // القائمةُ نفسُها هي مصدرُ الحقيقة، ومنها تُشتقّ المفاتيحُ المقبولة — فلا
 // تفترقان. وهي في `lib/` لا هنا: وحدةُ `"use server"` لا تُصدّر إلّا دوالَّ
@@ -31,14 +33,17 @@ export async function addLandDocument(args: {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
   if (!args.landId || !args.storagePath) {
-    return { ok: false, message: "بيانات المستند ناقصة." };
+    return { ok: false, message: t("بيانات المستند ناقصة.", "The document details are incomplete.") };
   }
   if (!KINDS.includes(args.kind)) {
-    return { ok: false, message: "نوع مستند غير معروف." };
+    return { ok: false, message: t("نوع مستند غير معروف.", "Unknown document type.") };
   }
   if (!args.storagePath.startsWith(`${user.id}/`)) {
-    return { ok: false, message: "مسار ملف غير صالح." };
+    return { ok: false, message: t("مسار ملف غير صالح.", "Invalid file path.") };
   }
 
   // The row must point at a file that is actually there. See lib/evidenceFile
@@ -46,7 +51,10 @@ export async function addLandDocument(args: {
   if (!(await evidenceFileExists(supabase, args.storagePath))) {
     return {
       ok: false,
-      message: "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+      message: t(
+        "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+        "We could not find the uploaded file. Upload it again and try once more.",
+      ),
     };
   }
 

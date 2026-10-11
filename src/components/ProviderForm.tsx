@@ -2,7 +2,9 @@
 
 import { useActionState } from "react";
 import Explain, { Steps } from "@/components/Explain";
-import { SERVICE_KIND_LABEL, type ServiceKind } from "@/lib/services";
+import { SERVICE_KIND_LABEL, serviceKindLabel, type ServiceKind } from "@/lib/services";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 import { registerProvider, type ActionResult } from "@/app/services/actions";
 
 const field =
@@ -15,6 +17,8 @@ export default function ProviderForm() {
     ActionResult | null,
     FormData
   >(registerProvider, null);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   // On success the form is replaced by the confirmation rather than sitting
   // there inviting a second submission. A visitor who has just registered needs
@@ -22,12 +26,12 @@ export default function ProviderForm() {
   if (state?.ok) {
     return (
       <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
-        <p className="font-bold text-primary">تم التسجيل</p>
+        <p className="font-bold text-primary">{t("تم التسجيل", "Registered")}</p>
         <p className="mt-2 text-sm leading-relaxed">{state.message}</p>
         <ol className="mt-4 flex flex-col gap-2 text-sm text-muted">
-          <li>١. تراجع الإدارة بيانات جهتك ورخصها.</li>
-          <li>٢. بعد التوثيق تظهر في صفحة الخدمات ويمكن التعاقد معك.</li>
-          <li>٣. تضيف عروضك وأسعارها، كل خدمة بوحدتها.</li>
+          <li>{t("١. تراجع الإدارة بيانات جهتك ورخصها.", "1. The administrators review your organisation's details and licences.")}</li>
+          <li>{t("٢. بعد التوثيق تظهر في صفحة الخدمات ويمكن التعاقد معك.", "2. Once verified, you appear on the services page and can be contracted.")}</li>
+          <li>{t("٣. تضيف عروضك وأسعارها، كل خدمة بوحدتها.", "3. You add your offers and prices, each service in its own unit.")}</li>
         </ol>
       </div>
     );
@@ -35,34 +39,41 @@ export default function ProviderForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
-      <Steps steps={["بيانات الجهة", "التوثيق", "إضافة العروض"]} current={0} />
+      <Steps
+        steps={[
+          t("بيانات الجهة", "Organisation details"),
+          t("التوثيق", "Verification"),
+          t("إضافة العروض", "Adding offers"),
+        ]}
+        current={0}
+      />
 
       <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2">
-        <legend className="px-2 text-sm font-bold">جهتك</legend>
+        <legend className="px-2 text-sm font-bold">{t("جهتك", "Your organisation")}</legend>
 
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          اسم الجهة
+          {t("اسم الجهة", "Organisation name")}
           <input
             name="name"
             required
             className={field}
-            placeholder="مثال: مكتب النيل للهندسة الزراعية"
+            placeholder={t("مثال: مكتب النيل للهندسة الزراعية", "e.g. Nile Agricultural Engineering Office")}
           />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          نوع النشاط
+          {t("نوع النشاط", "Type of activity")}
           <select name="kind" defaultValue="engineering_office" className={field}>
             {KINDS.map((k) => (
               <option key={k} value={k}>
-                {SERVICE_KIND_LABEL[k]}
+                {serviceKindLabel(k, locale)}
               </option>
             ))}
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          رقم التواصل
+          {t("رقم التواصل", "Contact number")}
           <input
             name="phone"
             className={field}
@@ -72,37 +83,45 @@ export default function ProviderForm() {
         </label>
 
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          مناطق العمل
+          {t("مناطق العمل", "Areas you work in")}
           <input
             name="regions"
             className={field}
-            placeholder="الجزيرة، سنار، النيل الأبيض"
+            placeholder={t("الجزيرة، سنار، النيل الأبيض", "Gezira, Sennar, White Nile")}
           />
           <Explain>
-            اكتب الولايات مفصولة بفاصلة. المزارع يبحث بالمنطقة أولاً، فكلما
-            دقّقتها وصلك طلب أقرب لك.
+            {t(
+              "اكتب الولايات مفصولة بفاصلة. المزارع يبحث بالمنطقة أولاً، فكلما دقّقتها وصلك طلب أقرب لك.",
+              "Write the states separated by commas. Farmers search by area first, so the more precise you are, the closer the requests you receive.",
+            )}
           </Explain>
         </label>
 
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          نبذة عن خبرتكم
+          {t("نبذة عن خبرتكم", "About your experience")}
           <textarea
             name="bio"
             rows={4}
             className={field}
-            placeholder="سنوات العمل، أهم المشاريع المنفّذة، المعدّات التي تملكونها."
+            placeholder={t(
+              "سنوات العمل، أهم المشاريع المنفّذة، المعدّات التي تملكونها.",
+              "Years in operation, main projects delivered, the equipment you own.",
+            )}
           />
           <Explain tone="why">
-            هذه النبذة هي ما يقرأه المستثمر قبل أن يوقّع عقداً بملايين الجنيهات.
-            اذكر ما نفّذته فعلاً — الأرقام والمواقع تُقنع أكثر من الأوصاف.
+            {t(
+              "هذه النبذة هي ما يقرأه المستثمر قبل أن يوقّع عقداً بملايين الجنيهات. اذكر ما نفّذته فعلاً — الأرقام والمواقع تُقنع أكثر من الأوصاف.",
+              "This is what an investor reads before signing a contract worth millions of pounds. Say what you have actually delivered — figures and locations convince more than descriptions.",
+            )}
           </Explain>
         </label>
       </fieldset>
 
       <Explain tone="warn">
-        التسجيل لا يعني التوثيق. لن تظهر جهتك في الكتالوج ولن يمكن التعاقد معك
-        قبل أن تراجعها الإدارة — وهذا ما يحمي المزارع من التعاقد مع جهة غير
-        معروفة، ويحمي سمعتك حين تُوثَّق.
+        {t(
+          "التسجيل لا يعني التوثيق. لن تظهر جهتك في الكتالوج ولن يمكن التعاقد معك قبل أن تراجعها الإدارة — وهذا ما يحمي المزارع من التعاقد مع جهة غير معروفة، ويحمي سمعتك حين تُوثَّق.",
+          "Registering is not verification. Your organisation will not appear in the catalogue and cannot be contracted until the administrators review it — that protects farmers from contracting an unknown party, and protects your reputation once you are verified.",
+        )}
       </Explain>
 
       {state && !state.ok && (
@@ -116,7 +135,7 @@ export default function ProviderForm() {
         disabled={pending}
         className="self-start rounded-lg bg-primary px-6 py-2.5 font-medium text-primary-foreground disabled:opacity-60"
       >
-        {pending ? "جارٍ التسجيل..." : "سجّل جهتي"}
+        {pending ? t("جارٍ التسجيل...", "Registering...") : t("سجّل جهتي", "Register my organisation")}
       </button>
     </form>
   );

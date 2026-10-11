@@ -3,12 +3,20 @@ import { createClient } from "@/lib/supabase/server";
 import ProjectCard from "@/components/ProjectCard";
 import type { Project } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
-export const metadata = {
-  title: "المشاريع المطروحة · سوداقري",
-  description:
-    "المشاريع الزراعية المطروحة للاستثمار في السودان — ولا يُعرض مشروع قبل توثيق حيازته ومعاينته ميدانياً.",
-};
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return {
+    title: tr(locale, "المشاريع المطروحة · سوداقري", "Projects on offer · Sudagri"),
+    description: tr(
+      locale,
+      "المشاريع الزراعية المطروحة للاستثمار في السودان — ولا يُعرض مشروع قبل توثيق حيازته ومعاينته ميدانياً.",
+      "Agricultural projects on offer for investment in Sudan — no project is listed before its land tenure is documented and it has been inspected in the field.",
+    ),
+  };
+}
 
 /**
  * فهرسُ المشاريع — والمسارُ الوحيد إلى جواز المزرعة.
@@ -33,6 +41,8 @@ export const metadata = {
  */
 export default async function ProjectsPage() {
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const { data, error } = await supabase
     .from("projects")
@@ -50,39 +60,47 @@ export default async function ProjectsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-2xl font-bold sm:text-3xl">المشاريع المطروحة</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">{t("المشاريع المطروحة", "Projects on offer")}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
-        كلُّ مشروعٍ هنا مرّ بتوثيق حيازة الأرض ومعاينةٍ ميدانية قبل أن يُعرض.
-        وما تشهد به المنصّة هو <strong>أنّ ما يقوله المشروع مسنودٌ بأوراق</strong>{" "}
-        — لا أنّ الموسم سيربح. تلك تبقى مخاطرةً تخصّك، وفي صفحة كلّ مشروع
-        تفصيلُها ودرجةُ مخاطرته.
+        {t(
+          "كلُّ مشروعٍ هنا مرّ بتوثيق حيازة الأرض ومعاينةٍ ميدانية قبل أن يُعرض. وما تشهد به المنصّة هو",
+          "Every project here went through land-tenure documentation and a field inspection before being listed. What the platform vouches for is",
+        )}{" "}
+        <strong>{t("أنّ ما يقوله المشروع مسنودٌ بأوراق", "that what the project claims is backed by documents")}</strong>{" "}
+        {t(
+          "— لا أنّ الموسم سيربح. تلك تبقى مخاطرةً تخصّك، وفي صفحة كلّ مشروع تفصيلُها ودرجةُ مخاطرته.",
+          "— not that the season will make a profit. That remains your risk, and each project's page sets it out with its risk level.",
+        )}
       </p>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/projects-wide" poster="/video/projects-wide.jpg" label="فيلم سوداقري: حين نتّفق نزرع أكثر" />
+        <FilmPlayer base="/video/projects-wide" poster="/video/projects-wide.jpg" label={t("فيلم سوداقري: حين نتّفق نزرع أكثر", "A Sudagri film: when we agree, we grow more")} />
       </figure>
 
       {error ? (
         <p className="mt-8 rounded-2xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">
-          تعذّر قراءة المشاريع الآن — <strong>والخلل عندنا</strong>، لا أنّه لا
-          مشاريع. أعد المحاولة بعد قليل.
+          {t("تعذّر قراءة المشاريع الآن —", "We couldn't load the projects just now —")}{" "}
+          <strong>{t("والخلل عندنا", "the fault is ours")}</strong>
+          {t("، لا أنّه لا مشاريع. أعد المحاولة بعد قليل.", ", not a sign that there are no projects. Try again in a moment.")}
         </p>
       ) : projects.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-border p-10 text-center">
-          <h2 className="mb-2 font-bold">لا توجد مشاريع مطروحة بعد</h2>
+          <h2 className="mb-2 font-bold">{t("لا توجد مشاريع مطروحة بعد", "No projects on offer yet")}</h2>
           <p className="mx-auto max-w-lg text-sm leading-relaxed text-muted">
-            لا يُعرض مشروع حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة ميدانية،
-            وموافقة الجهة الزراعية.{" "}
+            {t(
+              "لا يُعرض مشروع حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة ميدانية، وموافقة الجهة الزراعية.",
+              "No project is listed until its documentation is complete: proof of land tenure, a field inspection, and approval from the agricultural authority.",
+            )}{" "}
             <Link href="/feedback" className="text-primary underline">
-              سجّل اهتمامك
+              {t("سجّل اهتمامك", "Register your interest")}
             </Link>{" "}
-            وسنبلغك أوّل ما يُطرح مشروع موثّق.
+            {t("وسنبلغك أوّل ما يُطرح مشروع موثّق.", "and we will let you know as soon as a documented project is listed.")}
           </p>
         </div>
       ) : (
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard key={project.id} project={project} locale={locale} />
           ))}
         </div>
       )}

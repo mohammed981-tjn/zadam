@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { moveOffer, type ActionResult } from "@/app/export/offers/actions";
 import type { OfferStatus } from "@/lib/exportOffers";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 /**
  * ما يستطيع المزارعُ فعلَه بعرضه، وما لا يظهر أصلاً.
@@ -25,17 +27,19 @@ export default function ExportOfferActions({
 }) {
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, setPending] = useState(false);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const moves: { to: "submitted" | "draft" | "withdrawn"; label: string; primary?: boolean }[] =
     status === "draft"
       ? [
-          { to: "submitted", label: "أرسل للمراجعة", primary: true },
-          { to: "withdrawn", label: "اسحب" },
+          { to: "submitted", label: t("أرسل للمراجعة", "Send for review"), primary: true },
+          { to: "withdrawn", label: t("اسحب", "Withdraw") },
         ]
       : status === "submitted"
-        ? [{ to: "draft", label: "أعده مسوّدة" }]
+        ? [{ to: "draft", label: t("أعده مسوّدة", "Return to draft") }]
         : status === "rejected"
-          ? [{ to: "draft", label: "أصلحه وأعده مسوّدة", primary: true }]
+          ? [{ to: "draft", label: t("أصلحه وأعده مسوّدة", "Fix it and return to draft"), primary: true }]
           : [];
 
   if (moves.length === 0 && !result) return null;
@@ -48,7 +52,7 @@ export default function ExportOfferActions({
     } catch {
       setResult({
         ok: false,
-        message: "تعذّر الوصول إلى الخادم. أعد المحاولة.",
+        message: t("تعذّر الوصول إلى الخادم. أعد المحاولة.", "Could not reach the server. Try again."),
       });
     } finally {
       setPending(false);

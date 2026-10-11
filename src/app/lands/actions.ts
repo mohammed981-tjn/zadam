@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { STATIONS } from "@/lib/agronomy";
 import { WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -38,6 +40,9 @@ export async function registerLand(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
   const name = str(formData, "name");
   const state = str(formData, "state");
   const feddans = num(formData, "feddans");
@@ -46,28 +51,28 @@ export async function registerLand(
   const tenure = str(formData, "tenure");
 
   if (!name || !state) {
-    return { ok: false, message: "اسم الأرض والولاية مطلوبان." };
+    return { ok: false, message: t("اسم الأرض والولاية مطلوبان.", "The land name and state are required.") };
   }
   if (!Number.isFinite(feddans) || feddans <= 0) {
-    return { ok: false, message: "أدخل مساحة صحيحة بالفدان." };
+    return { ok: false, message: t("أدخل مساحة صحيحة بالفدان.", "Enter a valid area in feddans.") };
   }
   if (!STATIONS.some((s) => s.key === stationKey)) {
-    return { ok: false, message: "منطقة مناخية غير معروفة." };
+    return { ok: false, message: t("منطقة مناخية غير معروفة.", "Unknown climate zone.") };
   }
   if (!(waterSource in WATER_SOURCE_LABEL)) {
-    return { ok: false, message: "مصدر مياه غير معروف." };
+    return { ok: false, message: t("مصدر مياه غير معروف.", "Unknown water source.") };
   }
   if (!TENURES.includes(tenure)) {
-    return { ok: false, message: "نوع حيازة غير معروف." };
+    return { ok: false, message: t("نوع حيازة غير معروف.", "Unknown tenure type.") };
   }
 
   const lat = optNum(formData, "latitude");
   const lng = optNum(formData, "longitude");
   if (lat !== null && (lat < -90 || lat > 90)) {
-    return { ok: false, message: "خط عرض خارج النطاق." };
+    return { ok: false, message: t("خط عرض خارج النطاق.", "Latitude is out of range.") };
   }
   if (lng !== null && (lng < -180 || lng > 180)) {
-    return { ok: false, message: "خط طول خارج النطاق." };
+    return { ok: false, message: t("خط طول خارج النطاق.", "Longitude is out of range.") };
   }
 
   const { error } = await supabase.from("lands").insert({
@@ -93,15 +98,21 @@ export async function registerLand(
   });
 
   if (error) {
-    return { ok: false, message: `تعذّر تسجيل الأرض: ${error.message}` };
+    return { ok: false, message: t(
+        `تعذّر تسجيل الأرض: ${error.message}`,
+        `Could not register the land: ${error.message}`,
+      ), };
   }
 
   revalidatePath("/lands");
   return {
     ok: true,
-    message:
+    message: t(
       "سُجّلت الأرض. لن تظهر لأحد حتى ترفع مستنداتها وتعتمدها الإدارة — " +
-      "إثبات الحيازة، وصور بإحداثيات، ومعاينة ميدانية.",
+        "إثبات الحيازة، وصور بإحداثيات، ومعاينة ميدانية.",
+      "Your land is registered. No one will see it until you upload its documents and the administrators approve it — " +
+        "proof of tenure, photos with coordinates, and a field inspection.",
+    ),
   };
 }
 

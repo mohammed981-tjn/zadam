@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export interface ActionResult {
   ok: boolean;
@@ -33,11 +35,13 @@ export async function addCustodyEvent(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const place = str(formData, "place_name");
   const occurredAt = str(formData, "occurred_at");
-  if (!place) return { ok: false, message: "اسم المكان مطلوب." };
-  if (!occurredAt) return { ok: false, message: "وقت الحدث مطلوب." };
+  if (!place) return { ok: false, message: t("اسم المكان مطلوب.", "The place name is required.") };
+  if (!occurredAt) return { ok: false, message: t("وقت الحدث مطلوب.", "The time of the event is required.") };
 
   const { data: last } = await supabase
     .from("export_offer_custody")
@@ -70,7 +74,7 @@ export async function addCustodyEvent(
     return {
       ok: false,
       message:
-        "تعذّر إضافة الحدث. تأكّد أنّ العرض ما يزال مسوّدة — السلسلة لا تُعدَّل بعد الإرسال.",
+        t("تعذّر إضافة الحدث. تأكّد أنّ العرض ما يزال مسوّدة — السلسلة لا تُعدَّل بعد الإرسال.", "The event could not be added. Check that the offer is still a draft — the chain cannot be changed after sending."),
     };
   }
 
@@ -78,12 +82,12 @@ export async function addCustodyEvent(
   if (!data || data.length === 0) {
     return {
       ok: false,
-      message: "لم يُضَف شيء — العرض ليس في حالةٍ تسمح بالتعديل.",
+      message: t("لم يُضَف شيء — العرض ليس في حالةٍ تسمح بالتعديل.", "Nothing was added — the offer is not in a state that allows changes."),
     };
   }
 
   revalidatePath(`/export/offers/${offerId}`);
-  return { ok: true, message: `أُضيف الحدث رقم ${next}.` };
+  return { ok: true, message: t(`أُضيف الحدث رقم ${next}.`, `Event ${next} was added.`) };
 }
 
 /**
@@ -115,6 +119,8 @@ export async function attachEvidence(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   // RLS on stage_evidence is what restricts this to the caller's own rows; the
   // select is written plainly and the boundary does the refusing.
@@ -125,7 +131,7 @@ export async function attachEvidence(
     .maybeSingle();
 
   if (readError || !source) {
-    return { ok: false, message: "لم أجد هذا الدليل، أو ليس لك." };
+    return { ok: false, message: t("لم أجد هذا الدليل، أو ليس لك.", "This evidence was not found, or it is not yours.") };
   }
 
   const row = source as {
@@ -139,7 +145,7 @@ export async function attachEvidence(
   if (!row.storage_path) {
     return {
       ok: false,
-      message: "هذا الدليل بلا ملفّ مرفوع، فلا شيء يُلحق بالعرض.",
+      message: t("هذا الدليل بلا ملفّ مرفوع، فلا شيء يُلحق بالعرض.", "This evidence has no uploaded file, so there is nothing to attach to the offer."),
     };
   }
 
@@ -179,12 +185,12 @@ export async function attachEvidence(
 
   if (error) {
     console.error("export: evidence attach failed", error);
-    return { ok: false, message: "تعذّر إلحاق الدليل بالعرض." };
+    return { ok: false, message: t("تعذّر إلحاق الدليل بالعرض.", "The evidence could not be attached to the offer.") };
   }
   if (!data || data.length === 0) {
     return {
       ok: false,
-      message: "لم يُلحق شيء — العرض ليس في حالةٍ تسمح بالتعديل.",
+      message: t("لم يُلحق شيء — العرض ليس في حالةٍ تسمح بالتعديل.", "Nothing was attached — the offer is not in a state that allows changes."),
     };
   }
 
@@ -192,8 +198,8 @@ export async function attachEvidence(
   return {
     ok: true,
     message: sha256
-      ? "أُلحق الدليل، وبصمتُه محسوبةٌ من الملفّ."
-      : "أُلحق الدليل بلا بصمة — تعذّرت قراءة الملفّ. سيراه المراجع «بلا بصمة».",
+      ? t("أُلحق الدليل، وبصمتُه محسوبةٌ من الملفّ.", "The evidence was attached, with its fingerprint computed from the file.")
+      : t("أُلحق الدليل بلا بصمة — تعذّرت قراءة الملفّ. سيراه المراجع «بلا بصمة».", "The evidence was attached without a fingerprint — the file could not be read. The reviewer will see it as “no fingerprint”."),
   };
 }
 
@@ -226,6 +232,8 @@ export async function classifyEvidence(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const { data, error } = await supabase
     .from("export_offer_evidence")
@@ -236,7 +244,7 @@ export async function classifyEvidence(
 
   if (error) {
     console.error("export: evidence classify failed", error);
-    return { ok: false, message: "تعذّر تعديل نوع المستند." };
+    return { ok: false, message: t("تعذّر تعديل نوع المستند.", "The document type could not be changed.") };
   }
 
   // A filtered UPDATE that policy declines returns no error and no rows — the
@@ -245,7 +253,7 @@ export async function classifyEvidence(
   if (!data || data.length === 0) {
     return {
       ok: false,
-      message: "لم يتغيّر شيء — العرض ليس في حالةٍ تسمح بالتعديل.",
+      message: t("لم يتغيّر شيء — العرض ليس في حالةٍ تسمح بالتعديل.", "Nothing changed — the offer is not in a state that allows changes."),
     };
   }
 
@@ -253,7 +261,7 @@ export async function classifyEvidence(
   return {
     ok: true,
     message: documentTypeId
-      ? "سُمّي الدليل، وحُسب في الجاهزيّة."
-      : "أُزيل النوع — لم يعد يُحسب مستنداً.",
+      ? t("سُمّي الدليل، وحُسب في الجاهزيّة.", "The evidence was labelled and now counts towards readiness.")
+      : t("أُزيل النوع — لم يعد يُحسب مستنداً.", "The type was removed — it no longer counts as a document."),
   };
 }

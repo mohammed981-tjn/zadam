@@ -24,6 +24,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExportOfferReadiness } from "@/types/database";
+import type { Locale } from "@/lib/i18n";
 
 export type { ExportOfferReadiness } from "@/types/database";
 
@@ -33,6 +34,16 @@ export const READINESS_MODE_LABEL: Record<string, string> = {
   conditional: "مشروط",
   recommended: "مُستحسَن",
 };
+
+export const READINESS_MODE_LABEL_EN: Record<string, string> = {
+  required: "Required",
+  conditional: "Conditional",
+  recommended: "Recommended",
+};
+
+export function readinessModeLabel(mode: string, locale: Locale = "ar"): string {
+  return (locale === "en" ? READINESS_MODE_LABEL_EN : READINESS_MODE_LABEL)[mode] ?? mode;
+}
 
 /**
  * Where the requirement list came from, said plainly.
@@ -47,6 +58,11 @@ export const READINESS_SOURCE_NOTE: Record<string, string> = {
   frozen: "محسوبةٌ على القواعد المجمَّدة لحظةَ الإرسال — لا تتغيّر بتغيّر اللوائح بعدها.",
 };
 
+export const READINESS_SOURCE_NOTE_EN: Record<string, string> = {
+  live: "Measured against the corridor's rules as they stand today — they may change before you send it. Sending freezes them.",
+  frozen: "Measured against the rules frozen at the moment it was sent — later changes to the regulations do not affect it.",
+};
+
 /**
  * The one-line verdict.
  *
@@ -55,17 +71,31 @@ export const READINESS_SOURCE_NOTE: Record<string, string> = {
  * "almost shippable", it is not shippable. So the missing count leads whenever
  * there is one, and the percentage never stands alone as the headline.
  */
-export function readinessVerdict(r: ExportOfferReadiness): string {
-  if (r.source === "none") return "لا بيانات.";
+export function readinessVerdict(
+  r: ExportOfferReadiness,
+  locale: Locale = "ar",
+): string {
+  const en = locale === "en";
+  if (r.source === "none") return en ? "No data." : "لا بيانات.";
   if (r.required_total === 0) {
-    return "لا مستنداتِ إلزاميّةً على هذا الممرّ.";
+    return en
+      ? "No required documents on this corridor."
+      : "لا مستنداتِ إلزاميّةً على هذا الممرّ.";
   }
   if (r.ready) {
+    if (en) {
+      return r.missing.length === 0
+        ? "Ready to ship — and the recommended documents are complete too."
+        : `Ready to ship — the required documents are complete (${r.required_met}/${r.required_total}).`;
+    }
     return r.missing.length === 0
       ? "جاهزٌ للشحن — واكتمل المستحسَنُ أيضاً."
       : `جاهزٌ للشحن — والإلزاميُّ كامل (${r.required_met}/${r.required_total}).`;
   }
   const short = r.required_total - r.required_met;
+  if (en) {
+    return `Not ready — missing ${short} of ${r.required_total} required documents.`;
+  }
   return `غيرُ جاهز — ينقصه ${short} من ${r.required_total} مستنداً إلزاميّاً.`;
 }
 

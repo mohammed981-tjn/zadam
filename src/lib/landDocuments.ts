@@ -29,3 +29,10 @@ export const LAND_DOCUMENT_KINDS: LandDocumentKind[] = [
   { value: "permit", label: "تصريح أو موافقة" },
   { value: "inspection", label: "تقرير معاينة" },
 ];
+
+export const LAND_DOCUMENT_KIND_EN: Record<string, string> = {
+  tenure: "Proof of tenure or lease",
+  photo: "Photo of the land",
+  permit: "Permit or approval",
+  inspection: "Inspection report",
+};

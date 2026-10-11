@@ -2,8 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { markAllRead } from "./actions";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
 
-export const metadata = { title: "الإشعارات — سوداقري" };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return { title: tr(locale, "الإشعارات — سوداقري", "Notifications — Sudagri") };
+}
 
 interface Notification {
   id: string;
@@ -25,8 +30,22 @@ const KIND_ICON: Record<string, string> = {
   lead_received: "📞",
 };
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, locale: Locale): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (locale === "en") {
+    if (seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return days === 1 ? "1 day ago" : `${days} days ago`;
+    return new Date(iso).toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
   if (seconds < 60) return "الآن";
 
   const minutes = Math.floor(seconds / 60);
@@ -46,6 +65,11 @@ function timeAgo(iso: string): string {
 }
 
 export default async function NotificationsPage() {
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const en = locale === "en";
+  // Notices are written in Arabic when they are created; they keep their direction here.
+  const arText = en ? ({ lang: "ar", dir: "rtl" } as const) : {};
   const supabase = await createClient();
   const {
     data: { user },
@@ -66,11 +90,15 @@ export default async function NotificationsPage() {
     <main className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">الإشعارات</h1>
+          <h1 className="text-2xl font-bold">{t("الإشعارات", "Notifications")}</h1>
           <p className="mt-1 text-sm text-muted">
-            {unread > 0
-              ? `${unread} إشعار غير مقروء`
-              : "لا يوجد إشعار غير مقروء"}
+            {en
+              ? unread > 0
+                ? `${unread} unread`
+                : "Nothing unread"
+              : unread > 0
+                ? `${unread} إشعار غير مقروء`
+                : "لا يوجد إشعار غير مقروء"}
           </p>
         </div>
 
@@ -80,7 +108,7 @@ export default async function NotificationsPage() {
               type="submit"
               className="rounded-lg border border-border px-3 py-2 text-sm hover:border-primary"
             >
-              تعليم الكل كمقروء
+              {t("تعليم الكل كمقروء", "Mark all as read")}
             </button>
           </form>
         )}
@@ -88,16 +116,18 @@ export default async function NotificationsPage() {
 
       {error && (
         <p className="rounded-xl border border-danger/40 bg-danger/5 p-4 text-sm text-danger">
-          تعذّر تحميل الإشعارات: {error.message}
+          {t("تعذّر تحميل الإشعارات", "Could not load notifications")}: {error.message}
         </p>
       )}
 
       {!error && notifications.length === 0 && (
         <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted">
-          <p className="mb-2 font-medium text-foreground">لا توجد إشعارات بعد.</p>
+          <p className="mb-2 font-medium text-foreground">{t("لا توجد إشعارات بعد.", "No notifications yet.")}</p>
           <p>
-            ستصلك هنا إشعارات عند اعتماد أرضك أو طلب استكمال مستنداتها، وعند
-            البتّ في أي فرصة ترفعها.
+            {t(
+              "ستصلك هنا إشعارات عند اعتماد أرضك أو طلب استكمال مستنداتها، وعند البتّ في أي فرصة ترفعها.",
+              "You will be notified here when your land is approved or its documents need completing, and when a decision is made on any opportunity you submit.",
+            )}
           </p>
         </div>
       )}
@@ -118,18 +148,18 @@ export default async function NotificationsPage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-medium">{n.title}</p>
+                    <p {...arText} className="font-medium">{n.title}</p>
                     <span className="text-xs text-muted">
-                      {timeAgo(n.created_at)}
+                      {timeAgo(n.created_at, locale)}
                     </span>
                   </div>
                   {n.body && (
-                    <p className="mt-1 text-sm text-muted">{n.body}</p>
+                    <p {...arText} className="mt-1 text-sm text-muted">{n.body}</p>
                   )}
                 </div>
                 {!n.read_at && (
                   <span
-                    aria-label="غير مقروء"
+                    aria-label={t("غير مقروء", "Unread")}
                     className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                   />
                 )}

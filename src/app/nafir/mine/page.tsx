@@ -2,9 +2,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import NafirShell from "@/components/nafir/NafirShell";
 import { nafirViewer } from "@/lib/nafirViewer";
-import { NAFIR_KINDS, ageAr, ar, type FazaPledge, type NafirCall, type NafirJoin } from "@/lib/nafir";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
+import {
+  NAFIR_KINDS,
+  NAFIR_KINDS_EN,
+  ageAr,
+  ar,
+  label,
+  typed,
+  type FazaPledge,
+  type NafirCall,
+  type NafirJoin,
+} from "@/lib/nafir";
 
-export const metadata = { title: "سجلّ عطائي | سوداقري", robots: { index: false } };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return { title: tr(locale, "سجلّ عطائي | سوداقري", "My giving | Sudagri"), robots: { index: false } };
+}
 
 /**
  * What this household gave and what it received — for its own eyes only.
@@ -19,6 +34,10 @@ export const metadata = { title: "سجلّ عطائي | سوداقري", robots:
 export default async function MinePage() {
   const { supabase, user } = await nafirViewer();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (a: string, en: string) => tr(locale, a, en);
+  const n = (x: number) => ar(x, locale);
+  const en = locale === "en";
 
   const [joined, hosted, pledgesMade, myRequests] = await Promise.all([
     supabase.from("nafir_joins").select("*, nafir_calls(*)").eq("user_id", user.id).order("joined_at", { ascending: false }),
@@ -44,39 +63,59 @@ export default async function MinePage() {
 
   return (
     <NafirShell active="/nafir/mine">
-      <h1 className="text-2xl font-black">سجلّ عطائي</h1>
+      <h1 className="text-2xl font-black">{t("سجلّ عطائي", "My giving")}</h1>
       <p className="mt-2 max-w-2xl leading-8 text-muted">
-        ما أعطيتَ وما أُعطيت — لك وحدك. لا يراه أحد، ولا يُقارَن بأحد. هو
-        ميزان النفير القديم: تلبّي جارك كما يلبّيك.
+        {t(
+          "ما أعطيتَ وما أُعطيت — لك وحدك. لا يراه أحد، ولا يُقارَن بأحد. هو ميزان النفير القديم: تلبّي جارك كما يلبّيك.",
+          "What you have given and what you have received — for you alone. No one else sees it, and it is compared with no one. It is the old balance of nafir: you answer your neighbour as they answer you.",
+        )}
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <section className="rounded-2xl border border-primary/40 bg-primary/5 p-5">
-          <h2 className="font-bold text-primary">أعطيتَ</h2>
+          <h2 className="font-bold text-primary">{t("أعطيتَ", "You gave")}</h2>
           <dl className="mt-3 flex flex-col gap-3">
-            <Row label="نفيرٌ لبّيتَه" value={`${ar(joins.length)}`} note={`منها ${ar(joinedDone)} أُنجز`} />
-            <Row label="عهود فزعة" value={`${ar(made.length)}`} note={made.length ? `وفيتَ ${ar(madeKept)} بشهادة أصحابها` : "—"} />
+            <Row
+              label={t("نفيرٌ لبّيتَه", "Nafirs you answered")}
+              value={`${n(joins.length)}`}
+              note={en ? `${n(joinedDone)} of them completed` : `منها ${n(joinedDone)} أُنجز`}
+            />
+            <Row
+              label={t("عهود فزعة", "Faza pledges")}
+              value={`${n(made.length)}`}
+              note={made.length ? (en ? `${n(madeKept)} kept, confirmed by those you helped` : `وفيتَ ${n(madeKept)} بشهادة أصحابها`) : "—"}
+            />
           </dl>
         </section>
         <section className="rounded-2xl border border-accent/40 bg-accent/5 p-5">
-          <h2 className="font-bold text-accent">أُعطيتَ</h2>
+          <h2 className="font-bold text-accent">{t("أُعطيتَ", "You received")}</h2>
           <dl className="mt-3 flex flex-col gap-3">
-            <Row label="أيدٍ حضرت نفيرك" value={`${ar(handsReceived)}`} note={`في ${ar(hostedDone.length)} نفيرٍ أُنجز`} />
-            <Row label="عهود فزعة لك" value={`${ar(received.length)}`} note={received.length ? `وُفّي منها ${ar(receivedKept)}` : "—"} />
+            <Row
+              label={t("أيدٍ حضرت نفيرك", "Hands at your nafirs")}
+              value={`${n(handsReceived)}`}
+              note={en ? `across ${n(hostedDone.length)} completed nafirs` : `في ${n(hostedDone.length)} نفيرٍ أُنجز`}
+            />
+            <Row
+              label={t("عهود فزعة لك", "Faza pledges to you")}
+              value={`${n(received.length)}`}
+              note={received.length ? (en ? `${n(receivedKept)} of them kept` : `وُفّي منها ${n(receivedKept)}`) : "—"}
+            />
           </dl>
         </section>
       </div>
 
       {joins.length > 0 && (
         <section className="mt-8">
-          <h2 className="mb-2 font-bold">ما لبّيتَه</h2>
+          <h2 className="mb-2 font-bold">{t("ما لبّيتَه", "Calls you answered")}</h2>
           <ul className="flex flex-col gap-2">
             {joins.map((j) =>
               j.nafir_calls ? (
                 <li key={j.call_id}>
                   <Link href={`/nafir/${j.call_id}`} className="block rounded-xl border border-border bg-card px-4 py-2 text-sm hover:border-primary">
-                    {NAFIR_KINDS[j.nafir_calls.kind]}: {j.nafir_calls.title}
-                    <span className="block text-xs text-muted">دعا إليه {j.nafir_calls.display_name} · {ageAr(j.joined_at)}</span>
+                    {label(NAFIR_KINDS, NAFIR_KINDS_EN, j.nafir_calls.kind, locale)}: <bdi {...typed(locale)}>{j.nafir_calls.title}</bdi>
+                    <span className="block text-xs text-muted">
+                      {t("دعا إليه", "Called by")} <bdi>{j.nafir_calls.display_name}</bdi> · {ageAr(j.joined_at, undefined, locale)}
+                    </span>
                   </Link>
                 </li>
               ) : null,
@@ -87,14 +126,14 @@ export default async function MinePage() {
 
       {made.length > 0 && (
         <section className="mt-6">
-          <h2 className="mb-2 font-bold">عهودي</h2>
+          <h2 className="mb-2 font-bold">{t("عهودي", "My pledges")}</h2>
           <ul className="flex flex-col gap-2">
             {made.map((p) => (
               <li key={p.id}>
                 <Link href={`/nafir/faza/${p.request_id}`} className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm hover:border-primary">
-                  <span>{p.detail}</span>
+                  <span {...typed(locale)}>{p.detail}</span>
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${p.kept_at ? "bg-primary/15 text-primary" : "bg-border text-muted"}`}>
-                    {p.kept_at ? "وفّيت" : "لم يُشهد بعد"}
+                    {p.kept_at ? t("وفّيت", "Kept") : t("لم يُشهد بعد", "Not yet confirmed")}
                   </span>
                 </Link>
               </li>
@@ -105,7 +144,8 @@ export default async function MinePage() {
 
       {joins.length + made.length + calls.length + received.length === 0 && (
         <p className="mt-8 rounded-2xl border border-border bg-card p-5 text-sm text-muted">
-          سجلّك فارغٌ بعد. ابدأ من <Link href="/nafir" className="text-primary underline">ساحة النفير</Link>.
+          {t("سجلّك فارغٌ بعد. ابدأ من", "Your record is still empty. Start from the")}{" "}
+          <Link href="/nafir" className="text-primary underline">{t("ساحة النفير", "Nafir square")}</Link>.
         </p>
       )}
     </NafirShell>

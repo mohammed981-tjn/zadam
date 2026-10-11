@@ -5,6 +5,8 @@ import ShareWhatsApp from "@/components/ShareWhatsApp";
 import StudyBody from "@/components/StudyBody";
 import { announcementDate, type Announcement } from "@/lib/announcements";
 import { parseStudy } from "@/lib/studyDoc";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 // The same floor as the list; publishing an item revalidates both at once.
 export const revalidate = 600;
@@ -23,7 +25,11 @@ async function load(id: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const a = await load((await params).id);
-  return a ? { title: `${a.title} | جديد سوداقري` } : { title: "خبر | سوداقري" };
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  return a
+    ? { title: `${a.title} | ${t("جديد سوداقري", "What's new on Sudagri")}` }
+    : { title: t("خبر | سوداقري", "News | Sudagri") };
 }
 
 /**
@@ -36,34 +42,49 @@ export default async function NewsItemPage({ params }: { params: Promise<{ id: s
   const a = await load((await params).id);
   if (!a) notFound();
   const doc = parseStudy(a.body, { titled: false });
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const en = locale === "en";
+  const arrow = en ? "→" : "←";
+  // The item itself is stored in Arabic; on the English page it keeps its own direction.
+  const arText = en ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <nav className="mb-4 text-sm text-muted">
         <Link href="/news" className="hover:text-primary">
-          الأخبار
+          {t("الأخبار", "News")}
         </Link>{" "}
-        ← {a.title}
+        {arrow} <span {...arText}>{a.title}</span>
       </nav>
       <header className="rounded-3xl border border-border bg-card p-6 shadow-card">
         <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-          {announcementDate(a.published_at!)}
+          {en
+            ? new Date(a.published_at!).toLocaleDateString("en-GB", {
+                timeZone: "Africa/Khartoum",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            : announcementDate(a.published_at!)}
         </span>
-        <h1 className="mt-3 font-black leading-snug" style={{ fontSize: "var(--text-title)" }}>
+        <h1 {...arText} className="mt-3 font-black leading-snug" style={{ fontSize: "var(--text-title)" }}>
           {a.title}
         </h1>
         {a.summary && a.summary.trim() !== a.title.trim() && (
-          <p className="mt-2 font-medium leading-7 text-muted">{a.summary}</p>
+          <p {...arText} className="mt-2 font-medium leading-7 text-muted">{a.summary}</p>
         )}
-        <ShareWhatsApp path={`/news/${a.id}`} text={`${a.title} — جديد سوداقري:`} className="mt-4" />
+        <ShareWhatsApp path={`/news/${a.id}`} text={`${a.title} — ${t("جديد سوداقري", "What's new on Sudagri")}:`} className="mt-4" locale={locale} />
       </header>
 
       {doc.sections.length > 2 && (
         <details className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-card" open>
           <summary className="cursor-pointer font-bold">
-            الفهرس ({doc.sections.length.toLocaleString("ar-SA")} قسماً)
+            {en
+              ? `Contents (${doc.sections.length} sections)`
+              : `الفهرس (${doc.sections.length.toLocaleString("ar-SA")} قسماً)`}
           </summary>
-          <ol className="mt-3 grid gap-1.5 text-sm sm:grid-cols-2">
+          <ol {...arText} className="mt-3 grid gap-1.5 text-sm sm:grid-cols-2">
             {doc.sections.map((s) => (
               <li key={s.id}>
                 <a href={`#${s.id}`} className="text-primary hover:underline">
@@ -75,7 +96,7 @@ export default async function NewsItemPage({ params }: { params: Promise<{ id: s
         </details>
       )}
 
-      <article className="mt-8">
+      <article {...arText} className="mt-8">
         <StudyBody blocks={doc.blocks} />
       </article>
 
@@ -84,12 +105,12 @@ export default async function NewsItemPage({ params }: { params: Promise<{ id: s
           href={a.link_path}
           className="mt-8 inline-flex items-center gap-1 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
-          {a.link_label ?? "التفاصيل"} ←
+          {a.link_label ?? t("التفاصيل", "Details")} {arrow}
         </Link>
       )}
       <p className="mt-10 text-sm">
         <Link href="/news" className="font-medium text-primary underline">
-          ← كلّ الأخبار
+          {en ? "← All news" : "← كلّ الأخبار"}
         </Link>
       </p>
     </div>

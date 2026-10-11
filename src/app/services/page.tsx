@@ -3,17 +3,25 @@ import { createClient } from "@/lib/supabase/server";
 import {
   SERVICE_CATALOGUE,
   SERVICE_BY_KEY,
-  SERVICE_KIND_LABEL,
-  SERVICE_UNIT_LABEL,
-  PRODUCTION_LABEL,
+  serviceKindLabel,
+  serviceUnitLabel,
+  productionLabel,
+  serviceNote,
   type ProductionKind,
   type ServiceKey,
 } from "@/lib/services";
 import { ECONOMIC_FACTS } from "@/lib/economics";
 import type { ProviderService, ServiceProvider } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
-export const metadata = { title: "الخدمات التعاقدية — سوداقري" };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return {
+    title: tr(locale, "الخدمات التعاقدية — سوداقري", "Contracted services — Sudagri"),
+  };
+}
 
 const BASIS_LABEL: Record<string, string> = {
   feddans: "يُحسب من مساحة الموسم",
@@ -21,6 +29,14 @@ const BASIS_LABEL: Record<string, string> = {
   head: "يُحسب من عدد الرؤوس",
   months: "يُحسب من طول الدورة",
   fixed: "مقطوعية للموسم",
+};
+
+const BASIS_LABEL_EN: Record<string, string> = {
+  feddans: "computed from the season's area",
+  water_m3: "computed from the water requirement (FAO-56)",
+  head: "computed from the number of head",
+  months: "computed from the length of the cycle",
+  fixed: "lump sum for the season",
 };
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
@@ -31,6 +47,8 @@ export default async function ServicesPage({
   searchParams: Promise<{ kind?: string }>;
 }) {
   const params = await searchParams;
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const filter = (
     ["plant", "livestock"].includes(params.kind ?? "") ? params.kind : "all"
   ) as ProductionKind | "all";
@@ -62,16 +80,26 @@ export default async function ServicesPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-bold">الخدمات التعاقدية</h1>
-      <p className="mb-6 mt-2 text-sm leading-relaxed text-muted">
-        خدمات متكاملة يقدّمها مكاتب هندسة زراعية ومزوّدون موثّقون، تُتعاقد
-        بالمراحل: لكل مرحلة جدول زمني وميزانية ودفعة لا تُفرَج إلا بإثبات تنفيذ.
-        الكمية في كل بند <strong>تُشتق</strong> من موسمك أو قطيعك — لا تُكتب
-        يدوياً — فيمكن لطرفَي العقد إعادة حسابها.
-      </p>
+      <h1 className="text-2xl font-bold">{t("الخدمات التعاقدية", "Contracted services")}</h1>
+      {locale === "en" ? (
+        <p className="mb-6 mt-2 text-sm leading-relaxed text-muted">
+          Complete services from agricultural engineering offices and verified
+          providers, contracted in phases: each phase has a schedule, a budget
+          and a payment released only on proof of delivery. The quantity on
+          every line is <strong>derived</strong> from your season or herd — not
+          typed in by hand — so both parties to the contract can recompute it.
+        </p>
+      ) : (
+        <p className="mb-6 mt-2 text-sm leading-relaxed text-muted">
+          خدمات متكاملة يقدّمها مكاتب هندسة زراعية ومزوّدون موثّقون، تُتعاقد
+          بالمراحل: لكل مرحلة جدول زمني وميزانية ودفعة لا تُفرَج إلا بإثبات تنفيذ.
+          الكمية في كل بند <strong>تُشتق</strong> من موسمك أو قطيعك — لا تُكتب
+          يدوياً — فيمكن لطرفَي العقد إعادة حسابها.
+        </p>
+      )}
 
       <figure className="my-6">
-        <FilmPlayer base="/video/services-wide" poster="/video/services-wide.jpg" label="فيلم سوداقري: خدمةٌ تصل إلى الحقل" />
+        <FilmPlayer base="/video/services-wide" poster="/video/services-wide.jpg" label={t("فيلم سوداقري: خدمةٌ تصل إلى الحقل", "Sudagri film: a service that reaches the field")} />
       </figure>
 
       {/*
@@ -82,14 +110,14 @@ export default async function ServicesPage({
         a reader can go and check it.
       */}
       <section className="mb-8 rounded-2xl border border-border bg-card p-5">
-        <h2 className="mb-3 text-sm font-bold">لماذا هذا القطاع</h2>
+        <h2 className="mb-3 text-sm font-bold">{t("لماذا هذا القطاع", "Why this sector")}</h2>
         <ul className="flex flex-col gap-3">
           {ECONOMIC_FACTS.map((f) => (
             <li key={f.key} className="border-b border-border pb-3 last:border-0 last:pb-0">
-              <p className="text-sm font-medium">{f.headline}</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted">{f.detail}</p>
+              <p className="text-sm font-medium">{locale === "en" ? f.headlineEn : f.headline}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{locale === "en" ? f.detailEn : f.detail}</p>
               <p className="mt-1 text-[11px] text-muted">
-                المصدر: {f.source} — {f.year}
+                {t("المصدر:", "Source:")} {f.source} — {f.year}
               </p>
             </li>
           ))}
@@ -99,9 +127,9 @@ export default async function ServicesPage({
       <nav className="mb-8 flex flex-wrap gap-2 text-sm">
         {(
           [
-            ["all", "الكل"],
-            ["plant", "الإنتاج النباتي"],
-            ["livestock", "الإنتاج الحيواني"],
+            ["all", t("الكل", "All")],
+            ["plant", t("الإنتاج النباتي", "Crop production")],
+            ["livestock", t("الإنتاج الحيواني", "Livestock production")],
           ] as const
         ).map(([value, label]) => (
           <Link
@@ -128,40 +156,40 @@ export default async function ServicesPage({
               className="flex flex-col rounded-2xl border border-border bg-card p-5"
             >
               <div className="flex items-baseline justify-between gap-2">
-                <h2 className="font-bold">{def.name}</h2>
+                <h2 className="font-bold">{locale === "en" ? def.nameEn : def.name}</h2>
                 <span className="shrink-0 text-xs text-muted">
-                  {PRODUCTION_LABEL[def.production]}
+                  {productionLabel(def.production, locale)}
                 </span>
               </div>
 
               <p className="mt-1 text-xs text-muted">
-                {SERVICE_KIND_LABEL[def.kind]}
+                {serviceKindLabel(def.kind, locale)}
               </p>
 
-              <p className="mt-3 flex-1 text-sm leading-relaxed">{def.note}</p>
+              <p className="mt-3 flex-1 text-sm leading-relaxed">{serviceNote(def, locale)}</p>
 
               <p className="mt-3 text-xs text-muted">
-                الوحدة: {SERVICE_UNIT_LABEL[def.unit]} —{" "}
-                {BASIS_LABEL[def.basis]}
+                {t("الوحدة:", "Unit:")} {serviceUnitLabel(def.unit, locale)} —{" "}
+                {locale === "en" ? BASIS_LABEL_EN[def.basis] : BASIS_LABEL[def.basis]}
               </p>
 
               {listed.length > 0 ? (
                 <ul className="mt-4 flex flex-col gap-2 border-t border-border pt-3 text-sm">
                   {listed.map((offer) => (
                     <li key={offer.id} className="flex justify-between gap-2">
-                      <span className="truncate">
-                        {providers.get(offer.provider_id)?.name ?? "مزوّد"}
+                      <span className="truncate" lang="ar" dir="auto">
+                        {providers.get(offer.provider_id)?.name ?? t("مزوّد", "Provider")}
                       </span>
                       <span className="shrink-0 font-medium">
                         {n0(offer.price_per_unit)} /{" "}
-                        {SERVICE_UNIT_LABEL[offer.unit]}
+                        {serviceUnitLabel(offer.unit, locale)}
                       </span>
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p className="mt-4 border-t border-border pt-3 text-xs text-muted">
-                  لا يوجد مزوّد موثّق لهذه الخدمة بعد.
+                  {t("لا يوجد مزوّد موثّق لهذه الخدمة بعد.", "No verified provider for this service yet.")}
                 </p>
               )}
             </article>
@@ -176,11 +204,11 @@ export default async function ServicesPage({
         how its quantity will be computed against a season.
       */}
       <p className="mt-8 text-xs text-muted">
-        {SERVICE_CATALOGUE.length} خدمة معرّفة في الكتالوج،{" "}
+        {SERVICE_CATALOGUE.length} {t("خدمة معرّفة في الكتالوج،", "services defined in the catalogue,")}{" "}
         {Object.keys(SERVICE_BY_KEY).length === SERVICE_CATALOGUE.length
-          ? "بلا تكرار"
-          : "راجع التعريفات"}
-        . مقدّمو الخدمة يُوثّقون من الإدارة قبل ظهورهم هنا.
+          ? t("بلا تكرار", "no duplicates")
+          : t("راجع التعريفات", "check the definitions")}
+        {t(". مقدّمو الخدمة يُوثّقون من الإدارة قبل ظهورهم هنا.", ". Providers are verified by the administrators before they appear here.")}
       </p>
     </div>
   );

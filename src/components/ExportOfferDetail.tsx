@@ -7,7 +7,9 @@ import {
   classifyEvidence,
   type ActionResult,
 } from "@/app/export/offers/[id]/actions";
-import { READINESS_MODE_LABEL } from "@/lib/exportReadiness";
+import { readinessModeLabel } from "@/lib/exportReadiness";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 interface Origin {
   plot_ref: string;
@@ -99,6 +101,10 @@ export default function ExportOfferDetail({
    * select would silently carry the last choice onto the next attachment.
    */
   const [pick, setPick] = useState<Record<string, string>>({});
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const dateLocale = locale === "en" ? "en-GB" : "ar-EG";
+  const unreachable = t("تعذّر الوصول إلى الخادم.", "Could not reach the server.");
 
   const box = "mt-6 rounded-xl border border-border bg-card p-4";
   const field = "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm";
@@ -108,7 +114,7 @@ export default function ExportOfferDetail({
     try {
       setResult(await addCustodyEvent(offerId, formData));
     } catch {
-      setResult({ ok: false, message: "تعذّر الوصول إلى الخادم." });
+      setResult({ ok: false, message: unreachable });
     } finally {
       setBusy(false);
     }
@@ -120,7 +126,7 @@ export default function ExportOfferDetail({
     try {
       setResult(await attachEvidence(offerId, id, pick[id] ?? ""));
     } catch {
-      setResult({ ok: false, message: "تعذّر الوصول إلى الخادم." });
+      setResult({ ok: false, message: unreachable });
     } finally {
       setBusy(false);
     }
@@ -132,22 +138,22 @@ export default function ExportOfferDetail({
     try {
       setResult(await classifyEvidence(offerId, evidenceId, documentTypeId));
     } catch {
-      setResult({ ok: false, message: "تعذّر الوصول إلى الخادم." });
+      setResult({ ok: false, message: unreachable });
     } finally {
       setBusy(false);
     }
   }
 
   const typeName = (id: string | null) =>
-    documentTypes.find((t) => t.id === id)?.name_ar ?? null;
+    documentTypes.find((d) => d.id === id)?.name_ar ?? null;
 
   function TypeOptions() {
     return (
       <>
-        <option value="">— ليس مستنداً مطلوباً —</option>
-        {documentTypes.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name_ar} ({READINESS_MODE_LABEL[t.mode] ?? t.mode})
+        <option value="">{t("— ليس مستنداً مطلوباً —", "— Not a required document —")}</option>
+        {documentTypes.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name_ar} ({readinessModeLabel(d.mode, locale)})
           </option>
         ))}
       </>
@@ -170,16 +176,16 @@ export default function ExportOfferDetail({
       )}
 
       <section className={box}>
-        <h2 className="font-medium">المنشأ</h2>
+        <h2 className="font-medium">{t("المنشأ", "Origin")}</h2>
         {origins.length === 0 ? (
-          <p className="mt-1 text-sm text-danger">بلا إحداثيّة.</p>
+          <p className="mt-1 text-sm text-danger">{t("بلا إحداثيّة.", "No coordinates.")}</p>
         ) : (
           <ul className="mt-2 space-y-1 text-sm text-muted">
             {origins.map((o, i) => (
               <li key={i}>
-                {o.plot_ref} · {o.latitude}, {o.longitude}
-                {o.area_hectares ? ` · ${o.area_hectares} هكتار` : ""} ·{" "}
-                {o.boundary ? "بمضلَّع" : "نقطة"}
+                <bdi>{o.plot_ref}</bdi> · {o.latitude}, {o.longitude}
+                {o.area_hectares ? ` · ${o.area_hectares} ${t("هكتار", "ha")}` : ""} ·{" "}
+                {o.boundary ? t("بمضلَّع", "polygon") : t("نقطة", "point")}
               </li>
             ))}
           </ul>
@@ -187,23 +193,26 @@ export default function ExportOfferDetail({
       </section>
 
       <section className={box}>
-        <h2 className="font-medium">سلسلة العهدة</h2>
+        <h2 className="font-medium">{t("سلسلة العهدة", "Chain of custody")}</h2>
         <p className="mt-1 text-xs text-muted">
-          تُلحَق ولا تُعدَّل ولا تُحذف — وسلسلةٌ يمكن تعديلُها ليست سلسلةَ عهدة.
+          {t(
+            "تُلحَق ولا تُعدَّل ولا تُحذف — وسلسلةٌ يمكن تعديلُها ليست سلسلةَ عهدة.",
+            "Events are appended, never edited or deleted — a chain that can be edited is not a chain of custody.",
+          )}
         </p>
 
         {custody.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">لا أحداثَ بعد.</p>
+          <p className="mt-2 text-sm text-muted">{t("لا أحداثَ بعد.", "No events yet.")}</p>
         ) : (
           <ol className="mt-3 space-y-2 text-sm">
             {custody.map((c) => (
-              <li key={c.sequence} className="border-r-2 border-border pr-3">
-                <span className="font-medium">{c.sequence}.</span> {c.place_name}
+              <li key={c.sequence} className="border-s-2 border-border ps-3">
+                <span className="font-medium">{c.sequence}.</span> <bdi>{c.place_name}</bdi>
                 <div className="text-xs text-muted">
-                  {new Date(c.occurred_at).toLocaleString("ar-EG")}
+                  {new Date(c.occurred_at).toLocaleString(dateLocale)}
                   {c.latitude ? ` · ${c.latitude}, ${c.longitude}` : ""}
                 </div>
-                {c.note && <div className="text-xs text-muted">{c.note}</div>}
+                {c.note && <div className="text-xs text-muted" dir="auto">{c.note}</div>}
               </li>
             ))}
           </ol>
@@ -213,13 +222,13 @@ export default function ExportOfferDetail({
           <form action={submitCustody} className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium" htmlFor="place_name">
-                المكان
+                {t("المكان", "Place")}
               </label>
               <input id="place_name" name="place_name" className={field} required />
             </div>
             <div>
               <label className="block text-sm font-medium" htmlFor="occurred_at">
-                الوقت
+                {t("الوقت", "Time")}
               </label>
               <input
                 id="occurred_at"
@@ -232,20 +241,20 @@ export default function ExportOfferDetail({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-sm font-medium" htmlFor="latitude">
-                  خط العرض
+                  {t("خط العرض", "Latitude")}
                 </label>
                 <input id="latitude" name="latitude" className={field} inputMode="decimal" />
               </div>
               <div>
                 <label className="block text-sm font-medium" htmlFor="longitude">
-                  خط الطول
+                  {t("خط الطول", "Longitude")}
                 </label>
                 <input id="longitude" name="longitude" className={field} inputMode="decimal" />
               </div>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium" htmlFor="note">
-                ملاحظة
+                {t("ملاحظة", "Note")}
               </label>
               <input id="note" name="note" className={field} />
             </div>
@@ -254,17 +263,17 @@ export default function ExportOfferDetail({
               disabled={busy}
               className="justify-self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
-              أضف حدثاً
+              {t("أضف حدثاً", "Add event")}
             </button>
           </form>
         )}
       </section>
 
       <section className={box}>
-        <h2 className="font-medium">الأدلّة</h2>
+        <h2 className="font-medium">{t("الأدلّة", "Evidence")}</h2>
         {evidence.length === 0 ? (
           <p className="mt-1 text-sm text-danger">
-            بلا أدلّة — لا شيء يسند ما يقوله العرض.
+            {t("بلا أدلّة — لا شيء يسند ما يقوله العرض.", "No evidence — nothing supports what the offer claims.")}
           </p>
         ) : (
           <ul className="mt-2 space-y-2 text-sm">
@@ -272,13 +281,13 @@ export default function ExportOfferDetail({
               <li key={e.id} className="text-muted">
                 {e.kind}
                 {e.captured_at
-                  ? ` · ${new Date(e.captured_at).toLocaleDateString("ar-EG")}`
+                  ? ` · ${new Date(e.captured_at).toLocaleDateString(dateLocale)}`
                   : ""}{" "}
                 ·{" "}
                 {e.sha256 ? (
                   <span className="font-mono text-xs">{e.sha256.slice(0, 12)}…</span>
                 ) : (
-                  <span className="text-danger">بلا بصمة</span>
+                  <span className="text-danger">{t("بلا بصمة", "No fingerprint")}</span>
                 )}
 
                 {/* أيَّ مستندٍ يفي به — وهذا وحده ما يجعله محسوباً في
@@ -286,7 +295,7 @@ export default function ExportOfferDetail({
                     الاختيار يبقى الدليلُ مرفوعاً وغيرَ معدود. */}
                 {editable && documentTypes.length > 0 ? (
                   <select
-                    aria-label={`نوعُ المستند لـ ${e.kind}`}
+                    aria-label={t(`نوعُ المستند لـ ${e.kind}`, `Document type for ${e.kind}`)}
                     className="mt-1 block w-full rounded-lg border border-border bg-card px-2 py-1 text-xs"
                     defaultValue={e.document_type_id ?? ""}
                     disabled={busy}
@@ -297,7 +306,7 @@ export default function ExportOfferDetail({
                 ) : (
                   typeName(e.document_type_id) && (
                     <span className="block text-xs">
-                      يفي بـ: {typeName(e.document_type_id)}
+                      {t("يفي بـ:", "Satisfies:")} {typeName(e.document_type_id)}
                     </span>
                   )
                 )}
@@ -308,10 +317,15 @@ export default function ExportOfferDetail({
 
         {editable && (
           <div className="mt-4">
-            <h3 className="text-sm font-medium">أدلّةُ الموسم — أَلحِق ما يخصّ هذه البضاعة</h3>
+            <h3 className="text-sm font-medium">
+              {t("أدلّةُ الموسم — أَلحِق ما يخصّ هذه البضاعة", "Season evidence — attach what concerns these goods")}
+            </h3>
             {available.length === 0 ? (
               <p className="mt-1 text-sm text-muted">
-                لا أدلّةَ إضافيةً في الموسم المرتبط بهذا العرض.
+                {t(
+                  "لا أدلّةَ إضافيةً في الموسم المرتبط بهذا العرض.",
+                  "No further evidence in the season linked to this offer.",
+                )}
               </p>
             ) : (
               <ul className="mt-2 space-y-2">
@@ -324,12 +338,12 @@ export default function ExportOfferDetail({
                       {a.kind}
                       {a.caption ? ` — ${a.caption}` : ""}
                       {a.captured_at
-                        ? ` · ${new Date(a.captured_at).toLocaleDateString("ar-EG")}`
+                        ? ` · ${new Date(a.captured_at).toLocaleDateString(dateLocale)}`
                         : ""}
                     </span>
                     {documentTypes.length > 0 && (
                       <select
-                        aria-label={`نوعُ المستند لـ ${a.kind}`}
+                        aria-label={t(`نوعُ المستند لـ ${a.kind}`, `Document type for ${a.kind}`)}
                         className="rounded-lg border border-border bg-card px-2 py-1 text-xs"
                         value={pick[a.id] ?? ""}
                         disabled={busy}
@@ -346,15 +360,17 @@ export default function ExportOfferDetail({
                       disabled={busy}
                       className="rounded-lg border border-border px-3 py-1 text-xs hover:bg-background disabled:opacity-50"
                     >
-                      أَلحِق
+                      {t("أَلحِق", "Attach")}
                     </button>
                   </li>
                 ))}
               </ul>
             )}
             <p className="mt-2 text-xs text-muted">
-              البصمةُ تُحسب من الملفّ نفسِه لا من مساره — بصمةٌ من المسار تتطابق
-              دائماً ولا تكشف تبديلاً أبداً.
+              {t(
+                "البصمةُ تُحسب من الملفّ نفسِه لا من مساره — بصمةٌ من المسار تتطابق دائماً ولا تكشف تبديلاً أبداً.",
+                "The fingerprint is computed from the file itself, not its path — a fingerprint of the path always matches and never reveals a swap.",
+              )}
             </p>
           </div>
         )}

@@ -6,11 +6,15 @@ import { planSeason } from "@/lib/season";
 import {
   buildMilestonePlan,
   SERVICE_BY_KEY,
-  SERVICE_UNIT_LABEL,
+  serviceName,
+  serviceNote,
+  serviceUnitLabel,
   type ServiceKey,
 } from "@/lib/services";
 import type { IrrigationMethod } from "@/lib/agronomy";
 import { createContract, type ActionResult } from "@/app/contracts/actions";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 const field =
   "rounded-lg border border-border bg-background px-3 py-2 outline-none focus:border-primary";
@@ -60,6 +64,8 @@ export default function ContractBuilder({
     ActionResult | null,
     FormData
   >(createContract, null);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   // Which side of production this contract serves. The database allows exactly
   // one, so the form asks once rather than letting both be filled in.
@@ -157,19 +163,27 @@ export default function ContractBuilder({
 
   if (seasons.length === 0 && herds.length === 0) {
     return (
-      <EmptyState title="لا يوجد موسم ولا دورة لتتعاقد عليها بعد">
-        العقد يُبنى على موسم زراعي أو دورة إنتاج حيواني قائمة: منها تُؤخذ
-        الكميات — المساحة والاحتياج المائي للموسم، وعدد الرؤوس وطول الدورة
-        للقطيع. أنشئ أحدهما أولاً ثم عد إلى هنا.
+      <EmptyState
+        title={t(
+          "لا يوجد موسم ولا دورة لتتعاقد عليها بعد",
+          "You have no season or livestock cycle to contract for yet",
+        )}
+      >
+        {t(
+          "العقد يُبنى على موسم زراعي أو دورة إنتاج حيواني قائمة: منها تُؤخذ الكميات — المساحة والاحتياج المائي للموسم، وعدد الرؤوس وطول الدورة للقطيع. أنشئ أحدهما أولاً ثم عد إلى هنا.",
+          "A contract is built on an existing crop season or livestock cycle: that is where the quantities come from — area and water requirement for a season, head count and cycle length for a herd. Create one of them first, then come back here.",
+        )}
       </EmptyState>
     );
   }
 
   if (providers.length === 0) {
     return (
-      <EmptyState title="لا يوجد مقدّم خدمة موثّق بعد">
-        لا يمكن التعاقد إلا مع جهة راجعتها الإدارة ووثّقتها. إن كنت تقدّم خدمات
-        زراعية، سجّل جهتك وستظهر هنا بعد التوثيق.
+      <EmptyState title={t("لا يوجد مقدّم خدمة موثّق بعد", "No verified service provider yet")}>
+        {t(
+          "لا يمكن التعاقد إلا مع جهة راجعتها الإدارة ووثّقتها. إن كنت تقدّم خدمات زراعية، سجّل جهتك وستظهر هنا بعد التوثيق.",
+          "You can only contract with an organisation the administrators have reviewed and verified. If you provide agricultural services, register your organisation and it will appear here once verified.",
+        )}
       </EmptyState>
     );
   }
@@ -178,12 +192,16 @@ export default function ContractBuilder({
     <form action={formAction} className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="flex flex-col gap-5">
         <Steps
-          steps={["الموسم والمزوّد", "اختيار الخدمات", "مراجعة العقد"]}
+          steps={[
+            t("الموسم والمزوّد", "Season and provider"),
+            t("اختيار الخدمات", "Choose services"),
+            t("مراجعة العقد", "Review the contract"),
+          ]}
           current={picked.length === 0 ? 1 : 2}
         />
 
         <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-5">
-          <legend className="px-2 text-sm font-bold">على أي إنتاج؟</legend>
+          <legend className="px-2 text-sm font-bold">{t("على أي إنتاج؟", "For which production?")}</legend>
 
           <input type="hidden" name="unit_kind" value={unitKind} />
 
@@ -191,8 +209,8 @@ export default function ContractBuilder({
             <div className="flex gap-2 text-sm">
               {(
                 [
-                  ["season", "موسم زراعي"],
-                  ["herd", "دورة إنتاج حيواني"],
+                  ["season", t("موسم زراعي", "Crop season")],
+                  ["herd", t("دورة إنتاج حيواني", "Livestock cycle")],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -216,7 +234,7 @@ export default function ContractBuilder({
 
           {unitKind === "season" ? (
             <label className="flex flex-col gap-1 text-sm">
-              الموسم
+              {t("الموسم", "Season")}
               <select
                 name="unit_id"
                 value={seasonId}
@@ -225,19 +243,20 @@ export default function ContractBuilder({
               >
                 {seasons.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name} — {n0(s.feddans)} فدان
+                    {s.name} — {n0(s.feddans)} {t("فدان", "feddans")}
                   </option>
                 ))}
               </select>
               <Explain tone="why">
-                الكميات في العقد تُحسب من هذا الموسم: المساحة بالفدان، والاحتياج
-                المائي المشتق بمعادلة FAO-56، وتواريخ المراحل. لا تُكتب يدوياً،
-                فيمكنك أنت والمزوّد إعادة حسابها.
+                {t(
+                  "الكميات في العقد تُحسب من هذا الموسم: المساحة بالفدان، والاحتياج المائي المشتق بمعادلة FAO-56، وتواريخ المراحل. لا تُكتب يدوياً، فيمكنك أنت والمزوّد إعادة حسابها.",
+                  "The quantities in the contract are computed from this season: the area in feddans (1 feddan ≈ 0.42 ha), the water requirement derived with the FAO-56 method, and the phase dates. They are not typed in by hand, so you and the provider can both recompute them.",
+                )}
               </Explain>
             </label>
           ) : (
             <label className="flex flex-col gap-1 text-sm">
-              الدورة
+              {t("الدورة", "Cycle")}
               <select
                 name="unit_id"
                 value={herdId}
@@ -246,20 +265,21 @@ export default function ContractBuilder({
               >
                 {herds.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {h.name} — {n0(h.head_count)} رأس
+                    {h.name} — {n0(h.head_count)} {t("رأس", "head")}
                   </option>
                 ))}
               </select>
               <Explain tone="why">
-                الكميات تُحسب من هذه الدورة: عدد الرؤوس للخدمات البيطرية
-                والتغذوية، وطول الدورة بالأشهر للمتابعة الدورية. الخدمات التي لا
-                تنطبق على الإنتاج الحيواني تُسقَط من الخطة ولا تُسعَّر بصفر.
+                {t(
+                  "الكميات تُحسب من هذه الدورة: عدد الرؤوس للخدمات البيطرية والتغذوية، وطول الدورة بالأشهر للمتابعة الدورية. الخدمات التي لا تنطبق على الإنتاج الحيواني تُسقَط من الخطة ولا تُسعَّر بصفر.",
+                  "The quantities are computed from this cycle: the head count for veterinary and feeding services, and the cycle length in months for regular follow-up. Services that do not apply to livestock are dropped from the plan, not priced at zero.",
+                )}
               </Explain>
             </label>
           )}
 
           <label className="flex flex-col gap-1 text-sm">
-            مقدّم الخدمة
+            {t("مقدّم الخدمة", "Service provider")}
             <select
               name="provider_id"
               value={providerId}
@@ -278,22 +298,25 @@ export default function ContractBuilder({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            عنوان العقد
+            {t("عنوان العقد", "Contract title")}
             <input
               name="title"
               required
               className={field}
-              placeholder="مثال: عقد إعداد الأرض — موسم الذرة ٢٠٢٦"
+              placeholder={t(
+                "مثال: عقد إعداد الأرض — موسم الذرة ٢٠٢٦",
+                "e.g. Land preparation contract — sorghum season 2026",
+              )}
             />
           </label>
         </fieldset>
 
         <fieldset className="rounded-2xl border border-border bg-card p-5">
-          <legend className="px-2 text-sm font-bold">أي خدمات؟</legend>
+          <legend className="px-2 text-sm font-bold">{t("أي خدمات؟", "Which services?")}</legend>
 
           {providerOffers.length === 0 ? (
             <p className="text-sm text-muted">
-              لم يُدرج هذا المزوّد أي خدمة بعد.
+              {t("لم يُدرج هذا المزوّد أي خدمة بعد.", "This provider has not listed any services yet.")}
             </p>
           ) : (
             <div className="flex flex-col gap-2">
@@ -319,14 +342,14 @@ export default function ContractBuilder({
                     />
                     <span className="flex-1">
                       <span className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="font-medium">{def.name}</span>
+                        <span className="font-medium">{locale === "en" ? def.nameEn : def.name}</span>
                         <span className="text-sm">
                           {n0(offer.price_per_unit)} /{" "}
-                          {SERVICE_UNIT_LABEL[def.unit]}
+                          {serviceUnitLabel(def.unit, locale)}
                         </span>
                       </span>
                       <span className="mt-1 block text-xs leading-relaxed text-muted">
-                        {def.note}
+                        {serviceNote(def, locale)}
                       </span>
                     </span>
                   </label>
@@ -345,11 +368,14 @@ export default function ContractBuilder({
 
       {/* The receipt, built as you choose — nobody signs a number they have not seen. */}
       <aside className="flex h-fit flex-col gap-3 rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-6">
-        <h2 className="text-sm font-bold">خطة العقد</h2>
+        <h2 className="text-sm font-bold">{t("خطة العقد", "Contract plan")}</h2>
 
         {preview.length === 0 ? (
           <p className="text-sm leading-relaxed text-muted">
-            اختر خدمة لترى مراحل العقد وتواريخها ومبالغها محسوبة من موسمك.
+            {t(
+              "اختر خدمة لترى مراحل العقد وتواريخها ومبالغها محسوبة من موسمك.",
+              "Choose a service to see the contract's phases, dates and amounts computed from your season.",
+            )}
           </p>
         ) : (
           <>
@@ -361,27 +387,29 @@ export default function ContractBuilder({
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-sm font-medium">
-                      {m.seq}. {m.title}
+                      {m.seq}. {serviceName(m.serviceKey, locale, m.title)}
                     </span>
                     <span className="shrink-0 text-sm">{n0(m.amount)}</span>
                   </div>
                   <p className="mt-1 text-xs text-muted">
-                    {n0(m.quantity)} {SERVICE_UNIT_LABEL[m.unit]} ×{" "}
+                    {n0(m.quantity)} {serviceUnitLabel(m.unit, locale)} ×{" "}
                     {n0(m.unitPrice)}
-                    {m.plannedStart && <> — يبدأ {m.plannedStart}</>}
+                    {m.plannedStart && <> — {t("يبدأ", "starts")} {m.plannedStart}</>}
                   </p>
                 </li>
               ))}
             </ol>
 
             <div className="flex items-baseline justify-between border-t border-border pt-3">
-              <span className="font-bold">الإجمالي</span>
+              <span className="font-bold">{t("الإجمالي", "Total")}</span>
               <span className="text-lg font-bold">{n0(total)}</span>
             </div>
 
             <Explain tone="why">
-              كل مرحلة تُدفع وحدها بعد إثبات تنفيذها بصورة أو تقرير. لن يُفرَج عن
-              دفعة قبل اعتماد مرحلتها، ولا تُعتمد مرحلة قبل التي قبلها.
+              {t(
+                "كل مرحلة تُدفع وحدها بعد إثبات تنفيذها بصورة أو تقرير. لن يُفرَج عن دفعة قبل اعتماد مرحلتها، ولا تُعتمد مرحلة قبل التي قبلها.",
+                "Each phase is paid on its own after proof of delivery by photo or report. No payment is released before its phase is approved, and no phase is approved before the one before it.",
+              )}
             </Explain>
           </>
         )}
@@ -391,11 +419,14 @@ export default function ContractBuilder({
           disabled={pending || preview.length === 0}
           className="mt-1 rounded-lg bg-primary px-6 py-2.5 font-medium text-primary-foreground disabled:opacity-50"
         >
-          {pending ? "جارٍ الإنشاء..." : "أنشئ العقد كمسودة"}
+          {pending ? t("جارٍ الإنشاء...", "Creating...") : t("أنشئ العقد كمسودة", "Create the contract as a draft")}
         </button>
 
         <p className="text-xs text-muted">
-          يُحفظ كمسودة — لا يلزم أحداً قبل أن يوقّعه الطرفان.
+          {t(
+            "يُحفظ كمسودة — لا يلزم أحداً قبل أن يوقّعه الطرفان.",
+            "Saved as a draft — it binds no one until both parties sign it.",
+          )}
         </p>
       </aside>
     </form>

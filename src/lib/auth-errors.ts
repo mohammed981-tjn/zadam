@@ -5,15 +5,36 @@
  * being about something they never entered — so the identifier is named after
  * the way the person actually signed in.
  */
+import type { Locale } from "./i18n";
+
 export type AuthMethod = "phone" | "email";
 
 export function translateAuthError(
   message: string,
   method: AuthMethod = "email",
+  locale: Locale = "ar",
 ) {
   const byPhone = method === "phone";
-  const identifier = byPhone ? "رقم الجوال" : "البريد الإلكتروني";
 
+  if (locale === "en") {
+    const identifier = byPhone ? "Mobile number" : "Email";
+    const taken = byPhone
+      ? "This number is already registered. Try signing in instead."
+      : "This email is already registered. Try signing in instead.";
+    const en: Record<string, string> = {
+      "Invalid login credentials": `${identifier} or password is incorrect.`,
+      "User already registered": taken,
+      "A user with this email address has already been registered": taken,
+      "Password should be at least 6 characters":
+        "The password must be at least 6 characters.",
+      "Email not confirmed": byPhone
+        ? "This account is not activated. Account activation is still required in the platform settings — contact us to activate your account."
+        : "Your email has not been confirmed yet. Check for the confirmation message we sent you.",
+    };
+    return en[message] ?? message;
+  }
+
+  const identifier = byPhone ? "رقم الجوال" : "البريد الإلكتروني";
   const map: Record<string, string> = {
     "Invalid login credentials": `${identifier} أو كلمة المرور غير صحيحة.`,
     "User already registered": byPhone

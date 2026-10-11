@@ -56,6 +56,35 @@ export const HERD_STAGE_LABEL: Record<HerdStageKey, string> = {
   offtake: "التسويق",
 };
 
+export const SPECIES_LABEL_EN: Record<LivestockSpecies, string> = {
+  cattle: "Cattle",
+  sheep: "Sheep",
+  goat: "Goats",
+  camel: "Camels",
+  poultry: "Poultry",
+  fish: "Fish",
+};
+
+export const PURPOSE_LABEL_EN: Record<HerdPurpose, string> = {
+  meat: "Meat",
+  dairy: "Dairy",
+  eggs: "Eggs",
+  breeding: "Breeding and multiplication",
+  fattening: "Fattening",
+};
+
+export const HERD_STAGE_LABEL_EN: Record<HerdStageKey, string> = {
+  acquisition: "Acquisition",
+  quarantine: "Quarantine",
+  conditioning: "Conditioning",
+  breeding: "Mating",
+  gestation: "Gestation",
+  rearing: "Rearing",
+  fattening: "Fattening",
+  production: "Production",
+  offtake: "Marketing (offtake)",
+};
+
 export interface SpeciesProfile {
   key: LivestockSpecies;
   name: string;

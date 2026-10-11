@@ -5,6 +5,8 @@ import { topicLabel } from "@/lib/format";
 import type { KnowledgeEntry } from "@/types/database";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import FilmPlayer from "@/components/FilmPlayer";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 /*
  * ساعةٌ بين البناء والبناء.
@@ -19,11 +21,17 @@ import FilmPlayer from "@/components/FilmPlayer";
  */
 export const revalidate = 3600;
 
-export const metadata = {
-  title: "قاعدة المعرفة الزراعية · سوداقري",
-  description:
-    "تجارب زراعية موثّقة، كلٌّ منها بدولتها المرجعية وبتنبيهٍ متى تحتاج المعلومة تحققاً محلياً قبل تطبيقها في السودان.",
-};
+export async function generateMetadata() {
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  return {
+    title: t("قاعدة المعرفة الزراعية · سوداقري", "Agricultural knowledge base · Sudagri"),
+    description: t(
+      "تجارب زراعية موثّقة، كلٌّ منها بدولتها المرجعية وبتنبيهٍ متى تحتاج المعلومة تحققاً محلياً قبل تطبيقها في السودان.",
+      "Documented farming experience, each entry with its reference country and a warning when the information needs local checking before it is applied in Sudan.",
+    ),
+  };
+}
 
 /**
  * قاعدة المعرفة — الصفحة التي كانت تُوعَد ولا توجد.
@@ -59,6 +67,9 @@ export default async function KnowledgePage({
   searchParams: Promise<{ topic?: string }>;
 }) {
   const { topic } = await searchParams;
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const en = locale === "en";
   const supabase = createPublicClient();
 
   const { data, error } = await supabase
@@ -85,26 +96,54 @@ export default async function KnowledgePage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-2xl font-bold sm:text-3xl">قاعدة المعرفة الزراعية</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
-        تجارب موثّقة من دولٍ سبقتنا في محاصيلَ نزرعها. وكلُّ مدخلٍ يحمل{" "}
-        <strong className="text-foreground">دولته المرجعية</strong> — لأنّ ما
-        نجح في مصر أو الهند ليس وعداً بأن ينجح في الجزيرة، والفرقُ في التربة
-        والمناخ والسوق. اقرأها على أنّها نقطةُ بداية للسؤال، لا جواباً نهائياً.
-      </p>
-      <ShareWhatsApp path="/knowledge" text="قاعدة معرفة زراعية سودانية — كل معلومة بمصدرها:" className="my-3" />
+      <h1 className="text-2xl font-bold sm:text-3xl">{t("قاعدة المعرفة الزراعية", "Agricultural knowledge base")}</h1>
+      {en ? (
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
+          Documented experience from countries that went before us with crops
+          we grow. Every entry carries its{" "}
+          <strong className="text-foreground">reference country</strong> —
+          because what worked in Egypt or India is no promise that it will work
+          in the Gezira; soil, climate and market differ. Read each one as a
+          starting point for your question, not a final answer. The entries
+          themselves are in Arabic.
+        </p>
+      ) : (
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
+          تجارب موثّقة من دولٍ سبقتنا في محاصيلَ نزرعها. وكلُّ مدخلٍ يحمل{" "}
+          <strong className="text-foreground">دولته المرجعية</strong> — لأنّ ما
+          نجح في مصر أو الهند ليس وعداً بأن ينجح في الجزيرة، والفرقُ في التربة
+          والمناخ والسوق. اقرأها على أنّها نقطةُ بداية للسؤال، لا جواباً نهائياً.
+        </p>
+      )}
+      <ShareWhatsApp
+        path="/knowledge"
+        text={t("قاعدة معرفة زراعية سودانية — كل معلومة بمصدرها:", "A Sudanese agricultural knowledge base — every fact with its source:")}
+        className="my-3"
+        locale={locale}
+      />
 
       <figure className="my-6">
-        <FilmPlayer base="/video/knowledge-wide" poster="/video/knowledge-wide.jpg" label="فيلم سوداقري: معلومتك في يدك" />
+        <FilmPlayer
+          base="/video/knowledge-wide"
+          poster="/video/knowledge-wide.jpg"
+          label={t("فيلم سوداقري: معلومتك في يدك", "Sudagri film: your information in your hand")}
+        />
       </figure>
 
       {error ? (
-        <p className="mt-8 rounded-2xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">
-          تعذّر قراءة قاعدة المعرفة الآن — <strong>والخلل عندنا</strong>، لا أنّ
-          القاعدة فارغة. أعد المحاولة بعد قليل.
-        </p>
+        en ? (
+          <p className="mt-8 rounded-2xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">
+            The knowledge base could not be read just now — <strong>the fault
+            is ours</strong>, not an empty base. Please try again shortly.
+          </p>
+        ) : (
+          <p className="mt-8 rounded-2xl border border-accent/40 bg-accent/10 p-5 text-sm leading-relaxed">
+            تعذّر قراءة قاعدة المعرفة الآن — <strong>والخلل عندنا</strong>، لا أنّ
+            القاعدة فارغة. أعد المحاولة بعد قليل.
+          </p>
+        )
       ) : all.length === 0 ? (
-        <p className="mt-8 text-muted">قاعدة المعرفة قيد الإعداد حالياً.</p>
+        <p className="mt-8 text-muted">{t("قاعدة المعرفة قيد الإعداد حالياً.", "The knowledge base is being prepared.")}</p>
       ) : (
         <>
           <div className="mt-6 flex flex-wrap gap-2">
@@ -112,39 +151,54 @@ export default async function KnowledgePage({
               href="/knowledge"
               className={`${chip} ${active ? "border-border" : "border-primary bg-primary/10 text-primary"}`}
             >
-              الكل ({all.length})
+              {t("الكل", "All")} ({all.length})
             </Link>
-            {topics.map((t) => (
+            {topics.map((tp) => (
               <Link
-                key={t}
-                href={`/knowledge?topic=${encodeURIComponent(t)}`}
-                className={`${chip} ${active === t ? "border-primary bg-primary/10 text-primary" : "border-border"}`}
+                key={tp}
+                href={`/knowledge?topic=${encodeURIComponent(tp)}`}
+                className={`${chip} ${active === tp ? "border-primary bg-primary/10 text-primary" : "border-border"}`}
               >
-                {topicLabel(t)} ({all.filter((e) => e.topic === t).length})
+                {topicLabel(tp, locale)} ({all.filter((e) => e.topic === tp).length})
               </Link>
             ))}
           </div>
 
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {entries.map((entry) => (
-              <KnowledgeCard key={entry.id} entry={entry} />
+              <KnowledgeCard key={entry.id} entry={entry} locale={locale} />
             ))}
           </div>
         </>
       )}
 
-      <p className="mt-10 rounded-2xl border border-border bg-card p-5 text-sm leading-7 text-muted">
-        ولم تجد ما تبحث عنه؟{" "}
-        <Link href="/feedback" className="text-primary underline">
-          اكتب لنا
-        </Link>{" "}
-        بالمحصول والسؤال — فما يُسأل عنه مرّتين يُضاف. ولقسم التعدين قاعدتُه
-        الخاصّة في{" "}
-        <Link href="/mining" className="text-primary underline">
-          صفحة التعدين
-        </Link>
-        .
-      </p>
+      {en ? (
+        <p className="mt-10 rounded-2xl border border-border bg-card p-5 text-sm leading-7 text-muted">
+          Didn&apos;t find what you were looking for?{" "}
+          <Link href="/feedback" className="text-primary underline">
+            Write to us
+          </Link>{" "}
+          with the crop and the question — anything asked twice gets added.
+          Mining has its own knowledge base on the{" "}
+          <Link href="/mining" className="text-primary underline">
+            mining page
+          </Link>
+          .
+        </p>
+      ) : (
+        <p className="mt-10 rounded-2xl border border-border bg-card p-5 text-sm leading-7 text-muted">
+          ولم تجد ما تبحث عنه؟{" "}
+          <Link href="/feedback" className="text-primary underline">
+            اكتب لنا
+          </Link>{" "}
+          بالمحصول والسؤال — فما يُسأل عنه مرّتين يُضاف. ولقسم التعدين قاعدتُه
+          الخاصّة في{" "}
+          <Link href="/mining" className="text-primary underline">
+            صفحة التعدين
+          </Link>
+          .
+        </p>
+      )}
     </div>
   );
 }

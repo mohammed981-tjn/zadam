@@ -18,6 +18,8 @@
  * and fineness are recorded at every hop rather than only at the start.
  */
 
+import { tr, type Locale } from "./i18n";
+
 export type ExtractionMethod =
   | "gravity"
   | "borax"
@@ -32,6 +34,17 @@ export const EXTRACTION_LABEL: Record<ExtractionMethod, string> = {
   cyanide: "سيانيد",
   unknown: "غير محدّد",
 };
+
+export const EXTRACTION_LABEL_EN: Record<ExtractionMethod, string> = {
+  gravity: "Gravity concentration only",
+  borax: "Borax (mercury-free)",
+  mercury: "Mercury amalgamation",
+  cyanide: "Cyanide",
+  unknown: "Not specified",
+};
+
+export const extractionLabel = (m: ExtractionMethod, locale: Locale) =>
+  locale === "en" ? EXTRACTION_LABEL_EN[m] : EXTRACTION_LABEL[m];
 
 export type CustodyRole =
   | "miner"
@@ -48,6 +61,15 @@ export const CUSTODY_ROLE_LABEL: Record<CustodyRole, string> = {
   aggregator: "مجمّع",
   assayer: "فاحص عيار",
   store: "مخزن",
+};
+
+export const CUSTODY_ROLE_LABEL_EN: Record<CustodyRole, string> = {
+  miner: "Miner",
+  processor: "Processor",
+  transporter: "Transporter",
+  aggregator: "Aggregator",
+  assayer: "Assayer",
+  store: "Store",
 };
 
 export interface SiteFacts {
@@ -108,7 +130,9 @@ export function assessProvenance(
   site: SiteFacts,
   method: ExtractionMethod,
   events: CustodyEvent[],
+  locale: Locale = "ar",
 ): ProvenanceResult {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const flags: Flag[] = [];
   const ordered = [...events].sort((a, b) => a.sequence - b.sequence);
 
@@ -117,36 +141,41 @@ export function assessProvenance(
     flags.push({
       key: "armed_presence",
       severity: "critical",
-      message:
+      message: t(
         "الموقع تحت وجود مسلح أو قربه — هذه علامة حمراء قاطعة في إرشادات العناية الواجبة، ولا يُقبل معها توثيق مهما اكتمل.",
+        "The site is under or near an armed presence — a definitive red flag in the due-diligence guidance; no documentation is acceptable with it, however complete.",
+      ),
     });
   }
   if (site.childLabour) {
     flags.push({
       key: "child_labour",
       severity: "critical",
-      message: "عمالة أطفال في الموقع — علامة حمراء قاطعة.",
+      message: t("عمالة أطفال في الموقع — علامة حمراء قاطعة.", "Child labour at the site — a definitive red flag."),
     });
   }
   if (!site.licensed) {
     flags.push({
       key: "unlicensed",
       severity: "high",
-      message: "لا يوجد ترخيص تعدين مسجّل للموقع.",
+      message: t("لا يوجد ترخيص تعدين مسجّل للموقع.", "No mining licence is recorded for the site."),
     });
   }
   if (!site.hasCoordinates) {
     flags.push({
       key: "no_coordinates",
       severity: "high",
-      message: "لا توجد إحداثيات للموقع — المنشأ غير قابل للتحديد.",
+      message: t(
+        "لا توجد إحداثيات للموقع — المنشأ غير قابل للتحديد.",
+        "The site has no coordinates — the origin cannot be pinpointed.",
+      ),
     });
   }
   if (!site.siteVisited) {
     flags.push({
       key: "no_visit",
       severity: "medium",
-      message: "لم تُسجَّل معاينة مستقلة للموقع.",
+      message: t("لم تُسجَّل معاينة مستقلة للموقع.", "No independent site inspection has been recorded."),
     });
   }
 
@@ -156,15 +185,17 @@ export function assessProvenance(
     flags.push({
       key: "mercury",
       severity: "high",
-      message:
+      message: t(
         "استُخدم الزئبق في الاستخلاص — ضار بالصحة، ويقلّل قابلية القبول لدى المشترين الملتزمين. طريقة البوراكس بديل مباشر.",
+        "Mercury was used in extraction — harmful to health, and it lowers acceptance by responsible buyers. The borax method is a direct alternative.",
+      ),
     });
   }
   if (method === "unknown") {
     flags.push({
       key: "method_unknown",
       severity: "medium",
-      message: "طريقة الاستخلاص غير مسجّلة.",
+      message: t("طريقة الاستخلاص غير مسجّلة.", "The extraction method is not recorded."),
     });
   }
 
@@ -176,7 +207,7 @@ export function assessProvenance(
     flags.push({
       key: "no_custody",
       severity: "critical",
-      message: "لا توجد أي حلقة حيازة مسجّلة — لا سلسلة أصلاً.",
+      message: t("لا توجد أي حلقة حيازة مسجّلة — لا سلسلة أصلاً.", "No custody link is recorded — there is no chain at all."),
     });
   }
 
@@ -194,9 +225,12 @@ export function assessProvenance(
         flags.push({
           key: `break_${e.sequence}`,
           severity: "critical",
-          message:
+          message: t(
             `انقطاع في السلسلة عند الحلقة ${e.sequence}: تسلّمها «${prev.toParty}» ` +
-            `لكن الحلقة التالية تبدأ من «${e.fromParty}».`,
+              `لكن الحلقة التالية تبدأ من «${e.fromParty}».`,
+            `Break in the chain at link ${e.sequence}: "${prev.toParty}" received it, ` +
+              `but the next link starts from "${e.fromParty}".`,
+          ),
         });
       }
 
@@ -208,7 +242,10 @@ export function assessProvenance(
         flags.push({
           key: `time_${e.sequence}`,
           severity: "high",
-          message: `تاريخ الحلقة ${e.sequence} أسبق من الحلقة التي قبلها.`,
+          message: t(
+            `تاريخ الحلقة ${e.sequence} أسبق من الحلقة التي قبلها.`,
+            `Link ${e.sequence} is dated earlier than the link before it.`,
+          ),
         });
       }
 
@@ -220,10 +257,14 @@ export function assessProvenance(
         flags.push({
           key: `mass_${e.sequence}`,
           severity: "critical",
-          message:
+          message: t(
             `الذهب الصافي ارتفع عند الحلقة ${e.sequence} من ${prevContent.toFixed(2)} ` +
-            `إلى ${content.toFixed(2)} جرام. الذهب لا يزيد أثناء النقل أو المعالجة — ` +
-            `الزيادة تعني دخول مادة غير مسجّلة على الشحنة.`,
+              `إلى ${content.toFixed(2)} جرام. الذهب لا يزيد أثناء النقل أو المعالجة — ` +
+              `الزيادة تعني دخول مادة غير مسجّلة على الشحنة.`,
+            `Fine gold rose at link ${e.sequence} from ${prevContent.toFixed(2)} ` +
+              `to ${content.toFixed(2)} grams. Gold does not increase in transport or processing — ` +
+              `the increase means unrecorded material has entered the lot.`,
+          ),
         });
       }
     }
@@ -232,7 +273,7 @@ export function assessProvenance(
       flags.push({
         key: `evidence_${e.sequence}`,
         severity: "medium",
-        message: `الحلقة ${e.sequence} بلا أي دليل مرفوع.`,
+        message: t(`الحلقة ${e.sequence} بلا أي دليل مرفوع.`, `Link ${e.sequence} has no evidence uploaded.`),
       });
     }
   }

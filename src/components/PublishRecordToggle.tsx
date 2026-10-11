@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { setPublishRecord } from "@/app/seasons/actions";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * «سجلّي: خاصّ أم منشور؟» — والافتراضي خاصّ.
@@ -28,9 +29,12 @@ import { setPublishRecord } from "@/app/seasons/actions";
  */
 export default async function PublishRecordToggle({
   seasonCount,
+  locale = "ar",
 }: {
   seasonCount: number;
+  locale?: Locale;
 }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const supabase = await createClient();
   const {
     data: { user },
@@ -65,10 +69,28 @@ export default async function PublishRecordToggle({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h2 className="font-bold">
-            {published ? "سجلّك منشور" : "سجلّك خاصّ بك"}
+            {published
+              ? t("سجلّك منشور", "Your record is published")
+              : t("سجلّك خاصّ بك", "Your record is private")}
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-muted">
-            {published ? (
+            {locale === "en" ? (
+              published ? (
+                <>
+                  Anyone with the link to your profile sees your seasons and
+                  your trust indicator — crop, area, dates and level of
+                  commitment. <strong>Your financial figures are not shown</strong>:
+                  budget, costs and revenue stay with you and never leave the
+                  server.
+                </>
+              ) : (
+                <>
+                  No one but you sees your seasons. When you publish your
+                  record, anyone with the link sees: crop, area, dates and level
+                  of commitment — <strong>without any financial figure</strong>.
+                </>
+              )
+            ) : published ? (
               <>
                 من يملك رابط ملفّك يرى مواسمك ومؤشّر ثقتك — المحصول والمساحة
                 والتاريخ ودرجة الالتزام. <strong>ولا تُعرض أرقامك المالية</strong>:
@@ -84,7 +106,10 @@ export default async function PublishRecordToggle({
           </p>
           {seasonCount === 0 && !published && (
             <p className="mt-2 text-xs text-muted">
-              وليس فيه ما يُعرض بعد — سجّل موسماً أوّلاً.
+              {t(
+                "وليس فيه ما يُعرض بعد — سجّل موسماً أوّلاً.",
+                "There is nothing in it to show yet — record a season first.",
+              )}
             </p>
           )}
         </div>
@@ -97,7 +122,9 @@ export default async function PublishRecordToggle({
               : "bg-primary text-primary-foreground hover:opacity-90"
           }`}
         >
-          {published ? "اجعله خاصّاً" : "انشر سجلّي"}
+          {published
+            ? t("اجعله خاصّاً", "Make it private")
+            : t("انشر سجلّي", "Publish my record")}
         </button>
       </div>
     </form>

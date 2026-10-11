@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation";
 import EvidenceUpload from "@/components/EvidenceUpload";
 import { addMilestoneEvidence } from "@/app/contracts/actions";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 const KINDS = [
-  { value: "photo", label: "صورة من الموقع" },
-  { value: "report", label: "تقرير فني" },
-  { value: "invoice", label: "فاتورة" },
-  { value: "inspection", label: "محضر معاينة" },
+  { value: "photo", label: "صورة من الموقع", labelEn: "Photo from the site" },
+  { value: "report", label: "تقرير فني", labelEn: "Technical report" },
+  { value: "invoice", label: "فاتورة", labelEn: "Invoice" },
+  { value: "inspection", label: "محضر معاينة", labelEn: "Inspection record" },
 ];
 
 /**
@@ -27,12 +29,16 @@ export default function MilestoneProof({
   contractId: string;
 }) {
   const router = useRouter();
+  const locale = useLocale();
 
   return (
     <EvidenceUpload
-      kinds={KINDS}
+      kinds={KINDS.map((k) => ({
+        value: k.value,
+        label: locale === "en" ? k.labelEn : k.label,
+      }))}
       folder="milestones"
-      label="أضف إثبات تنفيذ"
+      label={tr(locale, "أضف إثبات تنفيذ", "Add proof of delivery")}
       onUploaded={async ({ kind, storagePath, caption, metadata }) => {
         const result = await addMilestoneEvidence({
           milestoneId,

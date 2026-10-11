@@ -3,7 +3,12 @@
 import { useState } from "react";
 import EvidenceUpload from "@/components/EvidenceUpload";
 import { addLandDocument } from "@/app/lands/documents/actions";
-import { LAND_DOCUMENT_KINDS } from "@/lib/landDocuments";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
+import {
+  LAND_DOCUMENT_KINDS,
+  LAND_DOCUMENT_KIND_EN,
+} from "@/lib/landDocuments";
 
 export default function LandDocuments({
   landId,
@@ -13,18 +18,30 @@ export default function LandDocuments({
   existing: { id: string; kind: string; caption: string | null }[];
 }) {
   const [uploaded, setUploaded] = useState<string[]>([]);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
+  const kinds =
+    locale === "en"
+      ? LAND_DOCUMENT_KINDS.map((k) => ({
+          ...k,
+          label: LAND_DOCUMENT_KIND_EN[k.value] ?? k.label,
+        }))
+      : LAND_DOCUMENT_KINDS;
 
   const kindLabel = (k: string) =>
-    LAND_DOCUMENT_KINDS.find((x) => x.value === k)?.label ?? k;
+    kinds.find((x) => x.value === k)?.label ?? k;
 
   const have = new Set([...existing.map((e) => e.kind), ...uploaded]);
 
   return (
     <div className="mt-4 border-t border-border pt-4">
-      <p className="mb-2 text-sm font-medium">مستندات الأرض</p>
+      <p className="mb-2 text-sm font-medium">
+        {t("مستندات الأرض", "Land documents")}
+      </p>
 
       <ul className="mb-3 flex flex-wrap gap-2">
-        {LAND_DOCUMENT_KINDS.map((k) => (
+        {kinds.map((k) => (
           <li
             key={k.value}
             className={`rounded-full px-3 py-1 text-xs ${
@@ -44,16 +61,23 @@ export default function LandDocuments({
           {existing.map((e) => (
             <li key={e.id}>
               {kindLabel(e.kind)}
-              {e.caption ? ` — ${e.caption}` : ""}
+              {e.caption && (
+                <>
+                  {" — "}
+                  <span {...(locale === "en" ? { lang: "ar", dir: "rtl" } : {})}>
+                    {e.caption}
+                  </span>
+                </>
+              )}
             </li>
           ))}
         </ul>
       )}
 
       <EvidenceUpload
-        kinds={LAND_DOCUMENT_KINDS}
+        kinds={kinds}
         folder="lands"
-        label="ارفع المستند"
+        label={t("ارفع المستند", "Upload document")}
         onUploaded={async ({ kind, storagePath, caption, metadata }) => {
           const result = await addLandDocument({
             landId,
