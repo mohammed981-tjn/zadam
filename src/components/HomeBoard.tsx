@@ -39,9 +39,9 @@ export function QuickTabs({ tabs, label = "تبويبات سريعة" }: { tabs:
         <Link
           key={t.href}
           href={t.href}
-          className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-3 text-center text-sm font-medium shadow-card transition hover:-translate-y-0.5 hover:border-primary hover:shadow-raised"
+          className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-3 text-center text-sm font-medium shadow-card transition hover:-translate-y-0.5 hover:border-rose/60 hover:shadow-raised"
         >
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-rose/10 text-rose">
             <Icon name={t.icon} className="size-5" />
           </span>
           {t.label}
@@ -63,17 +63,19 @@ export function PhotoBoard({
       {tiles.map((t, i) => (
         // The first tile — the water calculator, what farmers come for —
         // spans two columns so it is the largest target on the board.
-        <li key={t.href + t.title} className={i === 0 ? "col-span-2" : undefined}>
+        // On a wide screen it also spans two rows: 13 tiles left the last row
+        // half-empty, and a 2×2 lead fills the grid to whole rows of four.
+        <li key={t.href + t.title} className={i === 0 ? "col-span-2 lg:row-span-2" : undefined}>
           <Link
             href={t.href}
-            className="group relative block overflow-hidden rounded-2xl shadow-card transition hover:shadow-float active:scale-[0.98]"
+            className="group relative block h-full overflow-hidden rounded-2xl shadow-card transition hover:shadow-float active:scale-[0.98]"
           >
             <Image
               src={t.photo}
               alt={t.alt}
               placeholder="blur"
               sizes={i === 0 ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"}
-              className={`w-full object-cover transition duration-500 group-hover:scale-105 ${i === 0 ? "aspect-[2/1]" : "aspect-[4/3]"}`}
+              className={`w-full object-cover transition duration-500 group-hover:scale-105 ${i === 0 ? "aspect-[2/1] lg:aspect-auto lg:h-full" : "aspect-[4/3]"}`}
               // The first row loads with the page; the rest as they scroll in.
               loading={i < 3 ? "eager" : "lazy"}
             />
@@ -87,7 +89,7 @@ export function PhotoBoard({
                 The owner, 4 October: a visitor took the tiles for pictures with
                 captions and never thought to tap them. A button says it does.
               */}
-              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-primary shadow-card transition group-hover:bg-primary group-hover:text-white sm:text-xs">
+              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-primary shadow-card transition group-hover:bg-rose group-hover:text-white sm:text-xs">
                 {enter.label} <span aria-hidden>{enter.arrow}</span>
               </span>
             </span>

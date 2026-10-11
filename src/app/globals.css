@@ -31,6 +31,16 @@
   --danger: #b3261e;
 
   /*
+   * Hibiscus — the owner's pink, as a touch and never as a ground (backlog 98:
+   * «إدخال ألوان الوردي كلمسة»). It is the colour of karkadeh, the most Sudanese
+   * pink there is, and it marks small things only: the line above the headline,
+   * the quick-link icons, a bar under a section title, a hover. Green stays the
+   * colour of action and gold the colour of caution; pink never carries a number
+   * or a button, so it cannot be mistaken for either. #be185d holds 6:1 on white.
+   */
+  --rose: #be185d;
+
+  /*
    * Elevation, as light rather than as outline.
    *
    * The site drew a 1px border around every card, which at a dozen cards a
@@ -45,6 +55,7 @@
   /* The hero's ground: two wide, low-saturation pools, not a banner image. */
   --mesh-1: color-mix(in oklab, var(--primary) 14%, transparent);
   --mesh-2: color-mix(in oklab, var(--accent) 12%, transparent);
+  --mesh-3: color-mix(in oklab, var(--rose) 7%, transparent);
 
   --ring: color-mix(in oklab, var(--primary) 55%, transparent);
 
@@ -70,6 +81,7 @@
     --primary-foreground: #08130a;
     --muted: #a3a698;
     --accent: #d4a72c;
+    --rose: #f472b6;
 
     /* Shadow alone cannot lift a surface on a dark ground — the card is also
        lighter than the page, and the shadow deepens that separation. */
@@ -79,6 +91,7 @@
 
     --mesh-1: color-mix(in oklab, var(--primary) 18%, transparent);
     --mesh-2: color-mix(in oklab, var(--accent) 14%, transparent);
+    --mesh-3: color-mix(in oklab, var(--rose) 9%, transparent);
 
     --map-sea: #142a36;
     --map-land: #20281f;
@@ -99,6 +112,7 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-danger: var(--danger);
+  --color-rose: var(--rose);
   --font-sans: var(--font-tajawal);
 
   --shadow-card: var(--shadow-sm);
@@ -226,7 +240,56 @@ html {
       var(--mesh-1),
       transparent 60%
     ),
-    radial-gradient(45rem 25rem at 10% 110%, var(--mesh-2), transparent 60%);
+    radial-gradient(45rem 25rem at 10% 110%, var(--mesh-2), transparent 60%),
+    /* A third, faint hibiscus pool between the two — the pink as a breath, not a band. */
+    radial-gradient(30rem 18rem at 50% 45%, var(--mesh-3), transparent 65%);
+}
+
+/*
+ * The toub rule (backlog 99): a band of the geometric motif woven along the
+ * hem of a Sudanese toub, in place of a plain hairline between sections. The
+ * shape is a mask and the colour a gradient, so it themes itself from the
+ * tokens and costs a few hundred bytes — no image file.
+ */
+.toub-rule {
+  block-size: 14px;
+  background: linear-gradient(90deg, var(--rose), var(--accent) 50%, var(--rose));
+  opacity: 0.55;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 14'%3E%3Cpath d='M16 2l5 5-5 5-5-5zM0 4l3 3-3 3zM32 4l-3 3 3 3zM4 6.4h6v1.2H4zM22 6.4h6v1.2h-6z'/%3E%3C/svg%3E") repeat-x center / 32px 14px;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 14'%3E%3Cpath d='M16 2l5 5-5 5-5-5zM0 4l3 3-3 3zM32 4l-3 3 3 3zM4 6.4h6v1.2H4zM22 6.4h6v1.2h-6z'/%3E%3C/svg%3E") repeat-x center / 32px 14px;
+}
+
+/*
+ * The Nile line under the headline (backlog 99): drawn once, green into
+ * hibiscus, as water finding its course. CSS only; and for a reader who asked
+ * for less motion it is simply there, already drawn.
+ */
+.nile-line path {
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: nile-draw 1.6s 0.3s ease-out forwards;
+}
+@keyframes nile-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nile-line path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The short hibiscus bar under a section title: a touch that says «a new section starts». */
+.title-bar::after {
+  content: "";
+  display: block;
+  inline-size: 2.5rem;
+  block-size: 0.25rem;
+  margin-block-start: 0.5rem;
+  border-radius: 999px;
+  background: var(--rose);
 }
 
 /* A border tinted towards the brand, for the one card on a screen that leads. */
