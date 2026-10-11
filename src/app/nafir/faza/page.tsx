@@ -55,7 +55,7 @@ export default async function FazaPage({
           </p>
           <p className="mt-1 max-w-2xl leading-8 text-muted">
             “Whoever relieves a believer of one of the hardships of this world, Allah will relieve him of one of the
-            hardships of the Day of Resurrection” (hadith, Muslim). A flood that washed the seed away, pests that ate
+            hardships of the Day of Resurrection” (hadith). A flood that washed the seed away, pests that ate
             the crop, an illness that laid the farmer up — here they ask for <strong>non-cash</strong> help (faza), and
             their neighbours pledge what they have. Whether a pledge was kept is confirmed by the one in need, not by
             the one who promised.

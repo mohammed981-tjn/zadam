@@ -100,7 +100,7 @@ export const CHARTER_REFERENCE = [
     en: {
       title: "The palm seedling",
       quote: "إن قامت الساعة وفي يد أحدكم فسيلة فليغرسها",
-      text: "“If the Hour comes while one of you has a palm seedling in his hand, let him plant it” (hadith, Musnad Ahmad). We work even if we never see the fruit, because the work itself is what is asked of us.",
+      text: "“If the Hour comes while one of you has a palm seedling in his hand, let him plant it” (hadith). We work even if we never see the fruit, because the work itself is what is asked of us.",
     },
   },
   {
@@ -217,7 +217,7 @@ export const MEMBER_VALUES: CharterValue[] = [
     href: "/nafir",
     en: {
       title: "Nafir and mutual support",
-      root: "“The believer to the believer is like a building, each part strengthening the other” (hadith, al-Bukhari and Muslim)",
+      root: "“The believer to the believer is like a building, each part strengthening the other” (hadith)",
       commitment: "I answer my neighbour’s call to work as I want him to answer mine.",
       practice: "Nafir calls: they are posted, and people answer them by name.",
     },
@@ -231,7 +231,7 @@ export const MEMBER_VALUES: CharterValue[] = [
     href: "/nafir/faza",
     en: {
       title: "Faza: rushing to help",
-      root: "“Whoever relieves a believer of a hardship…” (hadith, Muslim)",
+      root: "“Whoever relieves a believer of a hardship…” (hadith)",
       commitment: "If disaster strikes my neighbour, I rush to help with whatever I have: hands, machinery or seed.",
       practice: "Faza requests: non-cash help, pledged on the record.",
     },
@@ -259,7 +259,7 @@ export const MEMBER_VALUES: CharterValue[] = [
     href: "/nafir",
     en: {
       title: "Doing the work well (itqan)",
-      root: "“Allah loves that when one of you does a deed, he does it well” (hadith, al-Bayhaqi)",
+      root: "“Allah loves that when one of you does a deed, he does it well” (hadith)",
       commitment: "I do my work as if people will see it, because they will.",
       practice: "Every nafir is closed with what was actually achieved, and that is published.",
     },
@@ -273,7 +273,7 @@ export const MEMBER_VALUES: CharterValue[] = [
     href: "/nafir/shura",
     en: {
       title: "Dignity and ownership",
-      root: "“Whoever brings dead land to life, it is his” (hadith, al-Bukhari)",
+      root: "“Whoever brings dead land to life, it is his” (hadith)",
       commitment: "I am a partner in what I grow; I am asked, and I ask.",
       practice: "Every member has a voice in the shura, and the record of their land and season is in their name.",
     },
