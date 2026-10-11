@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * حيث تهبط روابط البريد — وكانت غائبة.
@@ -38,14 +40,14 @@ import { createClient } from "@/lib/supabase/server";
  */
 
 /** Where the visitor is sent afterwards, per link type, when none is given. */
-const DEFAULT_NEXT: Record<string, string> = {
+const defaultNext = (locale: Locale): Record<string, string> => ({
   recovery: "/reset/confirm",
-  signup: "/login?method=email&message=" + encodeURIComponent("تم تفعيل بريدك. سجّل الدخول الآن."),
-  email: "/login?method=email&message=" + encodeURIComponent("تم تأكيد بريدك."),
+  signup: "/login?method=email&message=" + encodeURIComponent(tr(locale, "تم تفعيل بريدك. سجّل الدخول الآن.", "Your email is confirmed. Sign in now.")),
+  email: "/login?method=email&message=" + encodeURIComponent(tr(locale, "تم تأكيد بريدك.", "Your email is confirmed.")),
   invite: "/reset/confirm",
   magiclink: "/dashboard",
   email_change: "/dashboard",
-};
+});
 
 /**
  * Only same-origin relative paths are followed.
@@ -88,6 +90,9 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") ?? "";
   const next = safeNext(searchParams.get("next"));
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const DEFAULT_NEXT = defaultNext(locale);
 
   /*
    * Supabase reports its own refusals here rather than in the exchange, and
@@ -100,7 +105,10 @@ export async function GET(request: NextRequest) {
   if (providerError) {
     return failure(
       origin,
-      "انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.",
+      t(
+        "انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.",
+        "The link has expired or has already been used. Request a new one.",
+      ),
     );
   }
 
@@ -114,7 +122,10 @@ export async function GET(request: NextRequest) {
         origin,
         // Named precisely, because this failure has a cause a visitor can act
         // on: the PKCE verifier lives in the browser that asked for the link.
-        "تعذّر إكمال الرابط. افتحه في نفس المتصفح الذي طلبته منه، أو اطلب رابطاً جديداً.",
+        t(
+          "تعذّر إكمال الرابط. افتحه في نفس المتصفح الذي طلبته منه، أو اطلب رابطاً جديداً.",
+          "The link could not be completed. Open it in the same browser you requested it from, or request a new one.",
+        ),
       );
     }
     return NextResponse.redirect(
@@ -131,7 +142,10 @@ export async function GET(request: NextRequest) {
       console.error("auth/callback: verifyOtp failed:", error.message);
       return failure(
         origin,
-        "انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.",
+        t(
+          "انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.",
+          "The link has expired or has already been used. Request a new one.",
+        ),
       );
     }
     return NextResponse.redirect(

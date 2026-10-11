@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { submitInterest, type InterestResult } from "@/app/export/market/actions";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 /**
  * نموذجُ طلب الاهتمام على عرضٍ منشور.
@@ -30,6 +32,8 @@ export default function InterestForm({
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<InterestResult | null>(null);
   const [pending, setPending] = useState(false);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   async function submit(formData: FormData) {
     if (pending) return;
@@ -39,7 +43,10 @@ export default function InterestForm({
       setResult(outcome);
       if (outcome.ok) setOpen(false);
     } catch {
-      setResult({ ok: false, message: "تعذّر الوصول إلى الخادم. أعد المحاولة." });
+      setResult({
+        ok: false,
+        message: t("تعذّر الوصول إلى الخادم. أعد المحاولة.", "Could not reach the server. Try again."),
+      });
     } finally {
       setPending(false);
     }
@@ -56,33 +63,33 @@ export default function InterestForm({
           onClick={() => setOpen(true)}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
         >
-          أنا مهتمّ بهذا العرض
+          {t("أنا مهتمّ بهذا العرض", "I'm interested in this offer")}
         </button>
       )}
 
       {open && (
         <form action={submit} className="flex flex-col gap-3">
           <p className="text-xs text-muted">
-            بشأن العرض <span className="font-mono">{reference}</span>. لا يلزمك
-            حساب.
+            {t("بشأن العرض", "About offer")} <span className="font-mono">{reference}</span>.{" "}
+            {t("لا يلزمك حساب.", "No account needed.")}
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className={label} htmlFor={`name-${offerId}`}>
-                الاسم *
+                {t("الاسم *", "Name *")}
               </label>
               <input id={`name-${offerId}`} name="buyer_name" className={field} required />
             </div>
             <div>
               <label className={label} htmlFor={`company-${offerId}`}>
-                الشركة
+                {t("الشركة", "Company")}
               </label>
               <input id={`company-${offerId}`} name="buyer_company" className={field} />
             </div>
             <div>
               <label className={label} htmlFor={`email-${offerId}`}>
-                البريد الإلكتروني
+                {t("البريد الإلكتروني", "Email")}
               </label>
               <input
                 id={`email-${offerId}`}
@@ -94,35 +101,37 @@ export default function InterestForm({
             </div>
             <div>
               <label className={label} htmlFor={`phone-${offerId}`}>
-                الهاتف
+                {t("الهاتف", "Phone")}
               </label>
               <input id={`phone-${offerId}`} name="buyer_phone" className={field} dir="ltr" />
             </div>
             <div>
               <label className={label} htmlFor={`country-${offerId}`}>
-                بلد الاستيراد
+                {t("بلد الاستيراد", "Importing country")}
               </label>
               <input id={`country-${offerId}`} name="buyer_country" className={field} />
             </div>
             <div>
               <label className={label} htmlFor={`qty-${offerId}`}>
-                الكمّية المطلوبة
+                {t("الكمّية المطلوبة", "Quantity wanted")}
               </label>
               <input
                 id={`qty-${offerId}`}
                 name="quantity_wanted"
                 className={field}
                 inputMode="decimal"
-                placeholder="اتركها فارغة إن أردت الكمّية كاملة"
+                placeholder={t("اتركها فارغة إن أردت الكمّية كاملة", "Leave empty if you want the whole quantity")}
               />
             </div>
           </div>
 
-          <p className="text-xs text-muted">* البريد أو الهاتف — أحدهما يكفي.</p>
+          <p className="text-xs text-muted">
+            {t("* البريد أو الهاتف — أحدهما يكفي.", "* Email or phone — either one is enough.")}
+          </p>
 
           <div>
             <label className={label} htmlFor={`msg-${offerId}`}>
-              رسالتك
+              {t("رسالتك", "Your message")}
             </label>
             <textarea id={`msg-${offerId}`} name="message" className={field} rows={3} />
           </div>
@@ -133,14 +142,14 @@ export default function InterestForm({
               disabled={pending}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
-              {pending ? "جارٍ الإرسال…" : "أرسل الطلب"}
+              {pending ? t("جارٍ الإرسال…", "Sending…") : t("أرسل الطلب", "Send request")}
             </button>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="rounded-lg border border-border px-4 py-2 text-sm"
             >
-              إلغاء
+              {t("إلغاء", "Cancel")}
             </button>
           </div>
         </form>

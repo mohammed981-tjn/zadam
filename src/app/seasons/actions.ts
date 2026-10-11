@@ -7,6 +7,13 @@ import { planSeason, type LedgerCategory } from "@/lib/season";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
 import { sanitisePhotoMetadata } from "@/lib/exif";
 import { evidenceFileExists } from "@/lib/evidenceFile";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
+
+async function translator() {
+  const locale = await getLocale();
+  return (ar: string, en: string) => tr(locale, ar, en);
+}
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -32,13 +39,17 @@ export async function createSeason(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const t = await translator();
 
   const name = str(formData, "name");
   const irrigation = str(formData, "irrigation") as IrrigationMethod;
 
-  if (!name) return { ok: false, message: "اسم الموسم مطلوب." };
+  if (!name) return { ok: false, message: t("اسم الموسم مطلوب.", "The season name is required.") };
   if (!(irrigation in IRRIGATION_EFFICIENCY)) {
-    return { ok: false, message: "طريقة ري غير معروفة." };
+    return {
+      ok: false,
+      message: t("طريقة ري غير معروفة.", "Unknown irrigation method."),
+    };
   }
 
   const plan = planSeason(
@@ -53,8 +64,10 @@ export async function createSeason(
   if (!plan) {
     return {
       ok: false,
-      message:
+      message: t(
         "تعذّر توليد خطة الموسم — راجع المحصول والمنطقة وتاريخ الزراعة والمساحة.",
+        "Could not generate the season plan — check the crop, zone, planting date and area.",
+      ),
     };
   }
 
@@ -95,7 +108,10 @@ export async function createSeason(
   if (seasonError || !season) {
     return {
       ok: false,
-      message: `تعذّر إنشاء الموسم: ${seasonError?.message}`,
+      message: t(
+        `تعذّر إنشاء الموسم: ${seasonError?.message}`,
+        `Could not create the season: ${seasonError?.message}`,
+      ),
     };
   }
 
@@ -129,7 +145,10 @@ export async function createSeason(
       });
     return {
       ok: false,
-      message: `تعذّر حفظ مراحل الموسم: ${stagesError.message}`,
+      message: t(
+        `تعذّر حفظ مراحل الموسم: ${stagesError.message}`,
+        `Could not save the season stages: ${stagesError.message}`,
+      ),
     };
   }
 
@@ -157,15 +176,16 @@ export async function addEvidence(args: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const t = await translator();
 
   if (!args.stageId || !args.storagePath) {
-    return { ok: false, message: "بيانات الدليل ناقصة." };
+    return { ok: false, message: t("بيانات الدليل ناقصة.", "The evidence details are incomplete.") };
   }
   if (!["photo", "invoice", "inspection", "note"].includes(args.kind)) {
-    return { ok: false, message: "نوع دليل غير معروف." };
+    return { ok: false, message: t("نوع دليل غير معروف.", "Unknown evidence type.") };
   }
   if (!args.storagePath.startsWith(`${user.id}/`)) {
-    return { ok: false, message: "مسار ملف غير صالح." };
+    return { ok: false, message: t("مسار ملف غير صالح.", "Invalid file path.") };
   }
 
   // The row must point at a file that is actually there. See lib/evidenceFile
@@ -173,7 +193,10 @@ export async function addEvidence(args: {
   if (!(await evidenceFileExists(supabase, args.storagePath))) {
     return {
       ok: false,
-      message: "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+      message: t(
+        "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+        "We could not find the uploaded file. Upload it again and try once more.",
+      ),
     };
   }
 
@@ -260,9 +283,13 @@ export async function addLedgerEntry(formData: FormData) {
 
   if (error) {
     console.error("addLedgerEntry failed", { seasonId, category, error });
+    const t = await translator();
     redirect(
       `/seasons/${seasonId}?error=${encodeURIComponent(
-        "تعذّر تسجيل القيد. لم يُحفظ شيء — أعد المحاولة.",
+        t(
+          "تعذّر تسجيل القيد. لم يُحفظ شيء — أعد المحاولة.",
+          "Could not record the entry. Nothing was saved — please try again.",
+        ),
       )}`,
     );
   }
@@ -280,9 +307,13 @@ export async function completeSeason(formData: FormData) {
   const harvestRaw = str(formData, "harvest_kg");
   const harvestKg = harvestRaw === "" ? null : Number(harvestRaw);
   if (harvestKg !== null && (!Number.isFinite(harvestKg) || harvestKg < 0)) {
+    const t = await translator();
     redirect(
       `/seasons/${seasonId}?error=${encodeURIComponent(
-        "الوزن المحصود يجب أن يكون رقماً موجباً بالكيلوغرام، أو يُترك فارغاً.",
+        t(
+          "الوزن المحصود يجب أن يكون رقماً موجباً بالكيلوغرام، أو يُترك فارغاً.",
+          "The harvested weight must be a positive number of kilograms, or left blank.",
+        ),
       )}`,
     );
   }
@@ -297,9 +328,13 @@ export async function completeSeason(formData: FormData) {
 
   if (error || !closed || closed.length === 0) {
     console.error("completeSeason failed", { seasonId, error });
+    const t = await translator();
     redirect(
       `/seasons/${seasonId}?error=${encodeURIComponent(
-        "تعذّر إقفال الموسم. تحقق من صلاحيتك ثم أعد المحاولة.",
+        t(
+          "تعذّر إقفال الموسم. تحقق من صلاحيتك ثم أعد المحاولة.",
+          "Could not close the season. Check your permissions and try again.",
+        ),
       )}`,
     );
   }
@@ -337,9 +372,13 @@ export async function setPublishRecord(formData: FormData) {
 
   if (error || !updated || updated.length === 0) {
     console.error("setPublishRecord failed", { userId: user.id, error });
+    const t = await translator();
     redirect(
       `/seasons?error=${encodeURIComponent(
-        "تعذّر حفظ التغيير. حالة سجلّك لم تتغيّر — أعد المحاولة.",
+        t(
+          "تعذّر حفظ التغيير. حالة سجلّك لم تتغيّر — أعد المحاولة.",
+          "Could not save the change. Your record's status has not changed — please try again.",
+        ),
       )}`,
     );
   }

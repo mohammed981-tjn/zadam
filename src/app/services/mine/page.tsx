@@ -5,14 +5,21 @@ import Explain, { EmptyState } from "@/components/Explain";
 import OfferForm from "@/components/OfferForm";
 import { setProviderPaused } from "../actions";
 import {
-  SERVICE_KIND_LABEL,
-  SERVICE_BY_KEY,
-  SERVICE_UNIT_LABEL,
+  serviceKindLabel,
+  serviceName,
+  serviceUnitLabel,
   type ServiceKey,
 } from "@/lib/services";
 import type { ProviderService, ServiceProvider } from "@/types/database";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
-export const metadata = { title: "جهتي ومقدّم خدماتي | سوداقري" };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return {
+    title: tr(locale, "جهتي ومقدّم خدماتي | سوداقري", "My organisation and services | Sudagri"),
+  };
+}
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -31,6 +38,8 @@ export default async function MyProviderPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const { data: providerRows } = await supabase
     .from("service_providers")
@@ -43,20 +52,22 @@ export default async function MyProviderPage({
   if (providers.length === 0) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
-        <h1 className="mb-8 text-2xl font-bold">جهتي</h1>
+        <h1 className="mb-8 text-2xl font-bold">{t("جهتي", "My organisation")}</h1>
         <EmptyState
-          title="لم تسجّل جهة بعد"
+          title={t("لم تسجّل جهة بعد", "You have not registered an organisation yet")}
           action={
             <Link
               href="/services/register"
               className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground"
             >
-              سجّل جهتك
+              {t("سجّل جهتك", "Register your organisation")}
             </Link>
           }
         >
-          إن كنت تقدّم خدمات زراعية — مسحاً بالدرون، تسوية، ري حديث، إرشاداً، أو
-          خدمات بيطرية — سجّل جهتك لتصلك طلبات التعاقد بالمراحل.
+          {t(
+            "إن كنت تقدّم خدمات زراعية — مسحاً بالدرون، تسوية، ري حديث، إرشاداً، أو خدمات بيطرية — سجّل جهتك لتصلك طلبات التعاقد بالمراحل.",
+            "If you provide agricultural services — drone surveys, levelling, modern irrigation, extension or veterinary services — register your organisation to receive phased contract requests.",
+          )}
         </EmptyState>
       </div>
     );
@@ -71,9 +82,12 @@ export default async function MyProviderPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">جهتي</h1>
+      <h1 className="text-2xl font-bold">{t("جهتي", "My organisation")}</h1>
       <p className="mb-8 mt-2 text-sm text-muted">
-        أدرج خدماتك وأسعارها. كل خدمة تُسعَّر بوحدتها المعرّفة في الكتالوج.
+        {t(
+          "أدرج خدماتك وأسعارها. كل خدمة تُسعَّر بوحدتها المعرّفة في الكتالوج.",
+          "List your services and their prices. Each service is priced in the unit defined for it in the catalogue.",
+        )}
       </p>
 
       <div className="flex flex-col gap-8">
@@ -95,19 +109,21 @@ export default async function MyProviderPage({
             <section key={provider.id} className="flex flex-col gap-4">
               <header className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-bold">{provider.name}</h2>
+                  <h2 className="font-bold" dir="auto">{provider.name}</h2>
                   <span
                     className={`text-sm ${
                       provider.verified_at ? "text-primary" : "text-accent"
                     }`}
                   >
-                    {provider.verified_at ? "موثّقة" : "بانتظار التوثيق"}
+                    {provider.verified_at
+                      ? t("موثّقة", "Verified")
+                      : t("بانتظار التوثيق", "Awaiting verification")}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  {SERVICE_KIND_LABEL[provider.kind]}
+                  {serviceKindLabel(provider.kind, locale)}
                   {provider.regions.length > 0 &&
-                    ` — ${provider.regions.join("، ")}`}
+                    ` — ${provider.regions.join(locale === "en" ? ", " : "، ")}`}
                 </p>
 
                 {/*
@@ -138,10 +154,10 @@ export default async function MyProviderPage({
                     />
                     <span className="text-sm">
                       {provider.paused_by_owner
-                        ? "جهتك مخفيّة من الدليل الآن."
+                        ? t("جهتك مخفيّة من الدليل الآن.", "Your organisation is hidden from the directory.")
                         : provider.active
-                          ? "جهتك ظاهرة في الدليل."
-                          : "جهتك موقوفة إدارياً."}
+                          ? t("جهتك ظاهرة في الدليل.", "Your organisation is listed in the directory.")
+                          : t("جهتك موقوفة إدارياً.", "Your organisation has been suspended by the administrators.")}
                     </span>
                     {provider.active && (
                       <button
@@ -149,8 +165,8 @@ export default async function MyProviderPage({
                         className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-background"
                       >
                         {provider.paused_by_owner
-                          ? "أعِدها إلى الدليل"
-                          : "أخفِها مؤقتاً"}
+                          ? t("أعِدها إلى الدليل", "Show it in the directory again")
+                          : t("أخفِها مؤقتاً", "Hide it for now")}
                       </button>
                     )}
                   </form>
@@ -159,15 +175,16 @@ export default async function MyProviderPage({
 
               {!provider.verified_at && (
                 <Explain>
-                  يمكنك إدراج خدماتك الآن، لكنها لن تظهر للعملاء ولن يمكن
-                  التعاقد معك قبل توثيق الجهة من الإدارة.
+                  {t(
+                    "يمكنك إدراج خدماتك الآن، لكنها لن تظهر للعملاء ولن يمكن التعاقد معك قبل توثيق الجهة من الإدارة.",
+                    "You can list your services now, but customers will not see them and you cannot be contracted until the administrators verify your organisation.",
+                  )}
                 </Explain>
               )}
 
               {mine.length > 0 && (
                 <ul className="flex flex-col gap-2">
                   {mine.map((offer) => {
-                    const def = SERVICE_BY_KEY[offer.service_key];
                     return (
                       <li
                         key={offer.id}
@@ -175,17 +192,17 @@ export default async function MyProviderPage({
                       >
                         <span>
                           <span className="font-medium">
-                            {def?.name ?? offer.title}
+                            {serviceName(offer.service_key, locale, offer.title)}
                           </span>
                           {offer.lead_time_days > 0 && (
                             <span className="mt-0.5 block text-xs text-muted">
-                              مهلة البدء {offer.lead_time_days} يوم
+                              {t("مهلة البدء", "Lead time:")} {offer.lead_time_days} {t("يوم", "days")}
                             </span>
                           )}
                         </span>
                         <span className="text-sm font-medium">
                           {n0(Number(offer.price_per_unit))} /{" "}
-                          {SERVICE_UNIT_LABEL[offer.unit]}
+                          {serviceUnitLabel(offer.unit, locale)}
                         </span>
                       </li>
                     );

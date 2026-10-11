@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { createOffer, type ActionResult } from "@/app/export/offers/actions";
 import { offerAmounts, formatMinor } from "@/lib/exportOffers";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 export interface CorridorOption {
   id: string;
@@ -53,6 +55,8 @@ export default function ExportOfferForm({
     createOffer,
     null,
   );
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const [corridorId, setCorridorId] = useState(corridors[0]?.id ?? "");
   const [uom, setUom] = useState(corridors[0]?.defaultUom ?? "");
@@ -83,7 +87,7 @@ export default function ExportOfferForm({
     <form action={formAction} className="flex flex-col gap-4">
       <div>
         <label className={label} htmlFor="corridor_id">
-          السلعة والوجهة
+          {t("السلعة والوجهة", "Commodity and destination")}
         </label>
         <select
           id="corridor_id"
@@ -100,18 +104,20 @@ export default function ExportOfferForm({
           ))}
         </select>
         <p className="mt-1 text-xs text-muted">
-          الوجهةُ تحدّد المستنداتِ المطلوبة. ولا ممرَّ لسلعةٍ ووجهةٍ لم تُدرس
-          شروطُهما بعد.
+          {t(
+            "الوجهةُ تحدّد المستنداتِ المطلوبة. ولا ممرَّ لسلعةٍ ووجهةٍ لم تُدرس شروطُهما بعد.",
+            "The destination determines the documents required. There is no corridor for a commodity and destination whose requirements have not been studied yet.",
+          )}
         </p>
       </div>
 
       {relevantGrades.length > 0 && (
         <div>
           <label className={label} htmlFor="grade_id">
-            الدرجة
+            {t("الدرجة", "Grade")}
           </label>
           <select id="grade_id" name="grade_id" className={field} defaultValue="">
-            <option value="">بلا درجة</option>
+            <option value="">{t("بلا درجة", "No grade")}</option>
             {relevantGrades.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
@@ -124,7 +130,7 @@ export default function ExportOfferForm({
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label className={label} htmlFor="quantity">
-            الكمّية
+            {t("الكمّية", "Quantity")}
           </label>
           <input
             id="quantity"
@@ -140,7 +146,7 @@ export default function ExportOfferForm({
 
         <div>
           <label className={label} htmlFor="uom_code">
-            الوحدة
+            {t("الوحدة", "Unit")}
           </label>
           <select
             id="uom_code"
@@ -159,7 +165,7 @@ export default function ExportOfferForm({
 
         <div>
           <label className={label} htmlFor="unit_price">
-            سعر الوحدة (دولار)
+            {t("سعر الوحدة (دولار)", "Unit price (USD)")}
           </label>
           <input
             id="unit_price"
@@ -177,33 +183,37 @@ export default function ExportOfferForm({
       <p className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
         {amounts ? (
           <>
-            القيمة الإجمالية:{" "}
-            <strong>{formatMinor(amounts.valueMinor)} دولار</strong>
+            {t("القيمة الإجمالية:", "Total value:")}{" "}
+            <strong>
+              {formatMinor(amounts.valueMinor)} {t("دولار", "USD")}
+            </strong>
           </>
         ) : (
           <span className="text-muted">
-            اكتب الكمّية والسعر لتظهر القيمة الإجمالية.
+            {t("اكتب الكمّية والسعر لتظهر القيمة الإجمالية.", "Enter the quantity and price to see the total value.")}
           </span>
         )}
       </p>
 
       <fieldset className="rounded-lg border border-border p-3">
-        <legend className="px-1 text-sm font-medium">منشأ البضاعة</legend>
+        <legend className="px-1 text-sm font-medium">{t("منشأ البضاعة", "Origin of the goods")}</legend>
         <p className="mb-3 text-xs text-muted">
-          اللائحة الأوروبية تطلب إحداثيّة كل قطعةٍ أُنتجت فيها السلعة. وهذا ما
-          يفتح لك السوق الأوروبية، ويستحيل بناؤه بأثرٍ رجعيّ.
+          {t(
+            "اللائحة الأوروبية تطلب إحداثيّة كل قطعةٍ أُنتجت فيها السلعة. وهذا ما يفتح لك السوق الأوروبية، ويستحيل بناؤه بأثرٍ رجعيّ.",
+            "The European regulation requires the coordinates of every plot where the commodity was produced. This is what opens the European market to you, and it cannot be built after the fact.",
+          )}
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className={label} htmlFor="plot_ref">
-              اسم القطعة أو رقمها
+              {t("اسم القطعة أو رقمها", "Plot name or number")}
             </label>
             <input id="plot_ref" name="plot_ref" className={field} required />
           </div>
           <div>
             <label className={label} htmlFor="area_hectares">
-              المساحة (هكتار)
+              {t("المساحة (هكتار)", "Area (hectares)")}
             </label>
             <input
               id="area_hectares"
@@ -217,7 +227,7 @@ export default function ExportOfferForm({
           </div>
           <div>
             <label className={label} htmlFor="latitude">
-              خط العرض
+              {t("خط العرض", "Latitude")}
             </label>
             <input
               id="latitude"
@@ -230,7 +240,7 @@ export default function ExportOfferForm({
           </div>
           <div>
             <label className={label} htmlFor="longitude">
-              خط الطول
+              {t("خط الطول", "Longitude")}
             </label>
             <input
               id="longitude"
@@ -246,7 +256,7 @@ export default function ExportOfferForm({
         {needsBoundary && (
           <div className="mt-3">
             <label className={label} htmlFor="boundary">
-              حدود القطعة (GeoJSON)
+              {t("حدود القطعة (GeoJSON)", "Plot boundary (GeoJSON)")}
             </label>
             <textarea
               id="boundary"
@@ -256,8 +266,10 @@ export default function ExportOfferForm({
               placeholder='{"type":"Polygon","coordinates":[[...]]}'
             />
             <p className="mt-1 text-xs text-muted">
-              القطعة أربعة هكتارات فأكثر، فاللائحة تطلب مضلَّع حدودٍ كاملاً لا
-              نقطةً واحدة.
+              {t(
+                "القطعة أربعة هكتارات فأكثر، فاللائحة تطلب مضلَّع حدودٍ كاملاً لا نقطةً واحدة.",
+                "The plot is four hectares or more, so the regulation requires a full boundary polygon, not a single point.",
+              )}
             </p>
           </div>
         )}
@@ -268,7 +280,7 @@ export default function ExportOfferForm({
         disabled={pending}
         className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
       >
-        {pending ? "جارٍ الحفظ…" : "احفظ مسوّدة"}
+        {pending ? t("جارٍ الحفظ…", "Saving…") : t("احفظ مسوّدة", "Save draft")}
       </button>
 
       {state && (

@@ -10,6 +10,8 @@ import {
 import { assessProject, type WaterSource } from "@/lib/risk";
 import type { IrrigationMethod } from "@/lib/agronomy";
 import type { Project } from "@/types/database";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export interface PlanResult {
   riskProfile: RiskProfile;
@@ -25,12 +27,14 @@ export async function generatePlan(
   const q1 = Number(formData.get("q1"));
   const q2 = Number(formData.get("q2"));
   const q3 = Number(formData.get("q3"));
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   if (!Number.isFinite(amount) || amount < 50) {
-    return { error: "أدخل مبلغاً صحيحاً لا يقل عن 50$." };
+    return { error: t("أدخل مبلغاً صحيحاً لا يقل عن 50$.", "Enter a valid amount of at least $50.") };
   }
   if (![q1, q2, q3].every((q) => q >= 1 && q <= 3)) {
-    return { error: "أجب عن جميع أسئلة تحمّل المخاطرة." };
+    return { error: t("أجب عن جميع أسئلة تحمّل المخاطرة.", "Answer all the risk tolerance questions.") };
   }
 
   const supabase = await createClient();
@@ -40,7 +44,7 @@ export async function generatePlan(
     .eq("status", "open");
 
   if (error) {
-    return { error: "تعذّر جلب المشاريع، حاول لاحقاً." };
+    return { error: t("تعذّر جلب المشاريع، حاول لاحقاً.", "Could not load the projects. Please try again later.") };
   }
 
   /*

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { assessProject, type ProjectFacts, type WaterSource } from "@/lib/risk";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export interface SubmitResult {
   ok: boolean;
@@ -33,17 +35,23 @@ export async function submitOpportunity(
 
   if (!user) redirect("/login");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
   const name = str(formData, "name");
   const location = str(formData, "location");
   const description = str(formData, "description");
 
   if (!name || !location) {
-    return { ok: false, message: "اسم الفرصة وموقعها مطلوبان." };
+    return {
+      ok: false,
+      message: t("اسم الفرصة وموقعها مطلوبان.", "The opportunity name and location are required."),
+    };
   }
 
   const irrigation = str(formData, "irrigation") as IrrigationMethod;
   if (!(irrigation in IRRIGATION_EFFICIENCY)) {
-    return { ok: false, message: "طريقة ري غير معروفة." };
+    return { ok: false, message: t("طريقة ري غير معروفة.", "Unknown irrigation method.") };
   }
 
   const facts: ProjectFacts = {
@@ -85,7 +93,10 @@ export async function submitOpportunity(
   ) {
     return {
       ok: false,
-      message: "المساحة وسعر الحصة وعددها يجب أن تكون أرقاماً موجبة.",
+      message: t(
+        "المساحة وسعر الحصة وعددها يجب أن تكون أرقاماً موجبة.",
+        "The area, share price and number of shares must be positive numbers.",
+      ),
     };
   }
 
@@ -94,7 +105,10 @@ export async function submitOpportunity(
   if (assessment.blockers.length > 0) {
     return {
       ok: false,
-      message: "لا يمكن رفع الفرصة قبل معالجة الملاحظات التالية:",
+      message: t(
+        "لا يمكن رفع الفرصة قبل معالجة الملاحظات التالية:",
+        "The opportunity cannot be submitted until the following points are addressed:",
+      ),
       blockers: assessment.blockers,
     };
   }
@@ -129,13 +143,21 @@ export async function submitOpportunity(
   });
 
   if (error) {
-    return { ok: false, message: `تعذّر رفع الفرصة: ${error.message}` };
+    return {
+      ok: false,
+      message: locale === "en"
+        ? `Could not submit the opportunity: ${error.message}`
+        : `تعذّر رفع الفرصة: ${error.message}`,
+    };
   }
 
   return {
     ok: true,
     message:
-      `تم رفع الفرصة بدرجة تقييم ${assessment.score}/100. ` +
-      "ستراجعها الإدارة قبل نشرها للجمهور، وسنتواصل معك.",
+      locale === "en"
+        ? `The opportunity was submitted with a score of ${assessment.score}/100. ` +
+          "The administration will review it before publishing it to the public, and we will be in touch."
+        : `تم رفع الفرصة بدرجة تقييم ${assessment.score}/100. ` +
+          "ستراجعها الإدارة قبل نشرها للجمهور، وسنتواصل معك.",
   };
 }

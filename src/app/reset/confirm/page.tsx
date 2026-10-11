@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { completePasswordReset } from "@/app/login/actions";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
-export const metadata = { title: "كلمة مرور جديدة | سوداقري" };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return { title: tr(locale, "كلمة مرور جديدة | سوداقري", "New password | Sudagri") };
+}
 
 export default async function ResetConfirmPage({
   searchParams,
@@ -10,6 +15,8 @@ export default async function ResetConfirmPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   /*
    * The link from the email carries a recovery token, which the Supabase
@@ -29,16 +36,18 @@ export default async function ResetConfirmPage({
   if (!user) {
     return (
       <div className="mx-auto max-w-sm px-4 py-16">
-        <h1 className="mb-2 text-2xl font-bold">الرابط لم يعد صالحاً</h1>
+        <h1 className="mb-2 text-2xl font-bold">{t("الرابط لم يعد صالحاً", "This link is no longer valid")}</h1>
         <p className="mb-6 text-sm leading-relaxed text-muted">
-          رابط إعادة التعيين صالح لفترة قصيرة ولمرة واحدة، ويبدو أنه انتهى أو
-          استُخدم من قبل. اطلب رابطاً جديداً.
+          {t(
+            "رابط إعادة التعيين صالح لفترة قصيرة ولمرة واحدة، ويبدو أنه انتهى أو استُخدم من قبل. اطلب رابطاً جديداً.",
+            "A reset link works once and only for a short time, and this one seems to have expired or already been used. Request a new one.",
+          )}
         </p>
         <Link
           href="/reset"
           className="inline-block rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
         >
-          اطلب رابطاً جديداً
+          {t("اطلب رابطاً جديداً", "Request a new link")}
         </Link>
       </div>
     );
@@ -46,9 +55,12 @@ export default async function ResetConfirmPage({
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="mb-2 text-2xl font-bold">كلمة مرور جديدة</h1>
+      <h1 className="mb-2 text-2xl font-bold">{t("كلمة مرور جديدة", "New password")}</h1>
       <p className="mb-6 text-sm leading-relaxed text-muted">
-        اختر كلمة مرور جديدة لحسابك. لن تحتاج الرابط بعدها.
+        {t(
+          "اختر كلمة مرور جديدة لحسابك. لن تحتاج الرابط بعدها.",
+          "Choose a new password for your account. You won't need the link after this.",
+        )}
       </p>
 
       {error && (
@@ -59,7 +71,7 @@ export default async function ResetConfirmPage({
 
       <form action={completePasswordReset} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
-          كلمة المرور الجديدة
+          {t("كلمة المرور الجديدة", "New password")}
           <input
             type="password"
             name="password"
@@ -71,7 +83,7 @@ export default async function ResetConfirmPage({
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          أعد كتابتها
+          {t("أعد كتابتها", "Type it again")}
           <input
             type="password"
             name="confirm"
@@ -81,8 +93,10 @@ export default async function ResetConfirmPage({
             className={field}
           />
           <span className="text-xs text-muted">
-            ٦ أحرف على الأقل. تُكتب مرتين لأن خطأً مطبعياً هنا يقفل الحساب على
-            صاحبه.
+            {t(
+              "٦ أحرف على الأقل. تُكتب مرتين لأن خطأً مطبعياً هنا يقفل الحساب على صاحبه.",
+              "At least 6 characters. Typed twice because a typo here locks the owner out of the account.",
+            )}
           </span>
         </label>
 
@@ -90,7 +104,7 @@ export default async function ResetConfirmPage({
           type="submit"
           className="rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground"
         >
-          احفظ كلمة المرور
+          {t("احفظ كلمة المرور", "Save password")}
         </button>
       </form>
     </div>

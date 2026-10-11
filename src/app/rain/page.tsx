@@ -4,18 +4,27 @@ import InfraMap, { FUEL_INK, INFRA } from "@/components/InfraMap";
 import RainMap from "@/components/RainMap";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import WeekForecast from "@/components/WeekForecast";
-import { SOIL_CLASSES, SOIL_FETCHED_AT, availableLayers, fetchDailyTable, fetchRainGrid, layerFor } from "@/lib/rainMap";
+import { SOIL_CLASSES, SOIL_FETCHED_AT, availableLayers, fetchDailyTable, fetchRainGrid, layerFor, localizeLayer } from "@/lib/rainMap";
+import { placeName } from "@/lib/enNames";
 import { WRB } from "@/lib/soilClasses";
 import FilmPlayer from "@/components/FilmPlayer";
+import { tr, type Locale } from "@/lib/i18n";
+import { getLocale } from "@/lib/locale";
 
-export const metadata = {
-  title: "توقّع الأمطار والخرائط | سوداقري",
-  description:
-    "خريطة السودان للأيام السبعة القادمة — المطر والحرارة وحاجة الجوّ من الماء — ومعها التضاريس والتربة والأراضي الموثّقة ومسار القناة القوسية، وجدول المطر يوماً بيوم لخمس عشرة مدينة.",
-};
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return {
+    title: tr(locale, "توقّع الأمطار والخرائط | سوداقري", "Rain forecast and maps | Sudagri"),
+    description: tr(
+      locale,
+      "خريطة السودان للأيام السبعة القادمة — المطر والحرارة وحاجة الجوّ من الماء — ومعها التضاريس والتربة والأراضي الموثّقة ومسار القناة القوسية، وجدول المطر يوماً بيوم لخمس عشرة مدينة.",
+      "A map of Sudan for the next seven days — rain, heat and the air's demand for water — with terrain, soil, verified lands and the Arc Canal route, and a day-by-day rain table for fifteen towns.",
+    ),
+  };
+}
 
-const dayMonth = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString("ar", {
+const dayMonth = (iso: string, locale: Locale) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString(locale === "en" ? "en-GB" : "ar", {
     day: "numeric",
     month: "long",
     timeZone: "Africa/Khartoum",
@@ -37,6 +46,8 @@ export default async function RainPage({
   searchParams: Promise<{ layer?: string }>;
 }) {
   const { layer: layerKey } = await searchParams;
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const [grid, table] = await Promise.all([fetchRainGrid({ lands: true }), fetchDailyTable()]);
 
   // A layer with no values at all (elevation that could not be read, soil
@@ -44,6 +55,8 @@ export default async function RainPage({
   // map — except the lands, whose empty map is itself the answer.
   const available = grid ? availableLayers(grid) : [];
   const layer = available.find((l) => l.key === layerKey) ?? layerFor("rain");
+  // The same layer in the reader's words, for the tabs and headings.
+  const shown = localizeLayer(layer, locale);
   // Roads, rail and power: a web-only tab drawn from fixed data, not a
   // layer of the grid, so the app's /api/rain is unchanged.
   const infra = layerKey === "infra";
@@ -51,19 +64,29 @@ export default async function RainPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold">توقّع الأمطار والخرائط</h1>
+      <h1 className="text-2xl font-bold">{t("توقّع الأمطار والخرائط", "Rain forecast and maps")}</h1>
       <p className="mt-2 text-sm leading-7 text-muted">
-        الأيام السبعة القادمة على خريطة السودان، ثمّ يوماً بيوم لكل مدينة. هي
-        توقّعاتٌ من نماذج الأرصاد لا قياسات، وتُحدَّث كل ثلاث ساعات.
+        {t(
+          "الأيام السبعة القادمة على خريطة السودان، ثمّ يوماً بيوم لكل مدينة. هي توقّعاتٌ من نماذج الأرصاد لا قياسات، وتُحدَّث كل ثلاث ساعات.",
+          "The next seven days on a map of Sudan, then day by day for each town. These are forecasts from weather models, not measurements, updated every three hours.",
+        )}
       </p>
       <ShareWhatsApp
         path="/rain"
-        text="توقّع الأمطار في السودان للأيام السبعة القادمة — خريطة وجدول بالأرقام:"
+        text={t(
+          "توقّع الأمطار في السودان للأيام السبعة القادمة — خريطة وجدول بالأرقام:",
+          "Sudan's rain forecast for the next seven days — a map and a table with the numbers:",
+        )}
+        locale={locale}
         className="my-3"
       />
 
       <figure className="my-6">
-        <FilmPlayer base="/video/rain-wide" poster="/video/rain-wide.jpg" label="فيلم سوداقري: مع أوّل مطرة" />
+        <FilmPlayer
+          base="/video/rain-wide"
+          poster="/video/rain-wide.jpg"
+          label={t("فيلم سوداقري: مع أوّل مطرة", "A Sudagri film: with the first rain")}
+        />
       </figure>
 
       {/* ───────── الخريطة ───────── */}
@@ -71,7 +94,7 @@ export default async function RainPage({
         {grid ? (
           <>
             {/* Two rows on a phone rather than seven squeezed tabs. */}
-            <nav aria-label="طبقة الخريطة" className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
+            <nav aria-label={t("طبقة الخريطة", "Map layer")} className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
               {available.map((l) => {
                 const active = !infra && l.key === layer.key;
                 return (
@@ -86,7 +109,7 @@ export default async function RainPage({
                         : "border-border hover:border-primary"
                     }`}
                   >
-                    {l.title}
+                    {localizeLayer(l, locale).title}
                   </Link>
                 );
               })}
@@ -98,27 +121,39 @@ export default async function RainPage({
                   infra ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"
                 }`}
               >
-                البنية
+                {t("البنية", "Infrastructure")}
               </Link>
             </nav>
-            {infra ? <InfraSection /> : (
+            {infra ? <InfraSection locale={locale} /> : (
             <>
-            <h2 className="text-lg font-bold">{layer.note}</h2>
+            <h2 className="text-lg font-bold">{shown.note}</h2>
             <p className="mb-3 mt-1 text-xs text-muted">
               {layer.key === "elev"
-                ? "ثابتةٌ لا تتغيّر مع الطقس — بدقّة المربّع (١٦٠ كم)، للصورة العامة لا لمسح موقع."
+                ? t(
+                    "ثابتةٌ لا تتغيّر مع الطقس — بدقّة المربّع (١٦٠ كم)، للصورة العامة لا لمسح موقع.",
+                    "Fixed; it does not change with the weather. At the resolution of one square (160 km), for the overall picture, not a site survey.",
+                  )
                 : layer.key === "soil"
-                  ? "الصنف الغالب في خمس نقاطٍ من كل مربّع — صورةُ البلد العامة (سهل الطين في الجزيرة والقضارف، ورمال القوز في كردفان)، لا فحصُ تربة حقلك."
+                  ? t(
+                      "الصنف الغالب في خمس نقاطٍ من كل مربّع — صورةُ البلد العامة (سهل الطين في الجزيرة والقضارف، ورمال القوز في كردفان)، لا فحصُ تربة حقلك.",
+                      "The prevailing group across five points in each square — the country's overall picture (the clay plain of Gezira and Gedaref, the qoz sands of Kordofan), not a test of your own field's soil.",
+                    )
                   : layer.key === "lands"
-                    ? "بعددها في كل مربّع — لا تضع الخريطة نقطةً على أرض أحد. موقع كل أرضٍ في صفحتها."
-                    : `من ${dayMonth(grid.from)} إلى ${dayMonth(grid.to)}`}
+                    ? t(
+                        "بعددها في كل مربّع — لا تضع الخريطة نقطةً على أرض أحد. موقع كل أرضٍ في صفحتها.",
+                        "Counted per square — the map never puts a dot on anyone's land. Each land's location is on its own page.",
+                      )
+                    : t(
+                        `من ${dayMonth(grid.from, locale)} إلى ${dayMonth(grid.to, locale)}`,
+                        `From ${dayMonth(grid.from, locale)} to ${dayMonth(grid.to, locale)}`,
+                      )}
             </p>
-            <RainMap grid={grid} layer={layer} showCanal legend={layer.key !== "soil"} />
+            <RainMap grid={grid} layer={layer} showCanal legend={layer.key !== "soil"} locale={locale} />
             {layer.key === "lands" && landCount === 0 && (
               <p className="mt-3 rounded-xl border border-border bg-background p-3 text-sm">
-                لا أرضَ موثّقة معروضة بعد.{" "}
-                <Link href="/signup" className="font-medium text-primary underline">سجّل أرضك</Link>{" "}
-                فتظهر هنا حين تُوثَّق ويعرضها صاحبها.
+                {t("لا أرضَ موثّقة معروضة بعد.", "No verified land is listed yet.")}{" "}
+                <Link href="/signup" className="font-medium text-primary underline">{t("سجّل أرضك", "Register your land")}</Link>{" "}
+                {t("فتظهر هنا حين تُوثَّق ويعرضها صاحبها.", "and it will appear here once it is verified and its owner lists it.")}
               </p>
             )}
             {layer.key === "soil" && (
@@ -128,8 +163,10 @@ export default async function RainPage({
                   <div key={w} className="flex gap-2">
                     <span className="mt-1 inline-block size-3.5 shrink-0 rounded-sm border border-border" style={{ background: layer.bands[i].fill }} />
                     <div>
-                      <dt className="font-medium">{layer.bands[i].label}</dt>
-                      {WRB[w]?.note && <dd className="text-xs text-muted">{WRB[w].note}</dd>}
+                      <dt className="font-medium">{shown.bands[i].label}</dt>
+                      {WRB[w]?.note && (
+                        <dd className="text-xs text-muted">{locale === "en" ? WRB[w].noteEn : WRB[w].note}</dd>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -140,7 +177,7 @@ export default async function RainPage({
           </>
         ) : (
           <p className="text-sm text-muted">
-            تعذّر جلبُ التوقّع الآن. أعد المحاولة بعد قليل.
+            {t("تعذّر جلبُ التوقّع الآن. أعد المحاولة بعد قليل.", "The forecast could not be fetched just now. Please try again shortly.")}
           </p>
         )}
       </section>
@@ -148,11 +185,14 @@ export default async function RainPage({
       {/* ───────── يوماً بيوم ───────── */}
       {table && (
         <section className="mt-10">
-          <h2 className="text-xl font-bold">المطر يوماً بيوم</h2>
+          <h2 className="text-xl font-bold">{t("المطر يوماً بيوم", "Rain day by day")}</h2>
           <p className="mb-4 mt-2 text-sm leading-7 text-muted">
-            بالمليمتر لكل يوم، بألوان الخريطة نفسها. النقطة تعني أقلّ من ١ مم.
+            {t(
+              "بالمليمتر لكل يوم، بألوان الخريطة نفسها. النقطة تعني أقلّ من ١ مم.",
+              "In millimetres per day, in the map's colours. A dot means less than 1 mm.",
+            )}
           </p>
-          <DailyRainTable table={table} />
+          <DailyRainTable table={table} locale={locale} />
         </section>
       )}
 
@@ -160,48 +200,77 @@ export default async function RainPage({
       <WeekForecast />
 
       <p className="mt-8 text-sm">
-        تريد أن تعرف كم يحتاج محصولك من الماء بعد هذا المطر؟{" "}
+        {t(
+          "تريد أن تعرف كم يحتاج محصولك من الماء بعد هذا المطر؟",
+          "Want to know how much water your crop needs after this rain?",
+        )}{" "}
         <Link href="/tools/water" className="font-medium text-primary underline">
-          افتح حاسبة الاحتياج المائي
+          {t("افتح حاسبة الاحتياج المائي", "Open the water requirement calculator")}
         </Link>
       </p>
       <p className="mt-2 text-xs text-muted">
-        المصدر: <span dir="ltr">Open-Meteo</span> (التوقّع والارتفاع)، والتربة من{" "}
-        <span dir="ltr">ISRIC SoilGrids</span>
-        {SOIL_FETCHED_AT && <> (قُرئت {SOIL_FETCHED_AT})</>}، وحدود السودان من{" "}
-        <span dir="ltr">Natural Earth</span>.
+        {locale === "en" ? (
+          <>
+            Source: Open-Meteo (forecast and elevation); soil from ISRIC SoilGrids
+            {SOIL_FETCHED_AT && <> (read {SOIL_FETCHED_AT})</>}; Sudan&apos;s borders from Natural Earth.
+          </>
+        ) : (
+          <>
+            المصدر: <span dir="ltr">Open-Meteo</span> (التوقّع والارتفاع)، والتربة من{" "}
+            <span dir="ltr">ISRIC SoilGrids</span>
+            {SOIL_FETCHED_AT && <> (قُرئت {SOIL_FETCHED_AT})</>}، وحدود السودان من{" "}
+            <span dir="ltr">Natural Earth</span>.
+          </>
+        )}
       </p>
     </div>
   );
 }
 
 /** The roads, rail and power tab: the map, then the largest stations. */
-function InfraSection() {
+function InfraSection({ locale }: { locale: Locale }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   return (
     <>
-      <h2 className="text-lg font-bold">الطرق والسكك الحديدية والكهرباء</h2>
+      <h2 className="text-lg font-bold">{t("الطرق والسكك الحديدية والكهرباء", "Roads, railways and power")}</h2>
       <p className="mb-3 mt-1 text-xs text-muted">
-        كيف يصل المحصول إلى السوق وإلى بورتسودان، وأين تمرّ الشبكة لمن يفكّر في طلمبةٍ كهربائية بدل
-        الديزل. بياناتٌ من قبل الحرب: الخطّ المرسوم خطٌّ بُني، لا خطٌّ يعمل اليوم بالضرورة.
+        {t(
+          "كيف يصل المحصول إلى السوق وإلى بورتسودان، وأين تمرّ الشبكة لمن يفكّر في طلمبةٍ كهربائية بدل الديزل. بياناتٌ من قبل الحرب: الخطّ المرسوم خطٌّ بُني، لا خطٌّ يعمل اليوم بالضرورة.",
+          "How a crop reaches the market and Port Sudan, and where the grid runs for anyone thinking of an electric pump instead of diesel. Pre-war data: a line drawn is a line that was built, not necessarily one working today.",
+        )}
       </p>
-      <InfraMap />
-      <h3 className="mt-6 font-bold">أكبر محطات الكهرباء</h3>
+      <InfraMap locale={locale} />
+      <h3 className="mt-6 font-bold">{t("أكبر محطات الكهرباء", "The largest power stations")}</h3>
       <ul className="mt-2 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
         {INFRA.stations.slice(0, 12).map((s) => (
           <li key={s.name} className="flex items-baseline gap-2">
             <span className="inline-block size-2.5 shrink-0 rounded-full" style={{ background: FUEL_INK[s.fuel].ink }} aria-hidden />
-            <span className="font-medium">{s.nameAr ?? <span dir="ltr">{s.name}</span>}</span>
+            <span className="font-medium">
+              {locale === "en" ? s.name : (s.nameAr ?? <span dir="ltr">{s.name}</span>)}
+            </span>
             <span className="text-xs text-muted">
-              {s.mw != null && `${Math.round(s.mw).toLocaleString("ar-SA")} ميغاواط`}
-              {s.state && ` · ${s.state}`}
+              {s.mw != null &&
+                (locale === "en"
+                  ? `${Math.round(s.mw).toLocaleString("en-GB")} MW`
+                  : `${Math.round(s.mw).toLocaleString("ar-SA")} ميغاواط`)}
+              {s.state && ` · ${placeName(s.state, locale)}`}
             </span>
           </li>
         ))}
       </ul>
       <p className="mt-3 text-xs text-muted">
-        المصدر: المسح الجيولوجي الأمريكي (<span dir="ltr">USGS</span>)، ٢٠٢١، ملكية عامة — الطرق والسكك من{" "}
-        <span dir="ltr">OpenStreetMap</span>، والكهرباء من بيانات <span dir="ltr">African Energy</span>. تُعرض
-        الطرق الرئيسية فقط.
+        {locale === "en" ? (
+          <>
+            Source: the US Geological Survey (USGS), 2021, public domain — roads and rail from OpenStreetMap, and power
+            from African Energy data. Only main roads are shown.
+          </>
+        ) : (
+          <>
+            المصدر: المسح الجيولوجي الأمريكي (<span dir="ltr">USGS</span>)، ٢٠٢١، ملكية عامة — الطرق والسكك من{" "}
+            <span dir="ltr">OpenStreetMap</span>، والكهرباء من بيانات <span dir="ltr">African Energy</span>. تُعرض
+            الطرق الرئيسية فقط.
+          </>
+        )}
       </p>
     </>
   );

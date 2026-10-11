@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { CROPS } from "@/lib/agronomy";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
+import { cropName } from "@/lib/farmLabelsEn";
 import PublishRecordToggle from "@/components/PublishRecordToggle";
 import type { Season } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
 
-export const metadata = { title: "مواسمي | سوداقري" };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return { title: tr(locale, "مواسمي | سوداقري", "My seasons | Sudagri") };
+}
 
 export default async function SeasonsPage({
   searchParams,
@@ -20,6 +25,10 @@ export default async function SeasonsPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
+
   const { data } = await supabase
     .from("seasons")
     .select("*")
@@ -31,21 +40,27 @@ export default async function SeasonsPage({
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">مواسمي</h1>
+          <h1 className="text-2xl font-bold">{t("مواسمي", "My seasons")}</h1>
           <p className="mt-1 text-sm text-muted">
-            كل موسم يُسجَّل هنا يبني سجلك كمنفّذ — وهو ما يقرأه محرّك التقييم.
+            {t(
+              "كل موسم يُسجَّل هنا يبني سجلك كمنفّذ — وهو ما يقرأه محرّك التقييم.",
+              "Every season recorded here builds your track record as an operator — and that is what the scoring engine reads.",
+            )}
           </p>
         </div>
         <Link
           href="/seasons/new"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
         >
-          موسم جديد
+          {t("موسم جديد", "New season")}
         </Link>
       </div>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/harvest-wide" poster="/video/harvest-wide.jpg" label="فيلم سوداقري: من الحصاد إلى تقاوي العام القادم" />
+        <FilmPlayer base="/video/harvest-wide" poster="/video/harvest-wide.jpg" label={t(
+            "فيلم سوداقري: من الحصاد إلى تقاوي العام القادم",
+            "A Sudagri film: from harvest to next year's seed",
+          )} />
       </figure>
 
       {errorMessage && (
@@ -56,18 +71,19 @@ export default async function SeasonsPage({
 
       {/* Placed above the list on purpose: the choice is made while looking at
           exactly what it would publish. */}
-      <PublishRecordToggle seasonCount={seasons.length} />
+      <PublishRecordToggle seasonCount={seasons.length} locale={locale} />
 
       {seasons.length === 0 ? (
         <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted">
-          لم تسجّل موسماً بعد. ابدأ بموسم واحد — حتى لو كان قد بدأ فعلاً — وسجّل
-          مراحله ومصروفاته لتعرف ربح الفدان الحقيقي في نهايته.
+          {t(
+            "لم تسجّل موسماً بعد. ابدأ بموسم واحد — حتى لو كان قد بدأ فعلاً — وسجّل مراحله ومصروفاته لتعرف ربح الفدان الحقيقي في نهايته.",
+            "You have not recorded a season yet. Start with one — even if it has already begun — and record its stages and spending so that at the end you know the real profit per feddan.",
+          )}
         </p>
       ) : (
         <ul className="flex flex-col gap-4">
           {seasons.map((s) => {
-            const crop =
-              CROPS.find((c) => c.key === s.crop_key)?.name ?? s.crop_key;
+            const crop = cropName(s.crop_key, locale);
             return (
               <li key={s.id}>
                 <Link
@@ -75,13 +91,20 @@ export default async function SeasonsPage({
                   className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-5 transition hover:border-primary"
                 >
                   <div>
-                    <h2 className="font-bold">{s.name}</h2>
+                    <h2 className="font-bold" {...arText}>
+                      {s.name}
+                    </h2>
                     <p className="text-sm text-muted">
-                      {crop} · {s.feddans} فدان
-                      {s.location ? ` · ${s.location}` : ""}
+                      {crop} · {s.feddans} {t("فدان", "feddans")}
+                      {s.location && (
+                        <>
+                          {" · "}
+                          <span {...arText}>{s.location}</span>
+                        </>
+                      )}
                     </p>
                   </div>
-                  <div className="text-left text-sm">
+                  <div className="text-end text-sm">
                     <p className="text-muted">{s.planting_date}</p>
                     <span
                       className={`text-xs font-medium ${
@@ -91,10 +114,10 @@ export default async function SeasonsPage({
                       }`}
                     >
                       {s.status === "completed"
-                        ? "مكتمل"
+                        ? t("مكتمل", "Completed")
                         : s.status === "abandoned"
-                          ? "متوقف"
-                          : "جارٍ"}
+                          ? t("متوقف", "Stopped")
+                          : t("جارٍ", "In progress")}
                     </span>
                   </div>
                 </Link>

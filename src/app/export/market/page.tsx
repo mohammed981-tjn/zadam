@@ -1,15 +1,23 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatMinor } from "@/lib/exportOffers";
+import { formatMinor, referenceName } from "@/lib/exportOffers";
 import { fetchReadiness } from "@/lib/exportReadiness";
 import InterestForm from "@/components/InterestForm";
 import { ReadinessBadge } from "@/components/ExportReadiness";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
-export const metadata = {
-  title: "عروض التصدير المنشورة · سوداقري",
-  description:
-    "إرسالياتٌ سودانية راجعها موظّفٌ وتأكّد أنّ أدلّتها تسند ما تقوله: المنشأ بإحداثيّته، والأدلّة ببصماتها.",
-};
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return {
+    title: tr(locale, "عروض التصدير المنشورة · سوداقري", "Published export offers · Sudagri"),
+    description: tr(
+      locale,
+      "إرسالياتٌ سودانية راجعها موظّفٌ وتأكّد أنّ أدلّتها تسند ما تقوله: المنشأ بإحداثيّته، والأدلّة ببصماتها.",
+      "Sudanese consignments a reviewer has checked to confirm their evidence supports what they claim: origin with its coordinates, evidence with its fingerprints.",
+    ),
+  };
+}
 
 interface Row {
   id: string;
@@ -22,8 +30,8 @@ interface Row {
   shipment_date: string | null;
   reviewed_at: string | null;
   corridor: {
-    commodity: { name_ar: string; hs_code: string | null } | null;
-    destination: { name_ar: string } | null;
+    commodity: { code: string; name_ar: string; hs_code: string | null } | null;
+    destination: { code: string; name_ar: string } | null;
   } | null;
   grade: { name_ar: string } | null;
 }
@@ -56,13 +64,15 @@ interface Row {
  * owns the first rejected shipment.
  */
 export default async function ExportMarketPage() {
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const supabase = await createClient();
 
   const { data } = await supabase
     .from("export_offers")
     .select(
       "id, reference, quantity, uom_code, unit_price_minor, value_minor, currency_code, shipment_date, reviewed_at, " +
-        "corridor:export_corridors(commodity:export_commodities(name_ar, hs_code), destination:export_destinations(name_ar)), " +
+        "corridor:export_corridors(commodity:export_commodities(code, name_ar, hs_code), destination:export_destinations(code, name_ar)), " +
         "grade:export_commodity_grades(name_ar)",
     )
     .eq("status", "published")
@@ -80,28 +90,54 @@ export default async function ExportMarketPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold">عروض التصدير المنشورة</h1>
+      <h1 className="text-2xl font-bold">{t("عروض التصدير المنشورة", "Published export offers")}</h1>
 
-      <p className="mt-3 text-sm leading-7 text-muted">
-        كلُّ عرضٍ هنا راجعه موظّفٌ وتأكّد أنّ <strong>أدلّته تسند ما يقوله</strong>:
-        المنشأُ بإحداثيّته، والأدلّةُ ببصماتها، والدرجةُ تطابق ما تُظهره. وهذا هو ما
-        نشهد به — <strong>لا جودةَ البضاعة ولا عدالةَ السعر</strong>. تلك تبقى لفحصك
-        أنت، كما في أيّ صفقة.
-      </p>
+      {locale === "en" ? (
+        <>
+          <p className="mt-3 text-sm leading-7 text-muted">
+            Every offer here has been checked by a reviewer who confirmed that{" "}
+            <strong>its evidence supports what it claims</strong>: origin with
+            its coordinates, evidence with its fingerprints, and a grade that
+            matches what the evidence shows. That is what we vouch for —{" "}
+            <strong>not the quality of the goods nor the fairness of the price</strong>.
+            Those remain for you to check, as in any deal.
+          </p>
 
-      <p className="mt-3 text-sm leading-7 text-muted">
-        ولماذا يهمّك هذا: البابُ الأوروبيّ مفتوحٌ للسودان بلا رسوم، والشحناتُ تُردّ
-        على الحدود لأنّ مستنداً ناقص — خمسٌ وستّون حالةَ رفضٍ سببُها الورق وحده. ما
-        يقلّل هذه المخاطرة يقلّل ثمنَها.{" "}
-        <Link href="/export" className="text-primary underline">
-          الدراسة كاملةً
-        </Link>
-        .
-      </p>
+          <p className="mt-3 text-sm leading-7 text-muted">
+            Why this matters to you: Europe&apos;s door is open to Sudan
+            duty-free, and shipments are turned back at the border because a
+            document is missing — sixty-five rejections caused by paperwork
+            alone. Whatever reduces that risk reduces its cost.{" "}
+            <Link href="/export" className="text-primary underline">
+              The full study
+            </Link>
+            .
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="mt-3 text-sm leading-7 text-muted">
+            كلُّ عرضٍ هنا راجعه موظّفٌ وتأكّد أنّ <strong>أدلّته تسند ما يقوله</strong>:
+            المنشأُ بإحداثيّته، والأدلّةُ ببصماتها، والدرجةُ تطابق ما تُظهره. وهذا هو ما
+            نشهد به — <strong>لا جودةَ البضاعة ولا عدالةَ السعر</strong>. تلك تبقى لفحصك
+            أنت، كما في أيّ صفقة.
+          </p>
+
+          <p className="mt-3 text-sm leading-7 text-muted">
+            ولماذا يهمّك هذا: البابُ الأوروبيّ مفتوحٌ للسودان بلا رسوم، والشحناتُ تُردّ
+            على الحدود لأنّ مستنداً ناقص — خمسٌ وستّون حالةَ رفضٍ سببُها الورق وحده. ما
+            يقلّل هذه المخاطرة يقلّل ثمنَها.{" "}
+            <Link href="/export" className="text-primary underline">
+              الدراسة كاملةً
+            </Link>
+            .
+          </p>
+        </>
+      )}
 
       {offers.length === 0 ? (
         <p className="mt-8 rounded-xl border border-border bg-card p-4 text-sm text-muted">
-          لا عروضَ منشورةً بعد.
+          {t("لا عروضَ منشورةً بعد.", "No published offers yet.")}
         </p>
       ) : (
         <ul className="mt-8 flex flex-col gap-4">
@@ -109,50 +145,61 @@ export default async function ExportMarketPage() {
             <li key={o.id} className="rounded-xl border border-border bg-card p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-medium">
-                  {o.corridor?.commodity?.name_ar ?? "—"}
-                  {o.grade ? ` · ${o.grade.name_ar}` : ""}
+                  {o.corridor?.commodity
+                    ? referenceName(o.corridor.commodity.code, o.corridor.commodity.name_ar, locale)
+                    : "—"}
+                  {o.grade && (
+                    <>
+                      {" · "}
+                      <bdi lang="ar">{o.grade.name_ar}</bdi>
+                    </>
+                  )}
                 </h2>
                 <span className="font-mono text-xs text-muted">{o.reference}</span>
               </div>
 
               {readiness[i] && (
                 <p className="mt-2">
-                  <ReadinessBadge readiness={readiness[i]} />
+                  <ReadinessBadge readiness={readiness[i]} locale={locale} />
                 </p>
               )}
 
               <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                 <div className="flex justify-between gap-3 sm:block">
-                  <dt className="text-muted">الكمّية</dt>
+                  <dt className="text-muted">{t("الكمّية", "Quantity")}</dt>
                   <dd>
                     {o.quantity} {o.uom_code}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3 sm:block">
-                  <dt className="text-muted">الوجهة</dt>
-                  <dd>{o.corridor?.destination?.name_ar ?? "—"}</dd>
+                  <dt className="text-muted">{t("الوجهة", "Destination")}</dt>
+                  <dd>
+                    {o.corridor?.destination
+                      ? referenceName(o.corridor.destination.code, o.corridor.destination.name_ar, locale)
+                      : "—"}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-3 sm:block">
-                  <dt className="text-muted">سعر الوحدة</dt>
+                  <dt className="text-muted">{t("سعر الوحدة", "Unit price")}</dt>
                   <dd>
                     {formatMinor(o.unit_price_minor)} {o.currency_code}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3 sm:block">
-                  <dt className="text-muted">القيمة</dt>
+                  <dt className="text-muted">{t("القيمة", "Value")}</dt>
                   <dd className="font-medium">
                     {formatMinor(o.value_minor)} {o.currency_code}
                   </dd>
                 </div>
                 {o.corridor?.commodity?.hs_code && (
                   <div className="flex justify-between gap-3 sm:block">
-                    <dt className="text-muted">البند الجمركي</dt>
+                    <dt className="text-muted">{t("البند الجمركي", "HS code")}</dt>
                     <dd className="font-mono">{o.corridor.commodity.hs_code}</dd>
                   </div>
                 )}
                 {o.shipment_date && (
                   <div className="flex justify-between gap-3 sm:block">
-                    <dt className="text-muted">تاريخ الشحن</dt>
+                    <dt className="text-muted">{t("تاريخ الشحن", "Shipment date")}</dt>
                     <dd>{o.shipment_date}</dd>
                   </div>
                 )}
@@ -160,7 +207,8 @@ export default async function ExportMarketPage() {
 
               {o.reviewed_at && (
                 <p className="mt-3 text-xs text-muted">
-                  روجع في {new Date(o.reviewed_at).toLocaleDateString("ar-EG")}
+                  {t("روجع في", "Reviewed on")}{" "}
+                  {new Date(o.reviewed_at).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG")}
                 </p>
               )}
 
@@ -173,14 +221,32 @@ export default async function ExportMarketPage() {
       {/* What this page promises the buyer about what happens next. A form that
           does not say who reads it, or when, is a form people fill in once. */}
       <p className="mt-8 rounded-xl border border-border bg-background p-4 text-sm leading-7 text-muted">
-        <strong>كيف يسير الأمر:</strong> تُرسل طلب اهتمام على العرض بلا حساب —
-        اسمٌ ووسيلةُ اتّصال. يصل الطلبُ فريقَ سوداقري، فنراجعه ونصلك ونعرّفك على
-        المصدِّر ومعه <strong>ملفُّ الإرسالية</strong>: إحداثيّةُ المنشأ وسلسلةُ
-        العهدة وبصماتُ الأدلّة والمستنداتُ المطلوبة لوجهتك. ولك أن تراسلنا في{" "}
-        <Link href="/feedback" className="text-primary underline">
-          صفحة الملاحظات
-        </Link>{" "}
-        في أي أمرٍ آخر.
+        {locale === "en" ? (
+          <>
+            <strong>How it works:</strong> you send an expression of interest
+            in an offer without an account — a name and a way to reach you. It
+            goes to the Sudagri team; we review it, get back to you and
+            introduce you to the exporter along with the{" "}
+            <strong>consignment file</strong>: origin coordinates, chain of
+            custody, evidence fingerprints and the documents your destination
+            requires. You can also write to us on the{" "}
+            <Link href="/feedback" className="text-primary underline">
+              feedback page
+            </Link>{" "}
+            about anything else.
+          </>
+        ) : (
+          <>
+            <strong>كيف يسير الأمر:</strong> تُرسل طلب اهتمام على العرض بلا حساب —
+            اسمٌ ووسيلةُ اتّصال. يصل الطلبُ فريقَ سوداقري، فنراجعه ونصلك ونعرّفك على
+            المصدِّر ومعه <strong>ملفُّ الإرسالية</strong>: إحداثيّةُ المنشأ وسلسلةُ
+            العهدة وبصماتُ الأدلّة والمستنداتُ المطلوبة لوجهتك. ولك أن تراسلنا في{" "}
+            <Link href="/feedback" className="text-primary underline">
+              صفحة الملاحظات
+            </Link>{" "}
+            في أي أمرٍ آخر.
+          </>
+        )}
       </p>
     </div>
   );

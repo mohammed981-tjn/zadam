@@ -1,7 +1,7 @@
 name: Narration (English)
 
 # The English narration for the films (the owner, 11 October: «كامل النسخة
-# الانجليزية»), spoken by Kokoro-82M, an open English voice that runs on the
+# الانجليزية»), spoken by Kokoro-82M in the voice the owner chose (bm_fable, sample 2, 11 October; the first run, bm_george, is kept in tts/en-george), an open English voice that runs on the
 # runner's own CPU, so there is no Space quota and no key. Lines missing from
 # tts/en are spoken; tts/en-probe holds two lines in four voices for the owner
 # to choose from. The files are committed back to the branch that asked for
@@ -21,7 +21,7 @@ jobs:
     permissions:
       contents: write
     env:
-      VOICE: bm_george
+      VOICE: bm_fable
     steps:
       - uses: actions/checkout@v4
       - run: |

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 import {
   offerAmounts,
   offerReference,
@@ -46,9 +48,13 @@ export async function createOffer(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const corridorId = str(formData, "corridor_id");
-  if (!corridorId) return { ok: false, message: "اختر السلعة والوجهة." };
+  if (!corridorId) {
+    return { ok: false, message: t("اختر السلعة والوجهة.", "Choose the commodity and the destination.") };
+  }
 
   const amounts = offerAmounts(
     str(formData, "quantity"),
@@ -58,9 +64,11 @@ export async function createOffer(
   if (!amounts) {
     return {
       ok: false,
-      message:
+      message: t(
         "الكمّية والسعر يجب أن يكونا رقمين أكبر من صفر — الكمّية بأربع خانات " +
-        "عشرية على الأكثر، والسعر بخانتين.",
+          "عشرية على الأكثر، والسعر بخانتين.",
+        "Quantity and price must be numbers greater than zero — quantity with at most four decimal places, price with two.",
+      ),
     };
   }
 
@@ -74,7 +82,7 @@ export async function createOffer(
 
   // Checked here for the message, enforced in the database for the boundary.
   // A constraint name in the browser tells a farmer nothing they can act on.
-  const originIssue = originProblem(origin);
+  const originIssue = originProblem(origin, locale);
   if (originIssue) return { ok: false, message: originIssue };
 
   // Parsed before anything is written, because JSON.parse throws on a typo and
@@ -89,9 +97,11 @@ export async function createOffer(
     } catch {
       return {
         ok: false,
-        message:
+        message: t(
           "حدود القطعة ليست GeoJSON صالحاً. انسخها كاملةً من أداة الخرائط، " +
-          "أو اتركها فارغة إن كانت القطعة دون أربعة هكتارات.",
+            "أو اتركها فارغة إن كانت القطعة دون أربعة هكتارات.",
+          "The plot boundary is not valid GeoJSON. Copy it in full from the mapping tool, or leave it empty if the plot is under four hectares.",
+        ),
       };
     }
   }
@@ -123,7 +133,7 @@ export async function createOffer(
     console.error("export: offer insert failed", error);
     return {
       ok: false,
-      message: "تعذّر حفظ العرض. راجع البيانات وحاول ثانية.",
+      message: t("تعذّر حفظ العرض. راجع البيانات وحاول ثانية.", "The offer could not be saved. Check the details and try again."),
     };
   }
 
@@ -152,12 +162,18 @@ export async function createOffer(
 
     return {
       ok: false,
-      message: "تعذّر حفظ بيانات المنشأ، فلم يُحفظ العرض. راجع الإحداثيّة.",
+      message: t(
+        "تعذّر حفظ بيانات المنشأ، فلم يُحفظ العرض. راجع الإحداثيّة.",
+        "The origin details could not be saved, so the offer was not saved. Check the coordinates.",
+      ),
     };
   }
 
   revalidatePath("/export/offers");
-  return { ok: true, message: "حُفظ العرض مسوّدة. راجعه ثم أرسله." };
+  return {
+    ok: true,
+    message: t("حُفظ العرض مسوّدة. راجعه ثم أرسله.", "The offer was saved as a draft. Review it, then send it."),
+  };
 }
 
 /**
@@ -178,9 +194,11 @@ export async function moveOffer(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   if (!["submitted", "draft", "withdrawn"].includes(next)) {
-    return { ok: false, message: "حالة غير معروفة." };
+    return { ok: false, message: t("حالة غير معروفة.", "Unknown status.") };
   }
 
   const { data, error } = await supabase
@@ -192,7 +210,7 @@ export async function moveOffer(
 
   if (error) {
     console.error("export: offer move failed", error);
-    return { ok: false, message: "تعذّر تغيير حالة العرض." };
+    return { ok: false, message: t("تعذّر تغيير حالة العرض.", "The offer's status could not be changed.") };
   }
 
   // The row count, not the error, is what distinguishes a refusal here: a
@@ -201,7 +219,10 @@ export async function moveOffer(
   if (!data || data.length === 0) {
     return {
       ok: false,
-      message: "لم يتغيّر شيء — العرض ليس في حالةٍ تسمح بهذا الانتقال.",
+      message: t(
+        "لم يتغيّر شيء — العرض ليس في حالةٍ تسمح بهذا الانتقال.",
+        "Nothing changed — the offer is not in a state that allows this move.",
+      ),
     };
   }
 
@@ -210,9 +231,9 @@ export async function moveOffer(
     ok: true,
     message:
       next === "submitted"
-        ? "أُرسل العرض للمراجعة."
+        ? t("أُرسل العرض للمراجعة.", "The offer was sent for review.")
         : next === "withdrawn"
-          ? "سُحب العرض."
-          : "عاد العرض مسوّدة.",
+          ? t("سُحب العرض.", "The offer was withdrawn.")
+          : t("عاد العرض مسوّدة.", "The offer is back to draft."),
   };
 }

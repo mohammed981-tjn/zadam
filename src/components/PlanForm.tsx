@@ -4,12 +4,17 @@ import Link from "next/link";
 import { useState } from "react";
 import { generatePlan, type PlanResult } from "@/app/plan/actions";
 import { formatUsd, riskLabel } from "@/lib/format";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 export default function PlanForm() {
   const [result, setResult] = useState<PlanResult | { error: string } | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -24,7 +29,7 @@ export default function PlanForm() {
         className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-6"
       >
         <label className="flex flex-col gap-1 text-sm">
-          المبلغ الذي تريد استثماره (USD)
+          {t("المبلغ الذي تريد استثماره (USD)", "Amount you want to invest (USD)")}
           <input
             type="number"
             name="amount"
@@ -38,12 +43,12 @@ export default function PlanForm() {
 
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-sm font-medium">
-            ما أفقك الزمني للاستثمار؟
+            {t("ما أفقك الزمني للاستثمار؟", "What is your investment time horizon?")}
           </legend>
           {[
-            ["1", "أقل من سنة"],
-            ["2", "من سنة إلى 3 سنوات"],
-            ["3", "أكثر من 3 سنوات"],
+            ["1", t("أقل من سنة", "Less than a year")],
+            ["2", t("من سنة إلى 3 سنوات", "One to 3 years")],
+            ["3", t("أكثر من 3 سنوات", "More than 3 years")],
           ].map(([v, label]) => (
             <label key={v} className="flex items-center gap-2 text-sm">
               <input
@@ -60,12 +65,12 @@ export default function PlanForm() {
 
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-sm font-medium">
-            لو انخفضت قيمة استثمارك 20% مؤقتاً، ماذا تفعل؟
+            {t("لو انخفضت قيمة استثمارك 20% مؤقتاً، ماذا تفعل؟", "If your investment temporarily lost 20% of its value, what would you do?")}
           </legend>
           {[
-            ["1", "أسحب استثماري فوراً"],
-            ["2", "أنتظر وأراقب الوضع"],
-            ["3", "أزيد استثماري إن أمكن"],
+            ["1", t("أسحب استثماري فوراً", "Withdraw my investment right away")],
+            ["2", t("أنتظر وأراقب الوضع", "Wait and watch")],
+            ["3", t("أزيد استثماري إن أمكن", "Invest more if I can")],
           ].map(([v, label]) => (
             <label key={v} className="flex items-center gap-2 text-sm">
               <input
@@ -82,12 +87,15 @@ export default function PlanForm() {
 
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-sm font-medium">
-            كم نسبة هذا المبلغ من أموالك الفائضة (غير الأساسية للمعيشة)؟
+            {t(
+              "كم نسبة هذا المبلغ من أموالك الفائضة (غير الأساسية للمعيشة)؟",
+              "What share of your spare money (not needed for living costs) is this amount?",
+            )}
           </legend>
           {[
-            ["1", "أقل من 10%"],
-            ["2", "بين 10% و30%"],
-            ["3", "أكثر من 30%"],
+            ["1", t("أقل من 10%", "Less than 10%")],
+            ["2", t("بين 10% و30%", "Between 10% and 30%")],
+            ["3", t("أكثر من 30%", "More than 30%")],
           ].map(([v, label]) => (
             <label key={v} className="flex items-center gap-2 text-sm">
               <input
@@ -107,7 +115,7 @@ export default function PlanForm() {
           disabled={loading}
           className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          {loading ? "جارٍ الحساب..." : "اقترح لي توزيعاً"}
+          {loading ? t("جارٍ الحساب...", "Calculating...") : t("اقترح لي توزيعاً", "Suggest a split")}
         </button>
       </form>
 
@@ -121,50 +129,55 @@ export default function PlanForm() {
         <div className="flex flex-col gap-4">
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
             <p className="text-sm">
-              مستوى تحمّل المخاطرة المُستنتج من إجاباتك:{" "}
+              {t("مستوى تحمّل المخاطرة المُستنتج من إجاباتك:", "Risk tolerance inferred from your answers:")}{" "}
               <span className="font-bold text-primary">
-                {riskLabel(result.riskProfile)}
+                {riskLabel(result.riskProfile, locale)}
               </span>
             </p>
             <p className="mt-1 text-xs text-muted">
-              هذا اقتراح توزيع آلي وليس نصيحة مالية ملزمة — راجعه وقرّر بنفسك
-              قبل أي استثمار فعلي.
+              {t(
+                "هذا اقتراح توزيع آلي وليس نصيحة مالية ملزمة — راجعه وقرّر بنفسك قبل أي استثمار فعلي.",
+                "This is an automatic suggestion, not binding financial advice — review it and decide for yourself before investing.",
+              )}
             </p>
           </div>
 
           {result.allocations.length === 0 ? (
             <p className="text-sm text-muted">
-              لا توجد مشاريع مفتوحة كافية حالياً لاقتراح توزيع.
+              {t(
+                "لا توجد مشاريع مفتوحة كافية حالياً لاقتراح توزيع.",
+                "There are not enough open projects right now to suggest a split.",
+              )}
             </p>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-sm">
-                <thead className="bg-card text-right">
+                <thead className="bg-card text-start">
                   <tr>
-                    <th className="px-4 py-3">المشروع</th>
-                    <th className="px-4 py-3">المخاطرة</th>
-                    <th className="px-4 py-3">الحصص المقترحة</th>
-                    <th className="px-4 py-3">المبلغ</th>
+                    <th className="px-4 py-3">{t("المشروع", "Project")}</th>
+                    <th className="px-4 py-3">{t("المخاطرة", "Risk")}</th>
+                    <th className="px-4 py-3">{t("الحصص المقترحة", "Suggested shares")}</th>
+                    <th className="px-4 py-3">{t("المبلغ", "Amount")}</th>
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.allocations.map((a) => (
                     <tr key={a.project.id} className="border-t border-border">
-                      <td className="px-4 py-3 font-medium">
+                      <td className="px-4 py-3 font-medium" {...arText}>
                         {a.project.name}
                       </td>
                       <td className="px-4 py-3">
-                        {riskLabel(a.project.risk_level)}
+                        {riskLabel(a.project.risk_level, locale)}
                       </td>
                       <td className="px-4 py-3">{a.shares}</td>
-                      <td className="px-4 py-3">{formatUsd(a.amount)}</td>
+                      <td className="px-4 py-3">{formatUsd(a.amount, locale)}</td>
                       <td className="px-4 py-3">
                         <Link
                           href={`/projects/${a.project.slug}`}
                           className="text-primary underline"
                         >
-                          عرض المشروع
+                          {t("عرض المشروع", "View project")}
                         </Link>
                       </td>
                     </tr>
@@ -173,11 +186,11 @@ export default function PlanForm() {
                 <tfoot>
                   <tr className="border-t border-border font-medium">
                     <td className="px-4 py-3" colSpan={3}>
-                      الإجمالي المُوزَّع من أصل{" "}
-                      {formatUsd(result.requestedAmount)}
+                      {t("الإجمالي المُوزَّع من أصل", "Total allocated out of")}{" "}
+                      {formatUsd(result.requestedAmount, locale)}
                     </td>
                     <td className="px-4 py-3" colSpan={2}>
-                      {formatUsd(result.allocatedAmount)}
+                      {formatUsd(result.allocatedAmount, locale)}
                     </td>
                   </tr>
                 </tfoot>

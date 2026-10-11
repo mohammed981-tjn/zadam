@@ -4,7 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 import ExportOfferDetail from "@/components/ExportOfferDetail";
 import { ReadinessPanel } from "@/components/ExportReadiness";
 import { fetchReadiness } from "@/lib/exportReadiness";
-import { formatMinor, OFFER_STATUS_LABEL, OFFER_STATUS_HELP, type OfferStatus } from "@/lib/exportOffers";
+import {
+  formatMinor,
+  offerStatusLabel,
+  offerStatusHelp,
+  referenceName,
+  type OfferStatus,
+} from "@/lib/exportOffers";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 import type {
   ExportReadinessLine,
   ExportCorridorRulesStatus,
@@ -29,6 +37,8 @@ export default async function ExportOfferDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const { data: offerRow } = await supabase
     .from("export_offers")
@@ -36,7 +46,7 @@ export default async function ExportOfferDetailPage({
       "id, reference, owner_id, season_id, quantity, uom_code, unit_price_minor, value_minor, " +
         "currency_code, status, rejection_reason, requirements_frozen_at, " +
         "corridor_id, " +
-        "corridor:export_corridors(commodity:export_commodities(name_ar), destination:export_destinations(name_ar))",
+        "corridor:export_corridors(commodity:export_commodities(code, name_ar), destination:export_destinations(code, name_ar))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -58,8 +68,8 @@ export default async function ExportOfferDetailPage({
     requirements_frozen_at: string | null;
     corridor_id: string;
     corridor: {
-      commodity: { name_ar: string } | null;
-      destination: { name_ar: string } | null;
+      commodity: { code: string; name_ar: string } | null;
+      destination: { code: string; name_ar: string } | null;
     } | null;
   };
 
@@ -121,23 +131,28 @@ export default async function ExportOfferDetailPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <Link href="/export/offers" className="text-sm text-primary underline">
-        ← عروضي
+        {locale === "en" ? "← My offers" : "← عروضي"}
       </Link>
 
       <h1 className="mt-3 text-2xl font-bold">{offer.reference}</h1>
       <p className="mt-1 text-sm text-muted">
-        {offer.corridor?.commodity?.name_ar} ← {offer.corridor?.destination?.name_ar} ·{" "}
+        {offer.corridor?.commodity &&
+          referenceName(offer.corridor.commodity.code, offer.corridor.commodity.name_ar, locale)}{" "}
+        {locale === "en" ? "→" : "←"}{" "}
+        {offer.corridor?.destination &&
+          referenceName(offer.corridor.destination.code, offer.corridor.destination.name_ar, locale)}{" "}
+        ·{" "}
         {offer.quantity} {offer.uom_code} ·{" "}
         {formatMinor(offer.value_minor)} {offer.currency_code}
       </p>
       <p className="mt-1 text-sm">
-        <strong>{OFFER_STATUS_LABEL[offer.status]}</strong> —{" "}
-        <span className="text-muted">{OFFER_STATUS_HELP[offer.status]}</span>
+        <strong>{offerStatusLabel(offer.status, locale)}</strong> —{" "}
+        <span className="text-muted">{offerStatusHelp(offer.status, locale)}</span>
       </p>
 
       {offer.status === "rejected" && offer.rejection_reason && (
         <p className="mt-3 rounded-lg border border-danger/40 bg-danger/5 p-3 text-sm text-danger">
-          سببُ الإعادة: {offer.rejection_reason}
+          {t("سببُ الإعادة:", "Reason for return:")} <bdi dir="auto">{offer.rejection_reason}</bdi>
         </p>
       )}
 
@@ -147,6 +162,7 @@ export default async function ExportOfferDetailPage({
           lines={lines}
           frozenAt={offer.requirements_frozen_at}
           rules={rules}
+          locale={locale}
         />
       )}
 
@@ -158,7 +174,7 @@ export default async function ExportOfferDetailPage({
         evidence={(evidence ?? []) as never}
         documentTypes={lines.map((l) => ({
           id: l.document_type_id,
-          name_ar: l.name_ar,
+          name_ar: referenceName(l.code, l.name_ar, locale),
           mode: l.mode,
         }))}
         available={((available ?? []) as unknown as {

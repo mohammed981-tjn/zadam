@@ -4,6 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { planHerd, apportionBudget } from "@/lib/livestock";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
+
+async function translator() {
+  const locale = await getLocale();
+  return (ar: string, en: string) => tr(locale, ar, en);
+}
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -29,9 +36,12 @@ export async function createHerd(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const t = await translator();
 
   const name = str(formData, "name");
-  if (!name) return { ok: false, message: "اسم الدورة مطلوب." };
+  if (!name) {
+    return { ok: false, message: t("اسم الدورة مطلوب.", "The cycle name is required.") };
+  }
 
   const plan = planHerd(
     str(formData, "species"),
@@ -44,7 +54,10 @@ export async function createHerd(
   if (!plan) {
     return {
       ok: false,
-      message: "تعذّر توليد خطة الدورة — راجع النوع والغرض والعدد وتاريخ البدء.",
+      message: t(
+        "تعذّر توليد خطة الدورة — راجع النوع والغرض والعدد وتاريخ البدء.",
+        "Could not generate the cycle plan — check the species, purpose, number of head and start date.",
+      ),
     };
   }
 
@@ -65,7 +78,13 @@ export async function createHerd(
     .single();
 
   if (herdError || !herd) {
-    return { ok: false, message: `تعذّر إنشاء الدورة: ${herdError?.message}` };
+    return {
+      ok: false,
+      message: t(
+        `تعذّر إنشاء الدورة: ${herdError?.message}`,
+        `Could not create the cycle: ${herdError?.message}`,
+      ),
+    };
   }
 
   const herdId = (herd as { id: string }).id;
@@ -95,7 +114,13 @@ export async function createHerd(
           });
         }
       });
-    return { ok: false, message: `تعذّر حفظ مراحل الدورة: ${stagesError.message}` };
+    return {
+      ok: false,
+      message: t(
+        `تعذّر حفظ مراحل الدورة: ${stagesError.message}`,
+        `Could not save the cycle stages: ${stagesError.message}`,
+      ),
+    };
   }
 
   redirect(`/herds/${herdId}`);
@@ -157,11 +182,12 @@ export async function setHerdBudget(formData: FormData) {
   const supabase = await createClient();
   const herdId = str(formData, "herd_id");
   const perHead = num(formData, "budget_per_head");
+  const t = await translator();
 
   if (!herdId) return;
   if (!Number.isFinite(perHead) || perHead < 0) {
     redirect(
-      `/herds/${herdId}?error=${encodeURIComponent("الميزانية للرأس رقمٌ موجب.")}`,
+      `/herds/${herdId}?error=${encodeURIComponent(t("الميزانية للرأس رقمٌ موجب.", "The budget per head must be a positive number."))}`,
     );
   }
 
@@ -173,7 +199,7 @@ export async function setHerdBudget(formData: FormData) {
 
   if (!herdRow) {
     redirect(
-      `/herds/${herdId}?error=${encodeURIComponent("الدورة غير موجودة أو ليست لك.")}`,
+      `/herds/${herdId}?error=${encodeURIComponent(t("الدورة غير موجودة أو ليست لك.", "The cycle does not exist or is not yours."))}`,
     );
   }
 
@@ -191,7 +217,7 @@ export async function setHerdBudget(formData: FormData) {
 
   if (stages.length === 0) {
     redirect(
-      `/herds/${herdId}?error=${encodeURIComponent("لا مراحلَ لهذه الدورة.")}`,
+      `/herds/${herdId}?error=${encodeURIComponent(t("لا مراحلَ لهذه الدورة.", "This cycle has no stages."))}`,
     );
   }
 
@@ -214,7 +240,7 @@ export async function setHerdBudget(formData: FormData) {
     // ورفضُ سياسة الصفوف لا يرفع خطأً ولا يمسّ صفّاً، فيُقرأ نجاحاً.
     if ((data ?? []).length === 0) {
       redirect(
-        `/herds/${herdId}?error=${encodeURIComponent("لم تتغيّر الميزانية — الدورة ليست لك.")}`,
+        `/herds/${herdId}?error=${encodeURIComponent(t("لم تتغيّر الميزانية — الدورة ليست لك.", "The budget did not change — the cycle is not yours."))}`,
       );
     }
   }

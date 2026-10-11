@@ -33,7 +33,55 @@ export function dirOf(locale: Locale): "rtl" | "ltr" {
  * Routes whose pages are fully in English. A route listed here is matched
  * exactly; one ending in `/*` also covers everything under it.
  */
-export const TRANSLATED_ROUTES: readonly string[] = ["/"];
+export const TRANSLATED_ROUTES: readonly string[] = [
+  "/",
+  // Knowledge, news, guide, feedback, notifications
+  "/knowledge",
+  "/news",
+  "/news/*",
+  "/guide",
+  "/feedback",
+  "/notifications",
+  // Accounts, portfolio and projects
+  "/login",
+  "/signup",
+  "/reset",
+  "/reset/confirm",
+  "/auth/callback/fragment",
+  "/dashboard",
+  "/plan",
+  "/projects",
+  "/projects/*",
+  "/opportunities/new",
+  "/farmers/*",
+  // Contract services and export
+  "/services",
+  "/services/*",
+  "/contracts",
+  "/contracts/*",
+  "/export",
+  "/export/*",
+  // Nafir
+  "/nafir",
+  "/nafir/*",
+  // Land, seasons and herds
+  "/lands",
+  "/lands/new",
+  "/seasons",
+  "/seasons/*",
+  "/herds",
+  "/herds/*",
+  // Rain, tools, studies, the Arc Canal and mining
+  "/rain",
+  "/tools/water",
+  "/tools/feasibility",
+  "/studies",
+  "/studies/exchange-rate",
+  "/arc-canal",
+  "/mining",
+  "/mining/registry",
+  "/mining/registry/*",
+];
 
 export function isTranslated(pathname: string): boolean {
   return TRANSLATED_ROUTES.some((r) =>

@@ -10,7 +10,9 @@ import {
   type Pt,
   type Shape,
 } from "@/lib/mapDraw";
-import { CELL_DEG, LAYERS, SUDAN_BORDER, type Layer, type RainGrid } from "@/lib/rainMap";
+import { CELL_DEG, LAYERS, SUDAN_BORDER, localizeLayer, type Layer, type RainGrid } from "@/lib/rainMap";
+import { placeName } from "@/lib/enNames";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * خريطة السودان: الطبقة المختارة فوق أساسٍ جغرافيّ.
@@ -49,11 +51,14 @@ const CANAL_INK = "#0e7c86";
 
 export const arDigits = (n: number) => Math.round(n).toLocaleString("ar-SA", { useGrouping: false });
 
+/** A whole number in the reader's digits: Arabic-Indic for Arabic, western for English. */
+export const digits = (n: number, locale: Locale) => (locale === "en" ? String(Math.round(n)) : arDigits(n));
+
 /** 200 km at 15°N, in degrees of longitude. */
 const SCALE_KM = 200;
 const SCALE_DEG = SCALE_KM / (111.32 * Math.cos((15 * Math.PI) / 180));
 
-export function Ground() {
+export function Ground({ locale = "ar" }: { locale?: Locale }) {
   return (
     <>
       <rect x={0} y={0} width={W} height={H} fill="var(--map-sea)" />
@@ -62,13 +67,13 @@ export function Ground() {
       ))}
       {NEIGHBOUR_LABELS.map((n) => (
         <text key={n.name} x={x(n.lon)} y={y(n.lat)} textAnchor="middle" fontSize={8.5} fill="var(--map-label)">
-          {n.name}
+          {placeName(n.name, locale)}
         </text>
       ))}
       <text x={x(38.25)} y={y(21.25)} textAnchor="middle" fontSize={8} fontStyle="italic" fill="var(--map-water)">
-        <tspan x={x(38.25)}>البحر</tspan>
+        <tspan x={x(38.25)}>{tr(locale, "البحر", "Red")}</tspan>
         <tspan x={x(38.25)} dy={9}>
-          الأحمر
+          {tr(locale, "الأحمر", "Sea")}
         </tspan>
       </text>
     </>
@@ -117,7 +122,7 @@ export function Water() {
  * North arrow and scale bar together in the top-left corner, over Libya,
  * where nothing else is drawn; the degree marks along the top and right.
  */
-export function Furniture() {
+export function Furniture({ locale = "ar" }: { locale?: Locale }) {
   const sx = x(22.4);
   const sy = y(23.25);
   const sw = x(22.4 + SCALE_DEG) - sx;
@@ -127,7 +132,7 @@ export function Furniture() {
       <g transform={`translate(${f1(x(21.55))} ${f1(y(23.25))})`}>
         <path d="M0 -9 L4 3 L0 0.5 L-4 3 Z" fill="var(--foreground)" />
         <text y={12} textAnchor="middle" fontSize={8} fontWeight={700}>
-          ش
+          {tr(locale, "ش", "N")}
         </text>
       </g>
       {/* scale bar, two halves */}
@@ -135,7 +140,7 @@ export function Furniture() {
         <rect x={0} y={-3} width={sw / 2} height={3} fill="var(--foreground)" />
         <rect x={sw / 2} y={-3} width={sw / 2} height={3} fill="var(--card)" stroke="var(--foreground)" strokeWidth={0.5} />
         <text x={sw / 2} y={-5.5} textAnchor="middle" direction="ltr">
-          {arDigits(SCALE_KM)} كم
+          {digits(SCALE_KM, locale)} {tr(locale, "كم", "km")}
         </text>
       </g>
       {/* degree marks on the frame */}
@@ -143,7 +148,7 @@ export function Furniture() {
         <g key={`lon${lon}`} fill="var(--map-label)">
           <line x1={x(lon)} x2={x(lon)} y1={0} y2={4} stroke="var(--map-label)" strokeWidth={0.6} />
           <text x={x(lon)} y={12} textAnchor="middle" fontSize={7}>
-            {arDigits(lon)}° ق
+            {digits(lon, locale)}° {tr(locale, "ق", "E")}
           </text>
         </g>
       ))}
@@ -151,7 +156,7 @@ export function Furniture() {
         <g key={`lat${lat}`} fill="var(--map-label)">
           <line x1={W} x2={W - 4} y1={y(lat)} y2={y(lat)} stroke="var(--map-label)" strokeWidth={0.6} />
           <text x={W - 6} y={y(lat) + 2.5} textAnchor="end" fontSize={7} direction="ltr">
-            {arDigits(lat)}° ش
+            {digits(lat, locale)}° {tr(locale, "ش", "N")}
           </text>
         </g>
       ))}
@@ -182,9 +187,11 @@ const SIDES = {
 export function Label({
   t,
   strong,
+  locale = "ar",
 }: {
   t: { name: string; lon: number; lat: number; side: keyof typeof SIDES };
   strong: string | null;
+  locale?: Locale;
 }) {
   const cx = x(t.lon);
   const cy = y(t.lat);
@@ -204,7 +211,7 @@ export function Label({
         strokeLinejoin="round"
         paintOrder="stroke"
       >
-        {t.name}
+        {placeName(t.name, locale)}
         {strong != null && (
           <tspan fontWeight={800} fontSize={9.5}>
             {" "}
@@ -218,10 +225,11 @@ export function Label({
 
 export default function RainMap({
   grid,
-  layer = LAYERS[0],
+  layer: given = LAYERS[0],
   showTowns = true,
   showCanal = false,
   legend = true,
+  locale = "ar",
 }: {
   grid: RainGrid;
   layer?: Layer;
@@ -229,13 +237,16 @@ export default function RainMap({
   showCanal?: boolean;
   /** False when the page draws its own, fuller legend (the soil groups with what each means). */
   legend?: boolean;
+  locale?: Locale;
 }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const layer = localizeLayer(given, locale);
   const clipId = `sudan-${layer.key}`;
   const bands =
     layer.key === "soil" ? classRegions(grid.cells) : layer.key === "lands" ? null : isobands(grid.cells, layer);
   const towns = townValues(grid.cells, layer);
   const lands = layer.key === "lands" ? grid.cells.filter((c) => c.lands) : [];
-  const fmt = (v: number) => (layer.key === "rain" && v < 0.5 ? "٠" : arDigits(v));
+  const fmt = (v: number) => (layer.key === "rain" && v < 0.5 ? t("٠", "0") : digits(v, locale));
 
   return (
     <figure>
@@ -243,7 +254,7 @@ export default function RainMap({
         viewBox={`0 0 ${W} ${f1(H)}`}
         className="h-auto w-full"
         role="img"
-        aria-label={`خريطة السودان: ${layer.note}، ${layer.unit}`}
+        aria-label={t(`خريطة السودان: ${layer.note}، ${layer.unit}`, `Map of Sudan: ${layer.note}, ${layer.unit}`)}
       >
         <defs>
           <clipPath id={clipId}>
@@ -255,7 +266,7 @@ export default function RainMap({
         </defs>
 
         <g clipPath={`url(#${clipId}-frame)`}>
-          <Ground />
+          <Ground locale={locale} />
 
           <g clipPath={`url(#${clipId})`}>
             {bands ? <BandsDrawn bands={bands} layer={layer} /> : <path d={BORDER} fill="var(--card)" />}
@@ -279,7 +290,7 @@ export default function RainMap({
               <g key={`${c.lon},${c.lat}`}>
                 <circle cx={x(c.lon)} cy={y(c.lat)} r={r} fill="#2a6424" fillOpacity={0.85} stroke="var(--card)" strokeWidth={1} />
                 <text x={x(c.lon)} y={y(c.lat) + 3.5} textAnchor="middle" fontSize={9.5} fontWeight={800} fill="#ffffff">
-                  {arDigits(c.lands!)}
+                  {digits(c.lands!, locale)}
                 </text>
               </g>
             );
@@ -293,46 +304,49 @@ export default function RainMap({
             <g>
               <rect x={W / 2 - 118} y={H * 0.44 - 22} width={236} height={40} rx={8} fill="var(--card)" stroke="var(--border)" />
               <text x={W / 2} y={H * 0.44 - 4} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--foreground)">
-                لا أراضٍ موثّقة معروضة بعد
+                {t("لا أراضٍ موثّقة معروضة بعد", "No verified lands listed yet")}
               </text>
               <text x={W / 2} y={H * 0.44 + 11} textAnchor="middle" fontSize={9} fill="var(--muted)">
-                تظهر هنا حين يوثّق المزارعون أراضيهم ويعرضونها
+                {t("تظهر هنا حين يوثّق المزارعون أراضيهم ويعرضونها", "They appear here once farmers verify and list their land")}
               </text>
             </g>
           )}
 
           {showTowns &&
             towns.map((t) => (
-              <Label key={t.name} t={t} strong={t.value == null || layer.key === "lands" ? null : fmt(t.value)} />
+              <Label key={t.name} t={t} locale={locale} strong={t.value == null || layer.key === "lands" ? null : fmt(t.value)} />
             ))}
 
-          <Furniture />
+          <Furniture locale={locale} />
         </g>
         <rect x={0.5} y={0.5} width={W - 1} height={H - 1} fill="none" stroke="var(--border)" rx={10} />
       </svg>
 
       <figcaption className="mt-3 flex flex-col gap-2">
-        {legend && layer.key !== "lands" && <StepLegend layer={layer} />}
+        {legend && layer.key !== "lands" && <StepLegend layer={layer} locale={locale} />}
         {legend && layer.key === "lands" && (
           <p className="flex items-center gap-2 text-xs text-muted">
             <span className="inline-block size-4 rounded-full" style={{ background: "#2a6424" }} />
-            الرقم عدد الأراضي الموثّقة في المربّع (نحو {arDigits(CELL_DEG * 111)} كم)
+            {t(
+              `الرقم عدد الأراضي الموثّقة في المربّع (نحو ${arDigits(CELL_DEG * 111)} كم)`,
+              `The number is the count of verified lands in the square (about ${digits(CELL_DEG * 111, locale)} km)`,
+            )}
           </p>
         )}
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
           <li className="flex items-center gap-1.5">
             <span className="inline-block h-1 w-5 rounded-full" style={{ background: "var(--map-water)" }} />
-            النيل وروافده
+            {t("النيل وروافده", "The Nile and its tributaries")}
           </li>
           <li className="flex items-center gap-1.5">
             <span className="inline-block w-5 border-t border-dashed border-muted" />
-            حدود الولايات (تقريبية)
+            {t("حدود الولايات (تقريبية)", "State boundaries (approximate)")}
           </li>
           {showCanal && (
             <li className="flex items-center gap-1.5">
               <span className="inline-block h-1 w-5 rounded-full" style={{ background: CANAL_INK }} />
               <Link href="/arc-canal" className="underline">
-                مسار القناة القوسية
+                {t("مسار القناة القوسية", "Arc Canal route")}
               </Link>
             </li>
           )}
@@ -347,7 +361,8 @@ export default function RainMap({
  * weather map's key is drawn, and easier to match against the map than a
  * list of swatches. Low values on the left, as on every such bar.
  */
-function StepLegend({ layer }: { layer: Layer }) {
+function StepLegend({ layer, locale }: { layer: Layer; locale: Locale }) {
+  const dir = locale === "en" ? "ltr" : "rtl";
   return (
     <div className="flex flex-col gap-1" dir="ltr">
       <div className="flex h-3 overflow-hidden rounded-full border border-border">
@@ -357,12 +372,12 @@ function StepLegend({ layer }: { layer: Layer }) {
       </div>
       <div className="flex text-[10px] leading-tight text-muted">
         {layer.bands.map((b) => (
-          <span key={b.min} className="figure flex-1 text-center" dir="rtl">
+          <span key={b.min} className="figure flex-1 text-center" dir={dir}>
             {b.label}
           </span>
         ))}
       </div>
-      <p className="text-center text-[11px] text-muted" dir="rtl">
+      <p className="text-center text-[11px] text-muted" dir={dir}>
         {layer.unit}
       </p>
     </div>

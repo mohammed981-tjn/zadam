@@ -1,9 +1,12 @@
 import {
-  READINESS_MODE_LABEL,
   READINESS_SOURCE_NOTE,
+  READINESS_SOURCE_NOTE_EN,
+  readinessModeLabel,
   readinessVerdict,
   type ExportOfferReadiness,
 } from "@/lib/exportReadiness";
+import { referenceName, referenceNote } from "@/lib/exportOffers";
+import { tr, type Locale } from "@/lib/i18n";
 import type {
   ExportReadinessLine,
   ExportCorridorRulesStatus,
@@ -34,6 +37,7 @@ export function ReadinessPanel({
   lines,
   frozenAt,
   rules,
+  locale = "ar",
 }: {
   readiness: ExportOfferReadiness;
   lines: ExportReadinessLine[];
@@ -41,7 +45,10 @@ export function ReadinessPanel({
   frozenAt?: string | null;
   /** متى رُوجعت قواعدُ هذا الممرّ آخرَ مرّة — وهل تأخّرت. */
   rules?: ExportCorridorRulesStatus | null;
+  locale?: Locale;
 }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const en = locale === "en";
   const tone = readiness.ready
     ? "border-primary/40 bg-primary/5"
     : "border-border bg-card";
@@ -49,12 +56,15 @@ export function ReadinessPanel({
   return (
     <section className={`mt-6 rounded-xl border p-4 ${tone}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-medium">جاهزيّةُ المستندات</h2>
-        <span className="text-sm text-muted">{readiness.score}٪</span>
+        <h2 className="font-medium">{t("جاهزيّةُ المستندات", "Document readiness")}</h2>
+        <span className="text-sm text-muted">
+          {readiness.score}
+          {en ? "%" : "٪"}
+        </span>
       </div>
 
       <p className={`mt-1 text-sm ${readiness.ready ? "" : "text-danger"}`}>
-        <strong>{readinessVerdict(readiness)}</strong>
+        <strong>{readinessVerdict(readiness, locale)}</strong>
       </p>
 
       {/* Progress, not a verdict — which is why it carries no colour of its
@@ -62,7 +72,11 @@ export function ReadinessPanel({
       <div
         className="mt-3 h-2 w-full overflow-hidden rounded-full bg-background"
         role="img"
-        aria-label={`اكتمل ${readiness.score} بالمئة من وزن المستندات`}
+        aria-label={
+          en
+            ? `${readiness.score} percent of the documents' weight is complete`
+            : `اكتمل ${readiness.score} بالمئة من وزن المستندات`
+        }
       >
         <div
           className="h-full rounded-full bg-primary"
@@ -82,16 +96,18 @@ export function ReadinessPanel({
               </span>
               <span>
                 <span className={l.satisfied ? "" : "font-medium"}>
-                  {l.name_ar}
+                  {referenceName(l.code, l.name_ar, locale)}
                 </span>{" "}
                 <span className="text-xs text-muted">
-                  ({READINESS_MODE_LABEL[l.mode] ?? l.mode})
+                  ({readinessModeLabel(l.mode, locale)})
                 </span>
                 <span className="sr-only">
-                  {l.satisfied ? " — مرفوع" : " — ناقص"}
+                  {l.satisfied ? t(" — مرفوع", " — uploaded") : t(" — ناقص", " — missing")}
                 </span>
                 {l.note_ar && (
-                  <span className="block text-xs text-muted">{l.note_ar}</span>
+                  <span className="block text-xs text-muted">
+                    {referenceNote(l.code, l.note_ar, locale)}
+                  </span>
                 )}
               </span>
             </li>
@@ -100,9 +116,9 @@ export function ReadinessPanel({
       )}
 
       <p className="mt-3 text-xs text-muted">
-        {READINESS_SOURCE_NOTE[readiness.source]}
+        {(en ? READINESS_SOURCE_NOTE_EN : READINESS_SOURCE_NOTE)[readiness.source]}
         {readiness.source === "frozen" && frozenAt
-          ? ` (${new Date(frozenAt).toLocaleString("ar-EG")})`
+          ? ` (${new Date(frozenAt).toLocaleString(en ? "en-GB" : "ar-EG")})`
           : ""}
       </p>
 
@@ -120,9 +136,16 @@ export function ReadinessPanel({
         >
           {rules.last_reviewed_at
             ? rules.stale
-              ? `⚠ قواعدُ هذا الممرّ لم تُراجَع منذ ${rules.days_since} يوماً — والحدُّ ${rules.review_days}. قد تكون تغيّرت.`
-              : `قواعدُ هذا الممرّ رُوجعت قبل ${rules.days_since} يوماً.`
-            : "⚠ قواعدُ هذا الممرّ لم تُراجَع بعد — تحقّق منها قبل الشحن."}
+              ? en
+                ? `⚠ This corridor's rules have not been reviewed for ${rules.days_since} days — the limit is ${rules.review_days}. They may have changed.`
+                : `⚠ قواعدُ هذا الممرّ لم تُراجَع منذ ${rules.days_since} يوماً — والحدُّ ${rules.review_days}. قد تكون تغيّرت.`
+              : en
+                ? `This corridor's rules were reviewed ${rules.days_since} days ago.`
+                : `قواعدُ هذا الممرّ رُوجعت قبل ${rules.days_since} يوماً.`
+            : t(
+                "⚠ قواعدُ هذا الممرّ لم تُراجَع بعد — تحقّق منها قبل الشحن.",
+                "⚠ This corridor's rules have not been reviewed yet — check them before shipping.",
+              )}
         </p>
       )}
     </section>
@@ -136,16 +159,23 @@ export function ReadinessPanel({
  * the number that misleads — a buyer scanning a list has no room for the caveat,
  * so the list says «مستنداتٌ ناقصة» and the offer's own page explains which.
  */
-export function ReadinessBadge({ readiness }: { readiness: ExportOfferReadiness }) {
+export function ReadinessBadge({
+  readiness,
+  locale = "ar",
+}: {
+  readiness: ExportOfferReadiness;
+  locale?: Locale;
+}) {
   if (readiness.required_total === 0) return null;
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   return readiness.ready ? (
     <span className="rounded-full border border-primary/40 bg-primary/5 px-2 py-0.5 text-xs text-primary">
-      مستنداتُه كاملة · {readiness.required_met}/{readiness.required_total}
+      {t("مستنداتُه كاملة", "Documents complete")} · {readiness.required_met}/{readiness.required_total}
     </span>
   ) : (
     <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted">
-      مستنداتٌ ناقصة · {readiness.required_met}/{readiness.required_total}
+      {t("مستنداتٌ ناقصة", "Documents missing")} · {readiness.required_met}/{readiness.required_total}
     </span>
   );
 }

@@ -1,6 +1,7 @@
 import soilData from "../../data/sudan-soil.json";
 import { forecastUrl, parseOpenMeteo, type ForecastDay } from "./forecast";
-import { WRB, wrbShort } from "./soilClasses";
+import { WRB, wrbShort, wrbShortEn } from "./soilClasses";
+import type { Locale } from "./i18n";
 import { createPublicClient } from "./supabase/public";
 
 /**
@@ -383,6 +384,57 @@ export const LAYERS: Layer[] = [
   SOIL_LAYER,
   LANDS_LAYER,
 ];
+
+/** Each layer's words in English, band labels in the bands' order. */
+const LAYER_EN: Record<LayerKey, { title: string; note: string; unit: string; bands?: string[] }> = {
+  rain: {
+    title: "Rain",
+    note: "Total rain expected over the next seven days",
+    unit: "mm in 7 days",
+    bands: ["< 1", "1–5", "5–15", "15–30", "30–60", "60+"],
+  },
+  tmax: {
+    title: "Heat",
+    note: "Highest temperature expected over the seven days",
+    unit: "°C",
+    bands: ["< 30", "30–35", "35–38", "38–41", "41–44", "44+"],
+  },
+  et0: {
+    title: "Air demand",
+    note: "What the air draws from a grass field over seven days (reference evapotranspiration)",
+    unit: "mm in 7 days",
+    bands: ["< 25", "25–35", "35–45", "45–55", "55–65", "65+"],
+  },
+  elev: {
+    title: "Terrain",
+    note: "Ground height above sea level at the centre of each square",
+    unit: "metres",
+    bands: ["< 300", "300–500", "500–700", "700–1000", "1000–1500", "1500+"],
+  },
+  soil: { title: "Soil", note: "Most likely soil group in each square", unit: "WRB classification" },
+  lands: {
+    title: "Lands",
+    note: "Verified lands listed on the platform, per square",
+    unit: "lands",
+    bands: ["1", "2–4", "5–9", "10+"],
+  },
+};
+
+/** The layer with its words in the reader's language; colours and values unchanged. */
+export function localizeLayer(layer: Layer, locale: Locale): Layer {
+  if (locale !== "en") return layer;
+  const en = LAYER_EN[layer.key];
+  return {
+    ...layer,
+    title: en.title,
+    note: en.note,
+    unit: en.unit,
+    bands: layer.bands.map((b, i) => ({
+      ...b,
+      label: layer.key === "soil" ? wrbShortEn(SOIL_CLASSES[i]) : (en.bands?.[i] ?? b.label),
+    })),
+  };
+}
 
 /** The layers worth a tab for this grid: any with a value, and the lands layer always. */
 export const availableLayers = (grid: RainGrid): Layer[] =>

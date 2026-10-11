@@ -22,6 +22,7 @@
  */
 
 import type { StageKey } from "@/lib/season";
+import type { Locale } from "@/lib/i18n";
 
 export type ServiceKind =
   | "engineering_office"
@@ -54,6 +55,26 @@ export const SERVICE_KIND_LABEL: Record<ServiceKind, string> = {
   insurance: "التأمين وإدارة المخاطر",
 };
 
+export const SERVICE_KIND_LABEL_EN: Record<ServiceKind, string> = {
+  engineering_office: "Agricultural engineering office",
+  drone: "Drone services",
+  irrigation: "Modern irrigation",
+  mechanization: "Mechanisation and land preparation",
+  advisory: "Extension and knowledge transfer",
+  veterinary: "Veterinary services",
+  laboratory: "Soil and water analysis",
+  logistics: "Transport and storage",
+  legal: "Notarisation and permits",
+  procurement: "Procurement and clearance",
+  storage: "Drying and storage",
+  security: "Protection and security",
+  insurance: "Insurance and risk management",
+};
+
+export function serviceKindLabel(kind: ServiceKind, locale: Locale = "ar"): string {
+  return locale === "en" ? SERVICE_KIND_LABEL_EN[kind] : SERVICE_KIND_LABEL[kind];
+}
+
 export type ServiceUnit =
   | "feddan"
   | "hour"
@@ -73,6 +94,20 @@ export const SERVICE_UNIT_LABEL: Record<ServiceUnit, string> = {
   lump: "مقطوعية",
 };
 
+export const SERVICE_UNIT_LABEL_EN: Record<ServiceUnit, string> = {
+  feddan: "feddan",
+  hour: "hour",
+  visit: "visit",
+  head: "head",
+  m3: "m³",
+  month: "month",
+  lump: "lump sum",
+};
+
+export function serviceUnitLabel(unit: ServiceUnit, locale: Locale = "ar"): string {
+  return locale === "en" ? SERVICE_UNIT_LABEL_EN[unit] : SERVICE_UNIT_LABEL[unit];
+}
+
 export type ProductionKind = "plant" | "livestock" | "both";
 
 export const PRODUCTION_LABEL: Record<ProductionKind, string> = {
@@ -80,6 +115,16 @@ export const PRODUCTION_LABEL: Record<ProductionKind, string> = {
   livestock: "إنتاج حيواني",
   both: "الاثنان",
 };
+
+export const PRODUCTION_LABEL_EN: Record<ProductionKind, string> = {
+  plant: "Crop production",
+  livestock: "Livestock production",
+  both: "Both",
+};
+
+export function productionLabel(kind: ProductionKind, locale: Locale = "ar"): string {
+  return locale === "en" ? PRODUCTION_LABEL_EN[kind] : PRODUCTION_LABEL[kind];
+}
 
 export type ServiceKey =
   | "drone_survey"
@@ -179,6 +224,8 @@ export interface ServiceDefinition {
   precondition: boolean;
   /** Why the basis is what it is — shown to both parties before signing. */
   note: string;
+  nameEn: string;
+  noteEn: string;
 }
 
 export const SERVICE_CATALOGUE: ServiceDefinition[] = [
@@ -192,6 +239,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "المساحة الممسوحة هي مساحة الموسم نفسها، فالكمية تُشتق من الفدادين لا تُقدَّر.",
+    nameEn: "Drone survey and mapping",
+    noteEn:
+      "The area surveyed is the season's own area, so the quantity is derived from the feddans, not estimated.",
   },
   {
     key: "topo_survey",
@@ -203,6 +253,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "يسبق التسوية ويحدّد ميولها؛ يقاس بالمساحة.",
+    nameEn: "Topographic survey",
+    noteEn:
+      "Comes before levelling and sets its slopes; measured by area.",
   },
   {
     key: "soil_test",
@@ -214,6 +267,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: false,
     note: "عدد العيّنات لا يتناسب طردياً مع المساحة؛ يُتعاقد عليه مقطوعية للموسم.",
+    nameEn: "Soil analysis",
+    noteEn:
+      "The number of samples does not scale with area; contracted as a lump sum for the season.",
   },
   {
     key: "water_test",
@@ -225,6 +281,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: false,
     note: "عيّنة من المصدر تكفي الموسم ما لم يتغيّر المصدر.",
+    nameEn: "Water analysis",
+    noteEn:
+      "One sample from the source covers the season unless the source changes.",
   },
   {
     key: "land_clearing",
@@ -236,6 +295,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "عمل ميكانيكي يقاس بالمساحة مباشرة.",
+    nameEn: "Land clearing",
+    noteEn:
+      "Mechanical work measured directly by area.",
   },
   {
     key: "land_leveling",
@@ -247,6 +309,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "التسوية شرط كفاءة الري؛ تقاس بالمساحة.",
+    nameEn: "Laser levelling",
+    noteEn:
+      "Levelling is what makes irrigation efficient; measured by area.",
   },
   {
     key: "irrigation_design",
@@ -258,6 +323,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: false,
     note: "تصميم واحد للمشروع مهما اتّسع؛ التنفيذ هو ما يتوسّع لا التصميم.",
+    nameEn: "Irrigation network design",
+    noteEn:
+      "One design per project however large it grows; it is the installation that scales, not the design.",
   },
   {
     key: "irrigation_install",
@@ -269,6 +337,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "water_m3",
     precondition: false,
     note: "الشبكة تُحجَّم بالطلب المائي الموسمي المحسوب بمعادلة FAO-56، لا بالمساحة وحدها — فدان بالتنقيط غير فدان بالغمر.",
+    nameEn: "Irrigation network installation",
+    noteEn:
+      "The network is sized by the seasonal water requirement computed with the FAO-56 method, not by area alone — a drip-irrigated feddan is not a flood-irrigated one.",
   },
   {
     key: "mechanized_planting",
@@ -280,6 +351,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "تقاس بالمساحة المزروعة.",
+    nameEn: "Mechanised planting",
+    noteEn:
+      "Measured by the area planted.",
   },
   {
     key: "crop_protection",
@@ -291,6 +365,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "الرش يقاس بالمساحة المعالَجة.",
+    nameEn: "Crop protection",
+    noteEn:
+      "Spraying is measured by the area treated.",
   },
   {
     key: "fertigation",
@@ -302,6 +379,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "تقاس بالمساحة؛ الجرعة تتبع تحليل التربة.",
+    nameEn: "Fertilisation",
+    noteEn:
+      "Measured by area; the dose follows the soil analysis.",
   },
   {
     key: "harvest_service",
@@ -313,6 +393,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "تقاس بالمساحة المحصودة.",
+    nameEn: "Harvesting",
+    noteEn:
+      "Measured by the area harvested.",
   },
   {
     key: "extension_visit",
@@ -324,6 +407,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "months",
     precondition: false,
     note: "زيارة شهرية طوال دورة الإنتاج — تقليل المخاطر يحتاج انتظاماً لا زيارة واحدة.",
+    nameEn: "Extension visit",
+    noteEn:
+      "A monthly visit throughout the production cycle — reducing risk needs regularity, not a single visit.",
   },
   {
     key: "feasibility_study",
@@ -335,6 +421,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: true,
     note: "دراسة لكل مرحلة، تسبق التعاقد عليها.",
+    nameEn: "Feasibility study for one phase",
+    noteEn:
+      "One study per phase, done before that phase is contracted.",
   },
   {
     key: "vet_program",
@@ -346,6 +435,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "head",
     precondition: false,
     note: "التحصين والعلاج يقاسان بالرأس.",
+    nameEn: "Veterinary programme",
+    noteEn:
+      "Vaccination and treatment are measured per head.",
   },
   {
     key: "feed_plan",
@@ -357,6 +449,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "head",
     precondition: false,
     note: "العلف هو ما يقابل الماء في الإنتاج النباتي: أكبر بند في الميزانية، ويقاس بالرأس.",
+    nameEn: "Feeding programme",
+    noteEn:
+      "Feed is to livestock what water is to crops: the largest line in the budget, measured per head.",
   },
   {
     key: "herd_health",
@@ -368,6 +463,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "months",
     precondition: false,
     note: "متابعة دورية شهرية طوال الدورة.",
+    nameEn: "Herd health follow-up",
+    noteEn:
+      "Regular monthly follow-up throughout the cycle.",
   },
   {
     key: "transport",
@@ -379,6 +477,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: false,
     note: "يُسعَّر بالرحلة حسب المسافة؛ مقطوعية في العقد.",
+    nameEn: "Transport",
+    noteEn:
+      "Priced per trip by distance; a lump sum in the contract.",
   },
 
   /* -------------------------------------------------------------------------
@@ -403,6 +504,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: true,
     note: "يُستخرَج مرة للمشروع لا لكل فدان، فيُسعَّر مقطوعية. بدونه لا يبدأ عمل ميداني أصلاً.",
+    nameEn: "Land-use permit",
+    noteEn:
+      "Issued once per project, not per feddan, so it is priced as a lump sum. Without it no field work can start at all.",
   },
   {
     key: "local_clearance",
@@ -414,6 +518,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: true,
     note: "موافقات المحلية والإدارة الأهلية في الريف — تختلف من ولاية لأخرى، ومعرفة المسار المحلي هي الخدمة نفسها.",
+    nameEn: "Locality and native administration procedures",
+    noteEn:
+      "Approvals from the locality and the rural native administration — they differ from state to state, and knowing the local route is the service itself.",
   },
   {
     key: "water_permit",
@@ -425,6 +532,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: true,
     note: "سحب المياه من النيل أو الآبار يحتاج تصريحاً مستقلاً عن تصريح الأرض.",
+    nameEn: "Water-use permit",
+    noteEn:
+      "Drawing water from the Nile or from wells needs a permit separate from the land permit.",
   },
   {
     key: "contract_notarization",
@@ -436,6 +546,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: true,
     note: "توثيق قانوني يجعل العقد نافذاً أمام جهة قضائية — وهو ما يحمي الطرفين إن اختلفا لاحقاً.",
+    nameEn: "Contract notarisation",
+    noteEn:
+      "Legal notarisation that makes the contract enforceable before a court — which protects both parties if they disagree later.",
   },
 
   /* -------------------------------------------------------------------------
@@ -458,6 +571,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "استئجار جرار أو حصادة مع مشغّلها — عمل ميداني يقاس بالمساحة، لا إجراء إداري.",
+    nameEn: "Machine hire with operator",
+    noteEn:
+      "Hiring a tractor or harvester with its operator — field work measured by area, not an administrative procedure.",
   },
   {
     key: "machinery_procurement",
@@ -469,6 +585,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: true,
     note: "أتعاب الوساطة والإجراءات فقط. ثمن الآلية نفسها أصل رأسمالي يتجاوز الموسم ولا يُدرَج في عقد خدمات.",
+    nameEn: "Brokering a machine purchase or import",
+    noteEn:
+      "Brokerage fees and procedures only. The price of the machine itself is a capital asset that outlives the season and does not belong on a service contract.",
   },
   {
     key: "customs_clearance",
@@ -480,6 +599,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: true,
     note: "تكلفة الإرسالية الواحدة لا تتغيّر بمساحة المشروع، فتُسعَّر بالإرسالية. الرسوم الجمركية نفسها تُدفع للدولة لا للمخلّص.",
+    nameEn: "Customs clearance",
+    noteEn:
+      "The cost per shipment does not change with the size of the project, so it is priced per shipment. Customs duties themselves are paid to the state, not to the clearing agent.",
   },
   /* -------------------------------------------------------------------------
    * ما قبل الحصاد وما بعده — حيث يُفقد المحصول بعد أن دُفعت كلفته كاملة.
@@ -501,6 +623,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "تقدير الكمية المتوقّعة يحدّد حجم النقل والتخزين المطلوب — والتقدير الخاطئ هنا يعني محصولاً ينتظر في العراء.",
+    nameEn: "Pre-harvest yield estimate",
+    noteEn:
+      "Estimating the expected quantity sets how much transport and storage is needed — and a wrong estimate here means a crop left waiting in the open.",
   },
   {
     key: "threshing_cleaning",
@@ -512,6 +637,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "أول خطوة بعد الحصاد مباشرة، وتقاس بالمساحة المحصودة.",
+    nameEn: "Threshing and cleaning",
+    noteEn:
+      "The first step straight after harvest, measured by the area harvested.",
   },
   {
     key: "drying",
@@ -523,6 +651,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "الرطوبة هي ما يفسد الحبوب في المخزن — التجفيف قبل التخزين لا بعده، وإلا حفظ المخزنُ المشكلةَ لا المحصول.",
+    nameEn: "Drying",
+    noteEn:
+      "Moisture is what spoils grain in store — dry before storing, not after, or the store preserves the problem instead of the crop.",
   },
   {
     key: "hermetic_storage",
@@ -534,6 +665,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "months",
     precondition: false,
     note: "أكياس أو صوامع محكمة تخنق الحشرات بلا مبيد. موثّق أنها تخفض الفاقد من أكثر من ٣٠٪ إلى أقل من ٢٪ — أعلى عائد إلى تكلفة في الكتالوج كله.",
+    nameEn: "Hermetic storage",
+    noteEn:
+      "Sealed bags or silos suffocate insects without pesticide. Documented to cut losses from over 30% to under 2% — the highest return on cost in the whole catalogue.",
   },
   {
     key: "cold_storage",
@@ -545,6 +679,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "months",
     precondition: false,
     note: "للخضر والألبان واللحوم. يُسعَّر بالشهر لأن التكلفة تشغيلية مستمرة لا حدث واحد.",
+    nameEn: "Cold storage",
+    noteEn:
+      "For vegetables, dairy and meat. Priced per month because the cost is a continuing operating cost, not a one-off event.",
   },
   {
     key: "haulage",
@@ -556,6 +693,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "من الحقل إلى المخزن أو السوق. يقاس بالمساحة لأن الكمية تتبعها؛ والمسافة تدخل في السعر لا في الكمية.",
+    nameEn: "Crop haulage",
+    noteEn:
+      "From the field to the store or the market. Measured by area because the quantity follows it; distance goes into the price, not the quantity.",
   },
   /* -------------------------------------------------------------------------
    * الصيانة — للتربة وللآلة.
@@ -575,6 +715,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "مصدّات ومدرّجات وحرث كنتوري ضد الانجراف. إنفاق موسم يحمي أصلاً يخدم مواسم — والأرض المنجرفة لا تُستعاد بموسم.",
+    nameEn: "Soil conservation",
+    noteEn:
+      "Barriers, terraces and contour ploughing against erosion. One season's spending protects an asset that serves many — and eroded land is not recovered in a season.",
   },
   {
     key: "windbreak",
@@ -586,6 +729,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "أحزمة شجرية تقلّل زحف الرمال والبخر معاً — تخدم التربة والاحتياج المائي في آن.",
+    nameEn: "Windbreaks",
+    noteEn:
+      "Tree belts that reduce both drifting sand and evaporation — serving the soil and the water requirement at once.",
   },
   {
     key: "machinery_maintenance",
@@ -597,6 +743,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "months",
     precondition: false,
     note: "برنامج صيانة دورية بالشهر. الجرار الذي يتعطّل في ذروة الحصاد يكلّف المحصول لا قطعة الغيار.",
+    nameEn: "Machinery maintenance",
+    noteEn:
+      "A regular monthly maintenance programme. A tractor that breaks down at the peak of harvest costs the crop, not just the spare part.",
   },
   /* -------------------------------------------------------------------------
    * إدارة المخاطر — تكلفة معلومة مقابل خسارة مجهولة.
@@ -617,6 +766,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "خطوط نار ومعدات إطفاء وتدريب. الحريق في محصول ناضج يمحو موسماً كاملاً في ساعة.",
+    nameEn: "Fire prevention and control",
+    noteEn:
+      "Firebreaks, firefighting equipment and training. A fire in a ripe crop wipes out a whole season in an hour.",
   },
   {
     key: "perimeter_fencing",
@@ -628,6 +780,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "السياج يمنع السطو ودخول الحيوان السائب معاً. يقاس بالمساحة تقريباً، والمحيط الفعلي يدخل في السعر.",
+    nameEn: "Fencing and protection",
+    noteEn:
+      "A fence keeps out both theft and stray animals. Measured roughly by area; the actual perimeter goes into the price.",
   },
   {
     key: "site_guarding",
@@ -639,6 +794,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "months",
     precondition: false,
     note: "حراسة بالشهر طوال الدورة — تكلفة مستمرة لا حدث واحد، وتُدرَج في الميزانية بهذه الصفة.",
+    nameEn: "Site guarding",
+    noteEn:
+      "Monthly guarding throughout the cycle — a continuing cost, not a one-off event, and budgeted as such.",
   },
   {
     key: "locust_response",
@@ -650,6 +808,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "استجابة طارئة لا مرحلة مجدوَلة: سرب بمساحة كيلومتر مربع يأكل في يوم ما يأكله ٣٥ ألف إنسان، فالتعاقد على الجاهزية لا على موعد.",
+    nameEn: "Locust swarm response",
+    noteEn:
+      "An emergency response, not a scheduled phase: a one-square-kilometre swarm eats in a day what 35,000 people eat, so the contract is for readiness, not for a date.",
   },
   {
     key: "rodent_control",
@@ -661,6 +822,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "خطر على الحقل والمخزن معاً — والمخزن أخطر، لأن الفاقد فيه يقع بعد دفع كل تكاليف الإنتاج.",
+    nameEn: "Rodent control",
+    noteEn:
+      "A threat to both the field and the store — and the store is worse, because losses there come after every production cost has been paid.",
   },
   {
     key: "flood_protection",
@@ -672,6 +836,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "feddans",
     precondition: false,
     note: "تروس وقنوات تصريف تُبنى قبل الموسم لا أثناءه — والسيل غير المتوقّع موسمياً هو بالضبط ما لا يمهل لبنائها.",
+    nameEn: "Flood and torrent protection",
+    noteEn:
+      "Embankments and drainage channels built before the season, not during it — and an unseasonal flash flood is exactly what leaves no time to build them.",
   },
   {
     key: "crop_insurance",
@@ -683,6 +850,9 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     basis: "fixed",
     precondition: true,
     note: "ترتيب وثيقة تأمين قبل بدء الموسم. شرط مسبق لأن وثيقة تُطلب بعد وقوع الضرر لا تغطّيه — والتأمين يقوم مقام الضمانة التي يطلبها المموّل.",
+    nameEn: "Crop insurance brokerage",
+    noteEn:
+      "Arranging an insurance policy before the season begins. A precondition, because a policy requested after the damage does not cover it — and insurance stands in for the collateral a financier asks for.",
   },
 ];
 
@@ -691,6 +861,21 @@ export const SERVICE_BY_KEY: Record<ServiceKey, ServiceDefinition> =
     ServiceKey,
     ServiceDefinition
   >;
+
+/** A service's name in the reader's language; unknown keys fall back to `fallback`. */
+export function serviceName(
+  key: string,
+  locale: Locale = "ar",
+  fallback?: string,
+): string {
+  const def = SERVICE_BY_KEY[key as ServiceKey];
+  if (!def) return fallback ?? key;
+  return locale === "en" ? def.nameEn : def.name;
+}
+
+export function serviceNote(def: ServiceDefinition, locale: Locale = "ar"): string {
+  return locale === "en" ? def.noteEn : def.note;
+}
 
 /**
  * What a service can be measured against.

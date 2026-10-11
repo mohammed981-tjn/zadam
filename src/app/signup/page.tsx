@@ -2,6 +2,8 @@ import Link from "next/link";
 import { signup } from "../login/actions";
 import PhoneField from "@/components/PhoneField";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export default async function SignupPage({
   searchParams,
@@ -9,6 +11,8 @@ export default async function SignupPage({
   searchParams: Promise<{ error?: string; method?: string }>;
 }) {
   const { error, method } = await searchParams;
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   /*
    * Can this deployment actually create a phone account?
@@ -35,17 +39,19 @@ export default async function SignupPage({
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="mb-2 text-2xl font-bold">إنشاء حساب</h1>
+      <h1 className="mb-2 text-2xl font-bold">{t("إنشاء حساب", "Create an account")}</h1>
       <p className="mb-6 text-sm text-muted">
         {phoneSignupAvailable
-          ? "سجّل برقم جوالك — لا حاجة لبريد إلكتروني."
-          : "سجّل ببريدك الإلكتروني."}
+          ? t("سجّل برقم جوالك — لا حاجة لبريد إلكتروني.", "Sign up with your mobile number — no email needed.")
+          : t("سجّل ببريدك الإلكتروني.", "Sign up with your email.")}
       </p>
 
       {!phoneSignupAvailable && (
         <p className="mb-4 rounded-lg border border-border bg-card px-3 py-2 text-xs leading-relaxed text-muted">
-          التسجيل برقم الجوال غير متاح على هذه النسخة من الموقع. التسجيل بالبريد
-          الإلكتروني يعمل بشكل طبيعي، والحساب واحد في الحالتين.
+          {t(
+            "التسجيل برقم الجوال غير متاح على هذه النسخة من الموقع. التسجيل بالبريد الإلكتروني يعمل بشكل طبيعي، والحساب واحد في الحالتين.",
+            "Signing up with a mobile number is not available on this version of the site. Signing up by email works normally, and it is the same account either way.",
+          )}
         </p>
       )}
 
@@ -59,7 +65,7 @@ export default async function SignupPage({
         <input type="hidden" name="method" value={byEmail ? "email" : "phone"} />
 
         <label className="flex flex-col gap-1 text-sm">
-          الاسم الكامل
+          {t("الاسم الكامل", "Full name")}
           <input type="text" name="full_name" required className={field} />
         </label>
 
@@ -77,7 +83,7 @@ export default async function SignupPage({
           on everything that matters is ownership, not this.
         */}
         <fieldset className="flex flex-col gap-2 text-sm">
-          <legend className="mb-1">وأنت؟</legend>
+          <legend className="mb-1">{t("وأنت؟", "And you?")}</legend>
           <label className="flex items-start gap-2 rounded-lg border border-border p-3">
             <input
               type="radio"
@@ -87,19 +93,24 @@ export default async function SignupPage({
               className="mt-1"
             />
             <span>
-              <strong>أزرع</strong>
+              <strong>{t("أزرع", "I farm")}</strong>
               <span className="block text-xs text-muted">
-                أسجّل أرضي وأوثّق مواسمي، ويتكوّن لمزرعتي سجلٌّ يقرأه المشتري.
+                {t(
+                  "أسجّل أرضي وأوثّق مواسمي، ويتكوّن لمزرعتي سجلٌّ يقرأه المشتري.",
+                  "I register my land and record my seasons, and my farm builds up a record that buyers can read.",
+                )}
               </span>
             </span>
           </label>
           <label className="flex items-start gap-2 rounded-lg border border-border p-3">
             <input type="radio" name="role" value="investor" className="mt-1" />
             <span>
-              <strong>أستثمر</strong>
+              <strong>{t("أستثمر", "I invest")}</strong>
               <span className="block text-xs text-muted">
-                أتابع المشاريع المطروحة. والاستثمارُ لم يُفتح بعد — لا يُعرض
-                مشروعٌ قبل توثيقه ومعاينته.
+                {t(
+                  "أتابع المشاريع المطروحة. والاستثمارُ لم يُفتح بعد — لا يُعرض مشروعٌ قبل توثيقه ومعاينته.",
+                  "I follow the projects on offer. Investment is not open yet — no project is listed before it has been documented and inspected.",
+                )}
               </span>
             </span>
           </label>
@@ -107,19 +118,21 @@ export default async function SignupPage({
 
         {byEmail ? (
           <label className="flex flex-col gap-1 text-sm">
-            البريد الإلكتروني
+            {t("البريد الإلكتروني", "Email")}
             <input type="email" name="email" required className={field} />
             <span className="text-xs text-muted">
-              إن وصلتك رسالة تفعيل فستكون باسم خدمة الاستضافة (Supabase) لا باسم
-              سوداقري — هذا طبيعي وليست رسالة احتيال. افتحها واضغط الرابط.
+              {t(
+                "إن وصلتك رسالة تفعيل فستكون باسم خدمة الاستضافة (Supabase) لا باسم سوداقري — هذا طبيعي وليست رسالة احتيال. افتحها واضغط الرابط.",
+                "If you get a confirmation message, it will come in the name of our hosting provider (Supabase), not Sudagri — this is normal and not a scam. Open it and click the link.",
+              )}
             </span>
           </label>
         ) : (
-          <PhoneField autoFocus />
+          <PhoneField autoFocus locale={locale} />
         )}
 
         <label className="flex flex-col gap-1 text-sm">
-          كلمة المرور
+          {t("كلمة المرور", "Password")}
           <input
             type="password"
             name="password"
@@ -128,14 +141,14 @@ export default async function SignupPage({
             autoComplete="new-password"
             className={field}
           />
-          <span className="text-xs text-muted">ستة أحرف على الأقل.</span>
+          <span className="text-xs text-muted">{t("ستة أحرف على الأقل.", "At least six characters.")}</span>
         </label>
 
         <button
           type="submit"
           className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90"
         >
-          إنشاء الحساب
+          {t("إنشاء الحساب", "Create account")}
         </button>
       </form>
 
@@ -148,20 +161,20 @@ export default async function SignupPage({
         <p className="mt-4 text-center text-sm">
           {byEmail ? (
             <Link href="/signup" className="text-primary underline">
-              التسجيل برقم الجوال بدلاً من ذلك
+              {t("التسجيل برقم الجوال بدلاً من ذلك", "Sign up with a mobile number instead")}
             </Link>
           ) : (
             <Link href="/signup?method=email" className="text-primary underline">
-              التسجيل بالبريد الإلكتروني بدلاً من ذلك
+              {t("التسجيل بالبريد الإلكتروني بدلاً من ذلك", "Sign up with email instead")}
             </Link>
           )}
         </p>
       )}
 
       <p className="mt-6 text-sm text-muted">
-        لديك حساب بالفعل؟{" "}
+        {t("لديك حساب بالفعل؟", "Already have an account?")}{" "}
         <Link href="/login" className="text-primary underline">
-          سجّل الدخول
+          {t("سجّل الدخول", "Sign in")}
         </Link>
       </p>
     </div>

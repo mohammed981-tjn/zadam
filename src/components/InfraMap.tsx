@@ -1,7 +1,8 @@
 import raw from "../../data/sudan-infra.json";
 import type { InfraData } from "@/lib/infra";
 import { BASE, MAP_LABELS } from "@/lib/mapDraw";
-import { BORDER, Furniture, Ground, H, Label, W, Relief, Water, arDigits, f1, ringPath, x, y } from "@/components/RainMap";
+import { BORDER, Furniture, Ground, H, Label, W, Relief, Water, digits, f1, ringPath, x, y } from "@/components/RainMap";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * الطرق والسكك الحديدية والكهرباء على خريطة السودان.
@@ -18,10 +19,10 @@ import { BORDER, Furniture, Ground, H, Label, W, Relief, Water, arDigits, f1, ri
 
 export const INFRA = raw as InfraData;
 
-export const FUEL_INK: Record<InfraData["stations"][number]["fuel"], { label: string; ink: string }> = {
-  hydro: { label: "مائية (سدود وخزّانات)", ink: "#0e7c86" },
-  thermal: { label: "حرارية (وقود وديزل وغاز)", ink: "#c2410c" },
-  biomass: { label: "كتلة حيوية (مصانع السكر)", ink: "#4d7c0f" },
+export const FUEL_INK: Record<InfraData["stations"][number]["fuel"], { label: string; en: string; ink: string }> = {
+  hydro: { label: "مائية (سدود وخزّانات)", en: "Hydro (dams and reservoirs)", ink: "#0e7c86" },
+  thermal: { label: "حرارية (وقود وديزل وغاز)", en: "Thermal (fuel oil, diesel and gas)", ink: "#c2410c" },
+  biomass: { label: "كتلة حيوية (مصانع السكر)", en: "Biomass (sugar factories)", ink: "#4d7c0f" },
 };
 
 const ROAD_INK = "#a1673f";
@@ -33,11 +34,12 @@ const powerWidth = (kv: number) => (kv >= 400 ? 1.6 : kv >= 200 ? 1.1 : 0.7);
 const line = (l: [number, number][]) => ringPath(l, false);
 const TOWNS = new Set(["بورتسودان", "الخرطوم", "عطبرة", "دنقلا", "الأبيض", "الفاشر", "نيالا", "كسلا", "الدمازين", "كوستي"]);
 
-export default function InfraMap() {
+export default function InfraMap({ locale = "ar" }: { locale?: Locale }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const port = INFRA.ports[0];
   return (
     <figure>
-      <svg viewBox={`0 0 ${W} ${f1(H)}`} className="h-auto w-full" role="img" aria-label="خريطة السودان: الطرق والسكك الحديدية وخطوط الكهرباء ومحطاتها">
+      <svg viewBox={`0 0 ${W} ${f1(H)}`} className="h-auto w-full" role="img" aria-label={t("خريطة السودان: الطرق والسكك الحديدية وخطوط الكهرباء ومحطاتها", "Map of Sudan: roads, railways, power lines and power stations")}>
         <defs>
           <clipPath id="infra-sudan">
             <path d={BORDER} />
@@ -48,7 +50,7 @@ export default function InfraMap() {
         </defs>
 
         <g clipPath="url(#infra-frame)">
-          <Ground />
+          <Ground locale={locale} />
           <g clipPath="url(#infra-sudan)">
             <path d={BORDER} fill="var(--card)" />
             <g fill="none" stroke="var(--map-state)" strokeWidth={0.7} strokeDasharray="3 2">
@@ -73,7 +75,7 @@ export default function InfraMap() {
           <path d={BORDER} fill="none" stroke="var(--foreground)" strokeWidth={1.2} strokeLinejoin="round" />
 
           {MAP_LABELS.filter((t) => TOWNS.has(t.name)).map((t) => (
-            <Label key={t.name} t={t} strong={null} />
+            <Label key={t.name} t={t} strong={null} locale={locale} />
           ))}
 
           {/* Largest last, so a big station is not hidden under a small one. */}
@@ -88,18 +90,22 @@ export default function InfraMap() {
               stroke="#ffffff"
               strokeWidth={0.8}
             >
-              <title>{`${s.nameAr ?? s.name}${s.mw ? ` — ${arDigits(s.mw)} ميغاواط` : ""}`}</title>
+              <title>
+                {locale === "en"
+                  ? `${s.name}${s.mw ? ` — ${digits(s.mw, locale)} MW` : ""}`
+                  : `${s.nameAr ?? s.name}${s.mw ? ` — ${digits(s.mw, locale)} ميغاواط` : ""}`}
+              </title>
             </circle>
           ))}
 
           {port && (
             <g transform={`translate(${f1(x(port.lon))} ${f1(y(port.lat))})`}>
               <rect x={-4} y={-4} width={8} height={8} rx={1.5} fill="#1d4ed8" stroke="#ffffff" strokeWidth={1} />
-              <title>ميناء بورتسودان</title>
+              <title>{t("ميناء بورتسودان", "Port Sudan harbour")}</title>
             </g>
           )}
 
-          <Furniture />
+          <Furniture locale={locale} />
         </g>
         <rect x={0.5} y={0.5} width={W - 1} height={H - 1} fill="none" stroke="var(--border)" rx={10} />
       </svg>
@@ -108,38 +114,38 @@ export default function InfraMap() {
         <ul className="flex flex-wrap gap-x-4 gap-y-1">
           <li className="flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-5" style={{ background: ROAD_INK }} />
-            الطرق الرئيسية
+            {t("الطرق الرئيسية", "Main roads")}
           </li>
           <li className="flex items-center gap-1.5">
             <span className="inline-block h-1 w-5" style={{ background: `repeating-linear-gradient(90deg, ${RAIL_INK} 0 3px, #ffffff 3px 5px)`, outline: `1px solid ${RAIL_INK}` }} />
-            السكك الحديدية
+            {t("السكك الحديدية", "Railways")}
           </li>
           <li className="flex items-center gap-1.5">
             <span className="inline-block h-1 w-5" style={{ background: powerInk(500) }} />
-            كهرباء ٤٠٠–٥٠٠ ك.ف
+            {t("كهرباء ٤٠٠–٥٠٠ ك.ف", "Power 400–500 kV")}
           </li>
           <li className="flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-5" style={{ background: powerInk(220) }} />
-            ٢٠٠–٢٣٠ ك.ف
+            {t("٢٠٠–٢٣٠ ك.ف", "200–230 kV")}
           </li>
           <li className="flex items-center gap-1.5">
             <span className="inline-block h-px w-5" style={{ background: powerInk(110) }} />
-            أقلّ من ٢٠٠ ك.ف
+            {t("أقلّ من ٢٠٠ ك.ف", "Under 200 kV")}
           </li>
         </ul>
         <ul className="flex flex-wrap gap-x-4 gap-y-1">
           {Object.entries(FUEL_INK).map(([k, v]) => (
             <li key={k} className="flex items-center gap-1.5">
               <span className="inline-block size-3 rounded-full" style={{ background: v.ink }} />
-              محطة {v.label}
+              {locale === "en" ? `${v.en} station` : `محطة ${v.label}`}
             </li>
           ))}
           <li className="flex items-center gap-1.5">
             <span className="inline-block size-3 rounded-sm" style={{ background: "#1d4ed8" }} />
-            ميناء بورتسودان (بضائع، ونفط وغاز)
+            {t("ميناء بورتسودان (بضائع، ونفط وغاز)", "Port Sudan harbour (cargo, oil and gas)")}
           </li>
         </ul>
-        <p>حجم الدائرة بقدرة المحطة.</p>
+        <p>{t("حجم الدائرة بقدرة المحطة.", "Circle size follows the station's capacity.")}</p>
       </figcaption>
     </figure>
   );

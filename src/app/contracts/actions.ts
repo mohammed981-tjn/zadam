@@ -7,6 +7,14 @@ import { planSeason } from "@/lib/season";
 import { buildMilestonePlan, type ServiceKey } from "@/lib/services";
 import type { IrrigationMethod } from "@/lib/agronomy";
 import { evidenceFileExists } from "@/lib/evidenceFile";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
+
+/** The reader's language for a message this action returns. */
+async function translator() {
+  const locale = await getLocale();
+  return (ar: string, en: string) => tr(locale, ar, en);
+}
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -48,9 +56,10 @@ async function createHerdContract(args: {
   chosen: ServiceKey[];
 }): Promise<ActionResult> {
   const { supabase, userId, herdId, providerId, title, chosen } = args;
+  const t = await translator();
 
   if (chosen.length === 0) {
-    return { ok: false, message: "اختر خدمة واحدة على الأقل." };
+    return { ok: false, message: t("اختر خدمة واحدة على الأقل.", "Choose at least one service.") };
   }
 
   // RLS limits herds to the caller's own, so a herd that is not theirs simply
@@ -61,7 +70,7 @@ async function createHerdContract(args: {
     .eq("id", herdId)
     .single();
 
-  if (!herdRow) return { ok: false, message: "الدورة غير موجودة أو ليست لك." };
+  if (!herdRow) return { ok: false, message: t("الدورة غير موجودة أو ليست لك.", "This cycle does not exist or is not yours.") };
 
   const herd = herdRow as {
     id: string;
@@ -97,7 +106,7 @@ async function createHerdContract(args: {
     .map((k) => ({ serviceKey: k, unitPrice: priceFor.get(k)! }));
 
   if (choices.length === 0) {
-    return { ok: false, message: "لا يقدّم هذا المزوّد أياً من الخدمات المختارة." };
+    return { ok: false, message: t("لا يقدّم هذا المزوّد أياً من الخدمات المختارة.", "This provider does not offer any of the chosen services.") };
   }
 
   // No phase windows: a herd's phases are not the crop calendar the service
@@ -113,7 +122,7 @@ async function createHerdContract(args: {
     return {
       ok: false,
       message:
-        "الخدمات المختارة لا تنطبق على دورة إنتاج حيواني — اختر خدمات بيطرية أو تغذوية أو إرشادية.",
+        t("الخدمات المختارة لا تنطبق على دورة إنتاج حيواني — اختر خدمات بيطرية أو تغذوية أو إرشادية.", "The chosen services do not apply to a livestock cycle \u2014 choose veterinary, feeding or extension services."),
     };
   }
 
@@ -131,7 +140,7 @@ async function createHerdContract(args: {
     .single();
 
   if (contractError || !contract) {
-    return { ok: false, message: `تعذّر إنشاء العقد: ${contractError?.message}` };
+    return { ok: false, message: `${t("تعذّر إنشاء العقد:", "Could not create the contract:")} ${contractError?.message}` };
   }
 
   const contractId = (contract as { id: string }).id;
@@ -169,7 +178,7 @@ async function createHerdContract(args: {
           });
         }
       });
-    return { ok: false, message: `تعذّر حفظ المراحل: ${milestoneError.message}` };
+    return { ok: false, message: `${t("تعذّر حفظ المراحل:", "Could not save the phases:")} ${milestoneError.message}` };
   }
 
   redirect(`/contracts/${contractId}`);
@@ -184,6 +193,7 @@ export async function createContract(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const t = await translator();
 
   /*
    * A contract serves a crop season or an animal herd — the CHECK constraint
@@ -197,11 +207,11 @@ export async function createContract(
   const title = str(formData, "title");
 
   if (unit !== "season" && unit !== "herd") {
-    return { ok: false, message: "اختر موسماً أو دورة إنتاج حيواني." };
+    return { ok: false, message: t("اختر موسماً أو دورة إنتاج حيواني.", "Choose a season or a livestock cycle.") };
   }
-  if (!unitId) return { ok: false, message: "اختر الموسم أو الدورة." };
-  if (!providerId) return { ok: false, message: "اختر مقدّم الخدمة." };
-  if (!title) return { ok: false, message: "اكتب عنواناً للعقد." };
+  if (!unitId) return { ok: false, message: t("اختر الموسم أو الدورة.", "Choose the season or the cycle.") };
+  if (!providerId) return { ok: false, message: t("اختر مقدّم الخدمة.", "Choose the service provider.") };
+  if (!title) return { ok: false, message: t("اكتب عنواناً للعقد.", "Give the contract a title.") };
 
   if (unit === "herd") {
     return createHerdContract({
@@ -218,7 +228,7 @@ export async function createContract(
 
   const chosen = formData.getAll("service_key").map(String) as ServiceKey[];
   if (chosen.length === 0) {
-    return { ok: false, message: "اختر خدمة واحدة على الأقل." };
+    return { ok: false, message: t("اختر خدمة واحدة على الأقل.", "Choose at least one service.") };
   }
 
   // The season, straight from the database. RLS means a season that is not the
@@ -230,7 +240,7 @@ export async function createContract(
     .single();
 
   if (seasonError || !seasonRow) {
-    return { ok: false, message: "الموسم غير موجود أو ليس لك." };
+    return { ok: false, message: t("الموسم غير موجود أو ليس لك.", "This season does not exist or is not yours.") };
   }
 
   const season = seasonRow as {
@@ -254,7 +264,7 @@ export async function createContract(
   );
 
   if (!plan) {
-    return { ok: false, message: "تعذّر اشتقاق خطة الموسم لحساب الكميات." };
+    return { ok: false, message: t("تعذّر اشتقاق خطة الموسم لحساب الكميات.", "Could not derive the season plan to compute the quantities.") };
   }
 
   // Prices from the provider's catalogue, never from the request.
@@ -278,7 +288,7 @@ export async function createContract(
   if (choices.length === 0) {
     return {
       ok: false,
-      message: "لا يقدّم هذا المزوّد أياً من الخدمات المختارة.",
+      message: t("لا يقدّم هذا المزوّد أياً من الخدمات المختارة.", "This provider does not offer any of the chosen services."),
     };
   }
 
@@ -295,7 +305,7 @@ export async function createContract(
   if (milestones.length === 0) {
     return {
       ok: false,
-      message: "تعذّر اشتقاق كميات الخدمات المختارة لهذا الموسم.",
+      message: t("تعذّر اشتقاق كميات الخدمات المختارة لهذا الموسم.", "Could not derive quantities for the chosen services for this season."),
     };
   }
 
@@ -313,7 +323,7 @@ export async function createContract(
     .single();
 
   if (contractError || !contract) {
-    return { ok: false, message: `تعذّر إنشاء العقد: ${contractError?.message}` };
+    return { ok: false, message: `${t("تعذّر إنشاء العقد:", "Could not create the contract:")} ${contractError?.message}` };
   }
 
   const contractId = (contract as { id: string }).id;
@@ -362,7 +372,7 @@ export async function createContract(
           });
         }
       });
-    return { ok: false, message: `تعذّر حفظ المراحل: ${milestoneError.message}` };
+    return { ok: false, message: `${t("تعذّر حفظ المراحل:", "Could not save the phases:")} ${milestoneError.message}` };
   }
 
   revalidatePath("/contracts");
@@ -391,15 +401,16 @@ export async function addMilestoneEvidence(args: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const t = await translator();
 
   if (!args.milestoneId || !args.storagePath) {
-    return { ok: false, message: "بيانات الدليل ناقصة." };
+    return { ok: false, message: t("بيانات الدليل ناقصة.", "The evidence details are incomplete.") };
   }
   if (!["photo", "invoice", "inspection", "report", "note"].includes(args.kind)) {
-    return { ok: false, message: "نوع دليل غير معروف." };
+    return { ok: false, message: t("نوع دليل غير معروف.", "Unknown evidence type.") };
   }
   if (!args.storagePath.startsWith(`${user.id}/`)) {
-    return { ok: false, message: "مسار ملف غير صالح." };
+    return { ok: false, message: t("مسار ملف غير صالح.", "Invalid file path.") };
   }
 
   // The row must point at a file that is actually there. See lib/evidenceFile
@@ -407,7 +418,7 @@ export async function addMilestoneEvidence(args: {
   if (!(await evidenceFileExists(supabase, args.storagePath))) {
     return {
       ok: false,
-      message: "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+      message: t("لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.", "We could not find the uploaded file. Upload it again and try once more."),
     };
   }
 
@@ -438,6 +449,7 @@ export async function setMilestoneStatus(formData: FormData) {
   const status = str(formData, "status");
 
   if (!["in_progress", "submitted", "approved", "paid"].includes(status)) return;
+  const t = await translator();
 
   const { data, error } = await supabase
     .from("contract_milestones")
@@ -457,7 +469,7 @@ export async function setMilestoneStatus(formData: FormData) {
   // هو الفرقُ بين «لم يحدث شيء» و«حدث» — وقد عضّ هذا المشروعَ خمسَ مرّات.
   if (!error && (data ?? []).length === 0) {
     redirect(
-      `/contracts/${contractId}?error=${encodeURIComponent("لم تتغيّر المرحلة — لا صلاحية لك على هذا العقد")}`,
+      `/contracts/${contractId}?error=${encodeURIComponent(t("لم تتغيّر المرحلة — لا صلاحية لك على هذا العقد", "The phase did not change \u2014 you do not have permission on this contract"))}`,
     );
   }
 }
@@ -495,6 +507,7 @@ export async function setContractStatus(formData: FormData) {
 
   if (!contractId) return;
   if (!(CONTRACT_STATES as readonly string[]).includes(status)) return;
+  const t = await translator();
 
   const { data, error } = await supabase
     .from("service_contracts")
@@ -512,7 +525,7 @@ export async function setContractStatus(formData: FormData) {
   }
   if ((data ?? []).length === 0) {
     redirect(
-      `/contracts/${contractId}?error=${encodeURIComponent("لم يتغيّر العقد — لا صلاحية لك عليه")}`,
+      `/contracts/${contractId}?error=${encodeURIComponent(t("لم يتغيّر العقد — لا صلاحية لك عليه", "The contract did not change \u2014 you do not have permission on it"))}`,
     );
   }
 }

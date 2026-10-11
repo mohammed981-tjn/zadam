@@ -7,6 +7,8 @@ import {
   RIDGE_PROMINENCE_M,
   type GeoPoint,
 } from "@/lib/arcCanal";
+import { placeName } from "@/lib/enNames";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * The route in plan, over the real river.
@@ -58,7 +60,8 @@ const path = (pts: GeoPoint[]) =>
 const SCALE_KM = 10;
 const scaleWidth = (SCALE_KM / WIDTH_KM) * PLOT_W;
 
-export default function ArcCanalMap() {
+export default function ArcCanalMap({ locale = "ar" }: { locale?: Locale }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const ridges = ROUTE.filter(
     (_, i) => prominence(ROUTE, i) >= RIDGE_PROMINENCE_M,
   );
@@ -67,10 +70,12 @@ export default function ArcCanalMap() {
   return (
     <figure className="flex flex-col gap-3">
       <figcaption className="flex flex-col gap-1">
-        <h3 className="text-lg font-semibold">المسار على الخريطة</h3>
+        <h3 className="text-lg font-semibold">{t("المسار على الخريطة", "The route on the map")}</h3>
         <p className="text-sm leading-relaxed text-muted">
-          القوس من خزان جبل أولياء جنوباً إلى السروراب شمالاً، وأقصى غربه ٢٨ كم
-          غرب أم درمان. الشمال إلى أعلى.
+          {t(
+            "القوس من خزان جبل أولياء جنوباً إلى السروراب شمالاً، وأقصى غربه ٢٨ كم غرب أم درمان. الشمال إلى أعلى.",
+            "The arc runs from the Jebel Aulia reservoir in the south to Sarurab in the north, its westernmost point 28 km west of Omdurman. North is up.",
+          )}
         </p>
       </figcaption>
 
@@ -79,7 +84,10 @@ export default function ArcCanalMap() {
           viewBox={`0 0 ${W} ${H}`}
           className="mx-auto h-auto w-full max-w-md"
           role="img"
-          aria-label="خريطة تخطيطية: القناة القوسية غرب أم درمان بين خزان جبل أولياء والسروراب، مع مجرى النيلين الأبيض والأزرق والنيل الرئيسي"
+          aria-label={t(
+            "خريطة تخطيطية: القناة القوسية غرب أم درمان بين خزان جبل أولياء والسروراب، مع مجرى النيلين الأبيض والأزرق والنيل الرئيسي",
+            "Sketch map: the Arc Canal west of Omdurman between the Jebel Aulia reservoir and Sarurab, with the White Nile, the Blue Nile and the main Nile",
+          )}
         >
           {/*
             The rivers run off the edge of the frame, because they run off the
@@ -100,8 +108,8 @@ export default function ArcCanalMap() {
           </g>
           <rect x={PAD} y={PAD} width={PLOT_W} height={PLOT_H} fill="none" stroke="var(--border)" />
           <g fontSize={10} fontStyle="italic" fill="var(--map-water)" stroke="var(--card)" strokeWidth={2.5} paintOrder="stroke" textAnchor="middle">
-            <text x={x(32.51)} y={y(15.38)}>النيل الأبيض</text>
-            <text x={x(32.575)} y={y(15.545)}>النيل الأزرق</text>
+            <text x={x(32.51)} y={y(15.38)}>{t("النيل الأبيض", "White Nile")}</text>
+            <text x={x(32.575)} y={y(15.545)}>{t("النيل الأزرق", "Blue Nile")}</text>
           </g>
 
           {/* The canal, on a pale casing so it reads over every ground. */}
@@ -150,7 +158,7 @@ export default function ArcCanalMap() {
                 textAnchor="end"
                 fill="var(--color-foreground)"
               >
-                {r.elevation} م
+                {r.elevation} {t("م", "m")}
               </text>
             </g>
           ))}
@@ -174,43 +182,45 @@ export default function ArcCanalMap() {
                 strokeWidth={2.5}
                 paintOrder="stroke"
               >
-                {p.name}
+                {placeName(p.name, locale)}
               </text>
             </g>
           ))}
 
           {/* Scale bar — a drawing that cannot be measured is a picture. */}
-          <ScaleBar x={PAD + 8} y={PAD + PLOT_H - 10} px={scaleWidth} km={SCALE_KM} />
-          <NorthArrow x={PAD + PLOT_W - 16} y={PAD + 28} />
+          <ScaleBar x={PAD + 8} y={PAD + PLOT_H - 10} px={scaleWidth} km={SCALE_KM} locale={locale} />
+          <NorthArrow x={PAD + PLOT_W - 16} y={PAD + 28} locale={locale} />
         </svg>
       </div>
 
       <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
         <li className="flex items-center gap-2">
           <span className="inline-block h-1 w-6 rounded bg-primary" />
-          مسار القناة (٩٤ كم)
+          {t("مسار القناة (٩٤ كم)", "Canal route (94 km)")}
         </li>
         <li className="flex items-center gap-2">
           <span className="inline-block h-1.5 w-6 rounded bg-accent" />
-          الأرض على منسوب الخزان — النواة المقترحة
+          {t("الأرض على منسوب الخزان — النواة المقترحة", "Ground at reservoir level — the proposed core")}
         </li>
         <li className="flex items-center gap-2">
           <span className="inline-block size-2.5 rounded-full bg-danger" />
-          الحاجزان
+          {t("الحاجزان", "The two ridges")}
         </li>
         <li className="flex items-center gap-2">
           <span className="inline-block h-2 w-6 rounded" style={{ background: "var(--map-water)" }} />
-          النيل وخزان جبل أولياء
+          {t("النيل وخزان جبل أولياء", "The Nile and the Jebel Aulia reservoir")}
         </li>
         <li className="flex items-center gap-2">
           <span className="inline-block h-2 w-6 rounded" style={{ background: "#c9a6a0" }} />
-          المباني (أم درمان والخرطوم)
+          {t("المباني (أم درمان والخرطوم)", "Built-up land (Omdurman and Khartoum)")}
         </li>
       </ul>
 
       <p className="text-xs text-muted">
-        الماء والمباني من خريطة الغطاء الأرضي ESA WorldCover ٢٠٢١، والتضاريس
-        من Copernicus، وارتفاعات المسار من SRTM ٣٠ م.
+        {t(
+          "الماء والمباني من خريطة الغطاء الأرضي ESA WorldCover ٢٠٢١، والتضاريس من Copernicus، وارتفاعات المسار من SRTM ٣٠ م.",
+          "Water and buildings from the ESA WorldCover 2021 land-cover map, terrain from Copernicus, and the route's elevations from 30 m SRTM.",
+        )}
       </p>
     </figure>
   );

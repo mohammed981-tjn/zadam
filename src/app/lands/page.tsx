@@ -1,19 +1,31 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { STATIONS } from "@/lib/agronomy";
-import { WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
+import { stationName, waterSourceLabel } from "@/lib/farmLabelsEn";
 import type { Land } from "@/types/database";
 import LandDocuments from "@/components/LandDocuments";
 import FilmPlayer from "@/components/FilmPlayer";
 
-export const metadata = { title: "أراضيّ | سوداقري" };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return { title: tr(locale, "أراضيّ | سوداقري", "My land | Sudagri") };
+}
 
-const VERIFICATION_LABEL: Record<Land["verification"], string> = {
-  unverified: "غير محقّقة",
-  submitted: "قيد المراجعة",
-  verified: "محقّقة",
-  rejected: "مرفوضة",
+const VERIFICATION_LABEL: Record<Locale, Record<Land["verification"], string>> = {
+  ar: {
+    unverified: "غير محقّقة",
+    submitted: "قيد المراجعة",
+    verified: "محقّقة",
+    rejected: "مرفوضة",
+  },
+  en: {
+    unverified: "Not verified",
+    submitted: "Under review",
+    verified: "Verified",
+    rejected: "Rejected",
+  },
 };
 
 export default async function LandsPage() {
@@ -22,6 +34,10 @@ export default async function LandsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
   const { data } = await supabase
     .from("lands")
@@ -46,34 +62,37 @@ export default async function LandsPage() {
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">أراضيّ</h1>
+          <h1 className="text-2xl font-bold">{t("أراضيّ", "My land")}</h1>
           <p className="mt-1 text-sm text-muted">
-            أرضك المسجّلة هي أساس كل موسم وكل فرصة تعرضها لاحقاً.
+            {t(
+              "أرضك المسجّلة هي أساس كل موسم وكل فرصة تعرضها لاحقاً.",
+              "Your registered land is the basis of every season and every opportunity you offer later.",
+            )}
           </p>
         </div>
         <Link
           href="/lands/new"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
         >
-          سجّل أرضاً
+          {t("سجّل أرضاً", "Register land")}
         </Link>
       </div>
 
       <figure className="my-6">
-        <FilmPlayer base="/video/farmer-wide" poster="/video/farmer-wide.jpg" label="فيلم سوداقري: مزارعٌ من السودان" />
+        <FilmPlayer base="/video/farmer-wide" poster="/video/farmer-wide.jpg" label={t("فيلم سوداقري: مزارعٌ من السودان", "A Sudagri film: a farmer from Sudan")} />
       </figure>
 
       {lands.length === 0 ? (
         <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted">
-          لم تسجّل أرضاً بعد. ابدأ بأرض واحدة — التسجيل مجاني ولا يظهر لأحد حتى
-          تعتمده الإدارة.
+          {t(
+            "لم تسجّل أرضاً بعد. ابدأ بأرض واحدة — التسجيل مجاني ولا يظهر لأحد حتى تعتمده الإدارة.",
+            "You have not registered any land yet. Start with one plot — registration is free, and no one sees it until the administrators approve it.",
+          )}
         </p>
       ) : (
         <ul className="flex flex-col gap-4">
           {lands.map((l) => {
-            const station =
-              STATIONS.find((s) => s.key === l.station_key)?.name ??
-              l.station_key;
+            const station = stationName(l.station_key, locale);
             return (
               <li
                 key={l.id}
@@ -81,14 +100,18 @@ export default async function LandsPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h2 className="font-bold">{l.name}</h2>
+                    <h2 className="font-bold" {...arText}>
+                      {l.name}
+                    </h2>
                     <p className="text-sm text-muted">
-                      {l.state}
-                      {l.locality ? ` · ${l.locality}` : ""} · {l.feddans} فدان
-                      · {station}
+                      <span {...arText}>
+                        {l.state}
+                        {l.locality ? ` · ${l.locality}` : ""}
+                      </span>{" "}
+                      · {l.feddans} {t("فدان", "feddans")} · {station}
                     </p>
                   </div>
-                  <div className="text-left">
+                  <div className="text-end">
                     <span
                       className={`text-xs font-medium ${
                         l.verification === "verified"
@@ -98,10 +121,10 @@ export default async function LandsPage() {
                             : "text-accent"
                       }`}
                     >
-                      {VERIFICATION_LABEL[l.verification]}
+                      {VERIFICATION_LABEL[locale][l.verification]}
                     </span>
                     <p className="text-xs text-muted">
-                      التوثيق {l.documents_on_file}/{l.documents_required}
+                      {t("التوثيق", "Documents")} {l.documents_on_file}/{l.documents_required}
                     </p>
                   </div>
                 </div>
@@ -109,22 +132,23 @@ export default async function LandsPage() {
                 <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
                   {[
                     [
-                      "مصدر المياه",
-                      WATER_SOURCE_LABEL[l.water_source as WaterSource] ??
-                        l.water_source,
+                      t("مصدر المياه", "Water source"),
+                      waterSourceLabel(l.water_source, locale),
                     ],
                     [
-                      "المياه للفدان",
+                      t("المياه للفدان", "Water per feddan"),
                       l.water_per_feddan
-                        ? `${Math.round(Number(l.water_per_feddan)).toLocaleString("en-US")} م³`
+                        ? `${Math.round(Number(l.water_per_feddan)).toLocaleString("en-US")} ${t("م³", "m³")}`
                         : "—",
                     ],
-                    ["التربة", l.soil_note ?? "—"],
-                    ["زُرع سابقاً", l.previous_crops ?? "—"],
-                  ].map(([k, v]) => (
-                    <div key={k}>
+                    [t("التربة", "Soil"), l.soil_note ?? "—", true],
+                    [t("زُرع سابقاً", "Previously grown"), l.previous_crops ?? "—", true],
+                  ].map(([k, v, userText]) => (
+                    <div key={String(k)}>
                       <dt className="text-xs text-muted">{k}</dt>
-                      <dd className="font-medium">{v}</dd>
+                      <dd className="font-medium" {...(userText ? arText : {})}>
+                        {v}
+                      </dd>
                     </div>
                   ))}
                 </dl>
@@ -135,7 +159,10 @@ export default async function LandsPage() {
                 />
 
                 {l.verification_note && (
-                  <p className="mt-3 rounded-lg bg-background px-3 py-2 text-xs text-muted">
+                  <p
+                    className="mt-3 rounded-lg bg-background px-3 py-2 text-xs text-muted"
+                    {...arText}
+                  >
                     {l.verification_note}
                   </p>
                 )}

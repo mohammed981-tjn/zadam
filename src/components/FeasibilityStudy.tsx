@@ -18,8 +18,21 @@ import {
 import {
   phasedFeasibility,
   PHASE_VERDICT_LABEL,
+  PHASE_VERDICT_LABEL_EN,
   type PhaseVerdict,
 } from "@/lib/feasibility";
+import {
+  IRRIGATION_EN,
+  MONTH_EN,
+  PRICE_BASIS_EN,
+  PRICE_BASIS_NOTE_EN,
+  STAGE_EN,
+  STATION_SOURCE_EN,
+  cropName,
+  stationName,
+} from "@/lib/enNames";
+import { tr } from "@/lib/i18n";
+import { useLocale } from "@/components/LocaleProvider";
 
 const METHODS = Object.keys(IRRIGATION_EFFICIENCY) as IrrigationMethod[];
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
@@ -36,6 +49,10 @@ export default function FeasibilityStudy({
 }: {
   markets: Record<string, CropMarket>;
 }) {
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const en = locale === "en";
+  const kgHa = t("كجم/هـ", "kg/ha");
   const [cropKey, setCropKey] = useState("sorghum");
   const [stationKey, setStationKey] = useState("gezira");
   const [plantingMonth, setPlantingMonth] = useState(5);
@@ -100,7 +117,7 @@ export default function FeasibilityStudy({
       {/* ── Inputs ─────────────────────────────────────────────── */}
       <div className="grid gap-4 rounded-2xl border border-border bg-card p-6 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          المحصول
+          {t("المحصول", "Crop")}
           <select
             value={cropKey}
             onChange={(e) => setCropKey(e.target.value)}
@@ -108,14 +125,14 @@ export default function FeasibilityStudy({
           >
             {CROPS.map((c) => (
               <option key={c.key} value={c.key}>
-                {c.name}
+                {cropName(c, locale)}
               </option>
             ))}
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          المنطقة
+          {t("المنطقة", "Region")}
           <select
             value={stationKey}
             onChange={(e) => setStationKey(e.target.value)}
@@ -123,20 +140,20 @@ export default function FeasibilityStudy({
           >
             {STATIONS.map((s) => (
               <option key={s.key} value={s.key}>
-                {s.name}
+                {stationName(s, locale)}
               </option>
             ))}
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          شهر الزراعة
+          {t("شهر الزراعة", "Planting month")}
           <select
             value={plantingMonth}
             onChange={(e) => setPlantingMonth(Number(e.target.value))}
             className={field}
           >
-            {MONTH_NAMES.map((m, i) => (
+            {(en ? MONTH_EN : MONTH_NAMES).map((m, i) => (
               <option key={m} value={i}>
                 {m}
               </option>
@@ -145,7 +162,7 @@ export default function FeasibilityStudy({
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          طريقة الري
+          {t("طريقة الري", "Irrigation method")}
           <select
             value={method}
             onChange={(e) => setMethod(e.target.value as IrrigationMethod)}
@@ -153,14 +170,14 @@ export default function FeasibilityStudy({
           >
             {METHODS.map((m) => (
               <option key={m} value={m}>
-                {IRRIGATION_LABEL[m]}
+                {en ? IRRIGATION_EN[m] : IRRIGATION_LABEL[m]}
               </option>
             ))}
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          المساحة (فدان)
+          {t("المساحة (فدان)", "Area (feddan)")}
           <input
             type="number"
             min={1}
@@ -171,7 +188,7 @@ export default function FeasibilityStudy({
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          تكلفة العمليات للفدان ($)
+          {t("تكلفة العمليات للفدان ($)", "Operations cost per feddan ($)")}
           <input
             type="number"
             min={0}
@@ -182,7 +199,7 @@ export default function FeasibilityStudy({
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          سعر المتر المكعب من الماء ($)
+          {t("سعر المتر المكعب من الماء ($)", "Price of water per cubic metre ($)")}
           <input
             type="number"
             min={0}
@@ -192,12 +209,12 @@ export default function FeasibilityStudy({
             className={field}
           />
           <span className="text-xs text-muted">
-            صفر إن كان المصدر بئرك أو المطر
+            {t("صفر إن كان المصدر بئرك أو المطر", "Zero if the source is your own well or the rain")}
           </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          سعر الطن ($) — اختياري
+          {t("سعر الطن ($) — اختياري", "Price per tonne ($) — optional")}
           <input
             type="number"
             min={0}
@@ -205,13 +222,13 @@ export default function FeasibilityStudy({
             onChange={(e) => setManualPrice(e.target.value)}
             placeholder={
               market.priceBasis === "none"
-                ? "لا سعر في البيانات — أدخِله"
-                : `الافتراضي ${n0(market.usdPerTonne ?? 0)}`
+                ? t("لا سعر في البيانات — أدخِله", "No price in the data — enter one")
+                : t(`الافتراضي ${n0(market.usdPerTonne ?? 0)}`, `Default ${n0(market.usdPerTonne ?? 0)}`)
             }
             className={field}
           />
           <span className="text-xs text-muted">
-            سعرك يعلو على أي تقدير
+            {t("سعرك يعلو على أي تقدير", "Your price overrides any estimate")}
           </span>
         </label>
       </div>
@@ -219,53 +236,53 @@ export default function FeasibilityStudy({
       {/* ── Where the numbers came from ─────────────────────────── */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <h2 className="mb-3 text-base font-semibold">
-          المرجعية التي تُقاس عليها
+          {t("المرجعية التي تُقاس عليها", "The reference it is measured against")}
         </h2>
         <dl className="grid gap-3 text-sm sm:grid-cols-3">
           <div className="rounded-lg bg-background px-3 py-2">
-            <dt className="text-xs text-muted">غلّة السودان</dt>
+            <dt className="text-xs text-muted">{t("غلّة السودان", "Sudan's yield")}</dt>
             <dd className="text-lg font-bold">
               {market.sudanKgPerHa === null
                 ? "—"
-                : `${n0(market.sudanKgPerHa)} كجم/هـ`}
+                : `${n0(market.sudanKgPerHa)} ${kgHa}`}
             </dd>
             {market.year && (
               <dd className="text-xs text-muted">FAOSTAT {market.year}</dd>
             )}
           </div>
           <div className="rounded-lg bg-background px-3 py-2">
-            <dt className="text-xs text-muted">مصر — أقرب نظير مروي</dt>
+            <dt className="text-xs text-muted">{t("مصر — أقرب نظير مروي", "Egypt — nearest irrigated peer")}</dt>
             <dd className="text-lg font-bold">
               {market.nearestPeerKgPerHa === null
                 ? "—"
-                : `${n0(market.nearestPeerKgPerHa)} كجم/هـ`}
+                : `${n0(market.nearestPeerKgPerHa)} ${kgHa}`}
             </dd>
             <dd className="text-xs text-muted">
-              وسيط النظراء{" "}
+              {t("وسيط النظراء", "Peer median")}{" "}
               {market.peerMedianKgPerHa === null
                 ? "—"
                 : n0(market.peerMedianKgPerHa)}
             </dd>
           </div>
           <div className="rounded-lg bg-background px-3 py-2">
-            <dt className="text-xs text-muted">السعر المعتمد</dt>
+            <dt className="text-xs text-muted">{t("السعر المعتمد", "Price used")}</dt>
             <dd className="text-lg font-bold">
               {market.usdPerTonne === null
                 ? "—"
-                : `${n0(market.usdPerTonne)} $/طن`}
+                : `${n0(market.usdPerTonne)} ${t("$/طن", "$/t")}`}
             </dd>
             <dd className="text-xs text-muted">
-              {PRICE_BASIS_LABEL[market.priceBasis]}
+              {en ? PRICE_BASIS_EN[market.priceBasis] : PRICE_BASIS_LABEL[market.priceBasis]}
             </dd>
           </div>
         </dl>
         <p className="mt-3 text-xs leading-relaxed text-muted">
-          {PRICE_BASIS_NOTE[market.priceBasis]}
+          {en ? PRICE_BASIS_NOTE_EN[market.priceBasis] : PRICE_BASIS_NOTE[market.priceBasis]}
         </p>
         <p className="mt-1 text-xs leading-relaxed text-muted">
-          مناخ {station.name}: {STATION_SOURCE_LABEL[station.source]}. المقارنة
-          بمصر ووسيط النظراء العرب والأفارقة والهند — لا بأعلى غلّة في العالم،
-          فأعلاها بيوت زجاجية لا تُقاس عليها مزرعة مكشوفة.
+          {en
+            ? `Climate of ${stationName(station, locale)}: ${STATION_SOURCE_EN[station.source]}. The comparison is with Egypt and the median of Arab and African peers and India — not with the world's highest yield, which comes from greenhouses an open field cannot be measured against.`
+            : `مناخ ${station.name}: ${STATION_SOURCE_LABEL[station.source]}. المقارنة بمصر ووسيط النظراء العرب والأفارقة والهند — لا بأعلى غلّة في العالم، فأعلاها بيوت زجاجية لا تُقاس عليها مزرعة مكشوفة.`}
         </p>
       </div>
 
@@ -273,12 +290,13 @@ export default function FeasibilityStudy({
       <div className="flex flex-col gap-4">
         <div>
           <h2 className="text-lg font-semibold">
-            السلّم المرحلي — كم التزمتَ، وكم تحتاج لتستردّه
+            {t("السلّم المرحلي — كم التزمتَ، وكم تحتاج لتستردّه", "The phase ladder — what you have committed, and what you need to recover it")}
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-muted">
-            كل مرحلة تعرض ما أُنفق حتى نهايتها، ثم تُحوّله إلى الغلّة التي
-            تُعيده عند الحصاد. القرار الحقيقي ليس «هل الموسم مجدٍ» بل «وقد أنفقتُ
-            ما أنفقت، هل أدفع القسط التالي».
+            {t(
+              "كل مرحلة تعرض ما أُنفق حتى نهايتها، ثم تُحوّله إلى الغلّة التي تُعيده عند الحصاد. القرار الحقيقي ليس «هل الموسم مجدٍ» بل «وقد أنفقتُ ما أنفقت، هل أدفع القسط التالي».",
+              "Each phase shows what has been spent by its end, then turns it into the yield that pays it back at harvest. The real decision is not \"is the season viable\" but \"having spent what I have spent, do I pay the next instalment\".",
+            )}
           </p>
         </div>
 
@@ -290,40 +308,43 @@ export default function FeasibilityStudy({
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-semibold">
-                  {i + 1}. {p.name}
+                  {i + 1}. {en ? (STAGE_EN[p.stage] ?? p.name) : p.name}
                 </span>
                 <span className="text-xs">
-                  {PHASE_VERDICT_LABEL[p.verdict]}
+                  {en ? PHASE_VERDICT_LABEL_EN[p.verdict] : PHASE_VERDICT_LABEL[p.verdict]}
                 </span>
               </div>
 
               <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
                 <div>
-                  <span className="text-xs opacity-70">قسط المرحلة</span>
+                  <span className="text-xs opacity-70">{t("قسط المرحلة", "Phase instalment")}</span>
                   <div className="font-medium">{n0(p.cost)} $</div>
                 </div>
                 <div>
                   <span className="text-xs opacity-70">
-                    الملتزم حتى هنا ({Math.round(p.cumulativeShare * 100)}٪)
+                    {t("الملتزم حتى هنا", "Committed so far")} ({Math.round(p.cumulativeShare * 100)}
+                    {t("٪", "%")})
                   </span>
                   <div className="font-medium">{n0(p.cumulativeCost)} $</div>
                 </div>
                 <div>
                   <span className="text-xs opacity-70">
-                    غلّة التعادل عند هذه النقطة
+                    {t("غلّة التعادل عند هذه النقطة", "Break-even yield at this point")}
                   </span>
                   <div className="font-bold">
                     {p.breakEvenKgPerHa === null
                       ? "—"
-                      : `${n0(p.breakEvenKgPerHa)} كجم/هـ`}
+                      : `${n0(p.breakEvenKgPerHa)} ${kgHa}`}
                   </div>
                 </div>
               </div>
 
               {p.lastSafeExit && (
                 <p className="mt-2 rounded-lg bg-emerald-900/10 px-3 py-2 text-xs font-medium">
-                  ← آخر مرحلة يُسترد ما فيها بالمتوسط الوطني. بعدها تراهن على
-                  حصاد أعلى من المعتاد.
+                  {t(
+                    "← آخر مرحلة يُسترد ما فيها بالمتوسط الوطني. بعدها تراهن على حصاد أعلى من المعتاد.",
+                    "→ The last phase whose spending is recovered at the national average. Beyond it you are betting on a better-than-usual harvest.",
+                  )}
                 </p>
               )}
             </li>
@@ -332,9 +353,10 @@ export default function FeasibilityStudy({
 
         {study.lastSafeExit === null && (
           <p className="rounded-xl border border-rose-600/30 bg-rose-600/10 p-4 text-sm leading-relaxed text-rose-800">
-            لا توجد مرحلة واحدة يُسترد ما فيها بالمتوسط الوطني — أي أن أول قسط
-            يتجاوز ما يعيده هذا المحصول عادةً في السودان. راجع التكلفة أو
-            المحصول أو السعر قبل التوقيع.
+            {t(
+              "لا توجد مرحلة واحدة يُسترد ما فيها بالمتوسط الوطني — أي أن أول قسط يتجاوز ما يعيده هذا المحصول عادةً في السودان. راجع التكلفة أو المحصول أو السعر قبل التوقيع.",
+              "Not a single phase is recovered at the national average — the first instalment already exceeds what this crop usually returns in Sudan. Review the cost, the crop or the price before signing.",
+            )}
           </p>
         )}
       </div>
@@ -342,34 +364,34 @@ export default function FeasibilityStudy({
       {/* ── Season totals ───────────────────────────────────────── */}
       <div className="grid gap-4 rounded-2xl border border-border bg-card p-6 sm:grid-cols-2">
         <div>
-          <h3 className="mb-2 text-sm font-semibold">التكلفة</h3>
+          <h3 className="mb-2 text-sm font-semibold">{t("التكلفة", "Cost")}</h3>
           <dl className="flex flex-col gap-1 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted">عمليات حقلية</dt>
+              <dt className="text-muted">{t("عمليات حقلية", "Field operations")}</dt>
               <dd>{n0(study.fieldCost)} $</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted">
-                ماء ({n0(study.waterM3Total)} م³)
+                {t("ماء", "Water")} ({n0(study.waterM3Total)} {t("م³", "m³")})
               </dt>
               <dd>{n0(study.waterCost)} $</dd>
             </div>
             <div className="flex justify-between border-t border-border pt-1 font-bold">
-              <dt>الإجمالي</dt>
+              <dt>{t("الإجمالي", "Total")}</dt>
               <dd>{n0(study.totalCost)} $</dd>
             </div>
             <div className="flex justify-between text-xs text-muted">
-              <dt>للفدان</dt>
+              <dt>{t("للفدان", "Per feddan")}</dt>
               <dd>{n0(study.costPerFeddan)} $</dd>
             </div>
           </dl>
         </div>
 
         <div>
-          <h3 className="mb-2 text-sm font-semibold">العائد والهامش</h3>
+          <h3 className="mb-2 text-sm font-semibold">{t("العائد والهامش", "Revenue and margin")}</h3>
           <dl className="flex flex-col gap-1 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted">بالمتوسط الوطني</dt>
+              <dt className="text-muted">{t("بالمتوسط الوطني", "At the national average")}</dt>
               <dd>
                 {study.revenueAtNational === null
                   ? "—"
@@ -377,7 +399,7 @@ export default function FeasibilityStudy({
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted">الهامش</dt>
+              <dt className="text-muted">{t("الهامش", "Margin")}</dt>
               <dd
                 className={
                   study.marginAtNational !== null && study.marginAtNational < 0
@@ -391,7 +413,7 @@ export default function FeasibilityStudy({
               </dd>
             </div>
             <div className="mt-2 flex justify-between border-t border-border pt-1">
-              <dt className="text-muted">لو بلغتَ غلّة مصر</dt>
+              <dt className="text-muted">{t("لو بلغتَ غلّة مصر", "If you reached Egypt's yield")}</dt>
               <dd>
                 {study.revenueAtPeer === null
                   ? "—"
@@ -399,7 +421,7 @@ export default function FeasibilityStudy({
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted">الهامش عندها</dt>
+              <dt className="text-muted">{t("الهامش عندها", "Margin at that yield")}</dt>
               <dd className="font-bold">
                 {study.marginAtPeer === null
                   ? "—"
@@ -411,10 +433,10 @@ export default function FeasibilityStudy({
       </div>
 
       <p className="text-xs leading-relaxed text-muted">
-        الماء موزَّع على المراحل بنفس نسب الميزانية — وهو تقريبٌ نقوله صراحةً:
-        FAO-56 يقسم الموسم أربع مراحل وتقويم المنصّة سبعاً، فلا خريطة أمينة
-        بينهما. التقريب يُقلّل ماء منتصف الموسم حيث يشرب المحصول أكثره، ويتطابق
-        تماماً عند الحصاد — وهو الرقم الذي تدور عليه الدراسة.
+        {t(
+          "الماء موزَّع على المراحل بنفس نسب الميزانية — وهو تقريبٌ نقوله صراحةً: FAO-56 يقسم الموسم أربع مراحل وتقويم المنصّة سبعاً، فلا خريطة أمينة بينهما. التقريب يُقلّل ماء منتصف الموسم حيث يشرب المحصول أكثره، ويتطابق تماماً عند الحصاد — وهو الرقم الذي تدور عليه الدراسة.",
+          "Water is spread across the phases in the same shares as the budget — an approximation we state openly: FAO-56 divides the season into four stages and the platform's calendar into seven, so there is no faithful mapping between them. The approximation understates mid-season water, when the crop drinks most, and matches exactly at harvest — the figure the study turns on.",
+        )}
       </p>
     </div>
   );

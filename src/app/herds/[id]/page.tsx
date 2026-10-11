@@ -3,10 +3,28 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Explain from "@/components/Explain";
 import { completeHerdStage, setHerdBudget } from "@/app/herds/actions";
-import { SPECIES_LABEL, PURPOSE_LABEL, HERD_STAGE_LABEL } from "@/lib/livestock";
+import {
+  SPECIES_LABEL,
+  SPECIES_LABEL_EN,
+  PURPOSE_LABEL,
+  PURPOSE_LABEL_EN,
+  HERD_STAGE_LABEL,
+  HERD_STAGE_LABEL_EN,
+} from "@/lib/livestock";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 import type { Herd, HerdStage } from "@/types/database";
 
-export const metadata = { title: "دورة إنتاج حيواني | سوداقري" };
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return {
+    title: tr(
+      locale,
+      "دورة إنتاج حيواني | سوداقري",
+      "Livestock production cycle | Sudagri",
+    ),
+  };
+}
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -25,6 +43,11 @@ export default async function HerdPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const en = locale === "en";
+  const arText = en ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
   const { data: herdRow } = await supabase
     .from("herds")
@@ -65,10 +88,19 @@ export default async function HerdPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{herd.name}</h1>
+      <h1 className="text-2xl font-bold" {...arText}>
+        {herd.name}
+      </h1>
       <p className="mt-2 text-sm text-muted">
-        {SPECIES_LABEL[herd.species]} — {PURPOSE_LABEL[herd.purpose]}
-        {herd.breed && ` — ${herd.breed}`} — {n0(herd.head_count)} رأس
+        {(en ? SPECIES_LABEL_EN : SPECIES_LABEL)[herd.species]} —{" "}
+        {(en ? PURPOSE_LABEL_EN : PURPOSE_LABEL)[herd.purpose]}
+        {herd.breed && (
+          <>
+            {" — "}
+            <span {...arText}>{herd.breed}</span>
+          </>
+        )}{" "}
+        — {n0(herd.head_count)} {t("رأس", "head")}
       </p>
 
       {/*
@@ -81,28 +113,40 @@ export default async function HerdPage({
           href={`/contracts/new?herd=${herd.id}`}
           className="mt-4 inline-block rounded-xl border border-primary/40 bg-card px-4 py-2 text-sm font-medium text-primary shadow-card transition hover:shadow-raised"
         >
-          اطلب خدمة لهذا القطيع (برنامج بيطري، تغذية، متابعة صحّة) ←
+          {t(
+            "اطلب خدمة لهذا القطيع (برنامج بيطري، تغذية، متابعة صحّة)",
+            "Request a service for this herd (veterinary programme, feeding, health monitoring)",
+          )}{" "}
+          {en ? "→" : "←"}
         </Link>
       )}
 
       <div className="mt-6 grid gap-3 rounded-2xl border border-border bg-card p-5 sm:grid-cols-3">
         <div>
-          <p className="text-xs text-muted">المراحل المنجزة</p>
+          <p className="text-xs text-muted">
+            {t("المراحل المنجزة", "Stages completed")}
+          </p>
           <p className="text-lg font-bold">
             {done} / {stages.length}
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted">العلف التقديري</p>
-          <p className="text-lg font-bold">{n0(totalFeed)} كجم</p>
+          <p className="text-xs text-muted">
+            {t("العلف التقديري", "Estimated feed")}
+          </p>
+          <p className="text-lg font-bold">
+            {n0(totalFeed)} {t("كجم", "kg")}
+          </p>
         </div>
         <div>
-          <p className="text-xs text-muted">الميزانية</p>
+          <p className="text-xs text-muted">{t("الميزانية", "Budget")}</p>
           <p className="text-lg font-bold">
             {totalBudget > 0 ? n0(totalBudget) : "—"}
           </p>
           {totalBudget > 0 && (
-            <p className="text-[11px] text-muted">{n0(perHead)} للرأس</p>
+            <p className="text-[11px] text-muted">
+              {n0(perHead)} {t("للرأس", "per head")}
+            </p>
           )}
         </div>
       </div>
@@ -117,10 +161,22 @@ export default async function HerdPage({
       */}
       {totalBudget === 0 && (
         <p className="mt-4 rounded-xl border border-accent/40 bg-accent/5 p-4 text-sm leading-7">
-          <strong>لم تُدخَل ميزانيّةٌ لهذه الدورة.</strong> حقلُ «الميزانية
-          للرأس» اختياريٌّ عند الإنشاء، وتُرك فارغاً — فالأصفارُ أدناه ليست
-          حساباً فشل، بل رقماً لم يُكتب. اكتبه الآن ويُقسَّم على المراحل بنسبة
-          العلف.
+          {en ? (
+            <>
+              <strong>No budget has been entered for this cycle.</strong> The
+              “Budget per head” field is optional at creation and was left
+              blank — so the zeros below are not a failed calculation, just a
+              number nobody entered. Enter it now and it will be split across
+              the stages in proportion to feed.
+            </>
+          ) : (
+            <>
+              <strong>لم تُدخَل ميزانيّةٌ لهذه الدورة.</strong> حقلُ «الميزانية
+              للرأس» اختياريٌّ عند الإنشاء، وتُرك فارغاً — فالأصفارُ أدناه ليست
+              حساباً فشل، بل رقماً لم يُكتب. اكتبه الآن ويُقسَّم على المراحل
+              بنسبة العلف.
+            </>
+          )}
         </p>
       )}
 
@@ -131,7 +187,10 @@ export default async function HerdPage({
         <input type="hidden" name="herd_id" value={herd.id} />
         <label className="flex-1 text-xs">
           <span className="mb-1 block text-muted">
-            الميزانية للرأس — وتُقسَّم على المراحل بنسبة العلف
+            {t(
+              "الميزانية للرأس — وتُقسَّم على المراحل بنسبة العلف",
+              "Budget per head — split across the stages in proportion to feed",
+            )}
           </span>
           <input
             name="budget_per_head"
@@ -139,7 +198,7 @@ export default async function HerdPage({
             min={0}
             step="any"
             defaultValue={perHead || ""}
-            placeholder="مثال: 45000"
+            placeholder={t("مثال: 45000", "e.g. 45000")}
             className="w-full min-w-40 rounded-lg border border-border bg-background px-3 py-2 text-sm"
           />
         </label>
@@ -147,7 +206,9 @@ export default async function HerdPage({
           type="submit"
           className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
         >
-          {totalBudget > 0 ? "حدّث الميزانية" : "أضف الميزانية"}
+          {totalBudget > 0
+            ? t("حدّث الميزانية", "Update budget")
+            : t("أضف الميزانية", "Add budget")}
         </button>
         {/* والمواعيدُ والعلفُ لا تُمسّ: المالُ خطّةٌ تُراجَع، والجدولُ ما جرت
             عليه الدورةُ فعلاً وقد تكون مرحلةٌ منه أُغلقت. */}
@@ -160,9 +221,10 @@ export default async function HerdPage({
       )}
 
       <Explain tone="warn">
-        تقدير العلف مبنٍ على متوسطات استهلاك المادة الجافة كنسبة من وزن الحيوان،
-        وليس حساباً مرجعياً كاحتياج المحاصيل المائي. اعتمده كنقطة بداية وعدّله
-        على واقع قطيعك.
+        {t(
+          "تقدير العلف مبنٍ على متوسطات استهلاك المادة الجافة كنسبة من وزن الحيوان، وليس حساباً مرجعياً كاحتياج المحاصيل المائي. اعتمده كنقطة بداية وعدّله على واقع قطيعك.",
+          "The feed estimate is based on average dry-matter intake as a share of the animal's body weight; it is not a reference calculation like crop water requirements. Use it as a starting point and adjust it to your own herd.",
+        )}
       </Explain>
 
       <ol className="mt-6 flex flex-col gap-3">
@@ -175,12 +237,13 @@ export default async function HerdPage({
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-bold">
-                {s.stage_order}. {HERD_STAGE_LABEL[s.stage_key]}
+                {s.stage_order}.{" "}
+                {(en ? HERD_STAGE_LABEL_EN : HERD_STAGE_LABEL)[s.stage_key]}
               </h2>
               <span
                 className={`text-sm ${s.completed ? "text-primary" : "text-muted"}`}
               >
-                {s.completed ? "منجزة" : "مفتوحة"}
+                {s.completed ? t("منجزة", "Done") : t("مفتوحة", "Open")}
               </span>
             </div>
 
@@ -191,45 +254,51 @@ export default async function HerdPage({
             */}
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
               <div>
-                <dt className="text-xs text-muted">من</dt>
+                <dt className="text-xs text-muted">{t("من", "From")}</dt>
                 <dd>{s.planned_start ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">إلى</dt>
+                <dt className="text-xs text-muted">{t("إلى", "To")}</dt>
                 <dd>{s.planned_end ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">المدّة</dt>
+                <dt className="text-xs text-muted">{t("المدّة", "Duration")}</dt>
                 <dd>
                   {days(s.planned_start, s.planned_end) != null
-                    ? `${days(s.planned_start, s.planned_end)} يوماً`
+                    ? `${days(s.planned_start, s.planned_end)} ${t("يوماً", "days")}`
                     : "—"}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">العلف التقديري</dt>
+                <dt className="text-xs text-muted">
+                  {t("العلف التقديري", "Estimated feed")}
+                </dt>
                 <dd>
                   {s.planned_feed_kg != null
-                    ? `${n0(Number(s.planned_feed_kg))} كجم`
+                    ? `${n0(Number(s.planned_feed_kg))} ${t("كجم", "kg")}`
                     : "—"}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">حصّتها من الميزانية</dt>
+                <dt className="text-xs text-muted">
+                  {t("حصّتها من الميزانية", "Share of budget")}
+                </dt>
                 <dd>
                   {Number(s.budget ?? 0) > 0
                     ? n0(Number(s.budget))
-                    : "لم تُدخَل"}
+                    : t("لم تُدخَل", "Not entered")}
                 </dd>
               </div>
               {totalFeed > 0 && s.planned_feed_kg != null && (
                 <div>
-                  <dt className="text-xs text-muted">من علف الدورة</dt>
+                  <dt className="text-xs text-muted">
+                    {t("من علف الدورة", "Of the cycle's feed")}
+                  </dt>
                   <dd>
                     {Math.round(
                       (Number(s.planned_feed_kg) / totalFeed) * 100,
                     )}
-                    ٪
+                    {en ? "%" : "٪"}
                   </dd>
                 </div>
               )}
@@ -243,7 +312,7 @@ export default async function HerdPage({
                   type="submit"
                   className="rounded-lg border border-primary px-4 py-1.5 text-sm font-medium text-primary"
                 >
-                  اعتمد المرحلة
+                  {t("اعتمد المرحلة", "Sign off stage")}
                 </button>
               </form>
             )}

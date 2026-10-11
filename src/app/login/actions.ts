@@ -7,6 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { translateAuthError } from "@/lib/auth-errors";
 import { toE164 } from "@/lib/phone";
 import { phoneToEmail } from "@/lib/phoneIdentity";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
 
 /*
  * Phone is the primary identifier, email the fallback.
@@ -31,8 +33,13 @@ import { phoneToEmail } from "@/lib/phoneIdentity";
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
 /** Reads the country code and number fields into an E.164 identifier. */
-function readPhone(formData: FormData) {
-  return toE164(str(formData, "dial_code"), str(formData, "phone"));
+function readPhone(formData: FormData, locale: Locale) {
+  return toE164(str(formData, "dial_code"), str(formData, "phone"), locale);
+}
+
+async function translator() {
+  const locale = await getLocale();
+  return { locale, t: (ar: string, en: string) => tr(locale, ar, en) };
 }
 
 /**
@@ -72,6 +79,7 @@ async function homeAfterAuth(): Promise<string> {
 }
 
 export async function login(formData: FormData) {
+  const { locale } = await translator();
   const method = str(formData, "method") || "phone";
   const password = str(formData, "password");
   const supabase = await createClient();
@@ -85,14 +93,14 @@ export async function login(formData: FormData) {
     if (error) {
       redirect(
         `/login?method=email&error=${encodeURIComponent(
-          translateAuthError(error.message, "email"),
+          translateAuthError(error.message, "email", locale),
         )}`,
       );
     }
     redirect(await homeAfterAuth());
   }
 
-  const phone = readPhone(formData);
+  const phone = readPhone(formData, locale);
   if (!phone.ok) {
     redirect(`/login?error=${encodeURIComponent(phone.message)}`);
   }
@@ -105,7 +113,7 @@ export async function login(formData: FormData) {
   if (error) {
     redirect(
       `/login?error=${encodeURIComponent(
-        translateAuthError(error.message, "phone"),
+        translateAuthError(error.message, "phone", locale),
       )}`,
     );
   }
@@ -114,6 +122,7 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
+  const { locale, t } = await translator();
   const method = str(formData, "method") || "phone";
   const password = str(formData, "password");
   const fullName = str(formData, "full_name");
@@ -138,7 +147,10 @@ export async function signup(formData: FormData) {
     const target = method === "email" ? "/signup?method=email" : "/signup";
     redirect(
       `${target}${target.includes("?") ? "&" : "?"}error=${encodeURIComponent(
-        "كلمة المرور يجب أن تكون ستة أحرف على الأقل.",
+        t(
+          "كلمة المرور يجب أن تكون ستة أحرف على الأقل.",
+          "The password must be at least six characters.",
+        ),
       )}`,
     );
   }
@@ -167,7 +179,7 @@ export async function signup(formData: FormData) {
     if (error) {
       redirect(
         `/signup?method=email&error=${encodeURIComponent(
-          translateAuthError(error.message, "email"),
+          translateAuthError(error.message, "email", locale),
         )}`,
       );
     }
@@ -175,7 +187,10 @@ export async function signup(formData: FormData) {
     if (!data.session) {
       redirect(
         `/login?method=email&message=${encodeURIComponent(
-          "تم إنشاء الحساب. ستصلك رسالة تفعيل على بريدك من خدمة الاستضافة — افتحها واضغط الرابط، ثم عد لتسجيل الدخول.",
+          t(
+            "تم إنشاء الحساب. ستصلك رسالة تفعيل على بريدك من خدمة الاستضافة — افتحها واضغط الرابط، ثم عد لتسجيل الدخول.",
+            "Your account has been created. A confirmation message will reach your inbox from our hosting provider — open it and click the link, then come back to sign in.",
+          ),
         )}`,
       );
     }
@@ -183,7 +198,7 @@ export async function signup(formData: FormData) {
     redirect(await homeAfterAuth());
   }
 
-  const phone = readPhone(formData);
+  const phone = readPhone(formData, locale);
   if (!phone.ok) {
     redirect(`/signup?error=${encodeURIComponent(phone.message)}`);
   }
@@ -225,7 +240,10 @@ export async function signup(formData: FormData) {
     );
     redirect(
       `/signup?method=email&error=${encodeURIComponent(
-        "التسجيل برقم الجوال غير متاح على هذه النسخة من الموقع. أكملنا لك التسجيل بالبريد الإلكتروني — الحساب واحد في الحالتين.",
+        t(
+          "التسجيل برقم الجوال غير متاح على هذه النسخة من الموقع. أكملنا لك التسجيل بالبريد الإلكتروني — الحساب واحد في الحالتين.",
+          "Signing up with a mobile number is not available on this version of the site. You can sign up by email instead — it is the same account either way.",
+        ),
       )}`,
     );
   }
@@ -240,7 +258,7 @@ export async function signup(formData: FormData) {
   if (createError) {
     redirect(
       `/signup?error=${encodeURIComponent(
-        translateAuthError(createError.message, "phone"),
+        translateAuthError(createError.message, "phone", locale),
       )}`,
     );
   }
@@ -255,7 +273,10 @@ export async function signup(formData: FormData) {
   if (signInError) {
     redirect(
       `/login?message=${encodeURIComponent(
-        "أُنشئ حسابك بنجاح. سجّل الدخول برقمك وكلمة مرورك.",
+        t(
+          "أُنشئ حسابك بنجاح. سجّل الدخول برقمك وكلمة مرورك.",
+          "Your account was created. Sign in with your number and password.",
+        ),
       )}`,
     );
   }
@@ -286,11 +307,12 @@ export async function logout() {
  * that is worth denying.
  */
 export async function resendConfirmation(formData: FormData) {
+  const { t } = await translator();
   const email = str(formData, "email");
 
   if (!email || !email.includes("@")) {
     redirect(
-      `/login?method=email&error=${encodeURIComponent("أدخل بريداً إلكترونياً صحيحاً.")}`,
+      `/login?method=email&error=${encodeURIComponent(t("أدخل بريداً إلكترونياً صحيحاً.", "Enter a valid email address."))}`,
     );
   }
 
@@ -317,7 +339,10 @@ export async function resendConfirmation(formData: FormData) {
 
   redirect(
     `/login?method=email&message=${encodeURIComponent(
-      "إن كان لهذا البريد حساب، أُرسلت رسالة التفعيل إليه. افتح الرسالة واضغط الرابط ثم عد وسجّل الدخول.",
+      t(
+        "إن كان لهذا البريد حساب، أُرسلت رسالة التفعيل إليه. افتح الرسالة واضغط الرابط ثم عد وسجّل الدخول.",
+        "If this email has an account, the confirmation message has been sent to it. Open the message, click the link, then come back and sign in.",
+      ),
     )}`,
   );
 }
@@ -333,11 +358,12 @@ export async function resendConfirmation(formData: FormData) {
  * nothing would be worse than saying it plainly.
  */
 export async function requestPasswordReset(formData: FormData) {
+  const { t } = await translator();
   const email = str(formData, "email");
 
   if (!email || !email.includes("@")) {
     redirect(
-      `/reset?error=${encodeURIComponent("أدخل بريداً إلكترونياً صحيحاً.")}`,
+      `/reset?error=${encodeURIComponent(t("أدخل بريداً إلكترونياً صحيحاً.", "Enter a valid email address."))}`,
     );
   }
 
@@ -381,7 +407,10 @@ export async function requestPasswordReset(formData: FormData) {
 
   redirect(
     `/reset?message=${encodeURIComponent(
-      "إن كان لهذا البريد حساب، أُرسل إليه رابط إعادة التعيين. الرابط صالح لفترة قصيرة.",
+      t(
+        "إن كان لهذا البريد حساب، أُرسل إليه رابط إعادة التعيين. الرابط صالح لفترة قصيرة.",
+        "If this email has an account, a reset link has been sent to it. The link is valid for a short time.",
+      ),
     )}`,
   );
 }
@@ -396,17 +425,18 @@ export async function requestPasswordReset(formData: FormData) {
  * silently doing nothing.
  */
 export async function completePasswordReset(formData: FormData) {
+  const { locale, t } = await translator();
   const password = str(formData, "password");
   const confirm = str(formData, "confirm");
 
   if (password.length < 6) {
     redirect(
-      `/reset/confirm?error=${encodeURIComponent("كلمة المرور يجب أن تكون ٦ أحرف على الأقل.")}`,
+      `/reset/confirm?error=${encodeURIComponent(t("كلمة المرور يجب أن تكون ٦ أحرف على الأقل.", "The password must be at least 6 characters."))}`,
     );
   }
   if (password !== confirm) {
     redirect(
-      `/reset/confirm?error=${encodeURIComponent("كلمتا المرور غير متطابقتين.")}`,
+      `/reset/confirm?error=${encodeURIComponent(t("كلمتا المرور غير متطابقتين.", "The two passwords do not match."))}`,
     );
   }
 
@@ -418,7 +448,10 @@ export async function completePasswordReset(formData: FormData) {
   if (!user) {
     redirect(
       `/reset?error=${encodeURIComponent(
-        "انتهت صلاحية رابط إعادة التعيين أو استُخدم من قبل. اطلب رابطاً جديداً.",
+        t(
+          "انتهت صلاحية رابط إعادة التعيين أو استُخدم من قبل. اطلب رابطاً جديداً.",
+          "The reset link has expired or has already been used. Request a new one.",
+        ),
       )}`,
     );
   }
@@ -428,14 +461,17 @@ export async function completePasswordReset(formData: FormData) {
   if (error) {
     redirect(
       `/reset/confirm?error=${encodeURIComponent(
-        translateAuthError(error.message, "email"),
+        translateAuthError(error.message, "email", locale),
       )}`,
     );
   }
 
   redirect(
     `/login?method=email&message=${encodeURIComponent(
-      "تم تغيير كلمة المرور. سجّل الدخول بكلمتك الجديدة.",
+      t(
+        "تم تغيير كلمة المرور. سجّل الدخول بكلمتك الجديدة.",
+        "Your password has been changed. Sign in with your new password.",
+      ),
     )}`,
   );
 }

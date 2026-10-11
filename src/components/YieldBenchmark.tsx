@@ -5,8 +5,7 @@ import {
   NEAREST_PEER,
   PEER_AREAS,
 } from "@/lib/cropBenchmark";
-
-const n0 = (v: number) => Math.round(v).toLocaleString("ar");
+import { tr, type Locale } from "@/lib/i18n";
 
 /** kg/ha → kg/feddan, the unit a Sudanese farmer weighs a harvest in. */
 const perFeddan = (kgPerHa: number) => kgPerHa * HECTARES_PER_FEDDAN;
@@ -46,11 +45,17 @@ function median(xs: number[]): number | null {
 export default async function YieldBenchmark({
   cropKey,
   declaredKgPerFeddan = null,
+  locale = "ar",
 }: {
   cropKey: string;
   /** من `seasons.harvest_kg` ÷ الأفدنة — يصرّح به المزارع عند الإقفال. */
   declaredKgPerFeddan?: number | null;
+  locale?: Locale;
 }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const n0 = (v: number) =>
+    Math.round(v).toLocaleString(locale === "en" ? "en-GB" : "ar");
+
   const item = FAOSTAT_ITEM[cropKey];
   if (!item) return null;
 
@@ -84,49 +89,74 @@ export default async function YieldBenchmark({
     ...(declaredKgPerFeddan !== null
       ? [
           {
-            label: "غلّتك",
+            label: t("غلّتك", "Your yield"),
             kg: declaredKgPerFeddan / HECTARES_PER_FEDDAN,
-            note: "كما صرّحتَ بها عند الإقفال",
+            note: t(
+              "كما صرّحتَ بها عند الإقفال",
+              "As you declared it when closing the season",
+            ),
             own: true,
           },
         ]
       : []),
     {
-      label: `السودان ${latestYear}`,
+      label: t(`السودان ${latestYear}`, `Sudan ${latestYear}`),
       kg: sudan,
       note:
         sudanPrev !== null
-          ? `${latestYear - 1}: ${n0(perFeddan(sudanPrev))} كجم/فدان`
+          ? `${latestYear - 1}: ${n0(perFeddan(sudanPrev))} ${t("كجم/فدان", "kg/feddan")}`
           : undefined,
     },
-    ...(egypt !== null ? [{ label: "مصر", kg: egypt, note: "النيلُ نفسه، مرويّاً" }] : []),
+    ...(egypt !== null
+      ? [
+          {
+            label: t("مصر", "Egypt"),
+            kg: egypt,
+            note: t("النيلُ نفسه، مرويّاً", "The same Nile, irrigated"),
+          },
+        ]
+      : []),
     ...(peers !== null
-      ? [{ label: "وسيطُ النظراء", kg: peers, note: "دولٌ جافّة، زراعةٌ مكشوفة" }]
+      ? [
+          {
+            label: t("وسيطُ النظراء", "Peer median"),
+            kg: peers,
+            note: t(
+              "دولٌ جافّة، زراعةٌ مكشوفة",
+              "Arid countries, open-field farming",
+            ),
+          },
+        ]
       : []),
   ];
 
   return (
     <section className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-card">
-      <h2 className="font-bold">أين تقف غلّةُ هذا المحصول؟</h2>
+      <h2 className="font-bold">
+        {t("أين تقف غلّةُ هذا المحصول؟", "Where does this crop's yield stand?")}
+      </h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {tiles.map((t) => (
+        {tiles.map((tile) => (
           <div
-            key={t.label}
-            className={`rounded-xl p-3 ${t.own ? "border border-primary/40 bg-primary/5" : "bg-background"}`}
+            key={tile.label}
+            className={`rounded-xl p-3 ${tile.own ? "border border-primary/40 bg-primary/5" : "bg-background"}`}
           >
-            <p className="text-xs text-muted">{t.label}</p>
+            <p className="text-xs text-muted">{tile.label}</p>
             <p className="figure text-lg font-black text-primary">
-              {n0(perFeddan(t.kg))}{" "}
-              <span className="text-xs font-medium text-muted">كجم/فدان</span>
+              {n0(perFeddan(tile.kg))}{" "}
+              <span className="text-xs font-medium text-muted">
+                {t("كجم/فدان", "kg/feddan")}
+              </span>
             </p>
-            {t.note && <p className="text-[11px] text-muted">{t.note}</p>}
+            {tile.note && <p className="text-[11px] text-muted">{tile.note}</p>}
           </div>
         ))}
       </div>
       <p className="mt-3 text-xs leading-6 text-muted">
-        المتوسّطُ الوطنيّ يجمع المطريّ والمرويّ معاً، فقارِن به بحذر. وحين
-        تحصد، زِن محصولك واقسمه على الأفدنة — ذلك هو الرقم الذي يُقارَن بهذه.
-        المصدر: FAOSTAT، منظمة الأغذية والزراعة.
+        {t(
+          "المتوسّطُ الوطنيّ يجمع المطريّ والمرويّ معاً، فقارِن به بحذر. وحين تحصد، زِن محصولك واقسمه على الأفدنة — ذلك هو الرقم الذي يُقارَن بهذه. المصدر: FAOSTAT، منظمة الأغذية والزراعة.",
+          "The national average combines rainfed and irrigated farming, so compare with it carefully. When you harvest, weigh your crop and divide it by the feddans — that is the figure to compare with these. Source: FAOSTAT, Food and Agriculture Organization of the UN.",
+        )}
       </p>
     </section>
   );

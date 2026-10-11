@@ -4,6 +4,7 @@ import type {
   ArcCanalFactCategory,
   ArcCanalFactStatus,
 } from "@/types/database";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * ملف القناة — كل ما نعرفه عنها، وكل ما لا نعرفه.
@@ -23,6 +24,25 @@ import type {
  * not in a footnote, because a reader who has to go looking for what is missing
  * will not go looking.
  */
+
+const CATEGORY_LABEL_EN: Record<ArcCanalFactCategory, string> = {
+  terrain: "Terrain",
+  engineering: "Engineering",
+  area: "Area",
+  climate: "Climate",
+  water: "Water",
+  energy: "Energy",
+  operations: "Operations",
+  permits: "Permits",
+  cost: "Cost",
+};
+
+const STATUS_EN: Record<ArcCanalFactStatus, string> = {
+  measured: "Measured",
+  derived: "Computed",
+  assumption: "Assumption",
+  unknown: "Unknown",
+};
 
 const CATEGORY_LABEL: Record<ArcCanalFactCategory, string> = {
   terrain: "التضاريس",
@@ -71,7 +91,11 @@ const STATUS: Record<
   },
 };
 
-export default async function ArcCanalDossier() {
+export default async function ArcCanalDossier({ locale = "ar" }: { locale?: Locale }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const en = locale === "en";
+  // The rows are written in Arabic; on the English page they keep their own direction.
+  const arabic = en ? ({ lang: "ar", dir: "rtl" } as const) : {};
   const supabase = await createClient();
   const { data } = await supabase
     .from("arc_canal_facts")
@@ -87,19 +111,47 @@ export default async function ArcCanalDossier() {
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-semibold">ملفّ القناة في قاعدة سوداقري</h2>
-        <p className="leading-relaxed text-muted">
-          كل بند تقني أو تضاريسي أو تشغيلي عن المشروع، في جدول يُحدَّث ولا
-          يُعاد نشره. وكل بند يحمل حالته: <strong>مقيس</strong> من مصدر مفتوح،
-          أو <strong>محسوب</strong> بمنهج مذكور، أو <strong>فرضية</strong>
-          اخترناها ليُرى أثرها، أو <strong>غير معروف</strong>.
-        </p>
+        <h2 className="text-xl font-semibold">{t("ملفّ القناة في قاعدة سوداقري", "The canal's file in Sudagri's database")}</h2>
+        {en ? (
+          <p className="leading-relaxed text-muted">
+            Every technical, terrain or operational item about the project, in a table that is updated rather than
+            republished. Each item carries its status: <strong>measured</strong> from an open source,{" "}
+            <strong>computed</strong> by a stated method, an <strong>assumption</strong> we chose so its effect can be
+            seen, or <strong>unknown</strong>. The items themselves are recorded in Arabic.
+          </p>
+        ) : (
+          <p className="leading-relaxed text-muted">
+            كل بند تقني أو تضاريسي أو تشغيلي عن المشروع، في جدول يُحدَّث ولا
+            يُعاد نشره. وكل بند يحمل حالته: <strong>مقيس</strong> من مصدر مفتوح،
+            أو <strong>محسوب</strong> بمنهج مذكور، أو <strong>فرضية</strong>
+            اخترناها ليُرى أثرها، أو <strong>غير معروف</strong>.
+          </p>
+        )}
       </div>
 
       <div className="rounded-xl border border-danger/30 bg-danger/5 p-5 leading-relaxed">
         <h3 className="mb-2 font-semibold">
-          ما بقي غير معروف — و{unknown} بنداً منه ليست ممّا يُقاس
+          {en
+            ? `What is still unknown — and ${unknown} of these items are not things that can be measured`
+            : `ما بقي غير معروف — و${unknown} بنداً منه ليست ممّا يُقاس`}
         </h3>
+        {en ? (
+          <>
+            <p>
+              This table used to have sixteen blank items. Six of them were not unknown but unfetched: the soil,
+              seepage, discharge, cross-section, pumping stations and power source — fetched from SoilGrids and NASA
+              POWER or computed from them, and now in the table below with their figures.
+            </p>
+            <p className="mt-3">
+              What is still blank after that is of another kind:{" "}
+              <strong>a water permit, a land allocation, an environmental impact assessment, a tariff, and an
+              operator</strong> — these are signatures, not measurements, and no satellite issues a permit. With them
+              are two items that need a hand in the soil: test pits, and an exchangeable-sodium test. Each of them
+              now says exactly what would settle it.
+            </p>
+          </>
+        ) : (
+          <>
         <p>
           كان في هذا الجدول ستة عشر بنداً فارغاً. ستّة منها لم تكن مجهولة بل غير
           مجلوبة: التربة والتسرّب والتصرّف والمقطع ومحطات الرفع ومصدر الطاقة —
@@ -113,6 +165,8 @@ export default async function ArcCanalDossier() {
           التربة: الحفر الاختباري، وفحص الصوديوم المتبادل. وكل بند منها يقول
           الآن ما الذي يحسمه بالضبط.
         </p>
+          </>
+        )}
       </div>
 
       <div className="flex flex-col gap-6">
@@ -122,7 +176,7 @@ export default async function ArcCanalDossier() {
 
           return (
             <div key={category} className="flex flex-col gap-2">
-              <h3 className="font-semibold">{CATEGORY_LABEL[category]}</h3>
+              <h3 className="font-semibold">{en ? CATEGORY_LABEL_EN[category] : CATEGORY_LABEL[category]}</h3>
               <ul className="flex flex-col gap-2">
                 {rows.map((f) => (
                   <li
@@ -134,13 +188,15 @@ export default async function ArcCanalDossier() {
                     }`}
                   >
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <span className="font-medium">{f.label}</span>
+                      <span className="font-medium" {...arabic}>
+                        {f.label}
+                      </span>
                       {f.value === null ? (
                         <span className="text-sm text-danger">
-                          لم يُحدَّد بعد
+                          {t("لم يُحدَّد بعد", "Not yet determined")}
                         </span>
                       ) : (
-                        <span className="text-lg font-bold">
+                        <span className="text-lg font-bold" {...arabic}>
                           {f.value}
                           {f.unit && (
                             <span className="ps-1 text-sm font-normal text-muted">
@@ -152,14 +208,16 @@ export default async function ArcCanalDossier() {
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${STATUS[f.status].className}`}
                       >
-                        {STATUS[f.status].label}
+                        {en ? STATUS_EN[f.status] : STATUS[f.status].label}
                       </span>
                       {f.status !== "unknown" && (
-                        <span className="text-xs text-muted">{f.source}</span>
+                        <span className="text-xs text-muted" {...arabic}>
+                          {f.source}
+                        </span>
                       )}
                     </div>
                     {f.note && (
-                      <p className="mt-2 text-sm leading-relaxed text-muted">
+                      <p className="mt-2 text-sm leading-relaxed text-muted" {...arabic}>
                         {f.note}
                       </p>
                     )}

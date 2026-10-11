@@ -1,5 +1,9 @@
 import { bandsOf, classRegions, type Shape } from "@/lib/contourGrid";
 import { CORRIDOR, LAND_COVER, wrbInfo } from "@/lib/canalMap";
+import { tr, type Locale } from "@/lib/i18n";
+
+/** Digits in the reader's script: Arabic-Indic for Arabic, western for English. */
+const num = (n: number, locale: Locale) => n.toLocaleString(locale === "en" ? "en-GB" : "ar-SA");
 
 /**
  * The ground under every map of the Arc Canal: terrain as smooth colour
@@ -136,42 +140,59 @@ export function Soil({ p }: { p: Proj }) {
 }
 
 /** North arrow with its letter, at (x, y). */
-export function NorthArrow({ x, y }: { x: number; y: number }) {
+export function NorthArrow({ x, y, locale = "ar" }: { x: number; y: number; locale?: Locale }) {
   return (
     <g transform={`translate(${f1(x)} ${f1(y)})`}>
       <circle r={11} fill="var(--card)" fillOpacity={0.85} />
       <path d="M0 -8 L4 4 L0 1.5 L-4 4 Z" fill="var(--foreground)" />
       <text y={-12} textAnchor="middle" fontSize={8} fontWeight={700} fill="var(--foreground)">
-        ش
+        {tr(locale, "ش", "N")}
       </text>
     </g>
   );
 }
 
 /** A two-part scale bar `km` long, `px` wide, its left end at (x, y). */
-export function ScaleBar({ x, y, px, km }: { x: number; y: number; px: number; km: number }) {
+export function ScaleBar({
+  x,
+  y,
+  px,
+  km,
+  locale = "ar",
+}: {
+  x: number;
+  y: number;
+  px: number;
+  km: number;
+  locale?: Locale;
+}) {
   return (
     <g transform={`translate(${f1(x)} ${f1(y)})`}>
       <rect x={-4} y={-15} width={px + 8} height={20} rx={3} fill="var(--card)" fillOpacity={0.85} />
       <rect x={0} y={-2} width={px / 2} height={4} fill="var(--foreground)" />
       <rect x={px / 2} y={-2} width={px / 2} height={4} fill="var(--card)" stroke="var(--foreground)" strokeWidth={0.6} />
       <text x={px / 2} y={-5} textAnchor="middle" fontSize={8} fill="var(--foreground)" direction="ltr">
-        {km.toLocaleString("ar-SA")} كم
+        {num(km, locale)} {tr(locale, "كم", "km")}
       </text>
     </g>
   );
 }
 
 /** The terrain legend: one bar from the lowest to the highest ground. */
-export function TerrainLegend() {
+export function TerrainLegend({ locale = "ar" }: { locale?: Locale }) {
+  const m = tr(locale, "م", "m");
   return (
     <div className="flex items-center gap-2 text-xs text-muted" dir="ltr">
-      <span className="figure">{Math.round(ELEV_LO).toLocaleString("ar-SA")} م</span>
+      <span className="figure">
+        {num(Math.round(ELEV_LO), locale)} {m}
+      </span>
       <span
         className="h-2.5 flex-1 rounded-full border border-border"
         style={{ background: `linear-gradient(to right, ${[0, 0.3, 0.55, 0.8, 1].map((t) => tint(ELEV_LO + t * (ELEV_HI - ELEV_LO))).join(",")})` }}
       />
-      <span className="figure">{Math.round(ELEV_HI).toLocaleString("ar-SA")} م</span>
+      <span className="figure">
+        {num(Math.round(ELEV_HI), locale)} {m}
+      </span>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 import { parseDecimal, QUANTITY_SCALE, quantityToString } from "@/lib/exportOffers";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export interface InterestResult {
   ok: boolean;
@@ -45,14 +47,19 @@ export async function submitInterest(
   offerId: string,
   formData: FormData,
 ): Promise<InterestResult> {
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const verdict = await checkRateLimit("interest", clientAddress(await headers()));
   if (!verdict.allowed) {
     return {
       ok: false,
       message:
         verdict.tier === "unavailable"
-          ? "تعذّر إرسال الطلب مؤقتاً. حاول بعد قليل."
-          : "أُرسلت طلبات كثيرة من هذا الاتصال. انتظر قليلاً ثم أعد المحاولة.",
+          ? t("تعذّر إرسال الطلب مؤقتاً. حاول بعد قليل.", "The request could not be sent just now. Try again shortly.")
+          : t(
+              "أُرسلت طلبات كثيرة من هذا الاتصال. انتظر قليلاً ثم أعد المحاولة.",
+              "Too many requests have been sent from this connection. Wait a little, then try again.",
+            ),
     };
   }
 
@@ -60,17 +67,20 @@ export async function submitInterest(
   const email = str(formData, "buyer_email", 200);
   const phone = str(formData, "buyer_phone", 60);
 
-  if (name.length < 2) return { ok: false, message: "الاسم مطلوب." };
+  if (name.length < 2) return { ok: false, message: t("الاسم مطلوب.", "Your name is required.") };
   if (!email && !phone) {
     return {
       ok: false,
-      message: "اترك بريداً أو هاتفاً — بلا وسيلة اتّصال لا يمكن الردّ عليك.",
+      message: t(
+        "اترك بريداً أو هاتفاً — بلا وسيلة اتّصال لا يمكن الردّ عليك.",
+        "Leave an email or a phone number — without a way to reach you we cannot reply.",
+      ),
     };
   }
   // Shape only, never a deliverability claim. Rejecting a valid-but-unusual
   // address is a lost buyer; the operator finds out it bounces either way.
   if (email && !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) {
-    return { ok: false, message: "صيغة البريد غير صحيحة." };
+    return { ok: false, message: t("صيغة البريد غير صحيحة.", "The email address is not valid.") };
   }
 
   const wantedText = str(formData, "quantity_wanted", 24);
@@ -78,7 +88,7 @@ export async function submitInterest(
   if (wantedText) {
     const scaled = parseDecimal(wantedText, QUANTITY_SCALE);
     if (scaled === null || scaled === BigInt(0)) {
-      return { ok: false, message: "الكمّية المطلوبة يجب أن تكون رقماً أكبر من صفر." };
+      return { ok: false, message: t("الكمّية المطلوبة يجب أن تكون رقماً أكبر من صفر.", "The quantity wanted must be a number greater than zero.") };
     }
     quantityWanted = quantityToString(scaled);
   }
@@ -100,15 +110,19 @@ export async function submitInterest(
     console.error("market: interest insert failed", error);
     return {
       ok: false,
-      message:
+      message: t(
         "تعذّر إرسال الطلب. تأكّد أنّ العرض ما يزال منشوراً، وأعد المحاولة.",
+        "The request could not be sent. Check that the offer is still published, and try again.",
+      ),
     };
   }
 
   revalidatePath("/admin/export/interests");
   return {
     ok: true,
-    message:
+    message: t(
       "وصل طلبك. سنراجعه ونتواصل معك — واذكر مرجع العرض في أيّ مراسلة لاحقة.",
+      "Your request has arrived. We will review it and get in touch — please quote the offer reference in any later message.",
+    ),
   };
 }

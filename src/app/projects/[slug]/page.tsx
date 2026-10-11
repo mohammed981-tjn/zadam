@@ -6,6 +6,8 @@ import type { Project, ProjectUpdate } from "@/types/database";
 import { INVESTMENT_LIVE } from "@/lib/config";
 import NotifyMeForm from "@/components/NotifyMeForm";
 import { invest } from "./actions";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export default async function ProjectPage({
   params,
@@ -16,6 +18,9 @@ export default async function ProjectPage({
 }) {
   const { slug } = await params;
   const { error } = await searchParams;
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
   const supabase = await createClient();
   const { data: project } = await supabase
@@ -60,35 +65,38 @@ export default async function ProjectPage({
       <div className="mx-auto max-w-4xl px-4 py-10">
         {typedProject.is_demo && (
           <div className="mb-6 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
-            <strong className="font-bold">نموذج توضيحي.</strong> هذا المشروع
-            مُدخل لعرض شكل المنصة فقط — لا يوجد على الأرض مشروع بهذا الاسم ولا
-            أرض مخصصة له، ولا يمكن الاستثمار فيه. المشاريع الحقيقية ستُنشر بعد
-            توثيقها قانونياً ومعاينتها ميدانياً.
+            <strong className="font-bold">{t("نموذج توضيحي.", "Illustrative example.")}</strong>{" "}
+            {t(
+              "هذا المشروع مُدخل لعرض شكل المنصة فقط — لا يوجد على الأرض مشروع بهذا الاسم ولا أرض مخصصة له، ولا يمكن الاستثمار فيه. المشاريع الحقيقية ستُنشر بعد توثيقها قانونياً ومعاينتها ميدانياً.",
+              "This project was entered only to show what the platform looks like — there is no project by this name on the ground and no land set aside for it, and it cannot be invested in. Real projects will be published after legal documentation and a field inspection.",
+            )}
           </div>
         )}
 
-        <p className="text-sm text-muted">{typedProject.location}</p>
-        <h1 className="mt-1 text-3xl font-black">{typedProject.name}</h1>
+        <p className="text-sm text-muted" {...arText}>{typedProject.location}</p>
+        <h1 className="mt-1 text-3xl font-black" {...arText}>{typedProject.name}</h1>
 
         <div className="mt-4 flex flex-wrap gap-2 text-sm">
           <span className="rounded-full bg-primary/10 px-3 py-1 text-primary">
-            {statusLabel(typedProject.status)}
+            {statusLabel(typedProject.status, locale)}
           </span>
           <span className="rounded-full bg-border/60 px-3 py-1">
-            مخاطرة {riskLabel(typedProject.risk_level)}
+            {locale === "en"
+              ? `${riskLabel(typedProject.risk_level, locale)} risk`
+              : `مخاطرة ${riskLabel(typedProject.risk_level)}`}
           </span>
           <span className="rounded-full bg-border/60 px-3 py-1">
-            {typedProject.total_feddans} فدان
+            {typedProject.total_feddans} {t("فدان", "feddans")}
           </span>
           {typedProject.expected_annual_return && (
             <span className="rounded-full bg-border/60 px-3 py-1">
-              عائد سنوي متوقع {typedProject.expected_annual_return}%
+              {t("عائد سنوي متوقع", "Expected annual return")} {typedProject.expected_annual_return}%
             </span>
           )}
         </div>
 
         {typedProject.description && (
-          <p className="mt-6 leading-relaxed text-foreground/90">
+          <p className="mt-6 leading-relaxed text-foreground/90" {...arText}>
             {typedProject.description}
           </p>
         )}
@@ -98,16 +106,16 @@ export default async function ProjectPage({
             href={`/farmers/${typedProject.submitted_by}`}
             className="mt-4 inline-block text-sm text-primary underline"
           >
-            اطّلع على سجل المنفّذ ومؤشر ثقته
+            {t("اطّلع على سجل المنفّذ ومؤشر ثقته", "See the operator's record and trust score")}
           </Link>
         )}
 
         <div className="mt-8 grid gap-8 sm:grid-cols-[1fr_320px]">
           <section>
-            <h2 className="mb-4 text-lg font-bold">آخر التقارير الميدانية</h2>
+            <h2 className="mb-4 text-lg font-bold">{t("آخر التقارير الميدانية", "Latest field reports")}</h2>
             {!updates || updates.length === 0 ? (
               <p className="text-sm text-muted">
-                لا توجد تقارير منشورة بعد لهذا المشروع.
+                {t("لا توجد تقارير منشورة بعد لهذا المشروع.", "No reports published for this project yet.")}
               </p>
             ) : (
               <ul className="flex flex-col gap-4">
@@ -117,15 +125,15 @@ export default async function ProjectPage({
                     className="rounded-xl border border-border bg-card p-4"
                   >
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">{update.title}</h3>
+                      <h3 className="font-semibold" {...arText}>{update.title}</h3>
                       <time className="text-xs text-muted">
                         {new Date(update.created_at).toLocaleDateString(
-                          "ar-EG",
+                          locale === "en" ? "en-GB" : "ar-EG",
                         )}
                       </time>
                     </div>
                     {update.body && (
-                      <p className="mt-2 text-sm text-foreground/80">
+                      <p className="mt-2 text-sm text-foreground/80" {...arText}>
                         {update.body}
                       </p>
                     )}
@@ -139,20 +147,21 @@ export default async function ProjectPage({
             {!investmentOpen ? (
               <>
                 <span className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                  قريباً
+                  {t("قريباً", "Coming soon")}
                 </span>
                 <h2 className="mb-2 text-lg font-bold">
-                  الاستثمار لم يُفتح بعد
+                  {t("الاستثمار لم يُفتح بعد", "Investment is not open yet")}
                 </h2>
                 <p className="mb-4 text-sm text-muted">
-                  نحن نبني المنصة الآن ولا نستقبل أي أموال حتى تكتمل الترتيبات
-                  القانونية وتوثيق المشاريع. اترك بياناتك وسنبلغك أول ما يُفتح
-                  باب الاستثمار.
+                  {t(
+                    "نحن نبني المنصة الآن ولا نستقبل أي أموال حتى تكتمل الترتيبات القانونية وتوثيق المشاريع. اترك بياناتك وسنبلغك أول ما يُفتح باب الاستثمار.",
+                    "We are building the platform now and accept no money until the legal arrangements and project documentation are complete. Leave your details and we will tell you as soon as investment opens.",
+                  )}
                 </p>
                 <p className="mb-4 text-sm">
-                  سعر الحصة الاسترشادي:{" "}
+                  {t("سعر الحصة الاسترشادي:", "Indicative share price:")}{" "}
                   <span className="font-bold">
-                    {formatUsd(typedProject.price_per_share)}
+                    {formatUsd(typedProject.price_per_share, locale)}
                   </span>
                 </p>
                 <NotifyMeForm interest={`مشروع: ${typedProject.name}`} />
@@ -166,8 +175,10 @@ export default async function ProjectPage({
                   />
                 </div>
                 <p className="mb-4 text-sm text-muted">
-                  {fundedPct}% ممول · متبقي {remainingShares} حصة من أصل{" "}
-                  {typedProject.total_shares}
+                  {locale === "en"
+                    ? `${fundedPct}% funded · ${remainingShares} of ${typedProject.total_shares} shares left`
+                    : <>{fundedPct}% ممول · متبقي {remainingShares} حصة من أصل{" "}
+                  {typedProject.total_shares}</>}
                 </p>
 
                 {error && (
@@ -190,8 +201,8 @@ export default async function ProjectPage({
                     leaving it behind only invites someone to wire it back up.
                   */}
                   <label className="flex flex-col gap-1 text-sm">
-                    عدد الحصص (سعر الحصة{" "}
-                    {formatUsd(typedProject.price_per_share)})
+                    {t("عدد الحصص (سعر الحصة", "Number of shares (share price")}{" "}
+                    {formatUsd(typedProject.price_per_share, locale)})
                     <input
                       type="number"
                       name="shares"
@@ -206,11 +217,11 @@ export default async function ProjectPage({
                     type="submit"
                     className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90"
                   >
-                    استثمر الآن
+                    {t("استثمر الآن", "Invest now")}
                   </button>
                   {!user && (
                     <p className="text-xs text-muted">
-                      سيُطلب منك تسجيل الدخول أولاً.
+                      {t("سيُطلب منك تسجيل الدخول أولاً.", "You will be asked to sign in first.")}
                     </p>
                   )}
                 </form>

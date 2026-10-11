@@ -1,5 +1,6 @@
 import raw from "../../data/canal-map.json";
 import landRaw from "../../data/canal-landcover.json";
+import { tr, type Locale } from "./i18n";
 
 /**
  * خريطة ممرّ القناة القوسية — الوديان والتربة وما يعبره المسار.
@@ -49,10 +50,10 @@ export { WRB, wrbInfo } from "./soilClasses";
  * that sets a culvert is a storm, and there is no rainfall-intensity record
  * for this plain to size one against.
  */
-export function crossingClass(km2: number): string {
-  if (km2 < 50) return "عبّارة أنبوبية";
-  if (km2 < 300) return "عبّارة صندوقية";
-  return "معبر سيول كبير";
+export function crossingClass(km2: number, locale: Locale = "ar"): string {
+  if (km2 < 50) return tr(locale, "عبّارة أنبوبية", "Pipe culvert");
+  if (km2 < 300) return tr(locale, "عبّارة صندوقية", "Box culvert");
+  return tr(locale, "معبر سيول كبير", "Large flood crossing");
 }
 
 export const CROSSING_KIND_AR: Record<CorridorCrossing["kind"], string> = {
@@ -68,6 +69,14 @@ export const ROAD_AR: Record<string, string> = {
   primary: "طريق رئيسي",
   secondary: "طريق ثانوي",
   tertiary: "طريق فرعي",
+};
+
+const ROAD_EN: Record<string, string> = {
+  motorway: "Motorway",
+  trunk: "National highway",
+  primary: "Main road",
+  secondary: "Secondary road",
+  tertiary: "Minor road",
 };
 
 export interface CrossingRow {
@@ -90,7 +99,8 @@ export interface CrossingRow {
  */
 const MERGE_KM = 1.5;
 
-export function crossingRows(): CrossingRow[] {
+export function crossingRows(locale: Locale = "ar"): CrossingRow[] {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const cs = CORRIDOR.crossings;
   const drains = cs.filter((c) => c.kind === "drainage");
   const ways = cs.filter((c) => c.kind === "waterway");
@@ -105,9 +115,9 @@ export function crossingRows(): CrossingRow[] {
     rows.push({
       chainageKm: Math.min(...cs.filter(isIntake).map((c) => c.chainageKm)),
       kind: "intake",
-      label: "النيل الأبيض — مأخذ القناة من خزان جبل أولياء",
+      label: t("النيل الأبيض — مأخذ القناة من خزان جبل أولياء", "White Nile — the canal's intake from the Jebel Aulia reservoir"),
       km2: null,
-      work: "منشأة المأخذ",
+      work: t("منشأة المأخذ", "Intake structure"),
     });
   }
 
@@ -122,9 +132,11 @@ export function crossingRows(): CrossingRow[] {
     rows.push({
       chainageKm: w.chainageKm,
       kind: "channel",
-      label: w.name ? `وادٍ مرسوم — ${w.name}` : "مجرى مرسوم بلا اسم",
+      label: w.name
+        ? t(`وادٍ مرسوم — ${w.name}`, `Mapped wadi — ${w.name}`)
+        : t("مجرى مرسوم بلا اسم", "Unnamed mapped channel"),
       km2,
-      work: km2 != null ? crossingClass(km2) : "عبّارة (الحوض غير محسوب)",
+      work: km2 != null ? crossingClass(km2, locale) : t("عبّارة (الحوض غير محسوب)", "Culvert (catchment not computed)"),
     });
   }
 
@@ -133,9 +145,9 @@ export function crossingRows(): CrossingRow[] {
     rows.push({
       chainageKm: d.chainageKm,
       kind: "channel",
-      label: "مجرى سيل غير مرسوم (مشتقّ من الارتفاعات)",
+      label: t("مجرى سيل غير مرسوم (مشتقّ من الارتفاعات)", "Unmapped flood channel (derived from the elevations)"),
       km2: d.km2 ?? null,
-      work: crossingClass(d.km2 ?? 0),
+      work: crossingClass(d.km2 ?? 0, locale),
     });
   }
 
@@ -145,10 +157,15 @@ export function crossingRows(): CrossingRow[] {
       chainageKm: c.chainageKm,
       kind: c.kind,
       label:
-        (c.kind === "rail" ? "سكّة حديد" : (ROAD_AR[c.sub ?? ""] ?? "طريق")) +
-        (c.name ? ` — ${c.name}` : ""),
+        (locale === "en"
+          ? c.kind === "rail"
+            ? "Railway"
+            : (ROAD_EN[c.sub ?? ""] ?? "Road")
+          : c.kind === "rail"
+            ? "سكّة حديد"
+            : (ROAD_AR[c.sub ?? ""] ?? "طريق")) + (c.name ? ` — ${c.name}` : ""),
       km2: null,
-      work: "جسر",
+      work: t("جسر", "Bridge"),
     });
   }
 
@@ -207,16 +224,18 @@ export const LAND_COVER = landRaw as unknown as LandCover;
  * route) but keep their sense: green for growing, sand for bare, rose-grey
  * for buildings, blue for water.
  */
-export const WORLDCOVER: Record<number, { ar: string; note: string; fill: string }> = {
-  10: { ar: "أشجار", note: "غابات وأحزمة شجرية", fill: "#4f8a4b" },
-  20: { ar: "شجيرات", note: "", fill: "#cdb26a" },
-  30: { ar: "حشائش", note: "مراعٍ موسمية", fill: "#e3d98f" },
-  40: { ar: "أرض مزروعة", note: "مزروعةٌ اليوم — لها أهلٌ وحقوق", fill: "#9fcb74" },
-  50: { ar: "مبانٍ", note: "حيث يمرّ الخطّ على بيوتٍ ومنشآت", fill: "#c9a6a0" },
-  60: { ar: "أرض جرداء", note: "ما تجعله القناة أرضاً جديدة", fill: "#e6e0d2" },
-  80: { ar: "ماء دائم", note: "النيل والخزّان", fill: "#3f86c6" },
-  90: { ar: "أرض رطبة", note: "", fill: "#7fb7b0" },
+export const WORLDCOVER: Record<number, { ar: string; note: string; en: string; noteEn: string; fill: string }> = {
+  10: { ar: "أشجار", note: "غابات وأحزمة شجرية", en: "Trees", noteEn: "Woodland and tree belts", fill: "#4f8a4b" },
+  20: { ar: "شجيرات", note: "", en: "Shrubs", noteEn: "", fill: "#cdb26a" },
+  30: { ar: "حشائش", note: "مراعٍ موسمية", en: "Grassland", noteEn: "Seasonal grazing", fill: "#e3d98f" },
+  40: { ar: "أرض مزروعة", note: "مزروعةٌ اليوم — لها أهلٌ وحقوق", en: "Cropland", noteEn: "Farmed today — it has people and rights", fill: "#9fcb74" },
+  50: { ar: "مبانٍ", note: "حيث يمرّ الخطّ على بيوتٍ ومنشآت", en: "Built-up", noteEn: "Where the line passes houses and structures", fill: "#c9a6a0" },
+  60: { ar: "أرض جرداء", note: "ما تجعله القناة أرضاً جديدة", en: "Bare ground", noteEn: "What the canal would turn into new land", fill: "#e6e0d2" },
+  80: { ar: "ماء دائم", note: "النيل والخزّان", en: "Permanent water", noteEn: "The Nile and the reservoir", fill: "#3f86c6" },
+  90: { ar: "أرض رطبة", note: "", en: "Wetland", noteEn: "", fill: "#7fb7b0" },
 };
 
 export const coverInfo = (cls: number | null | string) =>
-  cls == null ? null : (WORLDCOVER[Number(cls)] ?? { ar: `صنف ${cls}`, note: "", fill: "#cccccc" });
+  cls == null
+    ? null
+    : (WORLDCOVER[Number(cls)] ?? { ar: `صنف ${cls}`, note: "", en: `Class ${cls}`, noteEn: "", fill: "#cccccc" });

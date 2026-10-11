@@ -75,6 +75,12 @@ export const BAND_LABEL: Record<WeekSummary["band"], string> = {
   wet: "مطرٌ يغطّي نصف الحاجة أو أكثر — راقب قبل الريّ",
 };
 
+export const BAND_LABEL_EN: Record<WeekSummary["band"], string> = {
+  dry: "No significant rain — irrigate on schedule",
+  some: "Light rain — not enough for the week's need",
+  wet: "Rain covering half the need or more — check before irrigating",
+};
+
 interface OpenMeteoLocation {
   daily?: {
     time?: string[];
