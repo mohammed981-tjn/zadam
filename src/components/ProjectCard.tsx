@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Project } from "@/types/database";
 import { cropVisual, formatUsd, riskLabel, statusLabel } from "@/lib/format";
+import type { Locale } from "@/lib/i18n";
 
 const riskColor: Record<string, string> = {
   low: "bg-primary/10 text-primary",
@@ -8,7 +9,14 @@ const riskColor: Record<string, string> = {
   high: "bg-danger/10 text-danger",
 };
 
-export default function ProjectCard({ project }: { project: Project }) {
+export default function ProjectCard({
+  project,
+  locale = "ar",
+}: {
+  project: Project;
+  locale?: Locale;
+}) {
+  const en = locale === "en";
   const fundedPct = Math.min(
     100,
     Math.round((project.shares_sold / project.total_shares) * 100),
@@ -29,7 +37,7 @@ export default function ProjectCard({ project }: { project: Project }) {
 
       {project.is_demo && (
         <span className="-mb-1 w-fit rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
-          نموذج توضيحي — ليس عرضاً حقيقياً
+          {en ? "Illustrative example — not a real offer" : "نموذج توضيحي — ليس عرضاً حقيقياً"}
         </span>
       )}
 
@@ -38,7 +46,7 @@ export default function ProjectCard({ project }: { project: Project }) {
         <span
           className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${riskColor[project.risk_level]}`}
         >
-          مخاطرة {riskLabel(project.risk_level)}
+          {en ? `${riskLabel(project.risk_level, locale)} risk` : `مخاطرة ${riskLabel(project.risk_level)}`}
         </span>
       </div>
 
@@ -51,9 +59,9 @@ export default function ProjectCard({ project }: { project: Project }) {
       )}
 
       <div className="mt-1 flex items-center justify-between text-sm">
-        <span className="text-muted">{project.total_feddans} فدان</span>
+        <span className="text-muted">{project.total_feddans} {en ? "feddans" : "فدان"}</span>
         <span className="font-medium text-primary">
-          {statusLabel(project.status)}
+          {statusLabel(project.status, locale)}
         </span>
       </div>
 
@@ -61,11 +69,14 @@ export default function ProjectCard({ project }: { project: Project }) {
         <div className="h-full bg-primary" style={{ width: `${fundedPct}%` }} />
       </div>
       <div className="flex items-center justify-between text-xs text-muted">
-        <span>{fundedPct}% ممول</span>
+        <span>{fundedPct}% {en ? "funded" : "ممول"}</span>
         <span>
-          الحصة من {formatUsd(project.price_per_share)}
+          {en ? "Share from " : "الحصة من "}
+          {formatUsd(project.price_per_share, locale)}
           {project.expected_annual_return
-            ? ` · عائد متوقع ${project.expected_annual_return}%`
+            ? en
+              ? ` · expected return ${project.expected_annual_return}%`
+              : ` · عائد متوقع ${project.expected_annual_return}%`
             : ""}
         </span>
       </div>

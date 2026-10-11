@@ -363,7 +363,7 @@ export default async function Home() {
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {(projects as Project[]).map((project) => (
-              <ProjectCard key={project.id} project={project} />
+              <ProjectCard key={project.id} project={project} locale={locale} />
             ))}
           </div>
         </section>

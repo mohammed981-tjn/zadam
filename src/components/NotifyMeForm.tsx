@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { sendLead } from "@/lib/leads";
+import { useLocale } from "./LocaleProvider";
 
 /**
  * Shown in place of the invest form while the money flow is closed. Turns a
@@ -9,6 +10,7 @@ import { sendLead } from "@/lib/leads";
  * opens, and reuses the existing leads table rather than inventing a new one.
  */
 export default function NotifyMeForm({ interest }: { interest: string }) {
+  const en = useLocale() === "en";
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(
     null,
   );
@@ -41,7 +43,7 @@ export default function NotifyMeForm({ interest }: { interest: string }) {
       <input type="hidden" name="interest" value={interest} />
       <input type="hidden" name="role" value="investor" />
       <label className="flex flex-col gap-1 text-sm">
-        الاسم
+        {en ? "Name" : "الاسم"}
         <input
           type="text"
           name="full_name"
@@ -50,7 +52,7 @@ export default function NotifyMeForm({ interest }: { interest: string }) {
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        هاتف أو بريد إلكتروني
+        {en ? "Phone or email" : "هاتف أو بريد إلكتروني"}
         <input
           type="text"
           name="contact"
@@ -63,7 +65,9 @@ export default function NotifyMeForm({ interest }: { interest: string }) {
         disabled={pending}
         className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
       >
-        {pending ? "جارٍ الإرسال..." : "أبلغوني عند الإطلاق"}
+        {pending
+          ? en ? "Sending..." : "جارٍ الإرسال..."
+          : en ? "Notify me at launch" : "أبلغوني عند الإطلاق"}
       </button>
       {result && !result.ok && (
         <p className="text-sm text-danger">{result.message}</p>
