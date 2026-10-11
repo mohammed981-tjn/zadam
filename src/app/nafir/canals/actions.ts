@@ -1,4 +1,5 @@
 "use server";
+import { dbMessage as translateDb } from "@/lib/dbMessages";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -35,7 +36,7 @@ async function tx() {
 }
 
 const msg = (t: (ar: string, en: string) => string, m?: string) =>
-  m && /[؀-ۿ]/.test(m) ? m : t("تعذّرت الخطوة. راجع الحقول وأعد المحاولة.", "That step failed. Check the fields and try again.");
+  m && /[؀-ۿ]/.test(m) ? translateDb(m, t("ar", "en") === "en" ? "en" : "ar") : t("تعذّرت الخطوة. راجع الحقول وأعد المحاولة.", "That step failed. Check the fields and try again.");
 
 const feddans = (fd: FormData, k = "feddans") => {
   const n = Number(str(fd, k));

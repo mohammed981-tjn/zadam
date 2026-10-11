@@ -1,4 +1,5 @@
 "use server";
+import { dbText } from "@/lib/dbText";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -109,8 +110,8 @@ export async function createSeason(
     return {
       ok: false,
       message: t(
-        `تعذّر إنشاء الموسم: ${seasonError?.message}`,
-        `Could not create the season: ${seasonError?.message}`,
+        `تعذّر إنشاء الموسم: ${await dbText(seasonError?.message)}`,
+        `Could not create the season: ${await dbText(seasonError?.message)}`,
       ),
     };
   }
@@ -146,8 +147,8 @@ export async function createSeason(
     return {
       ok: false,
       message: t(
-        `تعذّر حفظ مراحل الموسم: ${stagesError.message}`,
-        `Could not save the season stages: ${stagesError.message}`,
+        `تعذّر حفظ مراحل الموسم: ${await dbText(stagesError.message)}`,
+        `Could not save the season stages: ${await dbText(stagesError.message)}`,
       ),
     };
   }
@@ -213,7 +214,7 @@ export async function addEvidence(args: {
     created_by: user.id,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: await dbText(error.message) };
 
   revalidatePath(`/seasons/${args.seasonId}`);
   return { ok: true };
@@ -239,7 +240,7 @@ export async function completeStage(formData: FormData) {
   revalidatePath(`/seasons/${seasonId}`);
 
   if (error) {
-    redirect(`/seasons/${seasonId}?error=${encodeURIComponent(error.message)}`);
+    redirect(`/seasons/${seasonId}?error=${encodeURIComponent(await dbText(error.message))}`);
   }
 }
 

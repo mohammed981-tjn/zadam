@@ -1,4 +1,5 @@
 "use server";
+import { dbText } from "@/lib/dbText";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -146,8 +147,8 @@ export async function submitOpportunity(
     return {
       ok: false,
       message: locale === "en"
-        ? `Could not submit the opportunity: ${error.message}`
-        : `تعذّر رفع الفرصة: ${error.message}`,
+        ? `Could not submit the opportunity: ${await dbText(error.message)}`
+        : `تعذّر رفع الفرصة: ${await dbText(error.message)}`,
     };
   }
 

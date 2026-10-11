@@ -1,4 +1,5 @@
 "use server";
+import { dbText } from "@/lib/dbText";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -81,8 +82,8 @@ export async function createHerd(
     return {
       ok: false,
       message: t(
-        `تعذّر إنشاء الدورة: ${herdError?.message}`,
-        `Could not create the cycle: ${herdError?.message}`,
+        `تعذّر إنشاء الدورة: ${await dbText(herdError?.message)}`,
+        `Could not create the cycle: ${await dbText(herdError?.message)}`,
       ),
     };
   }
@@ -117,8 +118,8 @@ export async function createHerd(
     return {
       ok: false,
       message: t(
-        `تعذّر حفظ مراحل الدورة: ${stagesError.message}`,
-        `Could not save the cycle stages: ${stagesError.message}`,
+        `تعذّر حفظ مراحل الدورة: ${await dbText(stagesError.message)}`,
+        `Could not save the cycle stages: ${await dbText(stagesError.message)}`,
       ),
     };
   }
@@ -145,7 +146,7 @@ export async function completeHerdStage(formData: FormData) {
   revalidatePath(`/herds/${herdId}`);
 
   if (error) {
-    redirect(`/herds/${herdId}?error=${encodeURIComponent(error.message)}`);
+    redirect(`/herds/${herdId}?error=${encodeURIComponent(await dbText(error.message))}`);
   }
 }
 
@@ -235,7 +236,7 @@ export async function setHerdBudget(formData: FormData) {
       .select("id");
 
     if (error) {
-      redirect(`/herds/${herdId}?error=${encodeURIComponent(error.message)}`);
+      redirect(`/herds/${herdId}?error=${encodeURIComponent(await dbText(error.message))}`);
     }
     // ورفضُ سياسة الصفوف لا يرفع خطأً ولا يمسّ صفّاً، فيُقرأ نجاحاً.
     if ((data ?? []).length === 0) {

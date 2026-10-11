@@ -1,4 +1,5 @@
 "use server";
+import { dbText } from "@/lib/dbText";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -99,8 +100,8 @@ export async function registerLand(
 
   if (error) {
     return { ok: false, message: t(
-        `تعذّر تسجيل الأرض: ${error.message}`,
-        `Could not register the land: ${error.message}`,
+        `تعذّر تسجيل الأرض: ${await dbText(error.message)}`,
+        `Could not register the land: ${await dbText(error.message)}`,
       ), };
   }
 
@@ -161,7 +162,7 @@ export async function rejectLand(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    redirect(`/admin/lands?error=${encodeURIComponent(error.message)}`);
+    redirect(`/admin/lands?error=${encodeURIComponent(await dbText(error.message))}`);
   }
 
   revalidatePath("/admin/lands");
@@ -196,7 +197,7 @@ export async function verifyLand(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    redirect(`/admin/lands?error=${encodeURIComponent(error.message)}`);
+    redirect(`/admin/lands?error=${encodeURIComponent(await dbText(error.message))}`);
   }
 
   revalidatePath("/admin/lands");
