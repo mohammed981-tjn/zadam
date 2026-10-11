@@ -1,13 +1,16 @@
 import { bandFor, type DailyTable } from "@/lib/rainMap";
+import { placeName } from "@/lib/enNames";
+import { tr, type Locale } from "@/lib/i18n";
 
-const n0 = (v: number) => Math.round(v).toLocaleString("ar");
-const weekday = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString("ar", {
+const tag = (locale: Locale) => (locale === "en" ? "en-GB" : "ar");
+const n0 = (v: number, locale: Locale) => Math.round(v).toLocaleString(tag(locale));
+const weekday = (iso: string, locale: Locale) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString(tag(locale), {
     weekday: "short",
     timeZone: "Africa/Khartoum",
   });
-const dayNum = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString("ar", {
+const dayNum = (iso: string, locale: Locale) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString(tag(locale), {
     day: "numeric",
     timeZone: "Africa/Khartoum",
   });
@@ -23,39 +26,40 @@ const dayNum = (iso: string) =>
  *
  * The town column sticks on a phone, where the seven days scroll sideways.
  */
-export default function DailyRainTable({ table }: { table: DailyTable }) {
+export default function DailyRainTable({ table, locale = "ar" }: { table: DailyTable; locale?: Locale }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-card">
       <table className="w-full min-w-[36rem] border-collapse text-sm">
         <thead className="text-xs text-muted">
           <tr>
             <th className="sticky start-0 z-10 bg-card p-2 text-start font-medium">
-              المدينة
+              {t("المدينة", "Town")}
             </th>
             {table.dates.map((d) => (
               <th key={d} className="p-2 text-center font-medium">
-                <span className="block">{weekday(d)}</span>
-                <span className="figure block">{dayNum(d)}</span>
+                <span className="block">{weekday(d, locale)}</span>
+                <span className="figure block">{dayNum(d, locale)}</span>
               </th>
             ))}
-            <th className="p-2 text-center font-medium">المجموع</th>
-            <th className="p-2 text-center font-medium">أعلى حرارة</th>
+            <th className="p-2 text-center font-medium">{t("المجموع", "Total")}</th>
+            <th className="p-2 text-center font-medium">{t("أعلى حرارة", "Max temp.")}</th>
           </tr>
         </thead>
         <tbody>
-          {table.towns.map((t) => {
-            const total = t.days.reduce((a, d) => a + d.rainMm, 0);
-            const tmax = Math.max(...t.days.map((d) => d.tmaxC));
+          {table.towns.map((town) => {
+            const total = town.days.reduce((a, d) => a + d.rainMm, 0);
+            const tmax = Math.max(...town.days.map((d) => d.tmaxC));
             return (
-              <tr key={t.name} className="border-t border-border">
+              <tr key={town.name} className="border-t border-border">
                 <th
                   scope="row"
                   className="sticky start-0 z-10 bg-card p-2 text-start font-medium"
                 >
-                  {t.name}
+                  {placeName(town.name, locale)}
                 </th>
                 {table.dates.map((date) => {
-                  const d = t.days.find((x) => x.date === date);
+                  const d = town.days.find((x) => x.date === date);
                   if (!d) return <td key={date} className="p-2 text-center text-muted">—</td>;
                   const b = bandFor(d.rainMm);
                   return (
@@ -64,12 +68,12 @@ export default function DailyRainTable({ table }: { table: DailyTable }) {
                       className="figure p-2 text-center font-bold"
                       style={{ background: b.fill, color: b.ink }}
                     >
-                      {d.rainMm < 1 ? "·" : n0(d.rainMm)}
+                      {d.rainMm < 1 ? "·" : n0(d.rainMm, locale)}
                     </td>
                   );
                 })}
-                <td className="figure p-2 text-center font-black">{n0(total)}</td>
-                <td className="figure p-2 text-center text-muted">{n0(tmax)}°</td>
+                <td className="figure p-2 text-center font-black">{n0(total, locale)}</td>
+                <td className="figure p-2 text-center text-muted">{n0(tmax, locale)}°</td>
               </tr>
             );
           })}

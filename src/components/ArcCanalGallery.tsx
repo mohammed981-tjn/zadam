@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { publicMediaUrl } from "@/lib/media";
 import type { ArcCanalImage } from "@/types/database";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * صور الأرض — كلٌّ منها بمصدرها.
@@ -15,7 +16,9 @@ import type { ArcCanalImage } from "@/types/database";
  * it a formality — and on a page whose whole argument is that claims travel
  * with their basis, an uncredited photograph would be the one exception.
  */
-export default async function ArcCanalGallery() {
+export default async function ArcCanalGallery({ locale = "ar" }: { locale?: Locale }) {
+  // Captions are stored as written, usually Arabic; on the English page they keep their direction.
+  const arabic = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
   const supabase = await createClient();
   const { data } = await supabase
     .from("arc_canal_images")
@@ -31,7 +34,7 @@ export default async function ArcCanalGallery() {
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="text-xl font-semibold">صور من الأرض</h2>
+      <h2 className="text-xl font-semibold">{tr(locale, "صور من الأرض", "Pictures from the ground")}</h2>
 
       <ul className="grid gap-4 sm:grid-cols-2">
         {images.map((img) => (
@@ -53,7 +56,9 @@ export default async function ArcCanalGallery() {
               className="aspect-[4/3] w-full object-cover"
             />
             <figcaption className="flex flex-col gap-1 p-3">
-              <p className="text-sm leading-relaxed">{img.caption}</p>
+              <p className="text-sm leading-relaxed" {...arabic}>
+                {img.caption}
+              </p>
               <p className="text-xs text-muted">
                 {img.source_url ? (
                   <a

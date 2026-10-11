@@ -10,6 +10,8 @@ import {
   type ExtractionMethod,
   type SiteFacts,
 } from "@/lib/provenance";
+import { tr } from "@/lib/i18n";
+import { getLocale } from "@/lib/locale";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -137,10 +139,12 @@ export async function registerSite(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const name = str(formData, "name");
   const state = str(formData, "state");
   if (!name || !state) {
-    return { ok: false, message: "اسم الموقع والولاية مطلوبان." };
+    return { ok: false, message: t("اسم الموقع والولاية مطلوبان.", "The site name and state are required.") };
   }
 
   const { error } = await supabase.from("mine_sites").insert({
@@ -158,11 +162,17 @@ export async function registerSite(
   });
 
   if (error) {
-    return { ok: false, message: `تعذّر تسجيل الموقع: ${error.message}` };
+    return {
+      ok: false,
+      message: t(`تعذّر تسجيل الموقع: ${error.message}`, `The site could not be registered: ${error.message}`),
+    };
   }
 
   revalidatePath("/mining/registry");
-  return { ok: true, message: "سُجّل الموقع. يمكنك الآن تسجيل شحنة منه." };
+  return {
+    ok: true,
+    message: t("سُجّل الموقع. يمكنك الآن تسجيل شحنة منه.", "Site registered. You can now register a lot from it."),
+  };
 }
 
 export async function registerLot(
@@ -175,22 +185,27 @@ export async function registerLot(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const reference = str(formData, "reference");
   const siteId = str(formData, "site_id");
   const method = str(formData, "method") as ExtractionMethod;
   const weight = num(formData, "initial_weight_grams");
   const fineness = num(formData, "initial_fineness");
 
-  if (!reference) return { ok: false, message: "رقم الشحنة مطلوب." };
-  if (!siteId) return { ok: false, message: "اختر موقع الاستخراج." };
+  if (!reference) return { ok: false, message: t("رقم الشحنة مطلوب.", "The lot number is required.") };
+  if (!siteId) return { ok: false, message: t("اختر موقع الاستخراج.", "Choose the extraction site.") };
   if (!METHODS.includes(method)) {
-    return { ok: false, message: "طريقة استخلاص غير معروفة." };
+    return { ok: false, message: t("طريقة استخلاص غير معروفة.", "Unknown extraction method.") };
   }
   if (!Number.isFinite(weight) || weight <= 0) {
-    return { ok: false, message: "أدخل وزناً صحيحاً بالجرام." };
+    return { ok: false, message: t("أدخل وزناً صحيحاً بالجرام.", "Enter a valid weight in grams.") };
   }
   if (!Number.isFinite(fineness) || fineness <= 0 || fineness > 1) {
-    return { ok: false, message: "العيار يُدخل كنسبة بين 0 و1 — مثال 0.85." };
+    return {
+      ok: false,
+      message: t("العيار يُدخل كنسبة بين 0 و1 — مثال 0.85.", "Enter fineness as a fraction between 0 and 1 — for example 0.85."),
+    };
   }
 
   const { data, error } = await supabase
@@ -209,14 +224,20 @@ export async function registerLot(
     .single();
 
   if (error || !data) {
-    return { ok: false, message: `تعذّر تسجيل الشحنة: ${error?.message}` };
+    return {
+      ok: false,
+      message: t(`تعذّر تسجيل الشحنة: ${error?.message}`, `The lot could not be registered: ${error?.message}`),
+    };
   }
 
   await rescore(supabase, (data as { id: string }).id);
   revalidatePath("/mining/registry");
   return {
     ok: true,
-    message: "سُجّلت الشحنة. أضف حلقات الحيازة لتكتمل سلسلتها.",
+    message: t(
+      "سُجّلت الشحنة. أضف حلقات الحيازة لتكتمل سلسلتها.",
+      "Lot registered. Add custody links to complete its chain.",
+    ),
   };
 }
 

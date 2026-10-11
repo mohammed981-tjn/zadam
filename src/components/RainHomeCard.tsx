@@ -49,7 +49,7 @@ export default async function RainHomeCard() {
             : t("لا مطر يُعتدّ به متوقَّع هذا الأسبوع. اضغط للتفاصيل.", "No significant rain expected this week. Tap for details.")}
         </p>
         <div className="mx-auto mt-4 max-w-xl">
-          <RainMap grid={grid} />
+          <RainMap grid={grid} locale={locale} />
         </div>
       </Link>
     </section>

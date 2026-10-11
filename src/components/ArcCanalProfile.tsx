@@ -8,6 +8,9 @@ import {
   distanceKm,
   summarise,
 } from "@/lib/arcCanal";
+import { placeName } from "@/lib/enNames";
+import { tr } from "@/lib/i18n";
+import { useLocale } from "@/components/LocaleProvider";
 
 /**
  * The measured long-section of the canal route.
@@ -55,6 +58,9 @@ const TICKS = [380, 400, 420, 440];
 
 export default function ArcCanalProfile() {
   const [hover, setHover] = useState<number | null>(null);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const m = t("م", "m");
   const s = summarise();
 
   const line = ROUTE.map(
@@ -81,11 +87,13 @@ export default function ArcCanalProfile() {
     <figure className="flex flex-col gap-3">
       <figcaption className="flex flex-col gap-1">
         <h3 className="text-lg font-semibold">
-          المقطع الطولي للمسار — مقيساً لا مُقدَّراً
+          {t("المقطع الطولي للمسار — مقيساً لا مُقدَّراً", "The route's long section — measured, not estimated")}
         </h3>
         <p className="text-sm leading-relaxed text-muted">
-          ٤١ عيّنة ارتفاع من قمر SRTM بدقّة ٣٠ متراً، من جبل أولياء (يميناً) إلى
-          السروراب (يساراً). الخط المتقطّع منسوب الخزان.
+          {t(
+            "٤١ عيّنة ارتفاع من قمر SRTM بدقّة ٣٠ متراً، من جبل أولياء (يميناً) إلى السروراب (يساراً). الخط المتقطّع منسوب الخزان.",
+            "41 elevation samples from the SRTM satellite at 30 m resolution, from Jebel Aulia (right) to Sarurab (left). The dashed line is the reservoir level.",
+          )}
         </p>
       </figcaption>
 
@@ -94,7 +102,10 @@ export default function ArcCanalProfile() {
           viewBox={`0 0 ${W} ${H}`}
           className="h-auto w-full min-w-[34rem]"
           role="img"
-          aria-label={`المقطع الطولي: أعلى نقطة ${s.peak.elevation} متراً، ومنسوب الخزان ${SOURCE_ELEVATION_M} متراً، والنهاية ${s.terminusElevation} متراً`}
+          aria-label={t(
+            `المقطع الطولي: أعلى نقطة ${s.peak.elevation} متراً، ومنسوب الخزان ${SOURCE_ELEVATION_M} متراً، والنهاية ${s.terminusElevation} متراً`,
+            `Long section: highest point ${s.peak.elevation} m, reservoir level ${SOURCE_ELEVATION_M} m, end ${s.terminusElevation} m`,
+          )}
           onMouseMove={onMove}
           onMouseLeave={() => setHover(null)}
         >
@@ -125,7 +136,7 @@ export default function ArcCanalProfile() {
             fontSize={11}
             fill="var(--color-muted)"
           >
-            متر
+            {t("متر", "metres")}
           </text>
 
           <path d={area} fill="var(--color-primary)" opacity={0.1} />
@@ -154,7 +165,7 @@ export default function ArcCanalProfile() {
             fontSize={11}
             fill="var(--color-muted)"
           >
-            منسوب الخزان {SOURCE_ELEVATION_M} م
+            {t("منسوب الخزان", "Reservoir level")} {SOURCE_ELEVATION_M} {m}
           </text>
 
           {/* Five direct labels, deliberately. */}
@@ -179,7 +190,7 @@ export default function ArcCanalProfile() {
                   textAnchor="middle"
                   fill="var(--color-foreground)"
                 >
-                  {l.name}
+                  {placeName(l.name, locale)}
                 </text>
                 <text
                   x={x(l.index)}
@@ -188,7 +199,7 @@ export default function ArcCanalProfile() {
                   textAnchor="middle"
                   fill="var(--color-muted)"
                 >
-                  {p.elevation} م
+                  {p.elevation} {m}
                 </text>
               </g>
             );
@@ -232,7 +243,7 @@ export default function ArcCanalProfile() {
             textAnchor="end"
             fill="var(--color-muted)"
           >
-            ٠ كم — جبل أولياء
+            {t("٠ كم — جبل أولياء", "0 km — Jebel Aulia")}
           </text>
           <text
             x={PLOT_LEFT}
@@ -241,31 +252,34 @@ export default function ArcCanalProfile() {
             textAnchor="start"
             fill="var(--color-muted)"
           >
-            {Math.round(s.lengthKm)} كم — السروراب
+            {Math.round(s.lengthKm)} {t("كم — السروراب", "km — Sarurab")}
           </text>
         </svg>
       </div>
 
       <p className="min-h-[1.5rem] text-sm text-muted" aria-live="polite">
         {active
-          ? `عند ${distanceKm(active.index).toFixed(1)} كم: ${active.elevation} متراً — أي ${active.elevation - SOURCE_ELEVATION_M} متراً فوق الخزان.`
-          : "مرّر المؤشّر على المقطع لقراءة أي نقطة."}
+          ? t(
+              `عند ${distanceKm(active.index).toFixed(1)} كم: ${active.elevation} متراً — أي ${active.elevation - SOURCE_ELEVATION_M} متراً فوق الخزان.`,
+              `At ${distanceKm(active.index).toFixed(1)} km: ${active.elevation} m — that is ${active.elevation - SOURCE_ELEVATION_M} m above the reservoir.`,
+            )
+          : t("مرّر المؤشّر على المقطع لقراءة أي نقطة.", "Move the pointer over the section to read any point.")}
       </p>
 
       {/* The table is not a fallback — it is the version a screen reader, a
           printer and a sceptic can all use. */}
       <details className="rounded-xl border border-border bg-card">
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
-          القراءات الإحدى والأربعون كجدول
+          {t("القراءات الإحدى والأربعون كجدول", "All forty-one readings as a table")}
         </summary>
         <div className="max-h-80 overflow-auto px-4 pb-4">
           <table className="w-full text-start text-sm">
             <thead className="sticky top-0 bg-card">
               <tr className="text-muted">
-                <th className="py-1 text-start font-normal">كم</th>
-                <th className="py-1 text-start font-normal">خط العرض</th>
-                <th className="py-1 text-start font-normal">خط الطول</th>
-                <th className="py-1 text-start font-normal">الارتفاع (م)</th>
+                <th className="py-1 text-start font-normal">{t("كم", "km")}</th>
+                <th className="py-1 text-start font-normal">{t("خط العرض", "Latitude")}</th>
+                <th className="py-1 text-start font-normal">{t("خط الطول", "Longitude")}</th>
+                <th className="py-1 text-start font-normal">{t("الارتفاع (م)", "Elevation (m)")}</th>
               </tr>
             </thead>
             <tbody>

@@ -64,6 +64,13 @@ export const PHASE_VERDICT_LABEL: Record<PhaseVerdict, string> = {
   unknown: "لا يمكن الحكم — بيانات ناقصة",
 };
 
+export const PHASE_VERDICT_LABEL_EN: Record<PhaseVerdict, string> = {
+  within_national: "Recovered at the national average",
+  needs_peer: "Needs more than the national average",
+  beyond_peer: "Needs more than Egypt achieves",
+  unknown: "Cannot judge — data missing",
+};
+
 export interface PhaseStep {
   stage: StageKey;
   name: string;

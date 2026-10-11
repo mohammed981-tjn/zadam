@@ -71,6 +71,16 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/seasons/*",
   "/herds",
   "/herds/*",
+  // Rain, tools, studies, the Arc Canal and mining
+  "/rain",
+  "/tools/water",
+  "/tools/feasibility",
+  "/studies",
+  "/studies/exchange-rate",
+  "/arc-canal",
+  "/mining",
+  "/mining/registry",
+  "/mining/registry/*",
 ];
 
 export function isTranslated(pathname: string): boolean {

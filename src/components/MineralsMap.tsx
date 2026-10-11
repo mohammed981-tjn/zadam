@@ -1,7 +1,9 @@
 import raw from "../../data/sudan-minerals.json";
 import { INFRA } from "@/components/InfraMap";
 import { BASE, MAP_LABELS } from "@/lib/mapDraw";
-import { BORDER, Furniture, Ground, H, Label, W, Relief, Water, arDigits, f1, ringPath, x, y } from "@/components/RainMap";
+import { BORDER, Furniture, Ground, H, Label, W, Relief, Water, digits, f1, ringPath, x, y } from "@/components/RainMap";
+import { COMMODITY_EN, inEnglish } from "@/lib/enNames";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * خريطة معادن السودان — المناجم والمصانع والحقول والرواسب المعروفة.
@@ -36,17 +38,17 @@ export type MineralSite = {
 
 export const MINERALS = raw as { source: string; asOf: number; sites: MineralSite[] };
 
-export const GROUPS: Record<MineralSite["group"], { label: string; ink: string }> = {
-  gold: { label: "ذهب وفضة", ink: "#d4a017" },
-  metal: { label: "معادن فلزّية (نحاس، كروم، حديد…)", ink: "#b5562b" },
-  fuel: { label: "نفط", ink: "#5b3a8c" },
-  industrial: { label: "معادن صناعية (إسمنت، جبس، ملح…)", ink: "#6b7280" },
+export const GROUPS: Record<MineralSite["group"], { label: string; en: string; ink: string }> = {
+  gold: { label: "ذهب وفضة", en: "Gold and silver", ink: "#d4a017" },
+  metal: { label: "معادن فلزّية (نحاس، كروم، حديد…)", en: "Metals (copper, chromium, iron…)", ink: "#b5562b" },
+  fuel: { label: "نفط", en: "Oil", ink: "#5b3a8c" },
+  industrial: { label: "معادن صناعية (إسمنت، جبس، ملح…)", en: "Industrial minerals (cement, gypsum, salt…)", ink: "#6b7280" },
 };
 
-export const KINDS: Record<MineralSite["kind"], string> = {
-  facility: "منشأة: منجم أو مصنع أو حقل",
-  deposit: "رواسب معروفة",
-  exploration: "موقع استكشاف",
+export const KINDS: Record<MineralSite["kind"], { ar: string; en: string }> = {
+  facility: { ar: "منشأة: منجم أو مصنع أو حقل", en: "Facility: mine, plant or field" },
+  deposit: { ar: "رواسب معروفة", en: "Known deposit" },
+  exploration: { ar: "موقع استكشاف", en: "Exploration site" },
 };
 
 const BASIN_INK = "#7c3aed";
@@ -64,14 +66,15 @@ export function Mark({ kind, ink, cx, cy, r = 4 }: { kind: MineralSite["kind"]; 
   return <circle cx={cx} cy={cy} r={r} {...common} />;
 }
 
-export default function MineralsMap() {
+export default function MineralsMap({ locale = "ar" }: { locale?: Locale }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   // Facilities first so the rarer deposits and exploration sites sit on top.
   const order = { facility: 0, deposit: 1, exploration: 2 } as const;
   const sites = [...MINERALS.sites].sort((a, b) => order[a.kind] - order[b.kind]);
 
   return (
     <figure>
-      <svg viewBox={`0 0 ${W} ${f1(H)}`} className="h-auto w-full" role="img" aria-label={`خريطة السودان: ${arDigits(sites.length)} موقعاً معدنياً`}>
+      <svg viewBox={`0 0 ${W} ${f1(H)}`} className="h-auto w-full" role="img" aria-label={t(`خريطة السودان: ${digits(sites.length, locale)} موقعاً معدنياً`, `Map of Sudan: ${sites.length} mineral sites`)}>
         <defs>
           <clipPath id="minerals-sudan">
             <path d={BORDER} />
@@ -82,7 +85,7 @@ export default function MineralsMap() {
         </defs>
 
         <g clipPath="url(#minerals-frame)">
-          <Ground />
+          <Ground locale={locale} />
           <g clipPath="url(#minerals-sudan)">
             <path d={BORDER} fill="var(--card)" />
             <g fill="none" stroke="var(--map-state)" strokeWidth={0.7} strokeDasharray="3 2">
@@ -109,17 +112,21 @@ export default function MineralsMap() {
           <path d={BORDER} fill="none" stroke="var(--foreground)" strokeWidth={1.2} strokeLinejoin="round" />
 
           {MAP_LABELS.filter((t) => TOWNS.has(t.name)).map((t) => (
-            <Label key={t.name} t={t} strong={null} />
+            <Label key={t.name} t={t} strong={null} locale={locale} />
           ))}
 
           {sites.map((s, k) => (
             <g key={k}>
-              <title>{`${s.commodityAr} — ${s.place ?? s.name}`}</title>
+              <title>
+                {locale === "en"
+                  ? `${inEnglish(COMMODITY_EN, s.commodityAr, locale)} — ${s.name}`
+                  : `${s.commodityAr} — ${s.place ?? s.name}`}
+              </title>
               <Mark kind={s.kind} ink={GROUPS[s.group].ink} cx={x(s.lon)} cy={y(s.lat)} />
             </g>
           ))}
 
-          <Furniture />
+          <Furniture locale={locale} />
         </g>
         <rect x={0.5} y={0.5} width={W - 1} height={H - 1} fill="none" stroke="var(--border)" rx={10} />
       </svg>
@@ -129,7 +136,7 @@ export default function MineralsMap() {
           {Object.entries(GROUPS).map(([key, g]) => (
             <li key={key} className="flex items-center gap-1.5">
               <span className="inline-block size-3 rounded-full" style={{ background: g.ink }} />
-              {g.label}
+              {locale === "en" ? g.en : g.label}
             </li>
           ))}
         </ul>
@@ -139,22 +146,24 @@ export default function MineralsMap() {
               <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden>
                 <Mark kind={k} ink="var(--foreground)" cx={7} cy={7} r={4.2} />
               </svg>
-              {KINDS[k]}
+              {KINDS[k][locale]}
             </li>
           ))}
         </ul>
         <ul className="flex flex-wrap gap-x-4 gap-y-1">
           <li className="flex items-center gap-1.5">
             <span className="inline-block h-1 w-5 rounded-full" style={{ background: GROUPS.fuel.ink }} />
-            أنابيب النفط
+            {t("أنابيب النفط", "Oil pipelines")}
           </li>
           <li className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-5 border border-dashed" style={{ background: `${BASIN_INK}22`, borderColor: BASIN_INK }} />
-            أحواض النفط والغاز: {INFRA.basins.map((b) => b.nameAr).join("، ")}
+            {locale === "en"
+              ? `Oil and gas basins: ${INFRA.basins.map((b) => b.name).join(", ")}`
+              : `أحواض النفط والغاز: ${INFRA.basins.map((b) => b.nameAr).join("، ")}`}
           </li>
           <li className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-5" style={{ background: `${COAL_INK}55` }} />
-            منطقة حاملة للفحم (العصر الطباشيري الأعلى)
+            {t("منطقة حاملة للفحم (العصر الطباشيري الأعلى)", "Coal-bearing area (Upper Cretaceous)")}
           </li>
         </ul>
       </figcaption>

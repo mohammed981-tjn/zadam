@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { EXTRACTION_LABEL, type ExtractionMethod } from "@/lib/provenance";
+import { EXTRACTION_LABEL, extractionLabel, type ExtractionMethod } from "@/lib/provenance";
+import { tr } from "@/lib/i18n";
+import { useLocale } from "@/components/LocaleProvider";
 import {
   registerLot,
   registerSite,
@@ -17,6 +19,8 @@ export default function RegistryForms({
 }: {
   sites: { id: string; name: string; state: string; licensed: boolean }[];
 }) {
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const [tab, setTab] = useState<"site" | "lot">(sites.length ? "lot" : "site");
 
   const [siteState, siteAction, sitePending] = useActionState<
@@ -35,8 +39,8 @@ export default function RegistryForms({
       <div className="mb-5 flex gap-2">
         {(
           [
-            ["lot", "شحنة جديدة"],
-            ["site", "موقع تعدين"],
+            ["lot", t("شحنة جديدة", "New lot")],
+            ["site", t("موقع تعدين", "Mining site")],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -56,27 +60,27 @@ export default function RegistryForms({
       {tab === "site" ? (
         <form action={siteAction} className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
-            اسم الموقع
+            {t("اسم الموقع", "Site name")}
             <input name="name" required className={field} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            الولاية
+            {t("الولاية", "State")}
             <input name="state" required className={field} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            المحلية
+            {t("المحلية", "Locality")}
             <input name="locality" className={field} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            رقم الترخيص
+            {t("رقم الترخيص", "Licence number")}
             <input name="licence_number" className={field} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            خط العرض
+            {t("خط العرض", "Latitude")}
             <input type="number" step="any" name="latitude" className={field} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            خط الطول
+            {t("خط الطول", "Longitude")}
             <input
               type="number"
               step="any"
@@ -88,24 +92,25 @@ export default function RegistryForms({
           <div className="flex flex-col gap-2 sm:col-span-2">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="licensed" />
-              الموقع مرخّص لدى سلطة التعدين
+              {t("الموقع مرخّص لدى سلطة التعدين", "The site is licensed by the mining authority")}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="site_visited" />
-              جرت معاينة مستقلة للموقع
+              {t("جرت معاينة مستقلة للموقع", "The site has had an independent inspection")}
             </label>
             <label className="flex items-center gap-2 text-sm text-danger">
               <input type="checkbox" name="armed_presence" />
-              يوجد حضور مسلح في الموقع أو حوله
+              {t("يوجد حضور مسلح في الموقع أو حوله", "There is an armed presence at or around the site")}
             </label>
             <label className="flex items-center gap-2 text-sm text-danger">
               <input type="checkbox" name="child_labour" />
-              يعمل في الموقع من هم دون الثامنة عشرة
+              {t("يعمل في الموقع من هم دون الثامنة عشرة", "People under eighteen work at the site")}
             </label>
             <p className="text-xs text-muted">
-              الخانتان الأخيرتان علامتان حمراوان قاطعتان في إرشادات العناية
-              الواجبة. تسجيلهما بصدق هو ما يجعل السجل ذا قيمة — إخفاؤهما يُفقده
-              معناه كله.
+              {t(
+                "الخانتان الأخيرتان علامتان حمراوان قاطعتان في إرشادات العناية الواجبة. تسجيلهما بصدق هو ما يجعل السجل ذا قيمة — إخفاؤهما يُفقده معناه كله.",
+                "The last two boxes are definitive red flags in the due-diligence guidance. Recording them honestly is what gives the registry its value — hiding them strips it of all meaning.",
+              )}
             </p>
           </div>
 
@@ -114,19 +119,22 @@ export default function RegistryForms({
             disabled={sitePending}
             className="rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 sm:col-span-2"
           >
-            {sitePending ? "جارٍ التسجيل..." : "سجّل الموقع"}
+            {sitePending ? t("جارٍ التسجيل...", "Registering...") : t("سجّل الموقع", "Register the site")}
           </button>
         </form>
       ) : (
         <form action={lotAction} className="grid gap-4 sm:grid-cols-2">
           {sites.length === 0 ? (
             <p className="text-sm text-muted sm:col-span-2">
-              سجّل موقع تعدين أولاً — كل شحنة يجب أن تُنسب إلى موقع.
+              {t(
+                "سجّل موقع تعدين أولاً — كل شحنة يجب أن تُنسب إلى موقع.",
+                "Register a mining site first — every lot must be traced to a site.",
+              )}
             </p>
           ) : (
             <>
               <label className="flex flex-col gap-1 text-sm">
-                رقم الشحنة
+                {t("رقم الشحنة", "Lot number")}
                 <input
                   name="reference"
                   required
@@ -135,18 +143,18 @@ export default function RegistryForms({
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                موقع الاستخراج
+                {t("موقع الاستخراج", "Extraction site")}
                 <select name="site_id" required className={field}>
                   {sites.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} — {s.state}
-                      {s.licensed ? "" : " (بلا ترخيص)"}
+                      {s.licensed ? "" : t(" (بلا ترخيص)", " (unlicensed)")}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                تاريخ الاستخراج
+                {t("تاريخ الاستخراج", "Extraction date")}
                 <input
                   type="date"
                   name="extracted_on"
@@ -155,17 +163,17 @@ export default function RegistryForms({
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                طريقة الاستخلاص
+                {t("طريقة الاستخلاص", "Extraction method")}
                 <select name="method" className={field} defaultValue="borax">
                   {METHODS.map((m) => (
                     <option key={m} value={m}>
-                      {EXTRACTION_LABEL[m]}
+                      {extractionLabel(m, locale)}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                الوزن (جرام)
+                {t("الوزن (جرام)", "Weight (grams)")}
                 <input
                   type="number"
                   step="0.01"
@@ -176,7 +184,7 @@ export default function RegistryForms({
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                العيار (نسبة بين 0 و1)
+                {t("العيار (نسبة بين 0 و1)", "Fineness (a fraction between 0 and 1)")}
                 <input
                   type="number"
                   step="0.001"
@@ -193,7 +201,7 @@ export default function RegistryForms({
                 disabled={lotPending}
                 className="rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 sm:col-span-2"
               >
-                {lotPending ? "جارٍ التسجيل..." : "سجّل الشحنة"}
+                {lotPending ? t("جارٍ التسجيل...", "Registering...") : t("سجّل الشحنة", "Register the lot")}
               </button>
             </>
           )}

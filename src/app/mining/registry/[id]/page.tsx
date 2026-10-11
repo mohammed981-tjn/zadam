@@ -3,13 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 import {
   assessProvenance,
   CUSTODY_ROLE_LABEL,
-  EXTRACTION_LABEL,
+  CUSTODY_ROLE_LABEL_EN,
+  extractionLabel,
   fineGold,
   type CustodyEvent,
   type CustodyRole,
   type ExtractionMethod,
 } from "@/lib/provenance";
 import { addCustodyEvent, addCustodyEvidence } from "../actions";
+import { tr } from "@/lib/i18n";
+import { getLocale } from "@/lib/locale";
 
 const ROLES = Object.keys(CUSTODY_ROLE_LABEL) as CustodyRole[];
 const field =
@@ -24,6 +27,12 @@ export default async function LotPage({
 }) {
   const { id } = await params;
   const { error } = await searchParams;
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const en = locale === "en";
+  const role = (r: CustodyRole) => (en ? CUSTODY_ROLE_LABEL_EN[r] : CUSTODY_ROLE_LABEL[r]);
+  // Names, places and captions are what users typed; on the English page they keep their direction.
+  const typed = en ? ({ dir: "auto" } as const) : {};
 
   const supabase = await createClient();
   const {
@@ -110,6 +119,7 @@ export default async function LotPage({
     },
     lot.method,
     custody,
+    locale,
   );
 
   const severityTone: Record<string, string> = {
@@ -122,10 +132,14 @@ export default async function LotPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{lot.reference}</h1>
+      <h1 className="text-2xl font-bold" {...typed}>
+        {lot.reference}
+      </h1>
       <p className="mt-1 text-sm text-muted">
-        {site?.name} — {site?.state} · استُخرجت {lot.extracted_on} ·{" "}
-        {EXTRACTION_LABEL[lot.method]}
+        <span {...typed}>
+          {site?.name} — {site?.state}
+        </span>{" "}
+        · {t("استُخرجت", "extracted")} {lot.extracted_on} · {extractionLabel(lot.method, locale)}
       </p>
 
       {error && (
@@ -137,21 +151,21 @@ export default async function LotPage({
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         {[
           {
-            l: "توثيق المنشأ",
+            l: t("توثيق المنشأ", "Origin documentation"),
             v: `${result.score}`,
-            s: "من 100 — اكتمال التوثيق لا قيمة الذهب",
+            s: t("من 100 — اكتمال التوثيق لا قيمة الذهب", "out of 100 — completeness of the record, not the gold's value"),
           },
           {
-            l: "السلسلة",
-            v: result.chainIntact ? "متصلة" : "مكسورة",
-            s: `${events.length} حلقة`,
+            l: t("السلسلة", "Chain"),
+            v: result.chainIntact ? t("متصلة", "Intact") : t("مكسورة", "Broken"),
+            s: t(`${events.length} حلقة`, `${events.length} links`),
           },
           {
-            l: "الزئبق",
-            v: result.mercuryFree ? "خالٍ" : "مستخدم",
-            s: result.mercuryFree ? "ميزة تسويقية" : "يخفض القبول",
+            l: t("الزئبق", "Mercury"),
+            v: result.mercuryFree ? t("خالٍ", "Free") : t("مستخدم", "Used"),
+            s: result.mercuryFree ? t("ميزة تسويقية", "A selling point") : t("يخفض القبول", "Lowers acceptance"),
           },
-          { l: "آخر حائز", v: lastParty, s: "في السلسلة المسجّلة" },
+          { l: t("آخر حائز", "Last holder"), v: lastParty, s: t("في السلسلة المسجّلة", "in the recorded chain") },
         ].map((c) => (
           <div
             key={c.l}
@@ -167,7 +181,7 @@ export default async function LotPage({
       {result.flags.length > 0 && (
         <section className="mt-8">
           <h2 className="mb-3 text-lg font-bold">
-            ملاحظات العناية الواجبة ({result.flags.length})
+            {t("ملاحظات العناية الواجبة", "Due-diligence notes")} ({result.flags.length})
           </h2>
           <ul className="flex flex-col gap-2">
             {result.flags.map((f) => (
@@ -183,15 +197,17 @@ export default async function LotPage({
       )}
 
       <section className="mt-10">
-        <h2 className="mb-1 text-lg font-bold">سلسلة الحيازة</h2>
+        <h2 className="mb-1 text-lg font-bold">{t("سلسلة الحيازة", "Chain of custody")}</h2>
         <p className="mb-4 text-sm text-muted">
-          الذهب الصافي = الوزن × العيار، ويجب أن ينخفض عند كل حلقة. الارتفاع
-          يعني دخول مادة غير مسجّلة.
+          {t(
+            "الذهب الصافي = الوزن × العيار، ويجب أن ينخفض عند كل حلقة. الارتفاع يعني دخول مادة غير مسجّلة.",
+            "Fine gold = weight × fineness, and it must fall at every link. A rise means unrecorded material has entered.",
+          )}
         </p>
 
         {events.length === 0 ? (
           <p className="rounded-2xl border border-border bg-card p-5 text-sm text-muted">
-            لا توجد حلقات بعد. ابدأ بالحلقة الأولى من المعدّن نفسه.
+            {t("لا توجد حلقات بعد. ابدأ بالحلقة الأولى من المعدّن نفسه.", "No links yet. Start with the first link, from the miner.")}
           </p>
         ) : (
           <ol className="flex flex-col gap-3">
@@ -214,22 +230,28 @@ export default async function LotPage({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-bold">
-                        {e.sequence}. {e.from_party} ← {e.to_party}
+                        {e.sequence}. <span {...typed}>{e.from_party}</span> {en ? "→" : "←"}{" "}
+                        <span {...typed}>{e.to_party}</span>
                       </p>
                       <p className="text-xs text-muted">
-                        {CUSTODY_ROLE_LABEL[e.role]} · {e.occurred_at}
-                        {e.location ? ` · ${e.location}` : ""}
+                        {role(e.role)} · {e.occurred_at}
+                        {e.location && (
+                          <>
+                            {" · "}
+                            <span {...typed}>{e.location}</span>
+                          </>
+                        )}
                       </p>
                     </div>
-                    <div className="text-left">
+                    <div className="text-end">
                       <p className="font-bold">
-                        {Number(e.weight_grams)} جم × {Number(e.fineness)}
+                        {Number(e.weight_grams)} {t("جم", "g")} × {Number(e.fineness)}
                       </p>
                       <p
                         className={`text-xs font-medium ${rose ? "text-danger" : "text-muted"}`}
                       >
-                        {content.toFixed(2)} جم ذهب صافٍ
-                        {rose ? " — ارتفاع غير مبرّر" : ""}
+                        {content.toFixed(2)} {t("جم ذهب صافٍ", "g fine gold")}
+                        {rose ? t(" — ارتفاع غير مبرّر", " — unexplained rise") : ""}
                       </p>
                     </div>
                   </div>
@@ -240,6 +262,7 @@ export default async function LotPage({
                         <li
                           key={v.id}
                           className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary"
+                          {...typed}
                         >
                           {v.caption}
                         </li>
@@ -254,23 +277,23 @@ export default async function LotPage({
                     <input type="hidden" name="event_id" value={e.id} />
                     <input type="hidden" name="lot_id" value={lot.id} />
                     <select name="kind" className={field} defaultValue="photo">
-                      <option value="photo">صورة</option>
-                      <option value="assay">شهادة عيار</option>
-                      <option value="receipt">إيصال</option>
-                      <option value="permit">تصريح</option>
-                      <option value="inspection">معاينة</option>
+                      <option value="photo">{t("صورة", "Photo")}</option>
+                      <option value="assay">{t("شهادة عيار", "Assay certificate")}</option>
+                      <option value="receipt">{t("إيصال", "Receipt")}</option>
+                      <option value="permit">{t("تصريح", "Permit")}</option>
+                      <option value="inspection">{t("معاينة", "Inspection")}</option>
                     </select>
                     <input
                       name="caption"
                       required
-                      placeholder="وصف الدليل"
+                      placeholder={t("وصف الدليل", "Describe the evidence")}
                       className={field}
                     />
                     <button
                       type="submit"
                       className="rounded-lg border border-border px-3 py-2 text-sm hover:border-primary"
                     >
-                      أضف دليلاً
+                      {t("أضف دليلاً", "Add evidence")}
                     </button>
                   </form>
                 </li>
@@ -281,14 +304,14 @@ export default async function LotPage({
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-bold">أضف حلقة جديدة</h2>
+        <h2 className="mb-3 text-lg font-bold">{t("أضف حلقة جديدة", "Add a new link")}</h2>
         <form
           action={addCustodyEvent}
           className="grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2"
         >
           <input type="hidden" name="lot_id" value={lot.id} />
           <label className="flex flex-col gap-1 text-sm">
-            من
+            {t("من", "From")}
             <input
               name="from_party"
               required
@@ -297,25 +320,25 @@ export default async function LotPage({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            إلى
+            {t("إلى", "To")}
             <input name="to_party" required className={field} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            الصفة
+            {t("الصفة", "Role")}
             <select name="role" className={field} defaultValue="transporter">
               {ROLES.map((r) => (
                 <option key={r} value={r}>
-                  {CUSTODY_ROLE_LABEL[r]}
+                  {role(r)}
                 </option>
               ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            التاريخ
+            {t("التاريخ", "Date")}
             <input type="date" name="occurred_at" required className={field} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            الوزن (جرام)
+            {t("الوزن (جرام)", "Weight (grams)")}
             <input
               type="number"
               step="0.01"
@@ -326,7 +349,7 @@ export default async function LotPage({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            العيار (0–1)
+            {t("العيار (0–1)", "Fineness (0–1)")}
             <input
               type="number"
               step="0.001"
@@ -338,17 +361,20 @@ export default async function LotPage({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-            المكان
+            {t("المكان", "Place")}
             <input name="location" className={field} />
           </label>
           <button
             type="submit"
             className="rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground hover:opacity-90 sm:col-span-2"
           >
-            أضف الحلقة
+            {t("أضف الحلقة", "Add the link")}
           </button>
           <p className="text-xs text-muted sm:col-span-2">
-            بعد الإضافة لا يمكن تعديل الحلقة ولا حذفها — صحّح بإضافة حلقة تالية.
+            {t(
+              "بعد الإضافة لا يمكن تعديل الحلقة ولا حذفها — صحّح بإضافة حلقة تالية.",
+              "Once added, a link cannot be edited or deleted — correct it by adding a following link.",
+            )}
           </p>
         </form>
       </section>
