@@ -7,7 +7,9 @@ name: Narration fix (livestock clips)
 # spoken again by the Fasih voice with full diacritics — once as written
 # (auto_diacritize off) and once re-diacritized — over the clip's own field sound.
 # Later fixes the same day: «نِصْف» in the seeds clip, and «مُزارِعاً» in the
-# shared-tractor clip. A clip or line already done is skipped.
+# shared-tractor clip; «لا تَبِعِ» (value added), the phone-extension line
+# spoken again in full, and «جَماعَتِكَ» (cooperatives). A clip or line
+# already done is skipped.
 on:
   push:
     branches: [claude/project-review-analysis-dt7lsy]
