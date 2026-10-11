@@ -62,6 +62,10 @@ const FILMS: Film[] = [
   // /services, /tools/water, /rain, /seasons, /projects, /knowledge, /guide,
   // /lands, /arc-canal, and the nafir pages.
   { key: "sudagri", label: "سوداقري — من الماء إلى السوق", en: "Sudagri — from water to market", enAudio: true },
+  // The second film, beside the first and not instead of it (the owner, 11
+  // October): the clips that came in random order, set in order — the crops,
+  // then the herds, then the ideas that develop farming, and the closing.
+  { key: "sudagri2", label: "ثرواتٌ وأفكار — من الحقل إلى المستقبل", en: "Wealth and ideas — from the field to the future" },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;

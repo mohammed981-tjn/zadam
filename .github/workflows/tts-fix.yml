@@ -1,60 +1,102 @@
-name: Narration fix (livestock clips)
+name: Narration fix (re-voiced clips)
 
-# The owner, 11 October: in the Hamari sheep clip «حمري» was said with a still
-# mim; it is «حَمَرِي». In the Kabashi clip the ba carries a shadda: «كَبّاشي».
-# The generator's own voice cannot be corrected word by word, so the clip's
+# The owner, 11 October: words the video generator said wrong — «حَمَري» (open
+# mim), «كَبّاشي» (shadda), «نِصْف», «مُزارِعاً», «لا تَبِعِ», «جَماعَتِكَ»,
+# a line re-spoken in full, and a closing said in dialect instead of Standard
+# Arabic. A generated voice cannot be corrected word by word, so each clip's
 # sound is split (Demucs) into the narrator and everything else, and the line is
-# spoken again by the Fasih voice with full diacritics — once as written
-# (auto_diacritize off) and once re-diacritized — over the clip's own field sound.
+# spoken again by the Fasih voice, with full diacritics, over the clip's own
+# field sound. Each line gets its own runner: the Space allows an anonymous
+# caller only a few lines. A clip or line already done is skipped.
 on:
   push:
     branches: [claude/project-review-analysis-dt7lsy]
     paths: ["tts/fix/lines.json", ".github/workflows/tts-fix.yml"]
   workflow_dispatch:
 
+concurrency:
+  group: narration-fix-${{ github.ref }}
+
 jobs:
-  fix:
+  split:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      lines: ${{ steps.p.outputs.lines }}
     steps:
       - uses: actions/checkout@v4
       - run: |
           sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
-          pip install -q demucs gradio_client soundfile
+          pip install -q demucs soundfile
       - name: Split narrator from field sound
         run: |
           mkdir -p tts/fix/out
-          for c in hamari kabashi; do
+          for c in $(python3 -c "import json;print(' '.join(sorted({l['clip'] for l in json.load(open('tts/fix/lines.json'))})))"); do
+            [ -f tts/fix/out/$c-field.wav ] && continue
             ffmpeg -v error -y -i tts/fix/$c.mp4 -vn -ac 2 -ar 44100 /tmp/$c.wav
             python3 -m demucs --two-stems=vocals -n htdemucs -o /tmp/sep /tmp/$c.wav
             cp /tmp/sep/htdemucs/$c/no_vocals.wav tts/fix/out/$c-field.wav
             cp /tmp/sep/htdemucs/$c/vocals.wav tts/fix/out/$c-oldvoice.wav
           done
-      - name: Speak the corrected lines
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tts/fix/out
+          git diff --cached --quiet || git commit -q -m "Narration fix: field sound split"
+          for n in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((n*5)); done
+      - id: p
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          todo = [l["id"] for l in json.load(open("tts/fix/lines.json", encoding="utf-8"))
+                  if not os.path.exists(f"tts/fix/out/{l['id']}-voice-asis.wav")]
+          print("lines=" + json.dumps(todo or ["none"]))
+          PY
+
+  speak:
+    needs: split
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        id: ${{ fromJson(needs.split.outputs.lines) }}
+    steps:
+      - uses: actions/checkout@v4
+        if: matrix.id != 'none'
+      - if: matrix.id != 'none'
         env:
+          ID: ${{ matrix.id }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          pip install -q gradio_client
+          mkdir -p out
           python3 - <<'PY'
           import json, os, shutil, time
           from gradio_client import Client
           tok = os.environ.get("HF_TOKEN") or None
           c = Client("NightPrince/Fasih-TTS", token=tok) if tok else Client("NightPrince/Fasih-TTS")
-          for l in json.load(open("tts/fix/lines.json", encoding="utf-8")):
-              for auto in (False, True):
-                  out = f"tts/fix/out/{l['id']}-voice-{'auto' if auto else 'asis'}.wav"
-                  for attempt in range(3):
-                      try:
-                          r = c.predict(text=l["text"], auto_diacritize=auto, temperature=0.5, api_name="/predict")
-                          shutil.copy(r, out); print("spoke", out); break
-                      except Exception as e:
-                          print("failed", out, str(e)[:200]); time.sleep(25)
+          line = next(l for l in json.load(open("tts/fix/lines.json", encoding="utf-8")) if l["id"] == os.environ["ID"])
+          for auto in (False, True):
+              out = f"out/{line['id']}-voice-{'auto' if auto else 'asis'}.wav"
+              for attempt in range(3):
+                  try:
+                      r = c.predict(text=line["text"], auto_diacritize=auto, temperature=0.5, api_name="/predict")
+                      shutil.copy(r, out); print("spoke", out); break
+                  except Exception as e:
+                      print("failed", out, str(e)[:200]); time.sleep(25)
           PY
-      - run: |
+      - if: matrix.id != 'none'
+        run: |
+          mkdir -p tts/fix/out
+          cp out/*.wav tts/fix/out/ 2>/dev/null || exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tts/fix/out
           git diff --cached --quiet && exit 0
-          git commit -q -m "Narration fix: field sound split and corrected lines"
-          for n in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0; sleep $((n*5)); done
+          git commit -q -m "Narration fix: ${{ matrix.id }}"
+          for n in 1 2 3 4 5 6; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0; sleep $((n*7)); done
           exit 1
