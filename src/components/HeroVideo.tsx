@@ -50,7 +50,8 @@ const SETTLE_MS = 560;
 const NUDGE_AFTER_MS = 2600;
 
 /** `wide`: where the 16:9 cut lives when it is shared with another page rather than `/video/{key}-wide`. */
-type Film = { key: string; label: string; en: string; wide?: string };
+/** `enAudio`: an English-narrated copy exists at `{base}-en.mp4` (the owner chose voice 2, 11 October). */
+type Film = { key: string; label: string; en: string; wide?: string; enAudio?: boolean };
 const FILMS: Film[] = [
   // One film on the homepage (the owner, 4 October: «اعمل فلم واحد شامل في
   // الرئيسية ووزّع باقي المقاطع كلٌّ في صفحته»): the vision from the owner's
@@ -60,7 +61,7 @@ const FILMS: Film[] = [
   // the port and the round logo once. Each clip also plays on its own page: /export, /herds,
   // /services, /tools/water, /rain, /seasons, /projects, /knowledge, /guide,
   // /lands, /arc-canal, and the nafir pages.
-  { key: "sudagri", label: "سوداقري — من الماء إلى السوق", en: "Sudagri — from water to market" },
+  { key: "sudagri", label: "سوداقري — من الماء إلى السوق", en: "Sudagri — from water to market", enAudio: true },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
@@ -366,7 +367,7 @@ export default function HeroVideo() {
           }}
         >
           <video
-            key={base}
+            key={`${base}-${locale}`}
             ref={ref}
             muted={muted}
             playsInline
@@ -405,8 +406,15 @@ export default function HeroVideo() {
             aria-label={`${t("فيلم سوداقري", "Sudagri film")}: ${t(film.label, film.en)}`}
           >
             {/* WebM first: the open codec plays in every browser, H.264 in the rest. */}
-            <source src={`${base}.webm`} type="video/webm" />
-            <source src={`${base}.mp4`} type="video/mp4" />
+            {locale === "en" && film.enAudio ? (
+              // The English narration rides on the same picture, in H.264 alone.
+              <source src={`${base}-en.mp4`} type="video/mp4" />
+            ) : (
+              <>
+                <source src={`${base}.webm`} type="video/webm" />
+                <source src={`${base}.mp4`} type="video/mp4" />
+              </>
+            )}
           </video>
 
           <button
