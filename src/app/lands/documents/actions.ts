@@ -1,4 +1,5 @@
 "use server";
+import { dbText } from "@/lib/dbText";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -71,7 +72,7 @@ export async function addLandDocument(args: {
     created_by: user.id,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: await dbText(error.message) };
 
   revalidatePath("/lands");
   return { ok: true };

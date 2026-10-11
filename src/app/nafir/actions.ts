@@ -1,4 +1,5 @@
 "use server";
+import { dbMessage as translateDb } from "@/lib/dbMessages";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -53,7 +54,7 @@ async function tx() {
 
 const isState = (s: string) => (SUDAN_STATES as readonly string[]).includes(s);
 const dbMessage = (t: (ar: string, en: string) => string, m?: string) =>
-  m && /[؀-ۿ]/.test(m) ? m : t("تعذّر الحفظ. راجع الحقول وأعد المحاولة.", "Could not save. Check the fields and try again.");
+  m && /[؀-ۿ]/.test(m) ? translateDb(m, t("ar", "en") === "en" ? "en" : "ar") : t("تعذّر الحفظ. راجع الحقول وأعد المحاولة.", "Could not save. Check the fields and try again.");
 
 /* ───────────────────────── الميثاق ───────────────────────── */
 

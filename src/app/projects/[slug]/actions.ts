@@ -1,4 +1,5 @@
 "use server";
+import { dbText } from "@/lib/dbText";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -146,7 +147,7 @@ export async function invest(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/projects/${slug}?error=${encodeURIComponent(error.message)}`);
+    redirect(`/projects/${slug}?error=${encodeURIComponent(await dbText(error.message))}`);
   }
 
   redirect("/dashboard?invested=1");

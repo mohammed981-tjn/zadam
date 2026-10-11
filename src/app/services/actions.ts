@@ -1,4 +1,5 @@
 "use server";
+import { dbText } from "@/lib/dbText";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -68,7 +69,7 @@ export async function registerProvider(
   });
 
   if (error) {
-    return { ok: false, message: `${t("تعذّر التسجيل:", "Registration failed:")} ${error.message}` };
+    return { ok: false, message: `${t("تعذّر التسجيل:", "Registration failed:")} ${await dbText(error.message)}` };
   }
 
   revalidatePath("/services");
@@ -129,7 +130,7 @@ export async function addServiceOffer(
   });
 
   if (error) {
-    return { ok: false, message: `${t("تعذّر إضافة الخدمة:", "Could not add the service:")} ${error.message}` };
+    return { ok: false, message: `${t("تعذّر إضافة الخدمة:", "Could not add the service:")} ${await dbText(error.message)}` };
   }
 
   revalidatePath("/services");

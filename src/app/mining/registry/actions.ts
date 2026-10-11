@@ -1,4 +1,5 @@
 "use server";
+import { dbText } from "@/lib/dbText";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -164,7 +165,7 @@ export async function registerSite(
   if (error) {
     return {
       ok: false,
-      message: t(`تعذّر تسجيل الموقع: ${error.message}`, `The site could not be registered: ${error.message}`),
+      message: t(`تعذّر تسجيل الموقع: ${await dbText(error.message)}`, `The site could not be registered: ${await dbText(error.message)}`),
     };
   }
 
@@ -226,7 +227,7 @@ export async function registerLot(
   if (error || !data) {
     return {
       ok: false,
-      message: t(`تعذّر تسجيل الشحنة: ${error?.message}`, `The lot could not be registered: ${error?.message}`),
+      message: t(`تعذّر تسجيل الشحنة: ${await dbText(error?.message)}`, `The lot could not be registered: ${await dbText(error?.message)}`),
     };
   }
 
@@ -282,7 +283,7 @@ export async function addCustodyEvent(formData: FormData) {
 
   if (error) {
     redirect(
-      `/mining/registry/${lotId}?error=${encodeURIComponent(error.message)}`,
+      `/mining/registry/${lotId}?error=${encodeURIComponent(await dbText(error.message))}`,
     );
   }
 

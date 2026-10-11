@@ -1,4 +1,5 @@
 "use server";
+import { dbText } from "@/lib/dbText";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -140,7 +141,7 @@ async function createHerdContract(args: {
     .single();
 
   if (contractError || !contract) {
-    return { ok: false, message: `${t("تعذّر إنشاء العقد:", "Could not create the contract:")} ${contractError?.message}` };
+    return { ok: false, message: `${t("تعذّر إنشاء العقد:", "Could not create the contract:")} ${await dbText(contractError?.message)}` };
   }
 
   const contractId = (contract as { id: string }).id;
@@ -178,7 +179,7 @@ async function createHerdContract(args: {
           });
         }
       });
-    return { ok: false, message: `${t("تعذّر حفظ المراحل:", "Could not save the phases:")} ${milestoneError.message}` };
+    return { ok: false, message: `${t("تعذّر حفظ المراحل:", "Could not save the phases:")} ${await dbText(milestoneError.message)}` };
   }
 
   redirect(`/contracts/${contractId}`);
@@ -323,7 +324,7 @@ export async function createContract(
     .single();
 
   if (contractError || !contract) {
-    return { ok: false, message: `${t("تعذّر إنشاء العقد:", "Could not create the contract:")} ${contractError?.message}` };
+    return { ok: false, message: `${t("تعذّر إنشاء العقد:", "Could not create the contract:")} ${await dbText(contractError?.message)}` };
   }
 
   const contractId = (contract as { id: string }).id;
@@ -372,7 +373,7 @@ export async function createContract(
           });
         }
       });
-    return { ok: false, message: `${t("تعذّر حفظ المراحل:", "Could not save the phases:")} ${milestoneError.message}` };
+    return { ok: false, message: `${t("تعذّر حفظ المراحل:", "Could not save the phases:")} ${await dbText(milestoneError.message)}` };
   }
 
   revalidatePath("/contracts");
@@ -436,7 +437,7 @@ export async function addMilestoneEvidence(args: {
     created_by: user.id,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: await dbText(error.message) };
 
   revalidatePath(`/contracts/${args.contractId}`);
   return { ok: true };
@@ -463,7 +464,7 @@ export async function setMilestoneStatus(formData: FormData) {
     // The trigger's message is the real reason — "لا يمكن اعتماد المرحلة قبل
     // رفع إثبات تنفيذ" — and it is written for the user, so it is passed
     // through rather than replaced with something generic.
-    redirect(`/contracts/${contractId}?error=${encodeURIComponent(error.message)}`);
+    redirect(`/contracts/${contractId}?error=${encodeURIComponent(await dbText(error.message))}`);
   }
   // ورفضُ سياسة الصفوف لا يرفع خطأً ولا يمسّ صفّاً، فيُقرأ نجاحاً. هذا الفرعُ
   // هو الفرقُ بين «لم يحدث شيء» و«حدث» — وقد عضّ هذا المشروعَ خمسَ مرّات.
@@ -521,7 +522,7 @@ export async function setContractStatus(formData: FormData) {
   if (error) {
     // رسائلُ الزناد مكتوبةٌ للقارئ لا للمطوّر — «قبولُ العقد من صلاحية مقدّم
     // الخدمة» — فتُمرَّر كما هي.
-    redirect(`/contracts/${contractId}?error=${encodeURIComponent(error.message)}`);
+    redirect(`/contracts/${contractId}?error=${encodeURIComponent(await dbText(error.message))}`);
   }
   if ((data ?? []).length === 0) {
     redirect(

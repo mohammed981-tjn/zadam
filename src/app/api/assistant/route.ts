@@ -19,6 +19,8 @@ import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { pageContextLine } from "@/lib/pageHelp";
 import { INVESTMENT_LIVE } from "@/lib/config";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 const SYSTEM_PROMPT = `أنت "مساعد سوداقري" — مساعد ذكي يتحدث العربية فقط لمنصة "سوداقري" للاستثمار الزراعي في السودان. تجيب على ثلاثة أنواع من الأسئلة، ولكل نوع قاعدة مختلفة:
 
@@ -48,13 +50,31 @@ const SYSTEM_PROMPT = `أنت "مساعد سوداقري" — مساعد ذكي 
 - كن مختصراً ومباشراً وودوداً بعربية فصحى بسيطة.
 - اكتب نصاً عادياً فقط بدون أي رموز تنسيق (بدون **، بدون #، بدون قوائم بشرطات) لأن الرد يُعرض كنص خام.`;
 
+/*
+ * English readers get English answers (the owner, 11 October: the assistant's
+ * answers too, not only its frame).
+ *
+ * The model answers in English directly. Answers the platform writes itself —
+ * the calculators, the canal file, a knowledge entry — are composed in Arabic,
+ * so they are put into English by the same engines before they leave; the
+ * figures in them are the platform's and are kept exactly. With no engine
+ * reachable the Arabic answer is sent as it is rather than nothing.
+ */
+const ENGLISH_ANSWER =
+  "\n\nLANGUAGE: the visitor is reading the site in English. Write the whole answer in clear, simple English (the question may still be in Arabic or Sudanese dialect). Keep the same three rules; the general-knowledge opening becomes: \"From general agricultural knowledge (outside the platform's verified database):\"";
+
+const TRANSLATE_PROMPT =
+  "Translate the following answer from Sudagri's agricultural assistant into clear, simple English for a farmer or investor. Keep every number, unit, name and source exactly. Plain text only, no formatting symbols. Output the translation and nothing else.";
+
 export async function POST(req: NextRequest) {
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   let question: unknown;
   let path: unknown;
   try {
     ({ question, path } = await req.json());
   } catch {
-    return NextResponse.json({ error: "طلب غير صالح" }, { status: 400 });
+    return NextResponse.json({ error: t("طلب غير صالح", "Invalid request") }, { status: 400 });
   }
 
   if (
@@ -62,7 +82,7 @@ export async function POST(req: NextRequest) {
     question.trim().length === 0 ||
     question.length > 500
   ) {
-    return NextResponse.json({ error: "سؤال غير صالح" }, { status: 400 });
+    return NextResponse.json({ error: t("سؤال غير صالح", "Invalid question") }, { status: 400 });
   }
 
   /*
@@ -98,6 +118,18 @@ export async function POST(req: NextRequest) {
     openRouterModels: process.env.OPENROUTER_MODELS,
   });
 
+  /** An answer the platform wrote in Arabic, in the reader's language. */
+  const inReaderLanguage = async (arabic: string): Promise<string> => {
+    if (locale !== "en" || engines.length === 0) return arabic;
+    const cached = getCachedAnswer(`en-of|${arabic}`);
+    if (cached) return cached;
+    const { result } = await generateWithFallback(engines, TRANSLATE_PROMPT, arabic);
+    const english = result?.text.replace(/[*#_`]+/g, "").trim();
+    if (!english) return arabic;
+    setCachedAnswer(`en-of|${arabic}`, english);
+    return english;
+  };
+
   try {
     const supabase = await createClient();
 
@@ -118,8 +150,11 @@ export async function POST(req: NextRequest) {
         {
           error:
             verdict.tier === "unavailable"
-              ? "المساعد غير متاح مؤقتاً. حاول بعد قليل."
-              : "عدد كبير من الأسئلة خلال دقيقة قصيرة. انتظر قليلاً ثم أعد المحاولة.",
+              ? t("المساعد غير متاح مؤقتاً. حاول بعد قليل.", "The assistant is temporarily unavailable. Try again shortly.")
+              : t(
+                  "عدد كبير من الأسئلة خلال دقيقة قصيرة. انتظر قليلاً ثم أعد المحاولة.",
+                  "Too many questions in a short minute. Wait a little, then try again.",
+                ),
         },
         { status: verdict.tier === "unavailable" ? 503 : 429 },
       );
@@ -266,12 +301,16 @@ export async function POST(req: NextRequest) {
 
     if (local) {
       await logQuestion(true, local.source, local.answer);
-      return NextResponse.json({ answer: local.answer, source: local.source });
+      return NextResponse.json({
+        answer: await inReaderLanguage(local.answer),
+        source: local.source,
+      });
     }
 
     // Visitors repeat each other. Serving the second asker from memory keeps the
-    // quota for questions nobody has asked yet.
-    const cached = getCachedAnswer(question);
+    // quota for questions nobody has asked yet. English answers are cached apart.
+    const cacheKey = locale === "en" ? `en|${question}` : question;
+    const cached = getCachedAnswer(cacheKey);
     if (cached) {
       // A cached answer is a model answer served twice, and it is counted as
       // its own layer rather than as either: filing it under "model" would
@@ -300,8 +339,10 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json(
         {
-          error:
+          error: t(
             "لا أملك إجابة موثّقة لهذا السؤال في قاعدة سوداقري بعد، ومحرك المعرفة العامة غير مُفعّل حالياً. جرّب صياغة أقرب لمحصول أو تقنية بعينها، أو اسألني عن الاحتياج المائي لمحصول محدد.",
+            "I have no documented answer to this in Sudagri's base yet, and the general-knowledge engine is not switched on right now. Try asking about a specific crop or technique, or ask me how much water a particular crop needs.",
+          ),
         },
         { status: 503 },
       );
@@ -360,7 +401,7 @@ export async function POST(req: NextRequest) {
 
     const { result, attempts } = await generateWithFallback(
       engines,
-      SYSTEM_PROMPT,
+      locale === "en" ? SYSTEM_PROMPT + ENGLISH_ANSWER : SYSTEM_PROMPT,
       // The page context goes first when there is one: a vague question is
       // resolved against the screen the visitor is looking at before anything
       // else is considered.
@@ -389,8 +430,10 @@ export async function POST(req: NextRequest) {
       if (attempts.every((a) => a.reason.includes("HTTP 429"))) {
         return NextResponse.json(
           {
-            error:
+            error: t(
               "المساعد يستقبل عدداً كبيراً من الأسئلة حالياً وتجاوزنا الحد المجاني المؤقت. حاول مرة أخرى خلال دقائق قليلة.",
+              "The assistant is getting a lot of questions right now and the free limit has been reached for the moment. Try again in a few minutes.",
+            ),
           },
           { status: 429 },
         );
@@ -398,7 +441,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json(
         {
-          error: `تعذّر الاتصال بمحركات سوداقري الذكية (${attempts.length} محاولة): ${attempts.map((a) => `${a.engine} — ${a.reason}`).join(" | ").slice(0, 300)}`,
+          error: `${t("تعذّر الاتصال بمحركات سوداقري الذكية", "Could not reach Sudagri's answer engines")} (${attempts.length} ${t("محاولة", "attempts")}): ${attempts.map((a) => `${a.engine} — ${a.reason}`).join(" | ").slice(0, 300)}`,
         },
         { status: 502 },
       );
@@ -412,18 +455,21 @@ export async function POST(req: NextRequest) {
 
     const answer =
       result.text.replace(/[*#_`]+/g, "").trim() ||
-      "لم أتمكن من صياغة إجابة هذه المرة، أعد المحاولة أو اسأل بصيغة أخرى.";
+      t(
+        "لم أتمكن من صياغة إجابة هذه المرة، أعد المحاولة أو اسأل بصيغة أخرى.",
+        "I could not put an answer together this time. Try again, or ask it another way.",
+      );
 
     await logQuestion(true, "model", answer);
 
-    setCachedAnswer(question, answer);
+    setCachedAnswer(cacheKey, answer);
 
     return NextResponse.json({ answer, source: "model", engine: result.engine });
   } catch (err) {
     console.error("assistant: unhandled error", err);
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: `خطأ غير متوقع: ${message}` },
+      { error: `${t("خطأ غير متوقع", "Unexpected error")}: ${message}` },
       { status: 500 },
     );
   }
