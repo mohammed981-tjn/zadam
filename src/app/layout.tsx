@@ -7,6 +7,10 @@ import SplashOnce from "@/components/SplashOnce";
 import AssistantWidget from "@/components/AssistantWidget";
 import ServiceWorker from "@/components/ServiceWorker";
 import { SITE_URL } from "@/lib/site";
+import { getLocale } from "@/lib/locale";
+import { dirOf, tr } from "@/lib/i18n";
+import LocaleProvider from "@/components/LocaleProvider";
+import PageLang from "@/components/PageLang";
 
 const tajawal = Tajawal({
   variable: "--font-tajawal",
@@ -15,9 +19,22 @@ const tajawal = Tajawal({
 });
 
 
-const TITLE = "سوداقري | معرفة زراعية واستثمار ذكي في السودان";
-const DESCRIPTION =
-  "منصة تخدم كل مزارع ومستثمر سوداني: قاعدة معرفة زراعية موثّقة عن المحاصيل والثروة الحيوانية، ومشاريع استثمار زراعي موثّقة قانونياً بمتابعة ميدانية دورية.";
+const COPY = {
+  ar: {
+    title: "سوداقري | معرفة زراعية واستثمار ذكي في السودان",
+    description:
+      "منصة تخدم كل مزارع ومستثمر سوداني: قاعدة معرفة زراعية موثّقة عن المحاصيل والثروة الحيوانية، ومشاريع استثمار زراعي موثّقة قانونياً بمتابعة ميدانية دورية.",
+    siteName: "سوداقري",
+    locale: "ar_SD",
+  },
+  en: {
+    title: "Sudagri | Agricultural knowledge and smart investment in Sudan",
+    description:
+      "A platform for every Sudanese farmer and investor: a documented knowledge base on crops and livestock, and legally documented agricultural investment projects with regular field follow-up.",
+    siteName: "Sudagri",
+    locale: "en_US",
+  },
+} as const;
 
 /*
  * الشعارُ يسافر مع الرابط، لا يقف على الموقع.
@@ -36,38 +53,46 @@ const DESCRIPTION =
  * `favicon.ico` are picked up by file convention, and naming them here too
  * would be a second copy of the truth that can drift from the files.
  */
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: TITLE,
-  description: DESCRIPTION,
-  openGraph: {
-    type: "website",
-    siteName: "سوداقري",
-    locale: "ar_SD",
-    url: SITE_URL,
-    title: TITLE,
-    description: DESCRIPTION,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: TITLE,
-    description: DESCRIPTION,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const c = COPY[await getLocale()];
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: c.title,
+    description: c.description,
+    openGraph: {
+      type: "website",
+      siteName: c.siteName,
+      locale: c.locale,
+      url: SITE_URL,
+      title: c.title,
+      description: c.description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: c.title,
+      description: c.description,
+    },
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   return (
     <html
-      lang="ar"
-      dir="rtl"
+      lang={locale}
+      dir={dirOf(locale)}
       className={`${tajawal.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <LocaleProvider locale={locale}>
         {/* شاشةُ البداية فوق الصفحة لا مكانَها: الصفحةُ تُعرض من أوّل إطار،
             وهذه طبقةٌ تنزاح عنها. */}
         <SplashOnce />
         <Navbar />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <PageLang>{children}</PageLang>
+        </main>
         {/*
           The feedback invitation sits in the layout footer, so it is on every
           page and every tab without a third floating button.
@@ -87,25 +112,31 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="mt-10 border-t border-border">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 pb-24 pt-8 text-center">
             <p className="text-base font-semibold">
-              رأيك يبني هذه المنصة
+              {t("رأيك يبني هذه المنصة", "Your view builds this platform")}
             </p>
             <p className="max-w-xl text-sm leading-relaxed text-muted">
-              المنصّة تُبنى الآن، وأنت ترى ما لا نراه. اكتب ما أربكك أو ما تريد
-              إضافته — بلا حساب، وتردّ عليك الإدارة.
+              {t(
+                "المنصّة تُبنى الآن، وأنت ترى ما لا نراه. اكتب ما أربكك أو ما تريد إضافته — بلا حساب، وتردّ عليك الإدارة.",
+                "The platform is being built now, and you see what we miss. Tell us what confused you or what you would add — no account needed, and the team replies.",
+              )}
             </p>
             <Link
               href="/feedback"
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
-              أرسل ملاحظة أو اقتراحاً
+              {t("أرسل ملاحظة أو اقتراحاً", "Send a note or a suggestion")}
             </Link>
             <p className="pt-2 text-sm text-muted">
-              سوداقري — منصة استثمار زراعي رقمي في السودان · MVP تجريبي
+              {t(
+                "سوداقري — منصة استثمار زراعي رقمي في السودان · MVP تجريبي",
+                "Sudagri — a digital agricultural investment platform in Sudan · pilot MVP",
+              )}
             </p>
           </div>
         </footer>
         <AssistantWidget />
         <ServiceWorker />
+        </LocaleProvider>
       </body>
     </html>
   );

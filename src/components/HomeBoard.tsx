@@ -32,9 +32,9 @@ export interface QuickTab {
   label: string;
 }
 
-export function QuickTabs({ tabs }: { tabs: QuickTab[] }) {
+export function QuickTabs({ tabs, label = "تبويبات سريعة" }: { tabs: QuickTab[]; label?: string }) {
   return (
-    <nav aria-label="تبويبات سريعة" className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+    <nav aria-label={label} className="grid grid-cols-3 gap-2 sm:grid-cols-6">
       {tabs.map((t) => (
         <Link
           key={t.href}
@@ -51,7 +51,13 @@ export function QuickTabs({ tabs }: { tabs: QuickTab[] }) {
   );
 }
 
-export function PhotoBoard({ tiles }: { tiles: BoardTile[] }) {
+export function PhotoBoard({
+  tiles,
+  enter = { label: "ادخل", arrow: "←" },
+}: {
+  tiles: BoardTile[];
+  enter?: { label: string; arrow: string };
+}) {
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {tiles.map((t, i) => (
@@ -82,7 +88,7 @@ export function PhotoBoard({ tiles }: { tiles: BoardTile[] }) {
                 captions and never thought to tap them. A button says it does.
               */}
               <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-primary shadow-card transition group-hover:bg-primary group-hover:text-white sm:text-xs">
-                ادخل <span aria-hidden>←</span>
+                {enter.label} <span aria-hidden>{enter.arrow}</span>
               </span>
             </span>
           </Link>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import RainMap from "@/components/RainMap";
 import { fetchRainGrid } from "@/lib/rainMap";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 /**
  * توقّع الأمطار في الرئيسية، تحت الواجهة مباشرةً (طلب المالك، 24 سبتمبر).
@@ -15,6 +17,8 @@ import { fetchRainGrid } from "@/lib/rainMap";
  * apology above the photos.
  */
 export default async function RainHomeCard() {
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const grid = await fetchRainGrid();
   if (!grid) return null;
 
@@ -29,15 +33,20 @@ export default async function RainHomeCard() {
         className="group block rounded-2xl border border-border bg-card p-5 shadow-card transition hover:shadow-raised sm:p-6"
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-black">توقّع الأمطار — الأيام السبعة القادمة</h2>
-          <span aria-hidden className="text-2xl text-primary transition group-hover:-translate-x-1">
-            ←
+          <h2 className="text-xl font-black">
+            {t("توقّع الأمطار — الأيام السبعة القادمة", "Rain forecast — the next seven days")}
+          </h2>
+          <span aria-hidden className="text-2xl text-primary transition rtl:group-hover:-translate-x-1 ltr:group-hover:translate-x-1">
+            {locale === "en" ? "→" : "←"}
           </span>
         </div>
         <p className="mt-1 text-sm text-muted">
           {wettest.rainMm >= 1
-            ? `أعلى مجموعٍ متوقّع ${Math.round(wettest.rainMm).toLocaleString("ar")} مم. اضغط لتفاصيل كل منطقة.`
-            : "لا مطر يُعتدّ به متوقَّع هذا الأسبوع. اضغط للتفاصيل."}
+            ? t(
+                `أعلى مجموعٍ متوقّع ${Math.round(wettest.rainMm).toLocaleString("ar")} مم. اضغط لتفاصيل كل منطقة.`,
+                `Highest expected total: ${Math.round(wettest.rainMm)} mm. Tap for each region's details.`,
+              )
+            : t("لا مطر يُعتدّ به متوقَّع هذا الأسبوع. اضغط للتفاصيل.", "No significant rain expected this week. Tap for details.")}
         </p>
         <div className="mx-auto mt-4 max-w-xl">
           <RainMap grid={grid} />

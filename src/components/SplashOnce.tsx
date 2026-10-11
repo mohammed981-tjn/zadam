@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { SUDAGRI_LOGO } from "@/lib/brand";
+import { tr } from "@/lib/i18n";
+import { useLocale } from "./LocaleProvider";
 import {
   SPLASH_FADE_MS,
   SPLASH_MAX_MS,
@@ -98,6 +100,7 @@ const SEEN_KEY = "sudagri:splash:v3";
  */
 
 export default function SplashOnce() {
+  const locale = useLocale();
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
@@ -280,11 +283,13 @@ export default function SplashOnce() {
           sizes="(min-width: 640px) 360px, 80vw"
           className="w-[80vw] max-w-[380px]"
         />
-        <p className="text-sm text-muted">منصّة سودانية للزراعة والتجارة</p>
+        <p className="text-sm text-muted">
+          {tr(locale, "منصّة سودانية للزراعة والتجارة", "A Sudanese platform for agriculture and trade")}
+        </p>
       </div>
 
       <span className="absolute top-5 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
-        المس الشاشة للتخطّي
+        {tr(locale, "المس الشاشة للتخطّي", "Tap the screen to skip")}
       </span>
     </div>
   );

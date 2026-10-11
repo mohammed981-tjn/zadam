@@ -1,13 +1,16 @@
 import { logout } from "@/app/login/actions";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
-export default function SignOutButton() {
+export default async function SignOutButton() {
+  const locale = await getLocale();
   return (
     <form action={logout}>
       <button
         type="submit"
         className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-card"
       >
-        تسجيل الخروج
+        {tr(locale, "تسجيل الخروج", "Sign out")}
       </button>
     </form>
   );

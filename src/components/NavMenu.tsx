@@ -5,6 +5,8 @@ import { useId, useRef, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { activeHref, groupForPath, type NavGroup } from "@/lib/nav";
+import { tr } from "@/lib/i18n";
+import { useLocale } from "./LocaleProvider";
 
 export type { NavItem, NavGroup } from "@/lib/nav";
 
@@ -45,6 +47,7 @@ export default function NavMenu({
   const pathname = usePathname();
   const baseId = useId();
   const current = activeHref(groups, pathname);
+  const locale = useLocale();
 
   useEffect(() => {
     if (!open) return;
@@ -101,7 +104,7 @@ export default function NavMenu({
           <span className="block h-[2px] w-4 bg-current" />
           <span className="block h-[2px] w-4 bg-current" />
         </span>
-        القائمة
+        {tr(locale, "القائمة", "Menu")}
       </button>
 
       {open && (
@@ -116,10 +119,10 @@ export default function NavMenu({
               setOpen(false);
               window.dispatchEvent(new Event(OPEN_ASSISTANT_EVENT));
             }}
-            className="flex w-full items-center gap-2 border-b border-border bg-primary/10 px-4 py-3 text-right text-sm font-bold text-primary transition hover:bg-primary/15"
+            className="flex w-full items-center gap-2 border-b border-border bg-primary/10 px-4 py-3 text-start text-sm font-bold text-primary transition hover:bg-primary/15"
           >
             <span aria-hidden>💬</span>
-            اسأل مساعد سوداقري
+            {tr(locale, "اسأل مساعد سوداقري", "Ask the Sudagri assistant")}
           </button>
 
           {groups.map((group) => {
@@ -139,7 +142,7 @@ export default function NavMenu({
                   aria-expanded={expanded}
                   aria-controls={sectionId}
                   onClick={() => setOpenGroup(expanded ? null : group.title)}
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition hover:bg-background"
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start transition hover:bg-background"
                 >
                   <span className="flex flex-col gap-0.5">
                     <span
