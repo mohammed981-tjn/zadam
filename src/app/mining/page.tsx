@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import FilmPlayer from "@/components/FilmPlayer";
 import KnowledgeCard from "@/components/KnowledgeCard";
 import MineralsMap, { GROUPS, MINERALS, type MineralSite } from "@/components/MineralsMap";
 import { digits } from "@/components/RainMap";
@@ -69,6 +70,13 @@ export default async function MiningPage() {
             )}
           </p>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-12">
+        <FilmPlayer base="/video/mining-wide" poster="/video/mining-wide.jpg" label={t(
+            "فيلم سوداقري: كنوزٌ تحت الأرض… بلا زئبق",
+            "A Sudagri film: treasure under the ground… without mercury",
+          )} />
       </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-12">
