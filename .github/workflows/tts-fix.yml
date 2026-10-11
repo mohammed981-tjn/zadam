@@ -6,6 +6,8 @@ name: Narration fix (livestock clips)
 # sound is split (Demucs) into the narrator and everything else, and the line is
 # spoken again by the Fasih voice with full diacritics — once as written
 # (auto_diacritize off) and once re-diacritized — over the clip's own field sound.
+# Later fixes the same day: «نِصْف» in the seeds clip, and «مُزارِعاً» in the
+# shared-tractor clip. A clip or line already done is skipped.
 on:
   push:
     branches: [claude/project-review-analysis-dt7lsy]
@@ -25,7 +27,8 @@ jobs:
       - name: Split narrator from field sound
         run: |
           mkdir -p tts/fix/out
-          for c in hamari kabashi; do
+          for c in $(python3 -c "import json;print(' '.join(sorted({l['clip'] for l in json.load(open('tts/fix/lines.json'))})))"); do
+            [ -f tts/fix/out/$c-field.wav ] && continue
             ffmpeg -v error -y -i tts/fix/$c.mp4 -vn -ac 2 -ar 44100 /tmp/$c.wav
             python3 -m demucs --two-stems=vocals -n htdemucs -o /tmp/sep /tmp/$c.wav
             cp /tmp/sep/htdemucs/$c/no_vocals.wav tts/fix/out/$c-field.wav
@@ -43,6 +46,7 @@ jobs:
           for l in json.load(open("tts/fix/lines.json", encoding="utf-8")):
               for auto in (False, True):
                   out = f"tts/fix/out/{l['id']}-voice-{'auto' if auto else 'asis'}.wav"
+                  if os.path.exists(out): continue
                   for attempt in range(3):
                       try:
                           r = c.predict(text=l["text"], auto_diacritize=auto, temperature=0.5, api_name="/predict")
