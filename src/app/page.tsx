@@ -9,6 +9,8 @@ import RainHomeCard from "@/components/RainHomeCard";
 import HeroVideo from "@/components/HeroVideo";
 import { CROPS, STATIONS } from "@/lib/agronomy";
 import type { Project } from "@/types/database";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 /**
  * الصفحة الأولى — ما تملكه المنصّة، لا ما تعد به.
@@ -35,12 +37,17 @@ const n0 = (v: number) => v.toLocaleString("en-US");
  * لا `/lands` التي تُحوِّل بصمتٍ إلى شاشة الدخول. والأولى، حاسبةُ الماء،
  * أكبرُها: هي ما يأتي المزارعون من أجله.
  */
-const BOARD: BoardTile[] = [
+const BOARD: (BoardTile & { en: Pick<BoardTile, "alt" | "title" | "note"> })[] = [
   {
     photo: PHOTOS.solarPump,
     alt: "مزارع عند مضخة تعمل بالطاقة الشمسية تصبّ الماء في ترعة إلى جوار حقل بصل",
     title: "كم يحتاج محصولك من الماء؟",
     note: "احسبه على مناخ ولايتك وطريقة ريّك — مجاناً وبلا تسجيل.",
+    en: {
+      alt: "A farmer at a solar-powered pump pouring water into a canal beside an onion field",
+      title: "How much water does your crop need?",
+      note: "Work it out for your state's climate and your irrigation method — free, no sign-up.",
+    },
     href: "/tools/water",
   },
   {
@@ -48,6 +55,7 @@ const BOARD: BoardTile[] = [
     alt: "مزارع يقف عند حقل ذرة إلى جوار ترعة ريّ ترابية",
     title: "سجّل أرضك ووثّق موسمك",
     note: "أرضٌ موثّقة وموسمٌ بأدلّته — يحتاج حساباً.",
+    en: { alt: "A farmer standing by a sorghum field next to an earth irrigation canal", title: "Register your land and record your season", note: "Verified land and a season with its evidence — needs an account." },
     href: "/signup",
   },
   {
@@ -55,6 +63,7 @@ const BOARD: BoardTile[] = [
     alt: "كفّان تغرفان حبوباً من جوال، وإلى جوارهما عيّنة تربة ودفتر",
     title: "قاعدة المعرفة",
     note: "محاصيلُ وتربةٌ وماء — كلُّ مُدخلٍ بمصدره.",
+    en: { alt: "Two hands scooping grain from a sack, with a soil sample and a notebook beside them", title: "Knowledge base", note: "Crops, soil and water — every entry with its source." },
     href: "/knowledge",
   },
   {
@@ -62,6 +71,7 @@ const BOARD: BoardTile[] = [
     alt: "نساء يحصدن الفول السوداني ويغربلنه في سلّة من السعف",
     title: "النفير",
     note: "العملُ المشترك: نفيرٌ وفزعةٌ وشورى وجودية.",
+    en: { alt: "Women harvesting groundnuts and sifting them in a palm-leaf basket", title: "Nafir", note: "Working together: nafir, faza, shura and judiyya." },
     href: "/nafir",
   },
   {
@@ -69,6 +79,11 @@ const BOARD: BoardTile[] = [
     alt: "قنطرة ريّ على ترعة",
     title: "الترع",
     note: "أعضاءُ كلّ ترعة ونوباتُ مائها وواجبُ صيانتها.",
+    en: {
+      alt: "An irrigation regulator on a canal",
+      title: "Canals",
+      note: "Each canal's members, its water turns and its upkeep duty.",
+    },
     href: "/nafir/canals",
   },
   {
@@ -76,6 +91,7 @@ const BOARD: BoardTile[] = [
     alt: "مسّاح يحمل جهاز تحديد مواقع على أرض متشقّقة وجرّار يحرث خلفه",
     title: "الخدمات التعاقدية",
     note: "حراثةٌ ومساحةٌ وريّ بسعرٍ معلن.",
+    en: { alt: "A surveyor holding a GPS unit on cracked land with a tractor ploughing behind him", title: "Contract services", note: "Ploughing, surveying and irrigation at a published price." },
     href: "/services",
   },
   {
@@ -83,6 +99,7 @@ const BOARD: BoardTile[] = [
     alt: "طبيب بيطري يحقن بقرة ذات سنام وراعيها يمسك قرنها",
     title: "خدماتٌ للقطيع",
     note: "تطعيمٌ وعلاجٌ من مقدّمي خدمةٍ مسجّلين.",
+    en: { alt: "A vet injecting a humped cow while its herder holds its horn", title: "Services for the herd", note: "Vaccination and treatment from registered providers." },
     href: "/services",
   },
   {
@@ -90,6 +107,7 @@ const BOARD: BoardTile[] = [
     alt: "قطيع بقر ذي سنام يسير بمحاذاة ترعة في الغبار",
     title: "الإنتاج الحيواني",
     note: "علفُ القطيع وميزانيّتُه مرحلةً مرحلة — يحتاج حساباً.",
+    en: { alt: "A herd of humped cattle walking along a canal in the dust", title: "Livestock production", note: "Feed and budget for the herd, stage by stage — needs an account." },
     href: "/signup",
   },
   {
@@ -97,6 +115,7 @@ const BOARD: BoardTile[] = [
     alt: "مخزن فيه جوالات سمسم وصمغ عربي وعمّال يحمّلون شاحنة",
     title: "ممرّ الصادر",
     note: "الصمغُ والسمسمُ والماشية — حصصُها وأسواقُها.",
+    en: { alt: "A store with sacks of sesame and gum arabic, and workers loading a truck", title: "Export corridor", note: "Gum, sesame and livestock — their quotas and markets." },
     href: "/export",
   },
   {
@@ -104,6 +123,7 @@ const BOARD: BoardTile[] = [
     alt: "رجل على نخلة يُنزل سلّة تمر ورجال يتلقّونها والنيل خلفهم",
     title: "عروض التصدير",
     note: "العروضُ المنشورة بمستنداتها.",
+    en: { alt: "A man in a palm tree lowering a basket of dates to men below, the Nile behind them", title: "Export offers", note: "Published offers with their documents." },
     href: "/export/market",
   },
   {
@@ -111,6 +131,7 @@ const BOARD: BoardTile[] = [
     alt: "سهل مرويّ من الجوّ بشبكة حقول هندسية",
     title: "دراسة الجدوى",
     note: "أين آخرُ مخرجٍ آمن قبل أن تُنفق أكثر.",
+    en: { alt: "An irrigated plain from the air, a grid of geometric fields", title: "Feasibility study", note: "Where the last safe exit is, before you spend more." },
     href: "/tools/feasibility",
   },
   {
@@ -118,6 +139,7 @@ const BOARD: BoardTile[] = [
     alt: "سدّ خرسانيّ على نهر واسع وخزانه خلفه",
     title: "القناة القوسية",
     note: "المسارُ والتضاريسُ والتربةُ والكلفة.",
+    en: { alt: "A concrete dam on a wide river with its reservoir behind it", title: "The Arc Canal", note: "Route, terrain, soil and cost." },
     href: "/arc-canal",
   },
   {
@@ -125,21 +147,30 @@ const BOARD: BoardTile[] = [
     alt: "معدّنون بخوذات وكمّامات يغربلون التراب عند بئر خشبية",
     title: "التعدين",
     note: "قسمٌ مستقلّ، لا يختلط بالزراعة.",
+    en: { alt: "Miners in helmets and masks sieving soil at a wooden shaft", title: "Mining", note: "A separate section, kept apart from farming." },
     href: "/mining",
   },
 ];
 
 /** ما يعود إليه الناس: بلمسةٍ واحدة، دون المرور بالصور. */
-const TABS: QuickTab[] = [
-  { href: "/news", icon: "news", label: "الأخبار" },
-  { href: "/rain", icon: "cloud", label: "الأمطار" },
-  { href: "/guide", icon: "compass", label: "الدليل" },
-  { href: "/knowledge", icon: "book", label: "المعرفة" },
-  { href: "/tools/feasibility", icon: "chart", label: "الجدوى" },
-  { href: "/feedback", icon: "message", label: "ملاحظاتك" },
+const TABS: (QuickTab & { en: string })[] = [
+  { href: "/news", icon: "news", label: "الأخبار", en: "News" },
+  { href: "/rain", icon: "cloud", label: "الأمطار", en: "Rain" },
+  { href: "/guide", icon: "compass", label: "الدليل", en: "Guide" },
+  { href: "/knowledge", icon: "book", label: "المعرفة", en: "Knowledge" },
+  { href: "/tools/feasibility", icon: "chart", label: "الجدوى", en: "Feasibility" },
+  { href: "/feedback", icon: "message", label: "ملاحظاتك", en: "Feedback" },
 ];
 
 export default async function Home() {
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const tiles: BoardTile[] = BOARD.map(({ en, ...tile }) =>
+    locale === "en" ? { ...tile, ...en } : tile,
+  );
+  const tabs: QuickTab[] = TABS.map(({ en, ...tab }) =>
+    locale === "en" ? { ...tab, label: en } : tab,
+  );
   const supabase = await createClient();
 
   const [{ data: projects }, { count: kbCount }, { count: faoCount }] = await Promise.all([
@@ -163,26 +194,26 @@ export default async function Home() {
     faoCount
       ? {
           value: n0(faoCount),
-          label: "مشاهدة من FAOSTAT",
-          note: "غلّة وأسعار وتجارة، محمَّلة داخل المنصّة",
+          label: t("مشاهدة من FAOSTAT", "FAOSTAT observations"),
+          note: t("غلّة وأسعار وتجارة، محمَّلة داخل المنصّة", "Yields, prices and trade, loaded on the platform"),
         }
       : null,
     kbCount
       ? {
           value: n0(kbCount),
-          label: "مُدخل معرفة مراجَع",
-          note: "كلٌّ بمصدره ودولته المرجعية",
+          label: t("مُدخل معرفة مراجَع", "reviewed knowledge entries"),
+          note: t("كلٌّ بمصدره ودولته المرجعية", "Each with its source and reference country"),
         }
       : null,
     {
       value: n0(CROPS.length),
-      label: "محصولاً بمعاملات FAO-56",
-      note: "أطوار النمو ومعاملات المحصول",
+      label: t("محصولاً بمعاملات FAO-56", "crops with FAO-56 coefficients"),
+      note: t("أطوار النمو ومعاملات المحصول", "Growth stages and crop coefficients"),
     },
     {
       value: n0(STATIONS.length),
-      label: "محطة مناخية",
-      note: "متوسّطات NASA POWER لعشرين سنة",
+      label: t("محطة مناخية", "climate stations"),
+      note: t("متوسّطات NASA POWER لعشرين سنة", "Twenty-year NASA POWER averages"),
     },
   ].filter((s): s is { value: string; label: string; note: string } => s !== null);
 
@@ -201,20 +232,21 @@ export default async function Home() {
           <div className="mt-10">
           <p className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
             <Icon name="wheat" className="size-5" />
-            معرفة زراعية وبيانات مفتوحة — للسودان
+            {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
           </p>
 
           <h1
             className="max-w-3xl font-black leading-[1.15]"
             style={{ fontSize: "var(--text-display)" }}
           >
-            كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك
+            {t("كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك", "Every number here is one you can recompute yourself")}
           </h1>
 
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
-            سوداقري منصّة معرفة زراعية وبيانات للسودان. لا يُعرض رقمٌ دون مصدره
-            ومنهجه: الغلّة من FAOSTAT، والمناخ من NASA POWER، والتربة من
-            SoilGrids، والاحتياج المائي محسوبٌ بمحرّك FAO-56 داخل المنصّة نفسها.
+            {t(
+              "سوداقري منصّة معرفة زراعية وبيانات للسودان. لا يُعرض رقمٌ دون مصدره ومنهجه: الغلّة من FAOSTAT، والمناخ من NASA POWER، والتربة من SoilGrids، والاحتياج المائي محسوبٌ بمحرّك FAO-56 داخل المنصّة نفسها.",
+              "Sudagri is an agricultural knowledge and data platform for Sudan. No number is shown without its source and method: yields from FAOSTAT, climate from NASA POWER, soil from SoilGrids, and crop water needs computed by an FAO-56 engine on the platform itself.",
+            )}
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -224,13 +256,13 @@ export default async function Home() {
               href="/signup"
               className="rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground shadow-raised transition hover:opacity-90"
             >
-              سجّل أرضك ووثّق موسمك
+              {t("سجّل أرضك ووثّق موسمك", "Register your land and record your season")}
             </Link>
             <Link
               href="/arc-canal"
               className="rounded-xl border border-border bg-card px-5 py-3 font-medium shadow-card transition hover:shadow-raised"
             >
-              اقرأ دراسة القناة القوسية
+              {t("اقرأ دراسة القناة القوسية", "Read the Arc Canal study")}
             </Link>
           </div>
           </div>
@@ -271,7 +303,7 @@ export default async function Home() {
        * إلى صفحتها `/news`، ولها هنا تبويبٌ أوّل بدل شريطٍ بين الأقسام.
        */}
       <section className="mx-auto max-w-6xl px-4 pt-8">
-        <QuickTabs tabs={TABS} />
+        <QuickTabs tabs={tabs} label={t("تبويبات سريعة", "Quick links")} />
       </section>
 
       {/* ───────────────────────── توقّع الأمطار ─────────────────────────
@@ -284,10 +316,15 @@ export default async function Home() {
       {/* ───────────────────────── اللوحة ───────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 pt-10">
         <h2 className="font-bold" style={{ fontSize: "var(--text-section)" }}>
-          أقسام سوداقري
+          {t("أقسام سوداقري", "Sudagri's sections")}
         </h2>
-        <p className="mb-4 mt-1 text-sm text-muted">المس أيَّ بطاقة لتفتح قسمها.</p>
-        <PhotoBoard tiles={BOARD} />
+        <p className="mb-4 mt-1 text-sm text-muted">
+          {t("المس أيَّ بطاقة لتفتح قسمها.", "Tap any card to open its section.")}
+        </p>
+        <PhotoBoard
+          tiles={tiles}
+          enter={locale === "en" ? { label: "Open", arrow: "→" } : undefined}
+        />
       </section>
 
       {/* ───────────────────────── الحالة ─────────────────────────
@@ -300,10 +337,12 @@ export default async function Home() {
             <Icon name="shield" className="mt-0.5 size-5 shrink-0 text-accent" />
             <p className="text-sm leading-relaxed">
               <strong className="font-bold">
-                لا توجد فرص استثمار مطروحة حالياً
+                {t("لا توجد فرص استثمار مطروحة حالياً", "No investment opportunities are open right now")}
               </strong>{" "}
-              — ولن يُعرض مشروع قبل توثيقه قانونياً ومعاينته ميدانياً. أمّا
-              الأدوات وقاعدة المعرفة فتعمل الآن، مجاناً وبلا تسجيل.
+              {t(
+                "— ولن يُعرض مشروع قبل توثيقه قانونياً ومعاينته ميدانياً. أمّا الأدوات وقاعدة المعرفة فتعمل الآن، مجاناً وبلا تسجيل.",
+                "— and no project is listed before it is legally documented and inspected in the field. The tools and the knowledge base work now, free and without sign-up.",
+              )}
             </p>
           </div>
         </section>
@@ -316,15 +355,15 @@ export default async function Home() {
         <section className="mx-auto max-w-6xl px-4 py-10">
           <div className="mb-6 flex items-baseline justify-between gap-4">
             <h2 className="font-bold" style={{ fontSize: "var(--text-title)" }}>
-              المشاريع المتاحة
+              {t("المشاريع المتاحة", "Available projects")}
             </h2>
             <Link href="/projects" className="text-sm font-medium text-primary hover:underline">
-              كلّ المشاريع ←
+              {t("كلّ المشاريع ←", "All projects →")}
             </Link>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {(projects as Project[]).map((project) => (
-              <ProjectCard key={project.id} project={project} />
+              <ProjectCard key={project.id} project={project} locale={locale} />
             ))}
           </div>
         </section>

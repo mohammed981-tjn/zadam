@@ -1,0 +1,57 @@
+name: Narration (English)
+
+# The English narration for the films (the owner, 11 October: «كامل النسخة
+# الانجليزية»), spoken by Kokoro-82M, an open English voice that runs on the
+# runner's own CPU, so there is no Space quota and no key. Lines missing from
+# tts/en are spoken; tts/en-probe holds two lines in four voices for the owner
+# to choose from. The files are committed back to the branch that asked for
+# them, never to main.
+on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: ["tts/lines-en.json", ".github/workflows/tts-en.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: narration-en-${{ github.ref }}
+
+jobs:
+  speak:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VOICE: bm_george
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y espeak-ng
+          pip install -q "kokoro>=0.9.4" soundfile
+      - run: |
+          python3 - <<'PY'
+          import json, os
+          import numpy as np, soundfile as sf
+          from kokoro import KPipeline
+          lines = json.load(open("tts/lines-en.json", encoding="utf-8"))
+          os.makedirs("tts/en", exist_ok=True); os.makedirs("tts/en-probe", exist_ok=True)
+          pipes = {"b": KPipeline(lang_code="b"), "a": KPipeline(lang_code="a")}
+          def say(text, voice, path, speed=0.92):
+              audio = [a for _, _, a in pipes[voice[0]](text, voice=voice, speed=speed)]
+              sf.write(path, np.concatenate(audio), 24000); print("spoke", path)
+          for l in lines:
+              p = f"tts/en/{l['id']}.wav"
+              if not os.path.exists(p): say(l["text"], os.environ["VOICE"], p)
+          for v in ["bm_george", "bm_fable", "am_michael", "af_heart"]:
+              for i in ["01", "35"]:
+                  p = f"tts/en-probe/{v}-{i}.wav"
+                  if not os.path.exists(p): say(lines[int(i) - 1]["text"], v, p)
+          PY
+      # Straight onto the branch: the account's artifact storage is full.
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tts/en tts/en-probe
+          git diff --cached --quiet && exit 0
+          git commit -q -m "English narration: Kokoro lines"
+          for n in 1 2 3 4; do git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0; sleep $((n*5)); done
+          exit 1

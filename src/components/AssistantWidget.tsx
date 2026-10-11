@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { sendLead } from "@/lib/leads";
 import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { useDraggable } from "@/lib/useDraggable";
+import { tr } from "@/lib/i18n";
+import { useLocale } from "./LocaleProvider";
 
 type Msg = { role: "user" | "assistant"; text: string; source?: string };
 
@@ -28,8 +30,21 @@ const SOURCE_LABEL: Record<string, string> = {
   model: "معرفة عامة خارج قاعدة سوداقري المتحقَّقة",
 };
 
+const SOURCE_LABEL_EN: Record<string, string> = {
+  calculator: "Calculated on the platform with the FAO-56 method",
+  canal: "From the Arc Canal file in the Sudagri base",
+  market: "From the FAOSTAT data loaded on the platform",
+  climate: "Measured climate averages — NASA POWER",
+  knowledge: "From Sudagri's reviewed knowledge base",
+  platform: "From the platform's current state",
+  cache: "General knowledge outside Sudagri's verified base",
+  model: "General knowledge outside Sudagri's verified base",
+};
+
 export default function AssistantWidget() {
   const pathname = usePathname();
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -94,7 +109,7 @@ export default function AssistantWidget() {
         ...m,
         {
           role: "assistant",
-          text: data.answer ?? data.error ?? "حدث خطأ غير متوقع",
+          text: data.answer ?? data.error ?? t("حدث خطأ غير متوقع", "Something unexpected went wrong"),
           source: data.answer ? data.source : undefined,
         },
       ]);
@@ -104,7 +119,7 @@ export default function AssistantWidget() {
         ...m,
         {
           role: "assistant",
-          text: "انقطع الاتصال قبل أن تصل الإجابة. تحقّق من الشبكة وأعد إرسال سؤالك.",
+          text: t("انقطع الاتصال قبل أن تصل الإجابة. تحقّق من الشبكة وأعد إرسال سؤالك.", "The connection dropped before the answer arrived. Check your network and send your question again."),
         },
       ]);
       // Hand the question back to the box so a retry is one press rather than
@@ -165,18 +180,18 @@ export default function AssistantWidget() {
           style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
         >
           <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
-            <span className="font-bold">🌾 مساعد سوداقري</span>
+            <span className="font-bold">🌾 {t("مساعد سوداقري", "Sudagri assistant")}</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowLeadForm((v) => !v)}
                 className="text-xs underline underline-offset-2"
               >
-                تواصل معنا
+                {t("تواصل معنا", "Contact us")}
               </button>
               <button
                 onClick={() => setOpen(false)}
                 className="text-lg leading-none"
-                aria-label="إغلاق"
+                aria-label={t("إغلاق", "Close")}
               >
                 ×
               </button>
@@ -186,8 +201,10 @@ export default function AssistantWidget() {
           <div className="flex-1 overflow-y-auto px-3 py-3 text-sm">
             {messages.length === 0 && !showLeadForm && (
               <p className="text-muted">
-                اسألني عن أي مشروع معروض على المنصة، أو أي محصول أو ماشية
-                سودانية — تربة، ري، آفات، أصناف.
+                {t(
+                  "اسألني عن أي مشروع معروض على المنصة، أو أي محصول أو ماشية سودانية — تربة، ري، آفات، أصناف.",
+                  "Ask me about any project on the platform, or any Sudanese crop or livestock — soil, irrigation, pests, varieties.",
+                )}
               </p>
             )}
             <div className="flex flex-col gap-2">
@@ -203,14 +220,14 @@ export default function AssistantWidget() {
                   <p className="whitespace-pre-wrap">{m.text}</p>
                   {m.source && SOURCE_LABEL[m.source] && (
                     <p className="mt-1.5 border-t border-border pt-1.5 text-[0.7rem] text-muted">
-                      {SOURCE_LABEL[m.source]}
+                      {(locale === "en" ? SOURCE_LABEL_EN : SOURCE_LABEL)[m.source]}
                     </p>
                   )}
                 </div>
               ))}
               {loading && (
                 <div className="self-start text-xs text-muted">
-                  يكتب الآن...
+                  {t("يكتب الآن...", "Typing...")}
                 </div>
               )}
             </div>
@@ -218,18 +235,18 @@ export default function AssistantWidget() {
             {showLeadForm && (
               <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
                 <p className="mb-2 text-sm font-medium">
-                  هل تريد أن يتواصل معك فريق سوداقري مباشرة؟
+                  {t("هل تريد أن يتواصل معك فريق سوداقري مباشرة؟", "Would you like the Sudagri team to contact you directly?")}
                 </p>
                 <form onSubmit={handleLeadSubmit} className="flex flex-col gap-2">
                   <input
                     name="full_name"
-                    placeholder="الاسم"
+                    placeholder={t("الاسم", "Name")}
                     required
                     className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                   <input
                     name="contact"
-                    placeholder="رقم الهاتف أو البريد الإلكتروني"
+                    placeholder={t("رقم الهاتف أو البريد الإلكتروني", "Phone number or email")}
                     required
                     className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                   />
@@ -238,13 +255,13 @@ export default function AssistantWidget() {
                     defaultValue="investor"
                     className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                   >
-                    <option value="investor">مستثمر</option>
-                    <option value="farmer">مزارع</option>
-                    <option value="other">أخرى</option>
+                    <option value="investor">{t("مستثمر", "Investor")}</option>
+                    <option value="farmer">{t("مزارع", "Farmer")}</option>
+                    <option value="other">{t("أخرى", "Other")}</option>
                   </select>
                   <input
                     name="interest"
-                    placeholder="ما اهتمامك؟ (اختياري — مثلاً: القطن، مشروع الجزيرة)"
+                    placeholder={t("ما اهتمامك؟ (اختياري — مثلاً: القطن، مشروع الجزيرة)", "What interests you? (optional — e.g. cotton, the Gezira Scheme)")}
                     className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                   <div className="flex gap-2">
@@ -253,14 +270,14 @@ export default function AssistantWidget() {
                       disabled={leadSubmitting}
                       className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
                     >
-                      {leadSubmitting ? "جارٍ الإرسال..." : "إرسال"}
+                      {leadSubmitting ? t("جارٍ الإرسال...", "Sending...") : t("إرسال", "Send")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowLeadForm(false)}
                       className="rounded-lg border border-border px-3 py-2 text-sm"
                     >
-                      لاحقاً
+                      {t("لاحقاً", "Later")}
                     </button>
                   </div>
                 </form>
@@ -292,7 +309,7 @@ export default function AssistantWidget() {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="اكتب سؤالك..."
+              placeholder={t("اكتب سؤالك...", "Type your question...")}
               className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <button
@@ -300,7 +317,7 @@ export default function AssistantWidget() {
               disabled={loading}
               className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
             >
-              إرسال
+              {t("إرسال", "Send")}
             </button>
           </form>
         </div>
@@ -330,12 +347,12 @@ export default function AssistantWidget() {
             className={`flex touch-none items-center gap-2 rounded-full bg-primary py-3 pe-5 ps-4 text-primary-foreground shadow-xl ring-2 ring-primary/25 transition hover:opacity-90 ${
               dragging ? "scale-105 cursor-grabbing" : "cursor-grab"
             }`}
-            aria-label="افتح مساعد سوداقري — يمكنك سحب الزر لتحريكه"
+            aria-label={t("افتح مساعد سوداقري — يمكنك سحب الزر لتحريكه", "Open the Sudagri assistant — you can drag the button to move it")}
             aria-expanded={open}
           >
             <span className="text-2xl leading-none">💬</span>
             <span className="whitespace-nowrap text-sm font-bold">
-              اسأل سوداقري
+              {t("اسأل سوداقري", "Ask Sudagri")}
             </span>
           </button>
         </div>

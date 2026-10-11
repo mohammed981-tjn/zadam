@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { tr } from "@/lib/i18n";
+import { useLocale } from "./LocaleProvider";
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
 import { SUDAGRI_LOGO } from "@/lib/brand";
 
@@ -48,7 +50,7 @@ const SETTLE_MS = 560;
 const NUDGE_AFTER_MS = 2600;
 
 /** `wide`: where the 16:9 cut lives when it is shared with another page rather than `/video/{key}-wide`. */
-type Film = { key: string; label: string; wide?: string };
+type Film = { key: string; label: string; en: string; wide?: string };
 const FILMS: Film[] = [
   // One film on the homepage (the owner, 4 October: «اعمل فلم واحد شامل في
   // الرئيسية ووزّع باقي المقاطع كلٌّ في صفحته»): the vision from the owner's
@@ -58,7 +60,7 @@ const FILMS: Film[] = [
   // the port and the round logo once. Each clip also plays on its own page: /export, /herds,
   // /services, /tools/water, /rain, /seasons, /projects, /knowledge, /guide,
   // /lands, /arc-canal, and the nafir pages.
-  { key: "sudagri", label: "سوداقري — من الماء إلى السوق" },
+  { key: "sudagri", label: "سوداقري — من الماء إلى السوق", en: "Sudagri — from water to market" },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
@@ -95,6 +97,8 @@ const REST: Pose = { x: 0, y: 0, ry: 0, s: 1, o: 1 };
 const AWAY: Pose = { x: -55, y: 4, ry: 38, s: 0.86, o: 0 };
 
 export default function HeroVideo() {
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const ref = useRef<HTMLVideoElement>(null);
   /** Set once the programme has started; from then on a new film plays as it mounts. */
   const armed = useRef(false);
@@ -316,7 +320,7 @@ export default function HeroVideo() {
               key={f.key}
               type="button"
               onClick={() => slideTo(i)}
-              aria-label={`${k === 1 ? "الفيلم التالي" : "ثمّ"}: ${f.label}`}
+              aria-label={`${k === 1 ? t("الفيلم التالي", "Next film") : t("ثمّ", "Then")}: ${t(f.label, f.en)}`}
               className="sudagri-anim absolute left-0 right-[calc(var(--sx)*2)] top-[calc(var(--sy)*2)] block aspect-[4/5] overflow-hidden rounded-3xl border border-white/40 bg-card shadow-float sm:aspect-video"
               style={{
                 transform: `translate3d(calc(var(--sx) * ${at}), calc(var(--sy) * ${-at}), ${-at * 30}px) rotateY(${-at * 4}deg) scale(${1 - 0.03 * at})`,
@@ -398,7 +402,7 @@ export default function HeroVideo() {
             }}
             draggable={false}
             className="pointer-events-none aspect-[4/5] w-full object-cover sm:aspect-video"
-            aria-label={`فيلم سوداقري: ${film.label}`}
+            aria-label={`${t("فيلم سوداقري", "Sudagri film")}: ${t(film.label, film.en)}`}
           >
             {/* WebM first: the open codec plays in every browser, H.264 in the rest. */}
             <source src={`${base}.webm`} type="video/webm" />
@@ -411,7 +415,7 @@ export default function HeroVideo() {
             aria-pressed={!muted}
             className="absolute bottom-3 left-3 rounded-full border border-border bg-card/90 px-4 py-2 text-sm font-medium shadow-card transition hover:border-primary"
           >
-            {muted ? "🔊 بالصوت" : "🔇 بلا صوت"}
+            {muted ? t("🔊 بالصوت", "🔊 Sound on") : t("🔇 بلا صوت", "🔇 Mute")}
           </button>
 
           {/* Less motion asked for: the logo until a film is chosen. */}
@@ -422,7 +426,7 @@ export default function HeroVideo() {
           >
             <Image
               src={SUDAGRI_LOGO}
-              alt="شعار سوداقري — منصّة سودانية للزراعة والتجارة"
+              alt={t("شعار سوداقري — منصّة سودانية للزراعة والتجارة", "Sudagri logo — a Sudanese platform for agriculture and trade")}
               placeholder="blur"
               sizes="(min-width: 768px) 420px, 70vw"
               className="h-[90%] w-auto object-contain"
@@ -435,7 +439,7 @@ export default function HeroVideo() {
               onClick={() => go(idx)}
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card/90 px-6 py-3 text-base font-bold shadow-float transition hover:border-primary"
             >
-              ▶ شاهد
+              {t("▶ شاهد", "▶ Watch")}
             </button>
           )}
         </figure>
@@ -443,7 +447,7 @@ export default function HeroVideo() {
       </div>
 
       {deck && (
-        <p className="mt-2 text-center text-xs text-muted">اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق</p>
+        <p className="mt-2 text-center text-xs text-muted">{t("اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق", "Swipe the film or tap the card behind it for the next film")}</p>
       )}
 
       {/* One button per film, each with its own progress line; one film has a progress line alone. */}
@@ -452,7 +456,7 @@ export default function HeroVideo() {
           <div className="h-full bg-primary transition-[width] duration-300" style={{ width: `${progress * 100}%` }} />
         </div>
       ) : (
-      <nav aria-label="أفلام سوداقري" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <nav aria-label={t("أفلام سوداقري", "Sudagri films")} className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {FILMS.map((f, i) => {
           const active = i === idx;
           const fill = active ? progress : 0;
@@ -468,7 +472,7 @@ export default function HeroVideo() {
             >
               <span className="block truncate">
                 {active ? "▶ " : ""}
-                {f.label}
+                {t(f.label, f.en)}
               </span>
               <span
                 aria-hidden

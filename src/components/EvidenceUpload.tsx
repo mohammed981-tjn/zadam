@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/imageCompress";
 import { readJpegMetadata, NO_METADATA, type PhotoMetadata } from "@/lib/exif";
+import { tr } from "@/lib/i18n";
+import { useLocale } from "./LocaleProvider";
 
 export interface EvidenceKind {
   value: string;
@@ -49,7 +51,7 @@ export default function EvidenceUpload({
   kinds,
   folder,
   onUploaded,
-  label = "أضف دليلاً",
+  label,
 }: {
   kinds: EvidenceKind[];
   /** Sub-folder under the user's own id, e.g. "lands" or "stages". */
@@ -62,6 +64,9 @@ export default function EvidenceUpload({
   }) => Promise<{ ok: boolean; message?: string } | void>;
   label?: string;
 }) {
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  label ??= t("أضف دليلاً", "Add evidence");
   const [kind, setKind] = useState(kinds[0]?.value ?? "");
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
@@ -77,7 +82,7 @@ export default function EvidenceUpload({
     const file = fileRef.current?.files?.[0];
 
     if (!file) {
-      setError("اختر ملفاً أولاً — صورة أو مستند PDF.");
+      setError(t("اختر ملفاً أولاً — صورة أو مستند PDF.", "Choose a file first — a photo or a PDF document."));
       return;
     }
     // Checked against the pre-compression ceiling, not the storage limit: a
@@ -86,12 +91,15 @@ export default function EvidenceUpload({
     // into a refusal.
     if (file.size > MAX_SOURCE_BYTES) {
       setError(
-        `الملف ${mb(file.size)} ميجابايت، وهو أكبر من أن يُعالَج في المتصفح.`,
+        t(
+          `الملف ${mb(file.size)} ميجابايت، وهو أكبر من أن يُعالَج في المتصفح.`,
+          `The file is ${mb(file.size)} MB, too large to process in the browser.`,
+        ),
       );
       return;
     }
     if (!ACCEPTED.includes(file.type)) {
-      setError("الصيغ المقبولة: JPG أو PNG أو WEBP أو HEIC أو PDF.");
+      setError(t("الصيغ المقبولة: JPG أو PNG أو WEBP أو HEIC أو PDF.", "Accepted formats: JPG, PNG, WEBP, HEIC or PDF."));
       return;
     }
 
@@ -104,7 +112,7 @@ export default function EvidenceUpload({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        setError("انتهت الجلسة — أعد تسجيل الدخول.");
+        setError(t("انتهت الجلسة — أعد تسجيل الدخول.", "Your session has ended — please sign in again."));
         return;
       }
 
@@ -134,8 +142,10 @@ export default function EvidenceUpload({
       // is enforced against what will actually be sent.
       if (toUpload.size > MAX_BYTES) {
         setError(
-          `الملف ${mb(toUpload.size)} ميجابايت بعد المعالجة، والحد الأقصى 10. ` +
-            `جرّب تصويره بدقة أقل أو ارفعه كملف PDF مضغوط.`,
+          t(
+            `الملف ${mb(toUpload.size)} ميجابايت بعد المعالجة، والحد الأقصى 10. جرّب تصويره بدقة أقل أو ارفعه كملف PDF مضغوط.`,
+            `The file is ${mb(toUpload.size)} MB after processing; the limit is 10. Try a lower-resolution photo or upload a compressed PDF.`,
+          ),
         );
         return;
       }
@@ -153,13 +163,16 @@ export default function EvidenceUpload({
         });
 
       if (uploadError) {
-        setError(`تعذّر رفع الملف: ${uploadError.message}`);
+        setError(t(`تعذّر رفع الملف: ${uploadError.message}`, `Could not upload the file: ${uploadError.message}`));
         return;
       }
 
       if (compressed) {
         setNotice(
-          `تم ضغط الصورة من ${mb(originalBytes)} إلى ${mb(toUpload.size)} ميجابايت قبل الرفع.`,
+          t(
+            `تم ضغط الصورة من ${mb(originalBytes)} إلى ${mb(toUpload.size)} ميجابايت قبل الرفع.`,
+            `The photo was compressed from ${mb(originalBytes)} to ${mb(toUpload.size)} MB before upload.`,
+          ),
         );
       }
 
@@ -171,14 +184,14 @@ export default function EvidenceUpload({
       });
 
       if (result && !result.ok) {
-        setError(result.message ?? "تعذّر حفظ الدليل.");
+        setError(result.message ?? t("تعذّر حفظ الدليل.", "Could not save the evidence."));
         return;
       }
 
       setCaption("");
       if (fileRef.current) fileRef.current.value = "";
     } catch (e) {
-      setError(e instanceof Error ? e.message : "خطأ غير متوقع أثناء الرفع.");
+      setError(e instanceof Error ? e.message : t("خطأ غير متوقع أثناء الرفع.", "Unexpected error during upload."));
     } finally {
       setBusy(false);
     }
@@ -211,7 +224,7 @@ export default function EvidenceUpload({
         <input
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
-          placeholder="وصف مختصر"
+          placeholder={t("وصف مختصر", "Short description")}
           className={field}
         />
 
@@ -221,16 +234,17 @@ export default function EvidenceUpload({
           disabled={busy}
           className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          {busy ? "جارٍ الرفع..." : label}
+          {busy ? t("جارٍ الرفع...", "Uploading...") : label}
         </button>
       </div>
 
       {error && <p className="text-xs text-danger">{error}</p>}
       {notice && <p className="text-xs text-primary">{notice}</p>}
       <p className="text-xs text-muted">
-        الصور المأخوذة بالهاتف في الموقع أقوى دليل — تحمل تاريخها وغالباً
-        إحداثياتها، ونحفظهما مع الملف. تُصغَّر الصور تلقائياً قبل الرفع لتسريعه
-        على الشبكات الضعيفة.
+        {t(
+          "الصور المأخوذة بالهاتف في الموقع أقوى دليل — تحمل تاريخها وغالباً إحداثياتها، ونحفظهما مع الملف. تُصغَّر الصور تلقائياً قبل الرفع لتسريعه على الشبكات الضعيفة.",
+          "Photos taken by phone on site are the strongest evidence — they carry their date and often their coordinates, and we keep both with the file. Photos are shrunk automatically before upload to speed it up on weak networks.",
+        )}
       </p>
     </div>
   );

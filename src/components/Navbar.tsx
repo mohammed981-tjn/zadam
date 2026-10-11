@@ -2,8 +2,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import NavMenu, { type NavGroup } from "./NavMenu";
+import LangToggle from "./LangToggle";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export default async function Navbar() {
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const supabase = await createClient();
   const {
     data: { user },
@@ -43,33 +48,33 @@ export default async function Navbar() {
    */
   const groups: NavGroup[] = [
     {
-      title: "الرئيسية",
-      hint: "ابدأ من هنا",
+      title: t("الرئيسية", "Home"),
+      hint: t("ابدأ من هنا", "Start here"),
       items: [
-        { href: "/", label: "الصفحة الرئيسية" },
+        { href: "/", label: t("الصفحة الرئيسية", "Home page") },
         // الأخبار خرجت من الرئيسيّة إلى صفحتها (طلب المالك، 25 سبتمبر)، فبابُها
         // هنا ثانياً، بعد الرئيسيّة مباشرةً.
-        { href: "/news", label: "الأخبار — جديد سوداقري" },
-        { href: "/guide", label: "دليل الاستخدام" },
+        { href: "/news", label: t("الأخبار — جديد سوداقري", "News — what's new at Sudagri") },
+        { href: "/guide", label: t("دليل الاستخدام", "User guide") },
         // كانت تُوعَد من الصفحة الأولى مرّتين ولا توجد. ووجودُها في القائمة
         // يجعلها قابلةً للوصول من كلّ صفحة، لا من الأولى وحدها.
-        { href: "/knowledge", label: "قاعدة المعرفة" },
-        { href: "/rain", label: "توقّع الأمطار والخرائط" },
-        { href: "/tools/water", label: "حاسبة الاحتياج المائي" },
-        { href: "/tools/feasibility", label: "دراسة الجدوى المرحلية" },
-        { href: "/feedback", label: "ملاحظات واقتراحات" },
+        { href: "/knowledge", label: t("قاعدة المعرفة", "Knowledge base") },
+        { href: "/rain", label: t("توقّع الأمطار والخرائط", "Rain forecast and maps") },
+        { href: "/tools/water", label: t("حاسبة الاحتياج المائي", "Crop water calculator") },
+        { href: "/tools/feasibility", label: t("دراسة الجدوى المرحلية", "Staged feasibility study") },
+        { href: "/feedback", label: t("ملاحظات واقتراحات", "Feedback and suggestions") },
       ],
     },
     {
-      title: "الخدمات التعاقدية",
-      hint: "مسح ورَي وميكنة وإرشاد وخدمات بيطرية",
+      title: t("الخدمات التعاقدية", "Contract services"),
+      hint: t("مسح ورَي وميكنة وإرشاد وخدمات بيطرية", "Surveying, irrigation, machinery, extension and veterinary services"),
       items: [
-        { href: "/services", label: "كتالوج الخدمات" },
-        { href: "/services/register", label: "سجّل جهتك كمقدّم خدمة" },
+        { href: "/services", label: t("كتالوج الخدمات", "Services catalogue") },
+        { href: "/services/register", label: t("سجّل جهتك كمقدّم خدمة", "Register as a service provider") },
         ...(user
           ? [
-              { href: "/contracts", label: "عقودي" },
-              { href: "/services/mine", label: "جهتي كمقدّم خدمة" },
+              { href: "/contracts", label: t("عقودي", "My contracts") },
+              { href: "/services/mine", label: t("جهتي كمقدّم خدمة", "My provider profile") },
             ]
           : []),
       ],
@@ -92,35 +97,35 @@ export default async function Navbar() {
    */
   if (!user) {
     groups.push({
-      title: "مزرعتك",
-      hint: "سجّل أرضك ووثّق موسمك — يحتاج حساباً",
+      title: t("مزرعتك", "Your farm"),
+      hint: t("سجّل أرضك ووثّق موسمك — يحتاج حساباً", "Register your land and record your season — needs an account"),
       items: [
-        { href: "/signup", label: "سجّل أرضك" },
-        { href: "/guide", label: "كيف تسير الخطوات" },
-        { href: "/export/market", label: "عروض التصدير المنشورة" },
+        { href: "/signup", label: t("سجّل أرضك", "Register your land") },
+        { href: "/guide", label: t("كيف تسير الخطوات", "How the steps work") },
+        { href: "/export/market", label: t("عروض التصدير المنشورة", "Published export offers") },
       ],
     });
   }
 
   if (user) {
     groups.push({
-      title: "مزرعتي",
-      hint: "الأرض والمواسم والقطيع",
+      title: t("مزرعتي", "My farm"),
+      hint: t("الأرض والمواسم والقطيع", "Land, seasons and herd"),
       items: [
-        { href: "/lands", label: "أراضيّ" },
-        { href: "/seasons", label: "مواسمي" },
-        { href: "/herds", label: "دورات الإنتاج الحيواني" },
-        { href: "/opportunities/new", label: "ارفع فرصة" },
-        { href: "/export/offers", label: "عروضي للتصدير" },
+        { href: "/lands", label: t("أراضيّ", "My land") },
+        { href: "/seasons", label: t("مواسمي", "My seasons") },
+        { href: "/herds", label: t("دورات الإنتاج الحيواني", "Livestock production cycles") },
+        { href: "/opportunities/new", label: t("ارفع فرصة", "Post an opportunity") },
+        { href: "/export/offers", label: t("عروضي للتصدير", "My export offers") },
       ],
     });
     groups.push({
-      title: "استثماري",
-      hint: "محفظتك وخططك",
+      title: t("استثماري", "My investment"),
+      hint: t("محفظتك وخططك", "Your portfolio and plans"),
       items: [
-        { href: "/dashboard", label: "محفظتي" },
-        { href: "/projects", label: "المشاريع المطروحة" },
-        { href: "/plan", label: "خطط استثمارك" },
+        { href: "/dashboard", label: t("محفظتي", "My portfolio") },
+        { href: "/projects", label: t("المشاريع المطروحة", "Open projects") },
+        { href: "/plan", label: t("خطط استثمارك", "Plan your investment") },
       ],
     });
   }
@@ -128,70 +133,70 @@ export default async function Navbar() {
   // النفير قبل الملكيّة والدراسات: بابٌ عامّ يدخله الزائر قبل أن يسجّل،
   // لأنّ دعوةً إلى حصادٍ هذا الأسبوع هي ما قد يجعله يسجّل.
   groups.push({
-    title: "النفير — العمل المشترك",
-    hint: "الميثاق والنفير والفزعة والشورى والجودية",
+    title: t("النفير — العمل المشترك", "Nafir — working together"),
+    hint: t("الميثاق والنفير والفزعة والشورى والجودية", "Charter, nafir, faza, shura and judiyya"),
     items: [
-      { href: "/nafir", label: "ساحة النفير" },
-      { href: "/nafir/charter", label: "الميثاق" },
-      { href: "/nafir/faza", label: "الفزعة" },
-      { href: "/nafir/shura", label: "الشورى" },
-      { href: "/nafir/judiyya", label: "الجودية" },
-      { href: "/nafir/canals", label: "الترع" },
-      { href: "/nafir/pulse", label: "نبض الثقة" },
+      { href: "/nafir", label: t("ساحة النفير", "Nafir square") },
+      { href: "/nafir/charter", label: t("الميثاق", "The charter") },
+      { href: "/nafir/faza", label: t("الفزعة", "Faza (rallying help)") },
+      { href: "/nafir/shura", label: t("الشورى", "Shura (consultation)") },
+      { href: "/nafir/judiyya", label: t("الجودية", "Judiyya (mediation)") },
+      { href: "/nafir/canals", label: t("الترع", "Canals") },
+      { href: "/nafir/pulse", label: t("نبض الثقة", "Trust pulse") },
     ],
   });
 
   groups.push({
-    title: "مشاريع ودراسات",
-    hint: "قراءات في أرقام المشاريع الكبرى والاقتصاد",
+    title: t("مشاريع ودراسات", "Projects and studies"),
+    hint: t("قراءات في أرقام المشاريع الكبرى والاقتصاد", "Readings in the numbers of major projects and the economy"),
     items: [
-      { href: "/studies", label: "كلّ الدراسات" },
-      { href: "/studies/exchange-rate", label: "أزمة سعر الصرف والتضخم" },
-      { href: "/arc-canal", label: "القناة القوسية" },
-      { href: "/export", label: "ممرّ الصادر السوداني" },
-      { href: "/export/market", label: "عروض التصدير المنشورة" },
+      { href: "/studies", label: t("كلّ الدراسات", "All studies") },
+      { href: "/studies/exchange-rate", label: t("أزمة سعر الصرف والتضخم", "The exchange-rate and inflation crisis") },
+      { href: "/arc-canal", label: t("القناة القوسية", "The Arc Canal") },
+      { href: "/export", label: t("ممرّ الصادر السوداني", "Sudan's export corridor") },
+      { href: "/export/market", label: t("عروض التصدير المنشورة", "Published export offers") },
     ],
   });
 
   groups.push({
-    title: "التعدين",
-    hint: "قسم مستقل عن الزراعة",
+    title: t("التعدين", "Mining"),
+    hint: t("قسم مستقل عن الزراعة", "A section separate from agriculture"),
     items: [
-      { href: "/mining", label: "قسم التعدين" },
-      { href: "/mining/registry", label: "سجلّ إثبات المنشأ" },
+      { href: "/mining", label: t("قسم التعدين", "Mining section") },
+      { href: "/mining/registry", label: t("سجلّ إثبات المنشأ", "Proof-of-origin registry") },
     ],
   });
 
   if (user && role === "admin") {
     groups.push({
-      title: "الإدارة",
-      hint: "للمشرفين وحدهم",
+      title: t("الإدارة", "Administration"),
+      hint: t("للمشرفين وحدهم", "Administrators only"),
       items: [
-        { href: "/admin", label: "لوحة المشاريع" },
+        { href: "/admin", label: t("لوحة المشاريع", "Projects board") },
         // الشاشةُ التي كان إجراؤها موجوداً وهي مفقودة — وبلاها لا تُوثَّق أرضٌ
         // أبداً، فتقف السلسلةُ كلُّها عند خطوتها الأولى.
-        { href: "/admin/lands", label: "توثيق الأراضي" },
-        { href: "/admin/review", label: "مراجعة الفرص" },
-        { href: "/admin/analytics", label: "التحليلات" },
-        { href: "/admin/news", label: "الأخبار" },
-        { href: "/admin/export", label: "مراجعة الصادر" },
+        { href: "/admin/lands", label: t("توثيق الأراضي", "Land verification") },
+        { href: "/admin/review", label: t("مراجعة الفرص", "Opportunity review") },
+        { href: "/admin/analytics", label: t("التحليلات", "Analytics") },
+        { href: "/admin/news", label: t("الأخبار", "News") },
+        { href: "/admin/export", label: t("مراجعة الصادر", "Export review") },
         // اللوائحُ تتغيّر بإعلانٍ لا بجدول، فلا يملأ تاريخَ المراجعة إلّا إنسان.
-        { href: "/admin/export/corridors", label: "مراجعة قواعد الممرّات" },
-        { href: "/admin/export/interests", label: "طلبات المشترين" },
-        { href: "/admin/providers", label: "توثيق مقدّمي الخدمة" },
-        { href: "/admin/feedback", label: "ملاحظات الزوّار" },
-        { href: "/admin/leads", label: "العملاء المحتملون" },
+        { href: "/admin/export/corridors", label: t("مراجعة قواعد الممرّات", "Corridor rules review") },
+        { href: "/admin/export/interests", label: t("طلبات المشترين", "Buyer requests") },
+        { href: "/admin/providers", label: t("توثيق مقدّمي الخدمة", "Provider verification") },
+        { href: "/admin/feedback", label: t("ملاحظات الزوّار", "Visitor feedback") },
+        { href: "/admin/leads", label: t("العملاء المحتملون", "Leads") },
       ],
     });
   }
 
   if (!user) {
     groups.push({
-      title: "حسابك",
-      hint: "الدخول أو التسجيل",
+      title: t("حسابك", "Your account"),
+      hint: t("الدخول أو التسجيل", "Sign in or sign up"),
       items: [
-        { href: "/login", label: "تسجيل الدخول" },
-        { href: "/signup", label: "إنشاء حساب" },
+        { href: "/login", label: t("تسجيل الدخول", "Sign in") },
+        { href: "/signup", label: t("إنشاء حساب", "Create an account") },
       ],
     });
   }
@@ -236,7 +241,7 @@ export default async function Navbar() {
             it survives anything failing to draw.
           */}
           <span aria-hidden="true">🌾</span>
-          سوداقري
+          {t("سوداقري", "Sudagri")}
         </Link>
 
         <div className="flex items-center gap-3">
@@ -244,7 +249,9 @@ export default async function Navbar() {
             <Link
               href="/notifications"
               aria-label={
-                unread > 0 ? `الإشعارات، ${unread} غير مقروء` : "الإشعارات"
+                unread > 0
+                  ? t(`الإشعارات، ${unread} غير مقروء`, `Notifications, ${unread} unread`)
+                  : t("الإشعارات", "Notifications")
               }
               className="relative rounded-lg border border-border px-2.5 py-2 text-sm hover:border-primary"
             >
@@ -277,9 +284,10 @@ export default async function Navbar() {
               href="/signup"
               className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
-              ابدأ الآن
+              {t("ابدأ الآن", "Get started")}
             </Link>
           )}
+          <LangToggle />
           <NavMenu
             groups={groups}
             signOut={user ? <SignOutButton /> : undefined}
