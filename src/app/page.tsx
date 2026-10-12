@@ -7,6 +7,7 @@ import ProjectCard from "@/components/ProjectCard";
 import Icon from "@/components/Icon";
 import RainHomeCard from "@/components/RainHomeCard";
 import HeroVideo from "@/components/HeroVideo";
+import SeasonStrip from "@/components/SeasonStrip";
 import { CROPS, STATIONS } from "@/lib/agronomy";
 import type { Project } from "@/types/database";
 import { getLocale } from "@/lib/locale";
@@ -173,7 +174,7 @@ export default async function Home() {
   );
   const supabase = await createClient();
 
-  const [{ data: projects }, { count: kbCount }, { count: faoCount }] = await Promise.all([
+  const [{ data: projects }, { count: kbCount }, { count: faoCount }, { data: kbLatest }] = await Promise.all([
     supabase
       .from("projects")
       .select("*")
@@ -183,7 +184,14 @@ export default async function Home() {
     supabase
       .from("faostat_observations")
       .select("id", { count: "exact", head: true }),
+    // آخرُ إضافةٍ إلى قاعدة المعرفة (البند ١٠٦): «آخر تحديث» من القاعدة نفسها لا تاريخٌ يُكتب باليد.
+    supabase
+      .from("knowledge_entries")
+      .select("created_at")
+      .order("created_at", { ascending: false })
+      .limit(1),
   ]);
+  const kbLatestAt = (kbLatest?.[0] as { created_at?: string } | undefined)?.created_at;
 
   /*
    * Falling back to a literal when the count fails would print a number the
@@ -215,12 +223,24 @@ export default async function Home() {
       label: t("محطة مناخية", "climate stations"),
       note: t("متوسّطات NASA POWER لعشرين سنة", "Twenty-year NASA POWER averages"),
     },
+    // يسقط إن لم تُجب القاعدة — كالعدّادين أعلاه: لا تاريخَ لم تؤكّده.
+    kbLatestAt
+      ? {
+          value: new Date(kbLatestAt).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG", {
+            day: "numeric",
+            month: "long",
+            timeZone: "Africa/Khartoum",
+          }),
+          label: t("آخر إضافة لقاعدة المعرفة", "latest knowledge-base entry"),
+          note: t("تُغذّى كلَّ يومين من مصادر موثّقة", "Fed every two days from documented sources"),
+        }
+      : null,
   ].filter((s): s is { value: string; label: string; note: string } => s !== null);
 
   return (
     <div>
       {/* ───────────────────────── الواجهة ───────────────────────── */}
-      <section className="mesh overflow-x-clip border-b border-border">
+      <section className="mesh overflow-x-clip">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
           {/*
             الفيديو والشعارُ في إطارٍ واحد: يعمل المقطعُ مرّةً ثمّ يظهر الشعار
@@ -230,7 +250,7 @@ export default async function Home() {
           <HeroVideo />
 
           <div className="mt-10">
-          <p className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
+          <p className="mb-4 flex items-center gap-2 text-sm font-medium text-rose">
             <Icon name="wheat" className="size-5" />
             {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
           </p>
@@ -241,6 +261,16 @@ export default async function Home() {
           >
             {t("كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك", "Every number here is one you can recompute yourself")}
           </h1>
+          {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان، أخضرَ ينساب إلى الكركدي. */}
+          <svg className="nile-line mt-3 h-4 w-56 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>
+            <defs>
+              <linearGradient id="nile" x1="1" x2="0">
+                <stop offset="0" stopColor="var(--primary)" />
+                <stop offset="1" stopColor="var(--rose)" />
+              </linearGradient>
+            </defs>
+            <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="url(#nile)" strokeWidth="4" strokeLinecap="round" />
+          </svg>
 
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
             {t(
@@ -297,6 +327,8 @@ export default async function Home() {
           </dl>
         </div>
       </section>
+      {/* شريطُ التوب السوداني (البند ١٠٦) بدل الخطّ الرفيع بين الواجهة وما بعدها. */}
+      <div className="toub-rule" aria-hidden />
 
       {/* ───────────────────────── التبويبات ─────────────────────────
        * طلب المالك (25 سبتمبر): الرئيسيّةُ واجهةٌ ثمّ لوحة. والأخبار خرجت منها
@@ -304,6 +336,9 @@ export default async function Home() {
        */}
       <section className="mx-auto max-w-6xl px-4 pt-8">
         <QuickTabs tabs={tabs} label={t("تبويبات سريعة", "Quick links")} />
+        <div className="mt-3">
+          <SeasonStrip locale={locale} />
+        </div>
       </section>
 
       {/* ───────────────────────── توقّع الأمطار ─────────────────────────
@@ -315,7 +350,7 @@ export default async function Home() {
 
       {/* ───────────────────────── اللوحة ───────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 pt-10">
-        <h2 className="font-bold" style={{ fontSize: "var(--text-section)" }}>
+        <h2 className="title-bar font-bold" style={{ fontSize: "var(--text-section)" }}>
           {t("أقسام سوداقري", "Sudagri's sections")}
         </h2>
         <p className="mb-4 mt-1 text-sm text-muted">
