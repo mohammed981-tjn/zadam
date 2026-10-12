@@ -91,6 +91,12 @@ export default async function AdminPage() {
             ملاحظات الزوّار
           </Link>
           <Link
+            href="/admin/suppliers"
+            className="text-sm text-primary underline"
+          >
+            الموردون والناقلون والبلاغات
+          </Link>
+          <Link
             href="/admin/canal-images"
             className="text-sm text-primary underline"
           >
