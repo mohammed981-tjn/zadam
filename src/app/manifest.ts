@@ -36,32 +36,22 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     // لونُ خلفيّة الشاشة الافتتاحيّة — هو `--background` نفسُه، فلا ومضةَ بياضٍ
     // بين الشاشة الافتتاحيّة وأوّل عرضٍ للصفحة.
-    background_color: "#f7f5ef",
-    theme_color: "#1f7a3d",
+    // داكنةٌ كلون الوضع الليليّ (المالك، 12 أكتوبر: «الشعار غير واضح… ويتغيّر مع الألوان الجديدة
+    // الغامقة»)، والشعارُ على صحنٍ كريميّ فيُقرأ عليها. وشاشةُ `SplashOnce` داكنةٌ مثلها، فلا ومضة.
+    background_color: "#10160f",
+    theme_color: "#10160f",
     /*
-     * مقاسان بصيغتين، والنظامُ يختار ما يفهم.
+     * PNG بمقاس 512 هو ما يرسمه Android في الشاشة الافتتاحيّة. كانت 512 صورةَ WebP
+     * وحدها، فعاد المشغّلُ إلى أيقونة 192 ومطّها، فخرج الشعارُ ضبابيّاً على الهاتف
+     * (لقطة المالك، 12 أكتوبر). وملفُّ WebP القديم باقٍ في public/ لم يُحذف.
      *
-     * The 512 is WebP because the artwork is a detailed illustration and a
-     * lossless PNG of it is 417 KB — four times the WebP for a difference no
-     * eye resolves. Quantising the PNG instead is the one thing not on the
-     * table: that is what turned the sorghum from gold to olive, twice.
-     *
-     * The 192 stays PNG deliberately. A manifest icon list is a menu, not a
-     * sequence — a launcher that cannot read WebP simply takes this one, and
-     * every system can read a PNG. So the cheap format is offered and the
-     * universal one is guaranteed.
+     * `maskable` نسخةٌ مستقلّة: الشعارُ داخل منطقة الأمان (٨٠٪) على خلفيةٍ داكنة،
+     * فلا يقصّ النظامُ من الرسم شيئاً حين يقطعه دائرةً أو مربّعاً.
      */
     icons: [
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icon-512.webp", sizes: "512x512", type: "image/webp" },
-      // `maskable` يتيح للنظام قصَّ الأيقونة بشكله (دائرة · مربّع بحواف) بلا
-      // أن يقصّ من الرسم ما يهمّ.
-      {
-        src: "/icon-512.webp",
-        sizes: "512x512",
-        type: "image/webp",
-        purpose: "maskable",
-      },
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }
