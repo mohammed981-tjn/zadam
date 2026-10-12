@@ -1,7 +1,7 @@
 import Link from "next/link";
 import FeasibilityStudy from "@/components/FeasibilityStudy";
 import { loadCropMarkets } from "@/lib/marketData";
-import { fetchOfficialRates } from "@/lib/fxRates";
+import { readFxReference } from "@/lib/fxRates";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
@@ -34,7 +34,8 @@ export default async function FeasibilityPage() {
    * typed by hand. So the degradation is honest and usable — it just has to say
    * which of the two happened.
    */
-  const [markets, rates] = await Promise.all([loadCropMarkets(), fetchOfficialRates()]);
+  const markets = await loadCropMarkets();
+  const fx = readFxReference();
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const en = locale === "en";
@@ -136,7 +137,7 @@ export default async function FeasibilityPage() {
         </section>
       )}
 
-      <FeasibilityStudy markets={markets ?? {}} sdgPerUsd={rates?.sdgPer.USD ?? null} />
+      <FeasibilityStudy markets={markets ?? {}} sdgPerUsd={fx?.bank.sell ?? null} sdgPerUsdParallel={fx?.parallel.sell ?? null} />
 
       <section className="flex flex-col gap-2 text-sm text-muted">
         <h2 className="text-base font-semibold text-foreground">
