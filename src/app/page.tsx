@@ -184,7 +184,7 @@ export default async function Home() {
     supabase
       .from("faostat_observations")
       .select("id", { count: "exact", head: true }),
-    // آخرُ إضافةٍ إلى قاعدة المعرفة (البند ٩٩): «آخر تحديث» من القاعدة نفسها لا تاريخٌ يُكتب باليد.
+    // آخرُ إضافةٍ إلى قاعدة المعرفة (البند ١٠٣): «آخر تحديث» من القاعدة نفسها لا تاريخٌ يُكتب باليد.
     supabase
       .from("knowledge_entries")
       .select("created_at")
@@ -261,7 +261,7 @@ export default async function Home() {
           >
             {t("كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك", "Every number here is one you can recompute yourself")}
           </h1>
-          {/* خطُّ النيل (البند ٩٩): يُرسم مرّةً تحت العنوان، أخضرَ ينساب إلى الكركدي. */}
+          {/* خطُّ النيل (البند ١٠٣): يُرسم مرّةً تحت العنوان، أخضرَ ينساب إلى الكركدي. */}
           <svg className="nile-line mt-3 h-4 w-56 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>
             <defs>
               <linearGradient id="nile" x1="1" x2="0">
@@ -327,7 +327,7 @@ export default async function Home() {
           </dl>
         </div>
       </section>
-      {/* شريطُ التوب السوداني (البند ٩٩) بدل الخطّ الرفيع بين الواجهة وما بعدها. */}
+      {/* شريطُ التوب السوداني (البند ١٠٣) بدل الخطّ الرفيع بين الواجهة وما بعدها. */}
       <div className="toub-rule" aria-hidden />
 
       {/* ───────────────────────── التبويبات ─────────────────────────

@@ -109,7 +109,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           bottom-left corner, and without room here it covers the last line of
           the footer on a narrow screen.
         */}
-        {/* شريطُ التوب السوداني (البند ٩٩) فوق التذييل في كلّ صفحة — بدل الخطّ الرفيع. */}
+        {/* شريطُ التوب السوداني (البند ١٠٣) فوق التذييل في كلّ صفحة — بدل الخطّ الرفيع. */}
         <div className="toub-rule mt-10" aria-hidden />
         <footer>
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 pb-24 pt-8 text-center">
