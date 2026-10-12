@@ -73,6 +73,9 @@ export default async function Navbar() {
       items: [
         { href: "/services", label: t("كتالوج الخدمات", "Services catalogue") },
         { href: "/services/register", label: t("سجّل جهتك كمقدّم خدمة", "Register as a service provider") },
+        { href: "/suppliers", label: t("الموردون والمدخلات", "Suppliers & inputs") },
+        { href: "/suppliers/orders", label: t("الطلبات الجماعية", "Group orders") },
+        { href: "/verify", label: t("تحقّق من منتج", "Check a product") },
         ...(user
           ? [
               { href: "/contracts", label: t("عقودي", "My contracts") },

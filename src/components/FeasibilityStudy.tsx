@@ -408,6 +408,24 @@ export default function FeasibilityStudy({
               </div>
             </dl>
 
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="font-semibold">{t("من أين أشتري؟", "Where do I buy?")}</span>
+              {[
+                ...(inputs.ureaKg ? [{ item: "urea", ar: "اليوريا", en: "Urea" }] : []),
+                ...(inputs.phosphate ? [{ item: inputs.phosphate.kind, ar: inputs.phosphate.kind, en: inputs.phosphate.kind }] : []),
+                { item: "seed", ar: "البذور", en: "Seed" },
+                ...(inputs.sprays ? [{ item: "pesticide", ar: "المبيدات", en: "Pesticides" }] : []),
+              ].map((l) => (
+                <Link
+                  key={l.item}
+                  href={`/suppliers?item=${encodeURIComponent(l.item)}`}
+                  className="rounded-full border border-primary/40 px-3 py-1 text-primary hover:bg-primary/10"
+                >
+                  {en ? l.en : l.ar}
+                </Link>
+              ))}
+            </div>
+
             <h3 className="mb-2 mt-5 font-semibold">
               {t("متوسط التكلفة المتوقَّع للفدان — تقدير البرنامج", "Expected cost per feddan — the platform's estimate")}
             </h3>
