@@ -145,6 +145,9 @@ const MESSAGES: [string, string][] = [
   ["هذا لمن أسند التوصيل.", "This is for whoever assigned the delivery."],
   ["هذا لمنظّم الطلب.", "This is for the order's organiser."],
   ["يُسند التوصيل إلى ناقلٍ موثّقٍ نشط وحده.", "A delivery can only be assigned to a verified, active carrier."],
+  ["لديك عشرة عروضٍ مفتوحة. أغلق واحداً قبل أن تضيف غيره.", "You have ten open offers. Close one before adding another."],
+  ["أضفتَ عشرين عرضاً اليوم. عُد غداً.", "You have added twenty offers today. Come back tomorrow."],
+  ["لا عرضَ مفتوحاً لك بهذا الرقم.", "You have no open offer with this number."],
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

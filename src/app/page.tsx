@@ -8,6 +8,7 @@ import Icon from "@/components/Icon";
 import RainHomeCard from "@/components/RainHomeCard";
 import HeroVideo from "@/components/HeroVideo";
 import SeasonStrip from "@/components/SeasonStrip";
+import MarketTicker from "@/components/MarketTicker";
 import { CROPS, STATIONS } from "@/lib/agronomy";
 import type { Project } from "@/types/database";
 import { getLocale } from "@/lib/locale";
@@ -338,6 +339,7 @@ export default async function Home() {
         <QuickTabs tabs={tabs} label={t("تبويبات سريعة", "Quick links")} />
         <div className="mt-3">
           <SeasonStrip locale={locale} />
+          <MarketTicker locale={locale} />
         </div>
       </section>
 

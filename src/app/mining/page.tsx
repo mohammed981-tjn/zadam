@@ -217,6 +217,19 @@ export default async function MiningPage() {
             {t("افتح سجلّ إثبات المنشأ", "Open the proof-of-origin registry")}
           </Link>
         </div>
+
+        <Link
+          href="/mining/gold"
+          className="mt-4 flex flex-col gap-1 rounded-2xl border border-border bg-card p-5 transition hover:border-primary"
+        >
+          <span className="font-bold">{t("الذهب: أين يُباع رسمياً وبأيّ سعر ←", "Gold: where it is sold officially, and at what price →")}</span>
+          <span className="text-sm text-muted">
+            {t(
+              "بنك السودان المركزي مشترياً، وقاعدة السعر اليومي (المنشور 13/2026)، وحظر الاتحاد الأوروبي — معلومات بمصادرها.",
+              "The Central Bank of Sudan as buyer, the daily price rule (Circular 13/2026), and the EU ban — information with its sources.",
+            )}
+          </span>
+        </Link>
       </section>
     </div>
   );

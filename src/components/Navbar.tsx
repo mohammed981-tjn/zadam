@@ -62,6 +62,8 @@ export default async function Navbar() {
         { href: "/rain", label: t("توقّع الأمطار والخرائط", "Rain forecast and maps") },
         { href: "/tools/water", label: t("حاسبة الاحتياج المائي", "Crop water calculator") },
         { href: "/tools/feasibility", label: t("دراسة الجدوى المرحلية", "Staged feasibility study") },
+        { href: "/market", label: t("سوق المحاصيل اليوم", "Crop market today") },
+        { href: "/market/offers", label: t("عروض البيع والشراء", "Buy and sell offers") },
         { href: "/tools/new-crops", label: t("محاصيل جديدة تستحق التجربة", "New crops worth trying") },
         { href: "/rates", label: t("أسعار العملات", "Exchange rates") },
         { href: "/feedback", label: t("ملاحظات واقتراحات", "Feedback and suggestions") },
@@ -169,6 +171,7 @@ export default async function Navbar() {
     items: [
       { href: "/mining", label: t("قسم التعدين", "Mining section") },
       { href: "/mining/registry", label: t("سجلّ إثبات المنشأ", "Proof-of-origin registry") },
+      { href: "/mining/gold", label: t("الذهب: السعر والقواعد", "Gold: price and rules") },
     ],
   });
 
