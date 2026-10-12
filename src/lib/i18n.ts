@@ -86,6 +86,10 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/arc-canal",
   "/mining",
   "/mining/registry",
+  "/mining/gold",
+  "/market",
+  "/market/offers",
+  "/market/offers/new",
   "/mining/registry/*",
 ];
 
