@@ -49,10 +49,12 @@ const VERDICT_STYLE: Record<PhaseVerdict, string> = {
 export default function FeasibilityStudy({
   markets,
   sdgPerUsd = null,
+  sdgPerUsdParallel = null,
 }: {
   markets: Record<string, CropMarket>;
-  /** Official pounds per dollar, from /rates; null when the source is down. */
+  /** Pounds per dollar at the bank and on the parallel market, from /rates. */
   sdgPerUsd?: number | null;
+  sdgPerUsdParallel?: number | null;
 }) {
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -204,9 +206,14 @@ export default function FeasibilityStudy({
           {sdgPerUsd !== null && Number.isFinite(costPerFeddan) && costPerFeddan > 0 && (
             <span className="text-xs text-muted">
               {t(
-                `≈ ${n0(costPerFeddan * sdgPerUsd)} جنيه سوداني بالسعر الرسمي (${n0(sdgPerUsd)} للدولار)`,
-                `≈ ${n0(costPerFeddan * sdgPerUsd)} Sudanese pounds at the official rate (${n0(sdgPerUsd)} per dollar)`,
-              )}{" "}
+                `≈ ${n0(costPerFeddan * sdgPerUsd)} جنيه بسعر البنك (${n0(sdgPerUsd)} للدولار)`,
+                `≈ ${n0(costPerFeddan * sdgPerUsd)} SDG at the bank rate (${n0(sdgPerUsd)} per dollar)`,
+              )}
+              {sdgPerUsdParallel !== null &&
+                t(
+                  ` · ${n0(costPerFeddan * sdgPerUsdParallel)} بالسوق الموازي`,
+                  ` · ${n0(costPerFeddan * sdgPerUsdParallel)} at the parallel rate`,
+                )}{" "}
               <Link href="/rates" className="text-primary underline">
                 {t("الأسعار", "Rates")}
               </Link>

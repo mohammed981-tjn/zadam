@@ -1,0 +1,17 @@
+{
+  "note": "Updated by hand or by the daily routine. Every figure must be read in the source named beside it, with its date. The Central Bank of Sudan's own bulletin page stopped at 7 March 2022, and on 24 August 2026 the bank left each bank to set its own rate (circular 2026/16).",
+  "bank": {
+    "name_ar": "بنك الخرطوم",
+    "name_en": "Bank of Khartoum",
+    "date": "2026-10-11",
+    "buy": 4200,
+    "sell": 4231.5,
+    "source": "https://khaligyoun.com/718449"
+  },
+  "parallel": {
+    "date": "2026-10-11",
+    "buy": 8900,
+    "sell": 9004.27,
+    "source": "https://khaligyoun.com/718449"
+  }
+}
