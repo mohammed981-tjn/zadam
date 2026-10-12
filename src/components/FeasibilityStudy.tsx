@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   CROPS,
@@ -47,8 +48,11 @@ const VERDICT_STYLE: Record<PhaseVerdict, string> = {
 
 export default function FeasibilityStudy({
   markets,
+  sdgPerUsd = null,
 }: {
   markets: Record<string, CropMarket>;
+  /** Official pounds per dollar, from /rates; null when the source is down. */
+  sdgPerUsd?: number | null;
 }) {
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -197,6 +201,17 @@ export default function FeasibilityStudy({
             onChange={(e) => setCostPerFeddan(Number(e.target.value))}
             className={field}
           />
+          {sdgPerUsd !== null && Number.isFinite(costPerFeddan) && costPerFeddan > 0 && (
+            <span className="text-xs text-muted">
+              {t(
+                `≈ ${n0(costPerFeddan * sdgPerUsd)} جنيه سوداني بالسعر الرسمي (${n0(sdgPerUsd)} للدولار)`,
+                `≈ ${n0(costPerFeddan * sdgPerUsd)} Sudanese pounds at the official rate (${n0(sdgPerUsd)} per dollar)`,
+              )}{" "}
+              <Link href="/rates" className="text-primary underline">
+                {t("الأسعار", "Rates")}
+              </Link>
+            </span>
+          )}
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
