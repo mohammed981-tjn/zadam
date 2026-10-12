@@ -94,6 +94,9 @@ const MESSAGES: [string, string][] = [
   ["جدولٌ أطول مما ينبغي.", "The schedule is longer than it should be."],
   ["النوبة لعضوٍ في الترعة وحده.", "A water turn is for a member of the canal only."],
   ["يُربط النفير بترعةٍ أنت عضوٌ فيها.", "A nafir can only be linked to a canal you are a member of."],
+  ["لديك عشرة عروضٍ مفتوحة. أغلق واحداً قبل أن تضيف غيره.", "You have ten open offers. Close one before adding another."],
+  ["أضفتَ عشرين عرضاً اليوم. عُد غداً.", "You have added twenty offers today. Come back tomorrow."],
+  ["لا عرضَ مفتوحاً لك بهذا الرقم.", "You have no open offer with this number."],
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

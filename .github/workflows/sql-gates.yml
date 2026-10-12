@@ -84,6 +84,9 @@ jobs:
       - name: الترع — الحدود والنصيب والنوبات
         run: ./scripts/verify-canals.sh
 
+      - name: عروض البيع والشراء — القراءة للناس والكتابة بدالّة
+        run: ./scripts/verify-market-offers.sh
+
       - name: الردّ الآلي على الشكاوى
         run: ./scripts/verify-support-auto-reply.sh
 
