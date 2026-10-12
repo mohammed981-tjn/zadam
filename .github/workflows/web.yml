@@ -53,6 +53,8 @@ on:
     paths-ignore:
       - "docs/**"
       - "**/*.md"
+      # The daily exchange-rate reference is data, not code: updating it must not cost a CI run.
+      - "content/fx/**"
   workflow_dispatch:
 
 # And if several commits land quickly, only the newest needs an answer.

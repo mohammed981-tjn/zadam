@@ -75,6 +75,8 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/rain",
   "/tools/water",
   "/tools/feasibility",
+  "/rates",
+  "/tools/new-crops",
   "/studies",
   "/studies/exchange-rate",
   "/arc-canal",

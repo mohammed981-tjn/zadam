@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
+  ALL_CROPS,
   CROPS,
+  NEW_CROPS,
   STATIONS,
   IRRIGATION_EFFICIENCY,
   IRRIGATION_LABEL,
@@ -31,6 +34,9 @@ import {
   cropName,
   stationName,
 } from "@/lib/enNames";
+import { CROP_INPUTS } from "@/lib/cropInputs";
+import { INPUT_PRICES, LOCAL_REFERENCES, estimateCostPerFeddan } from "@/lib/inputPrices";
+import { irrigationAdvice, PIVOT_MIN_FEDDANS, type Suitability } from "@/lib/irrigationAdvice";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 
@@ -46,14 +52,22 @@ const VERDICT_STYLE: Record<PhaseVerdict, string> = {
 
 export default function FeasibilityStudy({
   markets,
+  sdgPerUsd = null,
+  sdgPerUsdParallel = null,
+  initialCrop = "sorghum",
 }: {
   markets: Record<string, CropMarket>;
+  /** Crop to open on, e.g. from the new-crops page (?crop=soybean). */
+  initialCrop?: string;
+  /** Pounds per dollar at the bank and on the parallel market, from /rates. */
+  sdgPerUsd?: number | null;
+  sdgPerUsdParallel?: number | null;
 }) {
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const en = locale === "en";
   const kgHa = t("كجم/هـ", "kg/ha");
-  const [cropKey, setCropKey] = useState("sorghum");
+  const [cropKey, setCropKey] = useState(ALL_CROPS.some((c) => c.key === initialCrop) ? initialCrop : "sorghum");
   const [stationKey, setStationKey] = useState("gezira");
   const [plantingMonth, setPlantingMonth] = useState(5);
   const [method, setMethod] = useState<IrrigationMethod>("flood");
@@ -81,7 +95,7 @@ export default function FeasibilityStudy({
   }, [markets, cropKey, manualPrice]);
 
   const study = useMemo(() => {
-    const crop = CROPS.find((c) => c.key === cropKey)!;
+    const crop = ALL_CROPS.find((c) => c.key === cropKey)!;
     const station = STATIONS.find((s) => s.key === stationKey)!;
     return phasedFeasibility({
       crop,
@@ -123,12 +137,24 @@ export default function FeasibilityStudy({
             onChange={(e) => setCropKey(e.target.value)}
             className={field}
           >
-            {CROPS.map((c) => (
-              <option key={c.key} value={c.key}>
-                {cropName(c, locale)}
-              </option>
-            ))}
+            <optgroup label={t("محاصيل سودانية", "Sudanese crops")}>
+              {CROPS.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {cropName(c, locale)}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={t("محاصيل جديدة تستحق التجربة", "New crops worth trying")}>
+              {NEW_CROPS.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {cropName(c, locale)}
+                </option>
+              ))}
+            </optgroup>
           </select>
+          <Link href="/tools/new-crops" className="text-xs text-primary underline">
+            {t("ما المحاصيل الجديدة؟ ولماذا نقترحها", "What are the new crops, and why")}
+          </Link>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
@@ -196,6 +222,22 @@ export default function FeasibilityStudy({
             onChange={(e) => setCostPerFeddan(Number(e.target.value))}
             className={field}
           />
+          {sdgPerUsd !== null && Number.isFinite(costPerFeddan) && costPerFeddan > 0 && (
+            <span className="text-xs text-muted">
+              {t(
+                `≈ ${n0(costPerFeddan * sdgPerUsd)} جنيه بسعر البنك (${n0(sdgPerUsd)} للدولار)`,
+                `≈ ${n0(costPerFeddan * sdgPerUsd)} SDG at the bank rate (${n0(sdgPerUsd)} per dollar)`,
+              )}
+              {sdgPerUsdParallel !== null &&
+                t(
+                  ` · ${n0(costPerFeddan * sdgPerUsdParallel)} بالسوق الموازي`,
+                  ` · ${n0(costPerFeddan * sdgPerUsdParallel)} at the parallel rate`,
+                )}{" "}
+              <Link href="/rates" className="text-primary underline">
+                {t("الأسعار", "Rates")}
+              </Link>
+            </span>
+          )}
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
@@ -232,6 +274,198 @@ export default function FeasibilityStudy({
           </span>
         </label>
       </div>
+
+      {/* ── Irrigation advice: the farmer's method stays, the better one is named ── */}
+      {(() => {
+        const advice = irrigationAdvice(
+          cropKey,
+          method,
+          Number.isFinite(feddans) && feddans > 0 ? feddans : 1,
+          study.water.m3PerFeddan * IRRIGATION_EFFICIENCY[method],
+        );
+        const name = (m: IrrigationMethod) => (en ? IRRIGATION_EN[m] : IRRIGATION_LABEL[m]);
+        const fit: Record<Suitability, string> = {
+          suited: t("مناسبة", "Suited"),
+          possible: t("ممكنة", "Possible"),
+          unsuited: t("غير مناسبة", "Not suited"),
+        };
+        const same = advice.recommended === method;
+        return (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 text-sm">
+            <h2 className="mb-2 text-base font-semibold">
+              {t("توصية طريقة الري", "Irrigation method advice")}
+            </h2>
+            <p className="leading-relaxed">
+              {same
+                ? t(
+                    `طريقتك (${name(method)}) هي الأنسب لهذا المحصول وهذه المساحة.`,
+                    `Your method (${name(method)}) is the best fit for this crop and this area.`,
+                  )
+                : t(
+                    `الحساب أدناه بطريقتك (${name(method)}). الأنسب لهذا المحصول وهذه المساحة: ${name(advice.recommended)}` +
+                      (advice.savingM3PerFeddan > 0
+                        ? ` — توفّر نحو ${n0(advice.savingM3PerFeddan)} م³ للفدان في الموسم (${n0(advice.savingShare * 100)}٪ من الماء).`
+                        : "."),
+                    `The study below uses your method (${name(method)}). Best fit for this crop and area: ${name(advice.recommended)}` +
+                      (advice.savingM3PerFeddan > 0
+                        ? ` — it saves about ${n0(advice.savingM3PerFeddan)} m³ per feddan over the season (${n0(advice.savingShare * 100)}% of the water).`
+                        : "."),
+                  )}
+            </p>
+            <table className="mt-3 w-full text-start text-xs">
+              <thead className="text-muted">
+                <tr>
+                  <th className="py-1 text-start font-medium">{t("الطريقة", "Method")}</th>
+                  <th className="py-1 text-start font-medium">{t("للمحصول", "For the crop")}</th>
+                  <th className="py-1 text-start font-medium">{t("ماء الفدان في الموسم", "Water per feddan, season")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {advice.methods.map((m) => (
+                  <tr key={m.method} className={m.method === advice.recommended ? "font-bold" : ""}>
+                    <td className="py-1">
+                      {name(m.method)}
+                      {m.method === method && <span className="text-muted"> {t("(اختيارك)", "(yours)")}</span>}
+                    </td>
+                    <td className="py-1">
+                      {fit[m.suitability]}
+                      {m.tooSmall && m.suitability !== "unsuited" && (
+                        <span className="text-muted">
+                          {" "}
+                          {t(`— لمساحة ${n0(PIVOT_MIN_FEDDANS)} فدان فأكثر`, `— for ${n0(PIVOT_MIN_FEDDANS)} feddan or more`)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-1">{n0(m.m3PerFeddan)} {t("م³", "m³")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-3 text-xs text-muted leading-relaxed">
+              {t(
+                "المناسبة للمحصول من دليل الفاو لطرق الري (Brouwer وآخرون، 1988): الغمر يناسب كلّ المحاصيل، والرش أغلب المحاصيل الحقلية، والتنقيط الخضر والنخيل والأشجار لا المحاصيل الكثيفة كالقمح. ومن بين المناسبة تُختار الأعلى كفاءة. حدّ المساحة للمحاور الارتكازية قاعدة عملية لا رقم منشور. ولا يدخل هنا ثمن معدّات الري.",
+                "Crop suitability follows FAO's training manual on irrigation methods (Brouwer et al., 1988): surface irrigation suits all crops, sprinkler most field crops, drip vegetables, palms and trees but not close-growing crops like wheat. Among the suitable methods the most efficient is chosen. The pivot area threshold is a practical rule, not a published figure. The cost of irrigation equipment is not included here.",
+              )}
+            </p>
+          </div>
+        );
+      })()}
+
+      {/* ── Per-feddan needs and the platform's own cost estimate ───────── */}
+      {(() => {
+        const inputs = CROP_INPUTS[cropKey];
+        const est = estimateCostPerFeddan(cropKey);
+        const range = (r: [number, number] | null, unit: string) =>
+          r === null ? t("لم نجد رقماً منشوراً", "No published figure found") : r[0] === r[1] ? `${r[0]} ${unit}` : `${r[0]}–${r[1]} ${unit}`;
+        const bags = (r: [number, number]) => (r[0] === r[1] ? `${r[0] / 50}` : `${r[0] / 50}–${r[1] / 50}`);
+        const sdg = (usd: number) => (sdgPerUsd !== null ? n0(usd * sdgPerUsd) : null);
+        if (!inputs || !est) {
+          return (
+            <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted">
+              {t(
+                "هذا محصول جديد: لا توصيات سودانية منشورة لمدخلاته بعد، فأدخل تكلفتك بنفسك. ",
+                "This is a new crop: there are no published Sudanese input recommendations yet, so enter your own cost. ",
+              )}
+              <Link href="/tools/new-crops" className="text-primary underline">
+                {t("ما وجدناه عنه", "What we found about it")}
+              </Link>
+            </div>
+          );
+        }
+        return (
+          <div className="rounded-2xl border border-border bg-card p-5 text-sm">
+            <h2 className="mb-1 text-base font-semibold">{t("احتياجات الفدان", "What one feddan needs")}</h2>
+            <p className="mb-3 text-xs text-muted">{en ? inputs.system.en : inputs.system.ar}</p>
+            <dl className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg bg-background px-3 py-2">
+                <dt className="text-xs text-muted">{t("البذور", "Seed")}</dt>
+                <dd className="font-bold">{range(inputs.seedKg, t("كجم", "kg"))}</dd>
+                {inputs.seedNote && <dd className="text-xs text-muted">{en ? inputs.seedNote.en : inputs.seedNote.ar}</dd>}
+              </div>
+              <div className="rounded-lg bg-background px-3 py-2">
+                <dt className="text-xs text-muted">{t("اليوريا", "Urea")}</dt>
+                <dd className="font-bold">
+                  {inputs.ureaKg ? `${range(inputs.ureaKg, t("كجم", "kg"))} (${bags(inputs.ureaKg)} ${t("جوال", "bags")})` : t("لا تُضاف عادةً", "Not usually applied")}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-background px-3 py-2">
+                <dt className="text-xs text-muted">{t("السماد الفوسفاتي", "Phosphate")}</dt>
+                <dd className="font-bold">
+                  {inputs.phosphate ? `${inputs.phosphate.kind} ${range(inputs.phosphate.kg, t("كجم", "kg"))}` : t("لا توصية منشورة", "No published recommendation")}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-background px-3 py-2">
+                <dt className="text-xs text-muted">{t("متى يوضع السماد", "When fertiliser goes on")}</dt>
+                <dd>{inputs.timing ? (en ? inputs.timing.en : inputs.timing.ar) : "—"}</dd>
+              </div>
+              <div className="rounded-lg bg-background px-3 py-2 sm:col-span-2">
+                <dt className="text-xs text-muted">{t("المبيدات", "Sprays")}</dt>
+                <dd>{inputs.sprays ? (en ? inputs.sprays.en : inputs.sprays.ar) : t("لم نجد معدّلاً منشوراً", "No published rate found")}</dd>
+              </div>
+              <div className="rounded-lg bg-background px-3 py-2 sm:col-span-2">
+                <dt className="text-xs text-muted">{t("العمليات", "Field operations")}</dt>
+                <dd>{en ? inputs.operations.en : inputs.operations.ar}</dd>
+              </div>
+            </dl>
+
+            <h3 className="mb-2 mt-5 font-semibold">
+              {t("متوسط التكلفة المتوقَّع للفدان — تقدير البرنامج", "Expected cost per feddan — the platform's estimate")}
+            </h3>
+            <table className="w-full text-xs">
+              <tbody>
+                {est.lines.map((l) => (
+                  <tr key={l.en} className="border-t border-border">
+                    <td className="py-1">{en ? l.en : l.ar}</td>
+                    <td className="py-1 text-muted" dir="ltr">{l.qty}</td>
+                    <td className="py-1 font-bold">${l.usd.toFixed(2)}</td>
+                    <td className="py-1">{sdg(l.usd) !== null && `${sdg(l.usd)} ${t("جنيه", "SDG")}`}</td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-border font-bold">
+                  <td className="py-1">{t("المجموع المعروف", "Known total")}</td>
+                  <td />
+                  <td className="py-1">${est.totalUsd.toFixed(2)}</td>
+                  <td className="py-1">{sdg(est.totalUsd) !== null && `${sdg(est.totalUsd)} ${t("جنيه", "SDG")}`}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-xs text-muted leading-relaxed">
+              {t("غير محسوب لأنّا لم نجد سعراً منشوراً له: ", "Not included, for lack of a published price: ")}
+              {est.missing.map((m) => (en ? m.en : m.ar)).join(t("، ", ", "))}.
+              {" "}
+              {t(
+                "فهذا حدّ أدنى لا تكلفة كاملة، وتكلفتك التي أدخلتها أعلاه هي التي تُبنى عليها الدراسة. السماد بسعر الميناء العالمي قبل الشحن، والجنيه بسعر البنك.",
+                "So this is a floor, not a full cost; the cost you entered above is the one the study runs on. Fertiliser is at the world port price before freight; pounds are at the bank rate.",
+              )}
+            </p>
+            <ul className="mt-2 list-disc ps-5 text-xs text-muted">
+              {LOCAL_REFERENCES.map((r) => (
+                <li key={r.source}>
+                  {en ? r.en : r.ar}{" "}
+                  <a href={r.source} target="_blank" rel="noopener noreferrer" className="underline">
+                    {t("المصدر", "source")}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-muted">
+              {t("مصادر الاحتياجات: ", "Sources for the needs: ")}
+              {inputs.sources.map((s, i) => (
+                <span key={s.url}>
+                  {i > 0 && " · "}
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="underline" lang="en" dir="ltr">
+                    {s.label}
+                  </a>
+                </span>
+              ))}
+              {" · "}
+              <a href={INPUT_PRICES.urea.source} target="_blank" rel="noopener noreferrer" className="underline">
+                {t("أسعار السماد: البنك الدولي، سبتمبر 2026", "Fertiliser prices: World Bank, September 2026")}
+              </a>
+            </p>
+          </div>
+        );
+      })()}
 
       {/* ── Where the numbers came from ─────────────────────────── */}
       <div className="rounded-2xl border border-border bg-card p-5">

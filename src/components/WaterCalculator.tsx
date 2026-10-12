@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import {
+  ALL_CROPS,
   CROPS,
+  NEW_CROPS,
   STATIONS,
   IRRIGATION_EFFICIENCY,
   IRRIGATION_LABEL,
@@ -30,7 +32,7 @@ export default function WaterCalculator() {
   const [feddans, setFeddans] = useState(10);
 
   const result = useMemo(() => {
-    const crop = CROPS.find((c) => c.key === cropKey)!;
+    const crop = ALL_CROPS.find((c) => c.key === cropKey)!;
     const station = STATIONS.find((s) => s.key === stationKey)!;
     return waterRequirement(crop, station, plantingMonth, method);
   }, [cropKey, stationKey, plantingMonth, method]);
@@ -54,11 +56,20 @@ export default function WaterCalculator() {
             onChange={(e) => setCropKey(e.target.value)}
             className={select}
           >
-            {CROPS.map((c) => (
-              <option key={c.key} value={c.key}>
-                {cropName(c, locale)}
-              </option>
-            ))}
+            <optgroup label={t("محاصيل سودانية", "Sudanese crops")}>
+              {CROPS.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {cropName(c, locale)}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={t("محاصيل جديدة تستحق التجربة", "New crops worth trying")}>
+              {NEW_CROPS.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {cropName(c, locale)}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
 

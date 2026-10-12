@@ -163,6 +163,58 @@ export const CROPS: CropCoefficients[] = [
   // nobody is asking of it.
 ];
 
+/**
+ * محاصيل جديدة على السودان — تستحق التجربة، ومفصولة عن المحاصيل السودانية.
+ *
+ * The owner, 12 October 2026: «لماذا لا تضيف محاصيل غير موجودة في السودان ويمكن
+ * زراعتها… وفرزها عن المحاصيل السودانية… وتشجّع الزائر على تجربتها». Kept out of
+ * CROPS on purpose: CROPS feeds the land, season and opportunity forms, whose
+ * records name a crop the farmer actually grows. These feed only the water
+ * calculator and the feasibility study, where trying a crop on paper is the
+ * point. Only crops with both FAO-56 Table 11 stage lengths and Table 12
+ * coefficients are here; quinoa, guar and canola are described in
+ * src/lib/newCrops.ts without a water figure, because no published stage
+ * lengths were found for them.
+ */
+export const NEW_CROPS: CropCoefficients[] = [
+  {
+    // FAO-56 Table 12 "Soybeans": Kc_ini 0.4 (legumes group), mid 1.15, end 0.50.
+    // Table 11, "Dec, Tropics": 15/15/40/15 = 85 days — Gezira trials matured
+    // in 71–86 days (Ibrahim et al. 2017), so the tropical row fits.
+    key: "soybean",
+    name: "فول الصويا",
+    stages: [15, 15, 40, 15],
+    kcInitial: 0.4,
+    kcMid: 1.15,
+    kcEnd: 0.5,
+  },
+  {
+    // FAO-56 Table 12 "Grapes – Table or Raisin": 0.30 / 0.85 / 0.45.
+    // Table 11, "April, Low Latitudes": 20/40/120/60 = 240 days.
+    key: "grapes",
+    name: "العنب",
+    stages: [20, 40, 120, 60],
+    kcInitial: 0.3,
+    kcMid: 0.85,
+    kcEnd: 0.45,
+  },
+  {
+    // FAO-56 Table 12 "Olives (40 to 60% ground coverage)": 0.65 / 0.70 / 0.70.
+    // Table 11, "March, Mediterranean": 30/90/60/90 = 270 days.
+    key: "olive",
+    name: "الزيتون",
+    stages: [30, 90, 60, 90],
+    kcInitial: 0.65,
+    kcMid: 0.7,
+    kcEnd: 0.7,
+  },
+];
+
+/** Every crop the water engine can cost: Sudanese first, then the new ones. */
+export const ALL_CROPS: CropCoefficients[] = [...CROPS, ...NEW_CROPS];
+
+export const isNewCrop = (key: string) => NEW_CROPS.some((c) => c.key === key);
+
 /** Where a station's numbers came from. Surfaced to the user; provenance is the point. */
 export type StationSource = "indicative" | "nasa-power";
 
