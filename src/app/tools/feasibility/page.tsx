@@ -22,7 +22,8 @@ export async function generateMetadata() {
  * this season viable" in the abstract but "having spent what I have spent, do I
  * pay the next instalment".
  */
-export default async function FeasibilityPage() {
+export default async function FeasibilityPage({ searchParams }: { searchParams: Promise<{ crop?: string }> }) {
+  const { crop } = await searchParams;
   /*
    * null means the reference could not be read at all, which is not the same
    * as a crop having no reference — and the difference has to reach the reader.
@@ -137,7 +138,7 @@ export default async function FeasibilityPage() {
         </section>
       )}
 
-      <FeasibilityStudy markets={markets ?? {}} sdgPerUsd={fx?.bank.sell ?? null} sdgPerUsdParallel={fx?.parallel.sell ?? null} />
+      <FeasibilityStudy markets={markets ?? {}} initialCrop={crop} sdgPerUsd={fx?.bank.sell ?? null} sdgPerUsdParallel={fx?.parallel.sell ?? null} />
 
       <section className="flex flex-col gap-2 text-sm text-muted">
         <h2 className="text-base font-semibold text-foreground">
