@@ -251,7 +251,9 @@ export default function SplashOnce() {
       // الحقيقيُّ تحتها جاهزٌ لقارئ الشاشة من اللحظة الأولى. وحوارٌ يخطف
       // التركيز كان سيقطع على القارئ الضريرَ صفحةً هو فيها أصلاً.
       aria-hidden
-      className="fixed inset-0 z-[60] bg-background opacity-100 transition-opacity duration-500"
+      // داكنٌ دائماً (المالك، 12 أكتوبر: «يتغيّر مع الألوان الجديدة الغامقة») — يكمل شاشةَ
+      // النظام الافتتاحيّة الداكنة في `manifest.ts` بلا ومضة.
+      className="fixed inset-0 z-[60] bg-[#10160f] opacity-100 transition-opacity duration-500"
     >
       {/*
         المرحلةُ الأولى: فيديو المزارع على الشاشة كاملة. `preload="none"` لأنّ
@@ -273,17 +275,20 @@ export default function SplashOnce() {
       {/* المرحلةُ الثانية: الشعار، يظهر فوق المقطع حين ينتهي. */}
       <div
         ref={logoRef}
-        className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-background opacity-0 transition-opacity duration-500"
+        className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-[#10160f] opacity-0 transition-opacity duration-500"
       >
-        <Image
-          src={SUDAGRI_LOGO}
-          alt=""
-          placeholder="blur"
-          onLoad={onImageLoad}
-          sizes="(min-width: 640px) 360px, 80vw"
-          className="w-[80vw] max-w-[380px]"
-        />
-        <p className="text-sm text-muted">
+        {/* صحنٌ كريميّ خلف الشعار: أخضرُ «سوداقري» لا يُقرأ على الداكن وحده. */}
+        <div className="rounded-full bg-[#f7f5ef] p-[4%] shadow-2xl">
+          <Image
+            src={SUDAGRI_LOGO}
+            alt=""
+            placeholder="blur"
+            onLoad={onImageLoad}
+            sizes="(min-width: 640px) 360px, 80vw"
+            className="w-[76vw] max-w-[360px]"
+          />
+        </div>
+        <p className="text-sm text-[#e8e6dc]">
           {tr(locale, "منصّة سودانية للزراعة والتجارة", "A Sudanese platform for agriculture and trade")}
         </p>
       </div>
