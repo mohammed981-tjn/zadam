@@ -1,0 +1,135 @@
+{
+  "note": "Updated by hand or by a routine. Every figure is read in the source named beside it, on the market day given as `date` (when a report says «أمس», the day before publication). A figure that was not found is left out, never estimated. `arrivals` is sacks (جوال) entering the market that day; for the sorghum varieties it is all sorghum together, as the bulletins report it. Gedaref and El Obeid publish nothing official online; these are the State Markets Administration's bulletins as SUNA and Sudanese papers carried them.",
+  "checked": "2026-10-12",
+  "markets": {
+    "gedaref": {
+      "name_ar": "القضارف",
+      "name_en": "Gedaref",
+      "bourse_ar": "بورصة أسواق محاصيل القضارف",
+      "bourse_en": "Gedaref crop-market bourse"
+    },
+    "obeid": {
+      "name_ar": "الأبيض",
+      "name_en": "El Obeid",
+      "bourse_ar": "بورصة سوق محصولات الأبيض",
+      "bourse_en": "El Obeid crop-market bourse"
+    }
+  },
+  "series": [
+    {
+      "market": "gedaref",
+      "crop": "sesame",
+      "unit": "qintar",
+      "history": [
+        { "date": "2026-02-10", "price": 165000, "arrivals": 1423, "source": "https://www.sudanakhbar.com/1752547" },
+        { "date": "2026-02-11", "price": 165000, "arrivals": 3659, "source": "https://www.sudanakhbar.com/1753274" },
+        { "date": "2026-02-23", "price": 165000, "arrivals": 231, "source": "https://www.sudanakhbar.com/1757532" },
+        { "date": "2026-03-31", "price": 185000, "arrivals": 1893, "source": "https://ultrasudan.ultrasawt.com/%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%88%D8%A7%D8%B1%D8%AF-%D9%88%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D8%B0%D8%B1%D8%A9-%D9%88%D8%A7%D9%84%D8%B3%D9%85%D8%B3%D9%85-%D9%81%D9%8A-%D8%A3%D8%B3%D9%88%D8%A7%D9%82-%D8%A7%D9%84%D9%82%D8%B6%D8%A7%D8%B1%D9%81-%D8%A8%D8%B9%D8%AF-%D8%B9%D9%8A%D8%AF-%D8%A7%D9%84%D9%81%D8%B7%D8%B1/%D9%85%D9%86%D8%B5%D9%88%D8%B1-%D8%A7%D9%84%D8%B5%D9%88%D9%8A%D9%85/%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1" },
+        { "date": "2026-04-08", "price": 214000, "arrivals": 2464, "source": "https://nabdn.com/post/31401702/%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D8%A7%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%A7%D9%84%D8%B2%D8%B1%D8%A7%D8%B9%D9%8A%D8%A9-%D8%A8%D8%B3%D9%88%D9%82-%D8%A7%D9%84%D9%82%D8%B6%D8%A7%D8%B1%D9%81" },
+        { "date": "2026-05-11", "price": 230000, "arrivals": 1106, "source": "https://nabdsudan.net/239100" },
+        { "date": "2026-05-20", "price": 235000, "arrivals": 1894, "source": "https://sudafax.com/563217/" },
+        { "date": "2026-07-01", "price": 280000, "arrivals": 1160, "source": "https://sudafax.com/574013/", "note": "date of publication; the report does not name the market day" },
+        { "date": "2026-07-08", "price": 280000, "arrivals": 541, "source": "https://www.sudanakhbar.com/1810324" }
+      ]
+    },
+    {
+      "market": "gedaref",
+      "crop": "feterita",
+      "unit": "ardeb",
+      "history": [
+        { "date": "2026-02-10", "price": 166000, "arrivals": 26679, "source": "https://www.sudanakhbar.com/1752547" },
+        { "date": "2026-02-11", "price": 183000, "arrivals": 28256, "source": "https://www.sudanakhbar.com/1753274" },
+        { "date": "2026-02-23", "price": 167000, "arrivals": 23009, "source": "https://www.sudanakhbar.com/1757532" },
+        { "date": "2026-03-31", "price": 210000, "arrivals": 19725, "source": "https://ultrasudan.ultrasawt.com/%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%88%D8%A7%D8%B1%D8%AF-%D9%88%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D8%B0%D8%B1%D8%A9-%D9%88%D8%A7%D9%84%D8%B3%D9%85%D8%B3%D9%85-%D9%81%D9%8A-%D8%A3%D8%B3%D9%88%D8%A7%D9%82-%D8%A7%D9%84%D9%82%D8%B6%D8%A7%D8%B1%D9%81-%D8%A8%D8%B9%D8%AF-%D8%B9%D9%8A%D8%AF-%D8%A7%D9%84%D9%81%D8%B7%D8%B1/%D9%85%D9%86%D8%B5%D9%88%D8%B1-%D8%A7%D9%84%D8%B5%D9%88%D9%8A%D9%85/%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1" },
+        { "date": "2026-04-08", "price": 240000, "arrivals": 13150, "source": "https://nabdn.com/post/31401702/%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D8%A7%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%A7%D9%84%D8%B2%D8%B1%D8%A7%D8%B9%D9%8A%D8%A9-%D8%A8%D8%B3%D9%88%D9%82-%D8%A7%D9%84%D9%82%D8%B6%D8%A7%D8%B1%D9%81" },
+        { "date": "2026-05-11", "price": 250000, "arrivals": 7658, "source": "https://nabdsudan.net/239100" },
+        { "date": "2026-05-20", "price": 255000, "arrivals": 4808, "source": "https://sudafax.com/563217/" },
+        { "date": "2026-07-01", "price": 290000, "arrivals": 916, "source": "https://sudafax.com/574013/", "note": "date of publication; the report does not name the market day" },
+        { "date": "2026-07-08", "price": 300000, "arrivals": 334, "source": "https://www.sudanakhbar.com/1810324" }
+      ]
+    },
+    {
+      "market": "gedaref",
+      "crop": "millet",
+      "unit": "ardeb",
+      "history": [
+        { "date": "2026-02-10", "price": 241000, "arrivals": 1890, "source": "https://www.sudanakhbar.com/1752547" },
+        { "date": "2026-02-11", "price": 250000, "arrivals": 2073, "source": "https://www.sudanakhbar.com/1753274" },
+        { "date": "2026-02-23", "price": 280000, "arrivals": 1478, "source": "https://www.sudanakhbar.com/1757532" },
+        { "date": "2026-03-31", "price": 315000, "arrivals": 1189, "source": "https://ultrasudan.ultrasawt.com/%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%88%D8%A7%D8%B1%D8%AF-%D9%88%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D8%B0%D8%B1%D8%A9-%D9%88%D8%A7%D9%84%D8%B3%D9%85%D8%B3%D9%85-%D9%81%D9%8A-%D8%A3%D8%B3%D9%88%D8%A7%D9%82-%D8%A7%D9%84%D9%82%D8%B6%D8%A7%D8%B1%D9%81-%D8%A8%D8%B9%D8%AF-%D8%B9%D9%8A%D8%AF-%D8%A7%D9%84%D9%81%D8%B7%D8%B1/%D9%85%D9%86%D8%B5%D9%88%D8%B1-%D8%A7%D9%84%D8%B5%D9%88%D9%8A%D9%85/%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1" },
+        { "date": "2026-05-11", "price": 350000, "arrivals": 521, "source": "https://nabdsudan.net/239100" },
+        { "date": "2026-05-20", "price": 355000, "arrivals": 414, "source": "https://sudafax.com/563217/" },
+        { "date": "2026-07-01", "price": 490000, "arrivals": 215, "source": "https://sudafax.com/574013/", "note": "date of publication; the report does not name the market day" },
+        { "date": "2026-07-08", "price": 505000, "arrivals": 85, "source": "https://www.sudanakhbar.com/1810324" }
+      ]
+    },
+    {
+      "market": "obeid",
+      "crop": "gum_hashab",
+      "unit": "qintar",
+      "history": [
+        { "date": "2026-01-28", "price": 520000, "source": "https://sudanalaan.net/21476" },
+        { "date": "2026-02-09", "price": 500000, "source": "https://sudanalaan.net/22207" },
+        { "date": "2026-07-21", "price": 780000, "source": "https://ainelhagega.com/?p=36912", "note": "the bulletin says «الصمغ العربي» without naming hashab" },
+        { "date": "2026-08-14", "price": 820000, "source": "https://www.dabangasudan.org/ar/all-news/article/%d8%a8%d8%b9%d8%af-%d8%a7%d8%b3%d8%aa%d9%82%d8%b1%d8%a7%d8%b1-%d9%86%d8%b3%d8%a8%d9%8a-%d8%a3%d8%b3%d8%b9%d8%a7%d8%b1-%d8%a7%d9%84%d9%85%d8%ad%d8%a7%d8%b5%d9%8a%d9%84-%d8%aa%d8%b9%d8%a7%d9%88%d8%af", "note": "a trader's quote to Radio Dabanga, not the bourse bulletin" }
+      ]
+    },
+    {
+      "market": "obeid",
+      "crop": "sesame_red",
+      "unit": "qintar",
+      "history": [
+        { "date": "2026-02-09", "price": 125000, "source": "https://sudanalaan.net/22207" },
+        { "date": "2026-07-21", "price": 260000, "source": "https://ainelhagega.com/?p=36912" }
+      ]
+    },
+    {
+      "market": "obeid",
+      "crop": "groundnut",
+      "unit": "qintar",
+      "history": [
+        { "date": "2026-01-28", "price": 120000, "source": "https://sudanalaan.net/21476" },
+        { "date": "2026-02-09", "price": 112000, "source": "https://sudanalaan.net/22207" },
+        { "date": "2026-07-21", "price": 260000, "source": "https://ainelhagega.com/?p=36912" }
+      ]
+    },
+    {
+      "market": "obeid",
+      "crop": "hibiscus",
+      "unit": "qintar",
+      "history": [
+        { "date": "2026-01-28", "price": 270000, "source": "https://sudanalaan.net/21476" },
+        { "date": "2026-02-09", "price": 200000, "source": "https://sudanalaan.net/22207" },
+        { "date": "2026-07-21", "price": 430000, "source": "https://ainelhagega.com/?p=36912" },
+        { "date": "2026-08-14", "price": 440000, "source": "https://www.dabangasudan.org/ar/all-news/article/%d8%a8%d8%b9%d8%af-%d8%a7%d8%b3%d8%aa%d9%82%d8%b1%d8%a7%d8%b1-%d9%86%d8%b3%d8%a8%d9%8a-%d8%a3%d8%b3%d8%b9%d8%a7%d8%b1-%d8%a7%d9%84%d9%85%d8%ad%d8%a7%d8%b5%d9%8a%d9%84-%d8%aa%d8%b9%d8%a7%d9%88%d8%af", "note": "a trader's quote to Radio Dabanga, not the bourse bulletin" }
+      ]
+    },
+    {
+      "market": "obeid",
+      "crop": "feterita",
+      "unit": "ardeb",
+      "history": [
+        { "date": "2026-02-09", "price": 195000, "source": "https://khartoumsport.com/37085" },
+        { "date": "2026-07-21", "price": 350000, "source": "https://ainelhagega.com/?p=36912", "note": "spelt «الفريتة» in the report" }
+      ]
+    },
+    {
+      "market": "obeid",
+      "crop": "tabat",
+      "unit": "ardeb",
+      "history": [
+        { "date": "2026-02-09", "price": 220000, "source": "https://khartoumsport.com/37085" },
+        { "date": "2026-07-21", "price": 335000, "source": "https://ainelhagega.com/?p=36912" }
+      ]
+    },
+    {
+      "market": "obeid",
+      "crop": "millet",
+      "unit": "ardeb",
+      "history": [
+        { "date": "2026-02-09", "price": 318000, "source": "https://khartoumsport.com/37085", "note": "yellow millet" },
+        { "date": "2026-07-21", "price": 610000, "source": "https://ainelhagega.com/?p=36912", "note": "yellow millet" }
+      ]
+    }
+  ]
+}
