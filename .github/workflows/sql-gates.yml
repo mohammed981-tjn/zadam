@@ -84,6 +84,9 @@ jobs:
       - name: الترع — الحدود والنصيب والنوبات
         run: ./scripts/verify-canals.sh
 
+      - name: المدخلات — الموردون والطلبات الجماعية والتوصيل بالرمز
+        run: ./scripts/verify-supply-chain.sh
+
       - name: الردّ الآلي على الشكاوى
         run: ./scripts/verify-support-auto-reply.sh
 
