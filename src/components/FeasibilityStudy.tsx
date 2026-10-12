@@ -31,6 +31,7 @@ import {
   cropName,
   stationName,
 } from "@/lib/enNames";
+import { irrigationAdvice, PIVOT_MIN_FEDDANS, type Suitability } from "@/lib/irrigationAdvice";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 
@@ -232,6 +233,82 @@ export default function FeasibilityStudy({
           </span>
         </label>
       </div>
+
+      {/* ── Irrigation advice: the farmer's method stays, the better one is named ── */}
+      {(() => {
+        const advice = irrigationAdvice(
+          cropKey,
+          method,
+          Number.isFinite(feddans) && feddans > 0 ? feddans : 1,
+          study.water.m3PerFeddan * IRRIGATION_EFFICIENCY[method],
+        );
+        const name = (m: IrrigationMethod) => (en ? IRRIGATION_EN[m] : IRRIGATION_LABEL[m]);
+        const fit: Record<Suitability, string> = {
+          suited: t("مناسبة", "Suited"),
+          possible: t("ممكنة", "Possible"),
+          unsuited: t("غير مناسبة", "Not suited"),
+        };
+        const same = advice.recommended === method;
+        return (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 text-sm">
+            <h2 className="mb-2 text-base font-semibold">
+              {t("توصية طريقة الري", "Irrigation method advice")}
+            </h2>
+            <p className="leading-relaxed">
+              {same
+                ? t(
+                    `طريقتك (${name(method)}) هي الأنسب لهذا المحصول وهذه المساحة.`,
+                    `Your method (${name(method)}) is the best fit for this crop and this area.`,
+                  )
+                : t(
+                    `الحساب أدناه بطريقتك (${name(method)}). الأنسب لهذا المحصول وهذه المساحة: ${name(advice.recommended)}` +
+                      (advice.savingM3PerFeddan > 0
+                        ? ` — توفّر نحو ${n0(advice.savingM3PerFeddan)} م³ للفدان في الموسم (${n0(advice.savingShare * 100)}٪ من الماء).`
+                        : "."),
+                    `The study below uses your method (${name(method)}). Best fit for this crop and area: ${name(advice.recommended)}` +
+                      (advice.savingM3PerFeddan > 0
+                        ? ` — it saves about ${n0(advice.savingM3PerFeddan)} m³ per feddan over the season (${n0(advice.savingShare * 100)}% of the water).`
+                        : "."),
+                  )}
+            </p>
+            <table className="mt-3 w-full text-start text-xs">
+              <thead className="text-muted">
+                <tr>
+                  <th className="py-1 text-start font-medium">{t("الطريقة", "Method")}</th>
+                  <th className="py-1 text-start font-medium">{t("للمحصول", "For the crop")}</th>
+                  <th className="py-1 text-start font-medium">{t("ماء الفدان في الموسم", "Water per feddan, season")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {advice.methods.map((m) => (
+                  <tr key={m.method} className={m.method === advice.recommended ? "font-bold" : ""}>
+                    <td className="py-1">
+                      {name(m.method)}
+                      {m.method === method && <span className="text-muted"> {t("(اختيارك)", "(yours)")}</span>}
+                    </td>
+                    <td className="py-1">
+                      {fit[m.suitability]}
+                      {m.tooSmall && m.suitability !== "unsuited" && (
+                        <span className="text-muted">
+                          {" "}
+                          {t(`— لمساحة ${n0(PIVOT_MIN_FEDDANS)} فدان فأكثر`, `— for ${n0(PIVOT_MIN_FEDDANS)} feddan or more`)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-1">{n0(m.m3PerFeddan)} {t("م³", "m³")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-3 text-xs text-muted leading-relaxed">
+              {t(
+                "المناسبة للمحصول من دليل الفاو لطرق الري (Brouwer وآخرون، 1988): الغمر يناسب كلّ المحاصيل، والرش أغلب المحاصيل الحقلية، والتنقيط الخضر والنخيل والأشجار لا المحاصيل الكثيفة كالقمح. ومن بين المناسبة تُختار الأعلى كفاءة. حدّ المساحة للمحاور الارتكازية قاعدة عملية لا رقم منشور. ولا يدخل هنا ثمن معدّات الري.",
+                "Crop suitability follows FAO's training manual on irrigation methods (Brouwer et al., 1988): surface irrigation suits all crops, sprinkler most field crops, drip vegetables, palms and trees but not close-growing crops like wheat. Among the suitable methods the most efficient is chosen. The pivot area threshold is a practical rule, not a published figure. The cost of irrigation equipment is not included here.",
+              )}
+            </p>
+          </div>
+        );
+      })()}
 
       {/* ── Where the numbers came from ─────────────────────────── */}
       <div className="rounded-2xl border border-border bg-card p-5">
