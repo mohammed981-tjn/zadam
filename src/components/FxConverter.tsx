@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FX_NAME, type FxCurrency } from "@/lib/fxRates";
+import { FX_NAME, type FxCurrency } from "@/lib/fxCurrencies";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 
