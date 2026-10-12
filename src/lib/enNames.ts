@@ -78,6 +78,9 @@ export const CROP_EN: Record<string, string> = {
   sugarcane: "Sugarcane",
   millet: "Pearl millet",
   dates: "Date palm",
+  soybean: "Soybean",
+  grapes: "Grapes",
+  olive: "Olive",
 };
 
 /** Climate stations in src/lib/agronomy.ts, by key. */
