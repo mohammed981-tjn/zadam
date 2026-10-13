@@ -3,15 +3,15 @@
   "bank": {
     "name_ar": "بنك الخرطوم",
     "name_en": "Bank of Khartoum",
-    "date": "2026-10-11",
+    "date": "2026-10-12",
     "buy": 4200,
     "sell": 4231.5,
-    "source": "https://khaligyoun.com/718449"
+    "source": "https://sudafax.com/584945/"
   },
   "parallel": {
-    "date": "2026-10-11",
-    "buy": 8900,
-    "sell": 9004.27,
-    "source": "https://khaligyoun.com/718449"
+    "date": "2026-10-12",
+    "buy": 8750,
+    "sell": 8847.3119,
+    "source": "https://sudafax.com/584944/"
   }
 }
