@@ -9,7 +9,7 @@
  * the field shapes the API has used.
  */
 import { readFileSync } from "node:fs";
-import { CROP_NAME, latest, parseFews, parseMarketPrices } from "../src/lib/marketPrices";
+import { CROP_NAME, fewsMarket, fewsProduct, fewsUnit, latest, parseFews, parseMarketPrices, parseWfpMonthly } from "../src/lib/marketPrices";
 import { isNotYetCreated } from "../src/lib/marketOffers";
 
 let fail = 0;
@@ -61,6 +61,21 @@ const fews = parseFews({
 ok(fews.length === 2, `FEWS: keeps sorghum and millet in pounds only (${fews.length})`);
 ok(fews.find((f) => f.market === "El Obeid")?.value === 3200 && fews.find((f) => f.market === "El Obeid")?.prev === 3000, "FEWS: the newest month, with the month before");
 ok(parseFews(null).length === 0 && parseFews({ detail: "error" }).length === 0, "FEWS: an error body is an empty list, not a throw");
+
+const order = parseFews([
+  { market: "Kosti", product: "Sorghum", unit: "3_kg", currency: "SDG", period_date: "2026-08-31", value: 7625 },
+  { market: "El Obeid", product: "Sorghum", unit: "3_kg", currency: "SDG", period_date: "2026-08-31", value: 7781 },
+  { market: "Al Qadarif", product: "Sorghum", unit: "3_kg", currency: "SDG", period_date: "2026-06-30", value: 5313 },
+]);
+ok(order.map((f) => f.market).join(",") === "Al Qadarif,El Obeid,Kosti", "FEWS: the two bourse towns come first, even with an older month");
+ok(fewsMarket("Al Qadarif", "ar") === "القضارف" && fewsMarket("Somewhere", "ar") === "Somewhere" && fewsMarket("El Obeid", "en") === "El Obeid", "FEWS: market names in Arabic, unknown towns kept as spelt");
+ok(fewsProduct("Sorghum", "ar") === "ذرة" && fewsProduct("Millet", "ar") === "دخن" && fewsUnit("3.5_kg", "ar") === "3.5 كجم" && fewsUnit("3_kg", "en") === "3 kg", "FEWS: products and units read plainly");
+
+// The WFP figures shown while the bourses are quiet: the file as committed, and a broken one.
+const wfp = parseWfpMonthly(JSON.parse(readFileSync("content/market/wfp.json", "utf8")));
+ok(wfp !== null && /^\d{4}-\d{2}$/.test(wfp.month) && wfp.sorghumRetailPerKg.northKordofan.price > 0, "WFP: the monthly file parses");
+ok(parseWfpMonthly({ ...wfp, month: "August" }) === null, "WFP: a month not written YYYY-MM is refused");
+ok(parseWfpMonthly({ ...wfp, sorghumRetailPerKg: { national: { price: "2465", lastMonth: 2071 }, northKordofan: wfp!.sorghumRetailPerKg.northKordofan } }) === null, "WFP: a figure written as a string is refused, not shown");
 
 // Before the migration is applied the offers pages say «تُفعَّل قريباً»; any other failure is an error.
 ok(isNotYetCreated({ code: "42P01", message: 'relation "public.market_offers" does not exist' }), "offers: a missing table reads as not-yet-created");

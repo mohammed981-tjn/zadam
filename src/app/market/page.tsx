@@ -8,15 +8,20 @@ import { ageInDays, readFxReference } from "@/lib/fxRates";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import {
+  BOURSE_QUIET_DAYS,
   CROP_NAME,
   FEWS_SOURCE_URL,
   MARKET_STALE_DAYS,
   UNIT_NAME,
   cropName,
   fetchFewsPrices,
+  fewsMarket,
+  fewsProduct,
+  fewsUnit,
   latest,
   money,
   readMarketPrices,
+  readWfpMonthly,
   seriesKey,
   type PriceSeries,
 } from "@/lib/marketPrices";
@@ -43,6 +48,7 @@ export default async function MarketPage() {
   const data = readMarketPrices();
   const fx = readFxReference();
   const fews = await fetchFewsPrices();
+  const wfp = readWfpMonthly();
   const usdRate = fx?.bank.sell ?? null;
   // The warehouse-receipt study, when it lands, is linked from here; until then the idea is stated without a dead link.
   const bourseStudy = existsSync(join(process.cwd(), "content/studies/bourse-ar.md"));
@@ -56,6 +62,21 @@ export default async function MarketPage() {
     const ia = CROP_ORDER.indexOf(a), ib = CROP_ORDER.indexOf(b);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   });
+
+  const monthName = (ym: string) =>
+    new Date(`${ym.slice(0, 7)}-15T12:00:00Z`).toLocaleDateString(en ? "en-GB" : "ar-SD-u-nu-latn", { month: "long", year: "numeric" });
+
+  // The newest bulletin per bourse town. When even the newest is a month old the
+  // bourses are between seasons: say so first, and lead with the monthly figures.
+  const lastBulletin = new Map<string, string>();
+  for (const s of data?.series ?? []) {
+    const d = latest(s).last.date;
+    if (d > (lastBulletin.get(s.market) ?? "")) lastBulletin.set(s.market, d);
+  }
+  const newest = [...lastBulletin.values()].sort().pop();
+  const quiet = newest !== undefined && ageInDays(newest) > BOURSE_QUIET_DAYS;
+  const checked = /^\d{4}-\d{2}-\d{2}$/.test(data?.checked ?? "") ? data!.checked : null;
+  const pct = (n: number) => `${n > 0 ? "+" : ""}${money(n)}%`;
 
   const per = (s: PriceSeries) => (en ? `per ${UNIT_NAME[s.unit].en}` : `لل${UNIT_NAME[s.unit].ar.slice(2)}`);
 
@@ -129,6 +150,59 @@ export default async function MarketPage() {
     );
   };
 
+  const monthly = (
+    <section id="monthly" className="mt-10 scroll-mt-20">
+      <h2 className="mb-1 text-lg font-bold">{t("الأسعار الشهرية: التجزئة في القضارف والأبيض وأسواق أخرى", "Monthly prices: retail in Gedaref, El Obeid and other markets")}</h2>
+      <p className="mb-3 text-sm text-muted">
+        {t(
+          "من شبكة الإنذار المبكر بالمجاعة (FEWS NET): متوسّط شهري لأسعار الذرة والدخن بالتجزئة في مدن السودان، القضارف والأبيض أولاً. يتأخّر شهراً أو اثنين، وهو مرجعٌ للاتجاه لا سعر بورصة اليوم.",
+          "From the Famine Early Warning Systems Network (FEWS NET): monthly average retail prices of sorghum and millet in Sudan's towns, Gedaref and El Obeid first. It runs a month or two behind, and is a reference for the trend, not today's bourse price.",
+        )}
+      </p>
+      {fews === null ? (
+        <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
+          {t("تعذّر الوصول إلى بيانات FEWS NET الآن.", "FEWS NET's data could not be reached just now.")}
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead className="bg-background text-muted">
+              <tr>
+                <th className="px-3 py-2 text-start font-medium">{t("السوق", "Market")}</th>
+                <th className="px-3 py-2 text-start font-medium">{t("السلعة", "Product")}</th>
+                <th className="px-3 py-2 text-start font-medium">{t("السعر (جنيه)", "Price (SDG)")}</th>
+                <th className="px-3 py-2 text-start font-medium">{t("الشهر", "Month")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fews.map((f) => (
+                <tr key={`${f.market}|${f.product}|${f.unit}`} className="border-t border-border">
+                  <td className="px-3 py-2">{fewsMarket(f.market, locale)}</td>
+                  <td className="px-3 py-2">
+                    {fewsProduct(f.product, locale)}{" "}
+                    {f.unit && <span className="text-muted">/ <span dir="ltr">{fewsUnit(f.unit, locale)}</span></span>}
+                  </td>
+                  <td className="px-3 py-2 font-bold" dir="ltr">
+                    {money(f.value)}
+                    {f.prev !== null && (
+                      <span className={`ms-1 text-xs ${f.value >= f.prev ? "text-primary" : "text-danger"}`}>
+                        {f.value >= f.prev ? "▲" : "▼"}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-muted">{monthName(f.date)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-muted">
+        <a href={FEWS_SOURCE_URL} className="underline" target="_blank" rel="noopener noreferrer">FEWS NET — Sudan</a>
+      </p>
+    </section>
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-2xl font-bold">{t("سوق المحاصيل اليوم", "Crop market today")}</h1>
@@ -155,6 +229,63 @@ export default async function MarketPage() {
         )}
       </div>
 
+      {quiet && (
+        <section className="mb-6 rounded-2xl border border-danger/40 bg-danger/5 p-4 text-sm leading-relaxed">
+          <h2 className="mb-2 text-base font-bold">{t("لماذا آخر أسعار البورصة قديمة؟", "Why are the latest bourse prices old?")}</h2>
+          <p>
+            {[...lastBulletin.entries()]
+              .map(([m, d]) => t(`آخر رقمٍ منشور من ${data!.markets[m].name_ar}: ${day(d)}`, `Last published figure from ${data!.markets[m].name_en}: ${day(d)}`))
+              .join(t("، و", ", and "))}
+            {t(
+              `. ${checked ? `بحثنا عن أحدث منها آخر مرّة في ${day(checked)} فلم نجد: ` : ""}البورصتان بين موسمين قبل الحصاد، ولم تُنشر لهما نشرةٌ بعدها في الأخبار. يعود النشر عادةً مع افتتاح موسم التسويق الجديد، ونضيفه يوم يظهر.`,
+              `. ${checked ? `We last searched for anything newer on ${day(checked)} and found none: ` : ""}both bourses are between seasons before the harvest, and no bulletin of theirs has appeared in the news since. Bulletins usually return when the new marketing season opens, and we add them the day they appear.`,
+            )}
+          </p>
+          {wfp && (
+            <div className="mt-3 rounded-xl border border-border bg-card p-3">
+              <div className="mb-1 font-bold">
+                {t(`أحدث رقمٍ موثّق: ${monthName(wfp.month)}، من برنامج الأغذية العالمي`, `The newest dated figures: ${monthName(wfp.month)}, from the World Food Programme`)}
+              </div>
+              <ul className="flex list-disc flex-col gap-1 ps-5">
+                <li>
+                  {t("سوق مزاد الذرة بالقضارف: وصله ", "Gedaref sorghum auction market: ")}
+                  <span dir="ltr">{money(wfp.gedarefAuction.arrivalsTonnes)}</span>
+                  {t(" طنّاً ", " tonnes arrived ")}(<span dir="ltr">{pct(wfp.gedarefAuction.arrivalsVsLastMonthPct)}</span>
+                  {t(" عن الشهر السابق)، وتغيّر متوسّط سعر الذرة فيه ", " on the month before), and its average sorghum price moved ")}
+                  <span dir="ltr">{pct(wfp.gedarefAuction.priceVsLastMonthPct)}</span>
+                  {t(" عن الشهر السابق و", " on the month before and ")}
+                  <span dir="ltr">{pct(wfp.gedarefAuction.priceVsLastYearPct)}</span>
+                  {t(" عن الشهر نفسه من العام الماضي.", " on the same month last year.")}
+                </li>
+                <li>
+                  {t("الذرة بالتجزئة في شمال كردفان (الأبيض): ", "Retail sorghum in North Kordofan (El Obeid): ")}
+                  <b dir="ltr">{money(wfp.sorghumRetailPerKg.northKordofan.price)}</b>
+                  {t(" جنيه للكيلو، وكانت ", " SDG a kilo, against ")}
+                  <span dir="ltr">{money(wfp.sorghumRetailPerKg.northKordofan.lastMonth)}</span>
+                  {t(" في الشهر السابق.", " the month before.")}
+                </li>
+                <li>
+                  {t("متوسّط الذرة بالتجزئة في السودان: ", "Average retail sorghum across Sudan: ")}
+                  <b dir="ltr">{money(wfp.sorghumRetailPerKg.national.price)}</b>
+                  {t(" جنيه للكيلو، وكان ", " SDG a kilo, against ")}
+                  <span dir="ltr">{money(wfp.sorghumRetailPerKg.national.lastMonth)}</span>
+                  {t(" في الشهر السابق.", " the month before.")}
+                </li>
+              </ul>
+              <a href={wfp.source} className="mt-2 inline-block text-xs underline" target="_blank" rel="noopener noreferrer" lang="en" dir="ltr">
+                {wfp.report}
+              </a>
+            </div>
+          )}
+          <a href="#monthly" className="mt-3 inline-block font-bold text-primary underline">
+            {t("الأسعار الشهرية لكلّ سوق ↓", "Monthly prices by market ↓")}
+          </a>
+        </section>
+      )}
+
+      {quiet && monthly}
+      {quiet && <h2 className="mb-3 mt-10 text-lg font-bold">{t("آخر أرقام البورصتين", "The bourses' last figures")}</h2>}
+
       {data === null || crops.length === 0 ? (
         <div className="rounded-2xl border border-danger/40 bg-danger/5 p-6 text-sm">
           {t("تعذّرت قراءة الأسعار الآن.", "The prices could not be read just now.")}
@@ -179,55 +310,7 @@ export default async function MarketPage() {
         </div>
       )}
 
-      <section className="mt-10">
-        <h2 className="mb-1 text-lg font-bold">{t("مرجعٌ شهري: أسعار التجزئة في أسواق أخرى", "Monthly reference: retail prices in other markets")}</h2>
-        <p className="mb-3 text-sm text-muted">
-          {t(
-            "من شبكة الإنذار المبكر بالمجاعة (FEWS NET): متوسّط شهري لأسعار الذرة والدخن بالتجزئة. هو مرجعٌ للاتجاه، لا سعر بورصة اليوم.",
-            "From the Famine Early Warning Systems Network (FEWS NET): monthly average retail prices of sorghum and millet. A reference for the trend, not today's bourse price.",
-          )}
-        </p>
-        {fews === null ? (
-          <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
-            {t("تعذّر الوصول إلى بيانات FEWS NET الآن.", "FEWS NET's data could not be reached just now.")}
-          </p>
-        ) : (
-          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-            <table className="w-full text-sm">
-              <thead className="bg-background text-muted">
-                <tr>
-                  <th className="px-3 py-2 text-start font-medium">{t("السوق", "Market")}</th>
-                  <th className="px-3 py-2 text-start font-medium">{t("السلعة", "Product")}</th>
-                  <th className="px-3 py-2 text-start font-medium">{t("السعر (جنيه)", "Price (SDG)")}</th>
-                  <th className="px-3 py-2 text-start font-medium">{t("الشهر", "Month")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fews.map((f) => (
-                  <tr key={`${f.market}|${f.product}|${f.unit}`} className="border-t border-border">
-                    <td className="px-3 py-2" lang="en" dir="ltr">{f.market}</td>
-                    <td className="px-3 py-2" lang="en" dir="ltr">
-                      {f.product} {f.unit && <span className="text-muted">/ {f.unit}</span>}
-                    </td>
-                    <td className="px-3 py-2 font-bold" dir="ltr">
-                      {money(f.value)}
-                      {f.prev !== null && (
-                        <span className={`ms-1 text-xs ${f.value >= f.prev ? "text-primary" : "text-danger"}`}>
-                          {f.value >= f.prev ? "▲" : "▼"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-muted" dir="ltr">{f.date.slice(0, 7)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className="mt-2 text-xs text-muted">
-          <a href={FEWS_SOURCE_URL} className="underline" target="_blank" rel="noopener noreferrer">FEWS NET — Sudan</a>
-        </p>
-      </section>
+      {!quiet && monthly}
 
       <section className="mt-10 flex flex-col gap-2 text-sm text-muted">
         <h2 className="text-base font-semibold text-foreground">{t("الوحدات", "Units")}</h2>

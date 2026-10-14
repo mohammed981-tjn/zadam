@@ -1,6 +1,6 @@
 {
   "note": "Updated by hand or by a routine. Every figure is read in the source named beside it, on the market day given as `date` (when a report says «أمس», the day before publication). A figure that was not found is left out, never estimated. `arrivals` is sacks (جوال) entering the market that day; for the sorghum varieties it is all sorghum together, as the bulletins report it. Gedaref and El Obeid publish nothing official online; these are the State Markets Administration's bulletins as SUNA and Sudanese papers carried them.",
-  "checked": "2026-10-12",
+  "checked": "2026-10-14",
   "markets": {
     "gedaref": {
       "name_ar": "القضارف",
@@ -28,6 +28,7 @@
         { "date": "2026-04-08", "price": 214000, "arrivals": 2464, "source": "https://nabdn.com/post/31401702/%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D8%A7%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%A7%D9%84%D8%B2%D8%B1%D8%A7%D8%B9%D9%8A%D8%A9-%D8%A8%D8%B3%D9%88%D9%82-%D8%A7%D9%84%D9%82%D8%B6%D8%A7%D8%B1%D9%81" },
         { "date": "2026-05-11", "price": 230000, "arrivals": 1106, "source": "https://nabdsudan.net/239100" },
         { "date": "2026-05-20", "price": 235000, "arrivals": 1894, "source": "https://sudafax.com/563217/" },
+        { "date": "2026-06-27", "price": 290000, "arrivals": 1731, "source": "https://www.tagpress.net/174246/" },
         { "date": "2026-07-01", "price": 280000, "arrivals": 1160, "source": "https://sudafax.com/574013/", "note": "date of publication; the report does not name the market day" },
         { "date": "2026-07-08", "price": 280000, "arrivals": 541, "source": "https://www.sudanakhbar.com/1810324" }
       ]
@@ -44,6 +45,7 @@
         { "date": "2026-04-08", "price": 240000, "arrivals": 13150, "source": "https://nabdn.com/post/31401702/%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D8%A7%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%A7%D9%84%D8%B2%D8%B1%D8%A7%D8%B9%D9%8A%D8%A9-%D8%A8%D8%B3%D9%88%D9%82-%D8%A7%D9%84%D9%82%D8%B6%D8%A7%D8%B1%D9%81" },
         { "date": "2026-05-11", "price": 250000, "arrivals": 7658, "source": "https://nabdsudan.net/239100" },
         { "date": "2026-05-20", "price": 255000, "arrivals": 4808, "source": "https://sudafax.com/563217/" },
+        { "date": "2026-06-27", "price": 295000, "arrivals": 1503, "source": "https://www.tagpress.net/174246/" },
         { "date": "2026-07-01", "price": 290000, "arrivals": 916, "source": "https://sudafax.com/574013/", "note": "date of publication; the report does not name the market day" },
         { "date": "2026-07-08", "price": 300000, "arrivals": 334, "source": "https://www.sudanakhbar.com/1810324" }
       ]
@@ -59,6 +61,7 @@
         { "date": "2026-03-31", "price": 315000, "arrivals": 1189, "source": "https://ultrasudan.ultrasawt.com/%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%88%D8%A7%D8%B1%D8%AF-%D9%88%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D8%B0%D8%B1%D8%A9-%D9%88%D8%A7%D9%84%D8%B3%D9%85%D8%B3%D9%85-%D9%81%D9%8A-%D8%A3%D8%B3%D9%88%D8%A7%D9%82-%D8%A7%D9%84%D9%82%D8%B6%D8%A7%D8%B1%D9%81-%D8%A8%D8%B9%D8%AF-%D8%B9%D9%8A%D8%AF-%D8%A7%D9%84%D9%81%D8%B7%D8%B1/%D9%85%D9%86%D8%B5%D9%88%D8%B1-%D8%A7%D9%84%D8%B5%D9%88%D9%8A%D9%85/%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1" },
         { "date": "2026-05-11", "price": 350000, "arrivals": 521, "source": "https://nabdsudan.net/239100" },
         { "date": "2026-05-20", "price": 355000, "arrivals": 414, "source": "https://sudafax.com/563217/" },
+        { "date": "2026-06-27", "price": 485000, "arrivals": 222, "source": "https://www.tagpress.net/174246/" },
         { "date": "2026-07-01", "price": 490000, "arrivals": 215, "source": "https://sudafax.com/574013/", "note": "date of publication; the report does not name the market day" },
         { "date": "2026-07-08", "price": 505000, "arrivals": 85, "source": "https://www.sudanakhbar.com/1810324" }
       ]

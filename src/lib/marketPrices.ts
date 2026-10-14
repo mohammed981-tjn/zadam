@@ -19,6 +19,12 @@
  * The one machine-read series is FEWS NET's monthly retail prices, shown
  * apart as a monthly reference, never mixed into the daily cards.
  *
+ * Between harvests the bourses go quiet for months and the papers carry no
+ * bulletin (owner, 13 October 2026: «أسعار قديمة»). The page then says so at
+ * the top, with the last bulletin's date and the day we last looked, and puts
+ * the newest dated figures first: WFP's monthly Market Monitor
+ * (`content/market/wfp.json`, copied by hand) and FEWS NET.
+ *
  * This module reads files; client components import `marketCrops.ts` instead.
  */
 
@@ -78,10 +84,56 @@ export function readMarketPrices(): MarketPrices | null {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// WFP Market Monitor — the newest dated figures while the bourses are quiet
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** The newest bourse figure older than this means the bourses have gone quiet, not just missed a day. */
+export const BOURSE_QUIET_DAYS = 30;
+
+export interface WfpMonthly {
+  report: string;
+  source: string;
+  /** YYYY-MM, the month the figures describe — not the month the report came out. */
+  month: string;
+  gedarefAuction: {
+    arrivalsTonnes: number;
+    arrivalsVsLastMonthPct: number;
+    priceVsLastMonthPct: number;
+    priceVsLastYearPct: number;
+  };
+  sorghumRetailPerKg: Record<"national" | "northKordofan", { price: number; lastMonth: number }>;
+}
+
+const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
+
+/** Validates as it reads: a hand-edited file with one figure wrong shows nothing rather than a wrong number. Exported for tests. */
+export function parseWfpMonthly(raw: unknown): WfpMonthly | null {
+  const r = raw as Partial<WfpMonthly> | null;
+  if (!r || typeof r !== "object" || !/^\d{4}-\d{2}$/.test(String(r.month)) || !/^https?:\/\//.test(String(r.source))) return null;
+  const a = r.gedarefAuction;
+  const s = r.sorghumRetailPerKg;
+  if (!a || ![a.arrivalsTonnes, a.arrivalsVsLastMonthPct, a.priceVsLastMonthPct, a.priceVsLastYearPct].every(num)) return null;
+  if (!s || !(["national", "northKordofan"] as const).every((k) => s[k] && num(s[k].price) && s[k].price > 0 && num(s[k].lastMonth))) return null;
+  return { report: String(r.report ?? ""), source: String(r.source), month: String(r.month), gedarefAuction: a, sorghumRetailPerKg: s };
+}
+
+export function readWfpMonthly(): WfpMonthly | null {
+  try {
+    return parseWfpMonthly(JSON.parse(readFileSync(join(process.cwd(), "content/market/wfp.json"), "utf8")));
+  } catch (e) {
+    console.error("market: WFP file unreadable", e);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // FEWS NET — the monthly reference
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const FEWS_SOURCE_URL = "https://fews.net/east-africa/sudan";
+
+/** The two bourse towns, as FEWS NET spells them. */
+const FEWS_FIRST = ["Al Qadarif", "El Obeid"];
 
 export interface FewsSeries {
   market: string;
@@ -106,9 +158,10 @@ const pick = (o: Record<string, unknown>, keys: string[]): string => {
  * The FEWS Data Warehouse's field names have shifted between versions, so each
  * one is read from the names it has had, and a record missing any of them is
  * skipped. Keeps the sorghum and millet series (the staples FEWS tracks in
- * Sudanese pounds), newest month per market, eight at most. Exported for tests.
+ * Sudanese pounds), newest month per market — Gedaref and El Obeid first,
+ * because they are the two bourse towns, then the rest newest first. Exported for tests.
  */
-export function parseFews(body: unknown, max = 8): FewsSeries[] {
+export function parseFews(body: unknown, max = 40): FewsSeries[] {
   const rows = Array.isArray(body)
     ? body
     : Array.isArray((body as { results?: unknown })?.results)
@@ -138,20 +191,61 @@ export function parseFews(body: unknown, max = 8): FewsSeries[] {
     const prev = points.length > 1 ? points[points.length - 2].value : null;
     out.push({ ...meta.get(key)!, date: last.date, value: last.value, prev });
   }
-  return out.sort((a, b) => b.date.localeCompare(a.date) || a.market.localeCompare(b.market)).slice(0, max);
+  const rank = (m: string) => {
+    const i = FEWS_FIRST.indexOf(m);
+    return i < 0 ? FEWS_FIRST.length : i;
+  };
+  return out
+    .sort((a, b) => rank(a.market) - rank(b.market) || b.date.localeCompare(a.date) || a.market.localeCompare(b.market) || a.product.localeCompare(b.product))
+    .slice(0, max);
 }
+
+
+const FEWS_MARKET_AR: Record<string, string> = {
+  "Al Qadarif": "القضارف",
+  "El Obeid": "الأبيض",
+  "Ad Damazin": "الدمازين",
+  "Al Foula": "الفولة",
+  Dongola: "دنقلا",
+  "Ed Daein": "الضعين",
+  "El Fasher": "الفاشر",
+  Geneina: "الجنينة",
+  Kadugli: "كادقلي",
+  Kassala: "كسلا",
+  Khartoum: "الخرطوم",
+  Kosti: "كوستي",
+  Madani: "ود مدني",
+  Nyala: "نيالا",
+  "Port Sudan": "بورتسودان",
+  Sennar: "سنار",
+  Singa: "سنجة",
+  Zalingei: "زالنجي",
+};
+
+/** A FEWS market in the reader's language; a town not in the list keeps FEWS's spelling. */
+export const fewsMarket = (m: string, locale: string) => (locale === "en" ? m : (FEWS_MARKET_AR[m] ?? m));
+
+/** «Sorghum» → «ذرة»; anything else keeps its English name. */
+export const fewsProduct = (p: string, locale: string) =>
+  locale === "en" ? p : /sorghum/i.test(p) ? "ذرة" : /millet/i.test(p) ? "دخن" : p;
+
+/** FEWS writes units as «3_kg», «3.5_kg», «kg»: the price is for that much. */
+export const fewsUnit = (u: string, locale: string) => {
+  const s = u.replace(/_/g, " ").trim();
+  return locale === "en" ? s : s.replace(/\bkg\b/i, "كجم");
+};
 
 /**
  * Cached for a day: FEWS publishes monthly. Null on any failure — the section
  * then says the reference could not be reached, and the daily cards stand alone.
  */
 export async function fetchFewsPrices(now = new Date()): Promise<FewsSeries[] | null> {
-  // A year back is enough for "last month and the one before"; the filter keeps
-  // the response small when the API honours it and is ignored when it does not.
-  const since = new Date(now.getTime() - 365 * 86_400_000).toISOString().slice(0, 10);
+  // Six months back is enough for "last month and the one before" even when a
+  // market skips a few; the filter keeps the response small when the API honours it.
+  const since = new Date(now.getTime() - 183 * 86_400_000).toISOString().slice(0, 10);
   const url = `https://fdw.fews.net/api/marketpricefacts/?country_code=SD&format=json&start_date=${since}`;
   try {
-    const res = await fetch(url, { next: { revalidate: 86_400 }, signal: AbortSignal.timeout(8_000) });
+    const res = await fetch(url, { next: { revalidate: 86_400 }, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) {
       console.error("market: FEWS NET answered", res.status);
       return null;
