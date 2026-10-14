@@ -1,0 +1,16 @@
+{
+  "note": "Copied by hand from the WFP Sudan Market Monitor. Each figure is read in the report named here, for the month given. The report collects retail prices in each state's capital, so North Kordofan is El Obeid. For Gedaref state the August table reads NA, so no Gedaref retail figure is given. Replace the whole file when the next report comes out.",
+  "report": "WFP Sudan Market Monitor – September 2026 (August 2026 data)",
+  "source": "https://logcluster.org/system/files/2026-09/market-monitor-sudan-report-september-2026.pdf",
+  "month": "2026-08",
+  "gedarefAuction": {
+    "arrivalsTonnes": 1287,
+    "arrivalsVsLastMonthPct": 43,
+    "priceVsLastMonthPct": 33,
+    "priceVsLastYearPct": 143
+  },
+  "sorghumRetailPerKg": {
+    "national": { "price": 2465, "lastMonth": 2071 },
+    "northKordofan": { "price": 2323, "lastMonth": 2042 }
+  }
+}
