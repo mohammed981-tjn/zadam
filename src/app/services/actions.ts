@@ -130,6 +130,17 @@ export async function addServiceOffer(
   });
 
   if (error) {
+    // A service added to the catalogue before its enum value reached this
+    // database (supervision and packing, 20261017115900) — say so plainly.
+    if (error.code === "22P02" && /service_key/.test(error.message)) {
+      return {
+        ok: false,
+        message: t(
+          "هذه الخدمة تُفعَّل قريباً في قاعدة البيانات، ولم يُحفظ شيء. اختر خدمةً أخرى الآن.",
+          "This service is coming soon to the database, and nothing was saved. Choose another service for now.",
+        ),
+      };
+    }
     return { ok: false, message: `${t("تعذّر إضافة الخدمة:", "Could not add the service:")} ${await dbText(error.message)}` };
   }
 

@@ -40,6 +40,8 @@ const PUBLIC_ROUTES: {
   { path: "/export", priority: 0.8, changeFrequency: "monthly" },
   { path: "/export/market", priority: 0.7, changeFrequency: "monthly" },
   { path: "/services", priority: 0.7, changeFrequency: "weekly" },
+  { path: "/how-we-work", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/partners", priority: 0.6, changeFrequency: "weekly" },
   { path: "/mining", priority: 0.6, changeFrequency: "monthly" },
   { path: "/news", priority: 0.6, changeFrequency: "weekly" },
   { path: "/projects", priority: 0.5, changeFrequency: "weekly" },

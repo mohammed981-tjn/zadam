@@ -140,6 +140,7 @@ export type ServiceKey =
   | "fertigation"
   | "harvest_service"
   | "extension_visit"
+  | "full_supervision"
   | "feasibility_study"
   | "vet_program"
   | "feed_plan"
@@ -155,6 +156,7 @@ export type ServiceKey =
   | "preharvest_assessment"
   | "threshing_cleaning"
   | "drying"
+  | "packing"
   | "hermetic_storage"
   | "cold_storage"
   | "haulage"
@@ -412,6 +414,21 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
       "A monthly visit throughout the production cycle — reducing risk needs regularity, not a single visit.",
   },
   {
+    // البند ١١١: سوداقري تكسب من الإشراف والخدمة، لا من حصّةٍ في الأرض.
+    key: "full_supervision",
+    name: "الإشراف الكامل على الموسم",
+    kind: "advisory",
+    unit: "feddan",
+    production: "plant",
+    phase: null,
+    basis: "feddans",
+    precondition: false,
+    note: "مشرفٌ يتابع الأرض من التجهيز إلى الحصاد والتعبئة: زياراتٌ منتظمة، واعتمادُ كلّ مرحلةٍ بدليلها، وتقريرٌ شهريّ، وتنسيقُ الشركات المنفّذة. يُقاس بفدادين الموسم كلّه.",
+    nameEn: "Full season supervision",
+    noteEn:
+      "A supervisor follows the land from preparation to harvest and packing: regular visits, each stage approved on its evidence, a monthly report, and coordination of the contractors. Measured by the whole season's feddans.",
+  },
+  {
     key: "feasibility_study",
     name: "دراسة جدوى لمرحلة",
     kind: "engineering_office",
@@ -654,6 +671,20 @@ export const SERVICE_CATALOGUE: ServiceDefinition[] = [
     nameEn: "Drying",
     noteEn:
       "Moisture is what spoils grain in store — dry before storing, not after, or the store preserves the problem instead of the crop.",
+  },
+  {
+    key: "packing",
+    name: "تعبئة وتغليف",
+    kind: "storage",
+    unit: "feddan",
+    production: "plant",
+    phase: "harvest",
+    basis: "feddans",
+    precondition: false,
+    note: "تعبئة المحصول في أكياسٍ أو عبواتٍ موسومة بعد الدراس والتجفيف وقبل التخزين أو النقل. تُقاس بالفدان المحصود لأنّ الوزن لا يُعرف قبل الحصاد.",
+    nameEn: "Packing",
+    noteEn:
+      "Packing the crop into labelled sacks or containers after threshing and drying, before storage or transport. Measured by the area harvested, since the weight is not known before harvest.",
   },
   {
     key: "hermetic_storage",

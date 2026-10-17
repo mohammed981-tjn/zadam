@@ -7,6 +7,8 @@ import { stationName, waterSourceLabel } from "@/lib/farmLabelsEn";
 import type { Land } from "@/types/database";
 import LandDocuments from "@/components/LandDocuments";
 import FilmPlayer from "@/components/FilmPlayer";
+import LandPartnerConsent from "@/components/partners/LandPartnerConsent";
+import type { PartnerCompany, PartnerInterest } from "@/lib/partners";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -28,7 +30,12 @@ const VERIFICATION_LABEL: Record<Locale, Record<Land["verification"], string>> =
   },
 };
 
-export default async function LandsPage() {
+export default async function LandsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
+  const sp = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -58,6 +65,29 @@ export default async function LandsPage() {
     caption: string | null;
   }[];
 
+  // طلباتُ الشركات الشريكة على أراضيه. قبل هجرة الشركاء يعود الخطأ ولا شيء
+  // يُعرض — وبطاقة الأرض تقول إنّ الخدمة قادمة.
+  let interests: PartnerInterest[] = [];
+  const companies = new Map<string, Pick<PartnerCompany, "id" | "name" | "kinds" | "phone">>();
+  if (lands.length > 0) {
+    const { data: iRows } = await supabase
+      .from("partner_interests")
+      .select("*")
+      .eq("status", "pending")
+      .in(
+        "land_id",
+        lands.map((l) => l.id),
+      );
+    interests = (iRows ?? []) as PartnerInterest[];
+    if (interests.length > 0) {
+      const { data: cRows } = await supabase
+        .from("partner_companies")
+        .select("id, name, kinds, phone")
+        .in("id", [...new Set(interests.map((i) => i.company_id))]);
+      for (const c of (cRows ?? []) as Pick<PartnerCompany, "id" | "name" | "kinds" | "phone">[]) companies.set(c.id, c);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
@@ -77,6 +107,17 @@ export default async function LandsPage() {
           {t("سجّل أرضاً", "Register land")}
         </Link>
       </div>
+
+      {sp.ok && (
+        <p role="status" className="mb-6 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
+          {sp.ok}
+        </p>
+      )}
+      {sp.error && (
+        <p role="alert" className="mb-6 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm">
+          {sp.error}
+        </p>
+      )}
 
       <figure className="my-6">
         <FilmPlayer base="/video/farmer-wide" poster="/video/farmer-wide.jpg" label={t("فيلم سوداقري: مزارعٌ من السودان", "A Sudagri film: a farmer from Sudan")} />
@@ -156,6 +197,13 @@ export default async function LandsPage() {
                 <LandDocuments
                   landId={l.id}
                   existing={documents.filter((d) => d.land_id === l.id)}
+                />
+
+                <LandPartnerConsent
+                  land={l}
+                  interests={interests.filter((i) => i.land_id === l.id)}
+                  companies={companies}
+                  locale={locale}
                 />
 
                 {l.verification_note && (

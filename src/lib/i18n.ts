@@ -54,7 +54,12 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/projects/*",
   "/opportunities/new",
   "/farmers/*",
-  // Contract services and export
+  // Contract services, partner companies and export
+  "/how-we-work",
+  "/partners",
+  "/partners/*",
+  "/admin/partners",
+  "/admin/land-groups",
   "/services",
   "/services/*",
   "/contracts",

@@ -73,7 +73,9 @@ export default async function Navbar() {
       title: t("الخدمات التعاقدية", "Contract services"),
       hint: t("مسح ورَي وميكنة وإرشاد وخدمات بيطرية", "Surveying, irrigation, machinery, extension and veterinary services"),
       items: [
+        { href: "/how-we-work", label: t("إجراءات العمل: من البذرة إلى السوق", "How we work: from seed to market") },
         { href: "/services", label: t("كتالوج الخدمات", "Services catalogue") },
+        { href: "/partners", label: t("الشركات الزراعيّة الشريكة", "Partner farming companies") },
         { href: "/services/register", label: t("سجّل جهتك كمقدّم خدمة", "Register as a service provider") },
         { href: "/suppliers", label: t("الموردون والمدخلات", "Suppliers & inputs") },
         { href: "/suppliers/orders", label: t("الطلبات الجماعية", "Group orders") },
@@ -82,6 +84,7 @@ export default async function Navbar() {
           ? [
               { href: "/contracts", label: t("عقودي", "My contracts") },
               { href: "/services/mine", label: t("جهتي كمقدّم خدمة", "My provider profile") },
+              { href: "/partners/mine", label: t("شركتي الشريكة", "My partner company") },
             ]
           : []),
       ],
@@ -192,6 +195,8 @@ export default async function Navbar() {
         { href: "/admin/export/corridors", label: t("مراجعة قواعد الممرّات", "Corridor rules review") },
         { href: "/admin/export/interests", label: t("طلبات المشترين", "Buyer requests") },
         { href: "/admin/providers", label: t("توثيق مقدّمي الخدمة", "Provider verification") },
+        { href: "/admin/partners", label: t("الشركات الشريكة واتّفاقاتها", "Partner companies and agreements") },
+        { href: "/admin/land-groups", label: t("فهرس مجموعات المزارع", "Farm groups index") },
         { href: "/admin/feedback", label: t("ملاحظات الزوّار", "Visitor feedback") },
         { href: "/admin/leads", label: t("العملاء المحتملون", "Leads") },
       ],
