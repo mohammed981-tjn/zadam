@@ -13,7 +13,7 @@
 
 **الطول:** نحو ٧٥ ثانية، سبعة مشاهد ثمّ بطاقة الشعار المعتمدة.
 
-**الشخصيّات:** الحاجّ عثمان صاحب الأرض، وابنه يوسف، والمزارع المنفّذ، ومعاين المنصّة.
+**الشخصيّات:** الحاجّ عثمان صاحب الأرض، وابنه يوسف، ومشرف سوداقري، وممثّل شركة الخدمات الزراعيّة الشريكة.
 
 **الصوت:** الراوي الفصيح نفسه الذي في أفلام الرئيسيّة.
 
@@ -26,15 +26,11 @@
 - للمزارع المنفّذ مؤشّر ثقة محسوب ممّا فعله فعلاً.
 - لا يَعِد الفيلم بربحٍ مضمون، ولا يذكر نسبةً لم تُقرَّر بعد.
 
-## قرارٌ مطلوب من المالك قبل النشر: كيف تستفيد سوداقري؟
+## كيف تستفيد سوداقري (قرار المالك، 17 أكتوبر)
 
-الجملة الأخيرة في الفيلم «وسوداقري تنمو بنجاحكم» تناسب الخيار الأوّل. النسبة نفسها لا تُذكر في الفيلم، فتبقى في العقد.
+سوداقري **شركة خدمات ومعلومات للمنتجين**. هي تقدّم الخدمات الفعليّة والإشراف الكامل، من التجهيز والمتابعة إلى الحصاد والتعبئة والريّ، عبر شركات زراعيّة شريكة. وتكسب من هذه الخدمة والإشراف، لا من حصّةٍ في الأرض. التفاصيل في `docs/studies/services-company-ar.md`.
 
-| الخيار | كيف تكسب المنصّة | أثره على الثقة |
-|---|---|---|
-| **١ (المقترح)** | نسبةٌ من صافي ربح الموسم، تُؤخذ فقط إذا ربح الموسم | مصلحة المنصّة مع صاحب الأرض والمزارع؛ لا تكسب إن خسروا |
-| ٢ | رسوم إدارة ثابتة للفدان في كلّ موسم | دخلٌ مضمون للمنصّة، لكن تُغيَّر الجملة الأخيرة، فلا يصحّ أن تقول «تنمو بنجاحكم» |
-| ٣ | الاثنان: رسوم صغيرة ثابتة، ونسبة من الربح | وسطٌ بينهما |
+لذلك يقول الفيلم إنّ سوداقري «تُشرف من التجهيز إلى التعبئة»، ولا يذكر أجراً ولا نسبة.
 
 ---
 
@@ -75,10 +71,10 @@
 ### ٤. ثلاثة على عقدٍ واحد
 
 **نصّ التوليد:**
-> Photorealistic cinematic shot, 10 seconds, 16:9. Under a large shady tree at the edge of the field, three Sudanese men sit on low chairs: the elderly landowner, a strong middle-aged farmer with work-worn hands, and a young platform representative holding a tablet. They look at the tablet together, nod, and the landowner and the farmer shake hands firmly. Warm light filtering through the leaves, slow arc camera around the group.
+> Photorealistic cinematic shot, 10 seconds, 16:9. Under a large shady tree at the edge of the field, three Sudanese men sit on low chairs: the elderly landowner, a field supervisor in a plain green work shirt holding a tablet, and a representative of a farming services company in work clothes; a tractor waits behind them. They look at the tablet together, nod, and the landowner shakes hands firmly with both of them. Warm light filtering through the leaves, slow arc camera around the group.
 
 **التعليق:**
-> صَاحِبُ الأَرْض، وَمُزَارِعٌ سِجِلُّهُ مَعْرُوف، وَتَمْوِيلٌ يُصْرَفُ مَرْحَلَةً مَرْحَلَة… وَالقِسْمَةُ مَكْتُوبَةٌ قَبْلَ البَذْر.
+> صَاحِبُ الأَرْض، وَشَرِكَاتٌ زِرَاعِيَّةٌ مُوَثَّقَة، وَسُوداقْرِي تُشْرِفُ مِنَ التَّجْهِيزِ إِلَى التَّعْبِئَة… وَكُلُّ شَيْءٍ مَكْتُوبٌ قَبْلَ البَذْر.
 
 **يُتجنّب:** لا أوراق نقديّة، ولا توقيع على ورقٍ بخطٍّ مقروء.
 
@@ -98,7 +94,7 @@
 > Photorealistic cinematic shot, 10 seconds, 16:9. Harvest time on the same land: workers cut ripe sorghum, and full sacks are loaded onto a truck; the old man walks between the sacks, touches the grain and smiles; his son stands beside him. Drone shot rising over the harvested field and the loaded truck on the road. Golden sunset light.
 
 **التعليق:**
-> وَعِنْدَ الحَصَاد… سُوقٌ يُعْرَفُ سِعْرُه، وَحِسَابٌ يَرَاهُ كُلُّ شَرِيك.
+> حَصَادٌ وَتَعْبِئَةٌ وَسُوقٌ يُعْرَفُ سِعْرُه… وَحِسَابٌ يَرَاهُ كُلُّ شَرِيك.
 
 **يُتجنّب:** لا أسعار أو أرقام مكتوبة على الأكياس.
 
@@ -108,7 +104,7 @@
 > Photorealistic cinematic shot, 10 seconds, 16:9. Evening in the old man's courtyard: the family gathers around a meal; the farmer from the field joins them; the son shows his father something on the phone and the father laughs and puts his hand on his son's shoulder. Behind them, through the open gate, the field is green again. Warm lantern light, slow pull-back.
 
 **التعليق:**
-> أَرْضُكَ تَعْمَل، وَالمُزَارِعُ يَكْسَب، وَسُوداقْرِي تَنْمُو بِنَجَاحِكُم… شَارِكْ أَرْضَكَ، نَزْرَعُهَا مَعاً.
+> أَرْضُكَ تَعْمَل، وَالعَامِلُونَ يَكْسَبُون، وَسُوداقْرِي مَعَكَ مِنَ البَذْرَةِ إِلَى السُّوق… شَارِكْ أَرْضَكَ، نَزْرَعُهَا مَعاً.
 
 **يُتجنّب:** لا مبالغة في الثراء: بيتٌ سودانيّ عاديّ سعيد.
 
