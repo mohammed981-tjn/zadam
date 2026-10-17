@@ -106,6 +106,14 @@ export interface Land {
   verification_note: string | null;
   listed: boolean;
   created_at: string;
+  /**
+   * From 20261017120000_partner_companies.sql. Optional because a database
+   * the migration has not reached returns rows without them, and every page
+   * that reads lands must keep working there.
+   */
+  soil_class?: string | null;
+  crop_keys?: string[];
+  open_to_partners?: boolean;
 }
 
 /**

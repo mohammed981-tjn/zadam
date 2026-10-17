@@ -471,6 +471,17 @@ export function cellKeyAt(lon: number, lat: number): string | null {
   return cellKey(cLon, cLat);
 }
 
+/**
+ * The most probable soil group (WRB name) under a point, from the national
+ * map's cell — null with no coordinates, off the grid, or where the survey
+ * returned nothing. A 160 km cell, so it is the region's soil, not the field's.
+ */
+export function soilAt(lon: number | string | null, lat: number | string | null): string | null {
+  if (lon == null || lat == null) return null;
+  const k = cellKeyAt(Number(lon), Number(lat));
+  return k ? (SOIL_BY_CELL.get(k) ?? null) : null;
+}
+
 /** Lands per cell from their coordinates; a land with none, or off the grid, is not counted. */
 export function countLands(points: { latitude: number | string | null; longitude: number | string | null }[]) {
   const n = new Map<string, number>();
