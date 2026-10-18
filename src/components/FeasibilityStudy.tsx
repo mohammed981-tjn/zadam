@@ -37,6 +37,7 @@ import {
 import { CROP_INPUTS } from "@/lib/cropInputs";
 import { INPUT_PRICES, LOCAL_REFERENCES, estimateCostPerFeddan } from "@/lib/inputPrices";
 import { irrigationAdvice, PIVOT_MIN_FEDDANS, type Suitability } from "@/lib/irrigationAdvice";
+import FeasibilityRisks from "@/components/FeasibilityRisks";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 
@@ -683,6 +684,14 @@ export default function FeasibilityStudy({
           </dl>
         </div>
       </div>
+
+      <FeasibilityRisks
+        cropKey={cropKey}
+        feddans={study.feddans}
+        revenueUsd={study.revenueAtNational}
+        marginUsd={study.marginAtNational}
+        locale={locale}
+      />
 
       <p className="text-xs leading-relaxed text-muted">
         {t(
