@@ -3,7 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Explain from "@/components/Explain";
 import HerdReadiness from "@/components/HerdReadiness";
+import HerdExportChecklist from "@/components/HerdExportChecklist";
 import type { HealthRecord, HerdTag } from "@/lib/herdHealth";
+import { buildChecklist, EXPORT_DESTINATIONS, type ExportDestination } from "@/lib/livestockExportChecklist";
+import { diseaseName, fetchDiseaseEvents } from "@/lib/animalDisease";
+import { DISEASE_ALERT_DAYS, isoDaysBefore } from "@/lib/fieldAlerts";
 import { completeHerdStage, setHerdBudget } from "@/app/herds/actions";
 import {
   SPECIES_LABEL,
@@ -35,10 +39,11 @@ export default async function HerdPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; rerror?: string }>;
+  searchParams: Promise<{ error?: string; rerror?: string; to?: string }>;
 }) {
   const { id } = await params;
-  const { error: errorMessage, rerror } = await searchParams;
+  const { error: errorMessage, rerror, to } = await searchParams;
+  const destination: ExportDestination = EXPORT_DESTINATIONS.includes(to as ExportDestination) ? (to as ExportDestination) : "sa";
 
   const supabase = await createClient();
   const {
@@ -81,6 +86,35 @@ export default async function HerdPage({
         supabase.from("herd_tags").select("tag, status, added_on").eq("herd_id", id).order("added_on").order("tag"),
       ])
     : [{ data: [] }, { data: [] }];
+
+  // «من منطقةٍ لم تُسجَّل فيها أمراض وبائيّة»: ولاية أرض القطيع مقابل ما وصل الفاو.
+  let stateDiseases: string[] | null = null;
+  if (exportable && herd.land_id) {
+    const { data: land } = await supabase.from("lands").select("state").eq("id", herd.land_id).maybeSingle();
+    const state = (land as { state: string | null } | null)?.state ?? null;
+    const events = state ? await fetchDiseaseEvents() : null;
+    if (state && events) {
+      const today = new Date().toISOString().slice(0, 10);
+      const since = isoDaysBefore(today, DISEASE_ALERT_DAYS);
+      stateDiseases = [
+        ...new Set(
+          events
+            .filter((e) => e.country === "Sudan" && e.state === state && e.date >= since && e.date <= today)
+            .map((e) => diseaseName(e.disease, locale)),
+        ),
+      ];
+    }
+  }
+  const checklist = exportable
+    ? buildChecklist(destination, {
+        species: herd.species,
+        headCount: herd.head_count,
+        records: (recordRows ?? []) as HealthRecord[],
+        tags: (tagRows ?? []) as HerdTag[],
+        stateDiseases,
+        today: new Date().toISOString().slice(0, 10),
+      })
+    : [];
 
   const done = stages.filter((s) => s.completed).length;
   const totalFeed = stages.reduce((s, x) => s + Number(x.planned_feed_kg ?? 0), 0);
@@ -345,7 +379,9 @@ export default async function HerdPage({
           tags={(tagRows ?? []) as HerdTag[]}
           locale={locale}
           error={rerror}
-        />
+        >
+          <HerdExportChecklist herdId={herd.id} destination={destination} lines={checklist} locale={locale} />
+        </HerdReadiness>
       )}
     </div>
   );
