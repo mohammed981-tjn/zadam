@@ -42,13 +42,15 @@ export const PARTNER_KIND_LABEL: Record<PartnerKind, Bi> = {
 // ── فئات المساحة ──────────────────────────────────────────────────────────
 
 /**
- * The two thresholds are a proposal; the owner decides them (section 9 of
- * docs/studies/services-company-ar.md). land_area_band() in the migration
- * holds the same two numbers — change both together.
+ * Four bands, by the owner's decision of 20 October 2026 (backlog 115):
+ * under 20 feddans is the Gezira's standard tenancy, and 1,000 the unit the
+ * mechanised rainfed schemes were demarcated in. land_area_band() in
+ * supabase/migrations/20261020120000_four_area_bands.sql holds the same three
+ * numbers — change both together.
  */
-export const AREA_BAND_LIMITS = { small: 20, medium: 200 } as const;
+export const AREA_BAND_LIMITS = { small: 20, medium: 200, large: 1000 } as const;
 
-export const AREA_BANDS = ["small", "medium", "large"] as const;
+export const AREA_BANDS = ["small", "medium", "large", "scheme"] as const;
 export type AreaBand = (typeof AREA_BANDS)[number];
 
 export function areaBand(feddans: number | string | null | undefined): AreaBand | null {
@@ -57,7 +59,8 @@ export function areaBand(feddans: number | string | null | undefined): AreaBand 
   if (!Number.isFinite(f)) return null;
   if (f < AREA_BAND_LIMITS.small) return "small";
   if (f < AREA_BAND_LIMITS.medium) return "medium";
-  return "large";
+  if (f < AREA_BAND_LIMITS.large) return "large";
+  return "scheme";
 }
 
 export const AREA_BAND_LABEL: Record<AreaBand, Bi> = {
@@ -66,13 +69,18 @@ export const AREA_BAND_LABEL: Record<AreaBand, Bi> = {
     ar: `متوسّطة (${AREA_BAND_LIMITS.small} إلى أقلّ من ${AREA_BAND_LIMITS.medium})`,
     en: `Medium (${AREA_BAND_LIMITS.small} to under ${AREA_BAND_LIMITS.medium})`,
   },
-  large: { ar: `كبيرة (${AREA_BAND_LIMITS.medium} فدان فأكثر)`, en: `Large (${AREA_BAND_LIMITS.medium} feddans or more)` },
+  large: {
+    ar: `كبيرة (${AREA_BAND_LIMITS.medium} إلى أقلّ من ${AREA_BAND_LIMITS.large})`,
+    en: `Large (${AREA_BAND_LIMITS.medium} to under ${AREA_BAND_LIMITS.large})`,
+  },
+  scheme: { ar: `مشروعٌ آليّ (${AREA_BAND_LIMITS.large} فدان فأكثر)`, en: `Mechanised scheme (${AREA_BAND_LIMITS.large} feddans or more)` },
 };
 
 export const AREA_BAND_SHORT: Record<AreaBand, Bi> = {
   small: { ar: "صغيرة", en: "Small" },
   medium: { ar: "متوسّطة", en: "Medium" },
   large: { ar: "كبيرة", en: "Large" },
+  scheme: { ar: "مشروع آليّ", en: "Mechanised scheme" },
 };
 
 // ── الماء والتربة والمحاصيل ───────────────────────────────────────────────

@@ -21,6 +21,67 @@ const WINDOW = "country_name = 'Sudan' AND start_date >= DATE_SUB(CURRENT_DATE()
 export const COUNTS_SQL = `SELECT category, COUNT(*) AS n, MAX(start_date) AS last_date FROM ${TABLE} WHERE ${WINDOW} GROUP BY category ORDER BY n DESC`;
 export const PLACES_SQL = `SELECT location_name, category, COUNT(*) AS n, MAX(start_date) AS last_date FROM ${TABLE} WHERE ${WINDOW} AND category <> 'NO LOCUST' GROUP BY location_name, category ORDER BY last_date DESC LIMIT 6`;
 
+/**
+ * «تنبيه إذا رُصد جراد قرب أرضه» (البند ١١٥). FAO: «Desert Locust fly during
+ * the day downwind for up to 150 km in a day» (fao.org/locusts) — so a
+ * sighting within a day's flight of the land in the last thirty days is the
+ * alert. The box reaches two degrees past Sudan's borders, where a swarm that
+ * will cross tomorrow is recorded today.
+ */
+export const LOCUST_ALERT_KM = 150;
+export const LOCUST_ALERT_DAYS = 30;
+export const LOCUST_FLIGHT_SOURCE = "https://www.fao.org/locusts/en/";
+
+export const NEARBY_SQL = `SELECT category, lat, lon, start_date AS last_date, location_name, country_name FROM ${TABLE} WHERE category <> 'NO LOCUST' AND start_date >= DATE_SUB(CURRENT_DATE(), INTERVAL ${LOCUST_ALERT_DAYS} DAY) AND lat BETWEEN 1 AND 25 AND lon BETWEEN 19 AND 41 ORDER BY start_date DESC LIMIT 500`;
+
+export interface LocustSighting {
+  category: string;
+  lat: number;
+  lng: number;
+  date: string;
+  place: string;
+  country: string;
+}
+
+export interface LandLocust {
+  land: string;
+  /** Null when no sighting reached FAO in the window. */
+  nearest: (LocustSighting & { km: number }) | null;
+}
+
+export function parseLocustSightings(text: string): LocustSighting[] {
+  const [head, ...body] = parseCsv(text);
+  if (!head) return [];
+  const out: LocustSighting[] = [];
+  for (const r of body) {
+    const row = Object.fromEntries(head.map((h, i) => [h.trim(), (r[i] ?? "").trim()]));
+    const lat = Number(row.lat);
+    const lng = Number(row.lon);
+    if (!row.category || !ISO_DAY.test(row.last_date ?? "") || !Number.isFinite(lat) || !Number.isFinite(lng) || row.lat === "" || row.lon === "") continue;
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) continue;
+    out.push({ category: row.category, lat, lng, date: row.last_date, place: row.location_name ?? "", country: row.country_name ?? "" });
+  }
+  return out;
+}
+
+/** Great-circle distance in km (haversine, mean earth radius 6,371 km). */
+export function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const rad = Math.PI / 180;
+  const dLat = (bLat - aLat) * rad;
+  const dLng = (bLng - aLng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+export function nearestSighting(lat: number, lng: number, sightings: LocustSighting[]): (LocustSighting & { km: number }) | null {
+  let best: (LocustSighting & { km: number }) | null = null;
+  for (const s of sightings) {
+    const km = distanceKm(lat, lng, s.lat, s.lng);
+    if (!best || km < best.km) best = { ...s, km };
+  }
+  return best;
+}
+
 export interface LocustCount {
   category: string;
   count: number;
@@ -34,6 +95,10 @@ export interface LocustPlace extends LocustCount {
 export interface LocustSummary {
   counts: LocustCount[];
   places: LocustPlace[];
+  /** Whether a farmer is signed in; the lands below are theirs. */
+  signedIn: boolean;
+  /** Their lands with coordinates, each with its nearest recent sighting; null when FAO's answer for this part failed. */
+  lands: LandLocust[] | null;
 }
 
 const LABEL: Record<string, { ar: string; en: string }> = {
@@ -132,10 +197,26 @@ async function query(sql: string): Promise<string | null> {
  * hour. Null when FAO cannot be reached or answers with nothing readable — the
  * study then simply leaves this box out.
  */
-export async function fetchSudanLocust(): Promise<LocustSummary | null> {
-  const [counts, places] = await Promise.all([query(COUNTS_SQL), query(PLACES_SQL)]);
+export async function fetchSudanLocust(
+  myLands: { name: string; latitude: number | null; longitude: number | null }[] | null = null,
+): Promise<LocustSummary | null> {
+  const located = (myLands ?? []).filter((l) => l.latitude !== null && l.longitude !== null);
+  const [counts, places, nearby] = await Promise.all([
+    query(COUNTS_SQL),
+    query(PLACES_SQL),
+    located.length ? query(NEARBY_SQL) : Promise.resolve(null),
+  ]);
   if (counts === null) return null;
   const parsed = parseLocustCounts(counts);
   if (!parsed.length) return null;
-  return { counts: parsed, places: places === null ? [] : parseLocustPlaces(places) };
+  const sightings = nearby === null ? null : parseLocustSightings(nearby);
+  return {
+    counts: parsed,
+    places: places === null ? [] : parseLocustPlaces(places),
+    signedIn: myLands !== null,
+    lands:
+      located.length && sightings === null
+        ? null
+        : located.map((l) => ({ land: l.name, nearest: nearestSighting(l.latitude!, l.longitude!, sightings ?? []) })),
+  };
 }

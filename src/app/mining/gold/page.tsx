@@ -2,6 +2,8 @@ import Link from "next/link";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
+import { readFxReference } from "@/lib/fxRates";
+import { GOLD_SOURCE_URL, circularUsdPerGram, fetchGoldSpot, usdPerGram } from "@/lib/goldPrice";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -48,6 +50,27 @@ export default async function GoldPage() {
     </a>
   );
   const card = "rounded-2xl border border-border bg-card p-5";
+  const spot = await fetchGoldSpot();
+  const fx = readFxReference();
+  const usd = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const sdg = (v: number) => Math.round(v).toLocaleString("en-US");
+  const when = spot
+    ? new Date(spot.updatedAt).toLocaleString(locale === "en" ? "en-GB" : "ar-SD-u-nu-latn", {
+        timeZone: "Africa/Khartoum",
+        day: "numeric",
+        month: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
+  const rows = spot
+    ? [
+        { label: t("السعر العالمي للأوقية (٢٤ قيراط)", "World price per troy ounce (24k)"), usd: spot.usdPerOunce },
+        { label: t("للغرام عيار ٢٤، بلا خصم", "Per gram, 24k, no discount"), usd: usdPerGram(spot.usdPerOunce) },
+        { label: t("للغرام عيار ٢٤ بقاعدة المنشور 13/2026", "Per gram, 24k, by Circular 13/2026"), usd: circularUsdPerGram(spot.usdPerOunce, 24), gram: true },
+        { label: t("للغرام عيار ٢١ بقاعدة المنشور 13/2026", "Per gram, 21k, by Circular 13/2026"), usd: circularUsdPerGram(spot.usdPerOunce, 21), gram: true },
+      ]
+    : [];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -63,6 +86,47 @@ export default async function GoldPage() {
       </p>
 
       <div className="flex flex-col gap-4">
+        <section className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
+          <h2 className="mb-2 text-lg font-bold">{t("سعر الذهب اليوم", "Today's gold price")}</h2>
+          {spot === null ? (
+            <p className="text-sm text-muted">{t("تعذّر قراءة السعر العالمي الآن. أعد فتح الصفحة بعد قليل.", "The world price could not be read just now. Reopen the page shortly.")}</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto rounded-xl border border-border bg-card">
+                <table className="w-full text-sm">
+                  <thead className="bg-background text-muted">
+                    <tr>
+                      <th className="px-3 py-2 text-start font-medium">{t("السعر", "Price")}</th>
+                      <th className="px-3 py-2 text-start font-medium">{t("دولار", "US$")}</th>
+                      {fx && <th className="px-3 py-2 text-start font-medium">{t("جنيه بسعر بنك الخرطوم", "SDG at Bank of Khartoum")}</th>}
+                      {fx && <th className="px-3 py-2 text-start font-medium">{t("جنيه بالسوق الموازي", "SDG at the parallel rate")}</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.label} className="border-t border-border">
+                        <td className="px-3 py-2">{r.label}</td>
+                        <td className="px-3 py-2 font-bold" dir="ltr">{usd(r.usd)}</td>
+                        {fx && <td className="px-3 py-2" dir="ltr">{sdg(r.usd * fx.bank.sell)}</td>}
+                        {fx && <td className="px-3 py-2" dir="ltr">{sdg(r.usd * fx.parallel.sell)}</td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-muted">
+                {t(
+                  `السعر العالمي من gold-api.com، آخر تحديث ${when} بتوقيت الخرطوم. الجنيه بالضرب في سعر البيع: بنك الخرطوم (${fx?.bank.date ?? "—"}) والسوق الموازي (${fx?.parallel.date ?? "—"}) من صفحة الأسعار. هذا مرجعٌ تتحقّق به، والسعر الملزم هو ما يعلنه البنك المركزي عبر نظام XAR — اسأل عنه المشتري الرسمي قبل أن تبيع.`,
+                  `World price from gold-api.com, last updated ${when} Khartoum time. Pounds are the dollar figure times the selling rate: Bank of Khartoum (${fx?.bank.date ?? "—"}) and the parallel market (${fx?.parallel.date ?? "—"}), from the rates page. This is a reference to check against; the binding price is the one the central bank announces through its XAR system — ask the official buyer before you sell.`,
+                )}{" "}
+                <a href={GOLD_SOURCE_URL} className="text-primary underline" target="_blank" rel="noopener noreferrer">gold-api.com</a>
+                {" · "}
+                <Link href="/rates" className="text-primary underline">{t("صفحة الأسعار", "Rates page")}</Link>
+              </p>
+            </>
+          )}
+        </section>
+
         <section className={card}>
           <h2 className="mb-2 text-lg font-bold">{t("مَن يشتري", "Who buys")}</h2>
           <p className="text-sm leading-relaxed">
@@ -95,8 +159,8 @@ export default async function GoldPage() {
           </div>
           <p className="mt-3 text-sm leading-relaxed text-muted">
             {t(
-              "لذهبٍ أقلّ من عيار ٢٤ يُضرب الناتج في نسبة النقاوة (عيار ٢١ = ٢١÷٢٤). لا نعرض سعر الذهب العالمي هنا: المرجع المعتاد يحتاج ترخيصاً لإعادة نشره، والسعر الرسمي اليومي هو ما يعلنه البنك عبر نظامه — فاسأل عنه المشتري الرسمي قبل أن تبيع.",
-              "For gold below 24 karat, multiply by its purity (21k = 21÷24). We do not show the world gold price here: the usual reference needs a licence to republish, and the official daily price is the one the bank announces through its system — ask the official buyer for it before you sell.",
+              "لذهبٍ أقلّ من عيار ٢٤ يُضرب الناتج في نسبة النقاوة (عيار ٢١ = ٢١÷٢٤). السعر العالمي في أعلى الصفحة من مصدرٍ مجّانيّ يسمح بالنشر، لا من مرجع لندن الذي يحتاج ترخيصاً؛ والسعر الرسمي اليومي هو ما يعلنه البنك عبر نظامه — فاسأل عنه المشتري الرسمي قبل أن تبيع.",
+              "For gold below 24 karat, multiply by its purity (21k = 21÷24). The world price at the top of the page is from a free source that allows republishing, not the London benchmark, which needs a licence; the official daily price is the one the bank announces through its system — ask the official buyer for it before you sell.",
             )}
           </p>
           <p className="mt-3 text-sm leading-relaxed">

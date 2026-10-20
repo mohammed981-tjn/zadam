@@ -414,6 +414,24 @@ do $$ begin
     12, 'والمسجَّلُ ينفّذها كلّها، والحارسُ داخلها');
 end $$;
 
+\echo ''
+\echo 'ز) فئاتُ المساحة الأربع (البند ١١٥)'
+
+reset role;
+do $$ begin
+  perform _eq(land_area_band(19.9), 'small', 'أقلّ من ٢٠ فداناً: صغيرة');
+  perform _eq(land_area_band(20), 'medium', '٢٠ فداناً: متوسّطة');
+  perform _eq(land_area_band(199.9), 'medium', 'دون ٢٠٠: متوسّطة');
+  perform _eq(land_area_band(200), 'large', '٢٠٠ فدان: كبيرة');
+  perform _eq(land_area_band(999), 'large', 'دون ١٠٠٠: كبيرة');
+  perform _eq(land_area_band(1000), 'scheme', '١٠٠٠ فدان: مشروعٌ آليّ');
+  perform _eq(has_function_privilege('anon', 'public.land_area_band(numeric)', 'execute'), false, 'والزائر لا ينفّذ دالّة الفئة');
+  perform _refuses($q$update partner_agreements set area_bands = array['huge'] where id = _id('a')$q$,
+    'والاتّفاقُ لا يقبل فئةً غير الأربع');
+  update partner_agreements set area_bands = array['scheme'] where id = _id('a');
+  perform _eq((select area_bands from partner_agreements where id = _id('a')), array['scheme'], 'ويقبل الفئةَ الرابعة');
+end $$;
+
 reset role;
 do $$
 declare f integer;

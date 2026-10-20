@@ -74,6 +74,7 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/lands/new",
   "/seasons",
   "/seasons/*",
+  "/my-project",
   "/herds",
   "/herds/*",
   // Rain, tools, studies, the Arc Canal and mining

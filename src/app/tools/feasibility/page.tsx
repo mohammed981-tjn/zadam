@@ -3,6 +3,7 @@ import FeasibilityStudy from "@/components/FeasibilityStudy";
 import { loadCropMarkets } from "@/lib/marketData";
 import { readFxReference } from "@/lib/fxRates";
 import { fetchSudanLocust } from "@/lib/locust";
+import { createClient } from "@/lib/supabase/server";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
@@ -36,7 +37,19 @@ export default async function FeasibilityPage({ searchParams }: { searchParams: 
    * typed by hand. So the degradation is honest and usable — it just has to say
    * which of the two happened.
    */
-  const [markets, locust] = await Promise.all([loadCropMarkets(), fetchSudanLocust()]);
+  // The farmer's own lands, for «رُصد جراد قرب أرضك». Signed out, the study works as before.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const myLands = user
+    ? (((await supabase.from("lands").select("name, latitude, longitude").eq("owner_id", user.id)).data ?? []) as {
+        name: string;
+        latitude: number | null;
+        longitude: number | null;
+      }[])
+    : null;
+  const [markets, locust] = await Promise.all([loadCropMarkets(), fetchSudanLocust(myLands)]);
   const fx = readFxReference();
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);

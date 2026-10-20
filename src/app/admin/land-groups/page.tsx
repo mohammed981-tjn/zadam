@@ -8,7 +8,7 @@ import { cropName, waterSourceLabel } from "@/lib/farmLabelsEn";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
 import { soilAt } from "@/lib/rainMap";
 import { num } from "@/lib/supplyChain";
-import { AREA_BAND_LABEL, AREA_BAND_SHORT, areaBand, lbl, type AreaBand } from "@/lib/partners";
+import { AREA_BANDS, AREA_BAND_LABEL, AREA_BAND_SHORT, areaBand, lbl, type AreaBand } from "@/lib/partners";
 import { card } from "@/components/supply/SupplyShell";
 import type { Land } from "@/types/database";
 
@@ -121,7 +121,7 @@ export default async function LandGroupsPage() {
       </p>
       <p className="mt-2 text-xs text-muted">
         {t("فئات المساحة المقترحة (القرار للمالك): ", "Proposed area bands (the owner decides): ")}
-        {(["small", "medium", "large"] as const).map((b) => lbl(AREA_BAND_LABEL[b], locale)).join(" · ")}
+        {AREA_BANDS.map((b) => lbl(AREA_BAND_LABEL[b], locale)).join(" · ")}
       </p>
 
       <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
