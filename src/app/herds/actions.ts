@@ -249,3 +249,73 @@ export async function setHerdBudget(formData: FormData) {
   revalidatePath(`/herds/${herdId}`);
   redirect(`/herds/${herdId}`);
 }
+
+/*
+ * جاهزيّة القطيع للتصدير (البند ١١٧) — سجلّ الصحّة وأرقام الآذان.
+ *
+ * Every write goes through a database function that checks the herd is the
+ * caller's and still running; the table itself refuses direct writes. Nothing
+ * is deleted: a wrong entry is withdrawn with its reason, and a tag changes
+ * status. The page anchors back to the readiness section so the farmer sees
+ * what changed.
+ */
+const READY = (herdId: string, error?: string) =>
+  `/herds/${herdId}${error ? `?error=${encodeURIComponent(error)}` : ""}#readiness`;
+
+export async function addHealthRecord(formData: FormData) {
+  const supabase = await createClient();
+  const herdId = str(formData, "herd_id");
+  const kind = str(formData, "kind");
+  const { error } = await supabase.rpc("herd_health_add", {
+    p_herd: herdId,
+    p_kind: kind,
+    p_item: str(formData, "item_key"),
+    p_done_on: str(formData, "done_on") || null,
+    p_heads: Math.round(num(formData, "heads")),
+    p_result: kind === "test" ? str(formData, "result") || null : null,
+    p_product: str(formData, "product"),
+    p_batch: str(formData, "batch"),
+    p_vet: str(formData, "vet_name"),
+    p_note: str(formData, "note"),
+  });
+  revalidatePath(`/herds/${herdId}`);
+  redirect(READY(herdId, error ? await dbText(error.message) : undefined));
+}
+
+export async function withdrawHealthRecord(formData: FormData) {
+  const supabase = await createClient();
+  const herdId = str(formData, "herd_id");
+  const { error } = await supabase.rpc("herd_health_withdraw", {
+    p_record: str(formData, "record_id"),
+    p_note: str(formData, "note"),
+  });
+  revalidatePath(`/herds/${herdId}`);
+  redirect(READY(herdId, error ? await dbText(error.message) : undefined));
+}
+
+export async function addTagRange(formData: FormData) {
+  const supabase = await createClient();
+  const herdId = str(formData, "herd_id");
+  const from = Math.round(num(formData, "from"));
+  const to = formData.get("to") ? Math.round(num(formData, "to")) : from;
+  const { error } = await supabase.rpc("herd_tags_add_range", {
+    p_herd: herdId,
+    p_prefix: str(formData, "prefix"),
+    p_from: from,
+    p_to: to,
+  });
+  revalidatePath(`/herds/${herdId}`);
+  redirect(READY(herdId, error ? await dbText(error.message) : undefined));
+}
+
+export async function setTagStatus(formData: FormData) {
+  const supabase = await createClient();
+  const herdId = str(formData, "herd_id");
+  const { error } = await supabase.rpc("herd_tag_set_status", {
+    p_herd: herdId,
+    p_tag: str(formData, "tag"),
+    p_status: str(formData, "status"),
+  });
+  revalidatePath(`/herds/${herdId}`);
+  redirect(READY(herdId, error ? await dbText(error.message) : undefined));
+}
