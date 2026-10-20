@@ -139,6 +139,7 @@ const COUNTRY_AR: Record<string, string> = {
   "Central African Republic": "أفريقيا الوسطى",
   Ethiopia: "إثيوبيا",
   Eritrea: "إريتريا",
+  "Saudi Arabia": "السعوديّة",
 };
 
 /** FAO's English when a name is not in the list — never a guessed translation. */
@@ -199,9 +200,11 @@ export function watchPlaces(
  * Cached for a day: events reach EMPRES-i weeks after they happen, so an hour
  * changes nothing. Null when FAO cannot be reached — the box then says so.
  */
-export async function fetchDiseaseEvents(): Promise<DiseaseEvent[] | null> {
+export async function fetchDiseaseEvents(fresh = false): Promise<DiseaseEvent[] | null> {
   try {
-    const res = await fetch(ENDPOINT + encodeURIComponent(EVENTS_SQL), { next: { revalidate: 86_400 }, signal: AbortSignal.timeout(15_000) });
+    // `fresh` is the daily alert job's read: it must not be handed yesterday's cached answer.
+    const cache: RequestInit = fresh ? { cache: "no-store" } : { next: { revalidate: 86_400 } };
+    const res = await fetch(ENDPOINT + encodeURIComponent(EVENTS_SQL), { ...cache, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) {
       console.error("animal disease: FAO answered", res.status);
       return null;

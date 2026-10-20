@@ -3,6 +3,10 @@
     {
       "path": "/api/health",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/field-alerts",
+      "schedule": "30 4 * * *"
     }
   ]
 }

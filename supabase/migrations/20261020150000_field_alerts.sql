@@ -1,0 +1,84 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- التنبيهاتُ الحقليّة: جرادٌ قرب الأرض، ومرضُ ماشيةٍ في الولاية (البند ١١٥)
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- طلبُ المالك: «تنبيهٌ إذا رُصد جرادٌ قرب أرضه» و«تنبيهٌ بأمراضٍ مثل الحمّى
+-- القلاعيّة وطاعون المجترّات الصغيرة في ولايته». الصندوقان في دراسة الجدوى وفي
+-- /herds يقولان ذلك لمن يفتح الصفحة؛ وهذا يوصله إلى من لم يفتحها: مهمّةٌ يوميّة
+-- (/api/field-alerts) تقرأ الفاو وأراضيَ المزارعين، وتكتب إشعاراً لصاحب الأرض.
+--
+-- `field_alerts_sent` يحفظ ما أُبلغ به كلُّ شخص، رصداً رصداً وحدثاً حدثاً، فلا
+-- يصله الخبرُ نفسُه مرّتين. لا سياسةَ عليه: لا يقرؤه ولا يكتبه إلّا المهمّة بمفتاح
+-- الخدمة. ولا يُحذف منه شيء.
+
+alter table public.notifications drop constraint notifications_kind_check;
+alter table public.notifications add constraint notifications_kind_check
+  check (kind = any (array[
+    'land_submitted','land_verified','land_rejected',
+    'opportunity_submitted','opportunity_approved','opportunity_rejected',
+    'lead_received','feedback_received','feedback_replied',
+    'nafir_joined','faza_pledged','shura_answered',
+    'judiyya_update','canal_update',
+    'locust_near','animal_disease'
+  ]));
+
+create table public.field_alerts_sent (
+  recipient_id uuid not null references auth.users(id) on delete cascade,
+  alert_key    text not null check (length(alert_key) between 3 and 200),
+  sent_at      timestamptz not null default now(),
+  primary key (recipient_id, alert_key)
+);
+
+alter table public.field_alerts_sent enable row level security;
+revoke select, insert, update on table public.field_alerts_sent from anon, authenticated;
+
+comment on table public.field_alerts_sent is
+  'ما أُبلغ به كلُّ مزارع من رصود الجراد وأحداث أمراض الماشية، لئلّا يصله الخبرُ مرّتين. للمهمّة اليوميّة وحدها.';
+
+-- يكتب الإشعار مرّةً واحدة: يسجّل المفاتيح الجديدة، فإن لم يكن فيها جديدٌ لم
+-- يكتب شيئاً وأعاد false. والمفتاحُ والإشعارُ في معاملةٍ واحدة، فلا يُسجَّل
+-- مفتاحٌ بلا إشعار ولا إشعارٌ بلا مفتاح.
+create function public.field_alert_send(
+  p_recipient uuid,
+  p_keys      text[],
+  p_kind      text,
+  p_title     text,
+  p_body      text,
+  p_link      text
+) returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  fresh integer;
+begin
+  if p_kind not in ('locust_near', 'animal_disease') then
+    raise exception 'نوعُ تنبيهٍ غير معروف: %', p_kind;
+  end if;
+  if p_recipient is null or coalesce(array_length(p_keys, 1), 0) = 0 then
+    return false;
+  end if;
+  if length(btrim(coalesce(p_title, ''))) = 0 then
+    raise exception 'التنبيه بلا عنوان';
+  end if;
+
+  with ins as (
+    insert into public.field_alerts_sent (recipient_id, alert_key)
+    select distinct p_recipient, k from unnest(p_keys) as k
+    on conflict do nothing
+    returning 1
+  )
+  select count(*) into fresh from ins;
+
+  if fresh = 0 then
+    return false;
+  end if;
+
+  insert into public.notifications (recipient_id, kind, title, body, link)
+  values (p_recipient, p_kind, p_title, p_body, p_link);
+  return true;
+end $$;
+
+revoke execute on function public.field_alert_send(uuid, text[], text, text, text, text) from public, anon, authenticated;
+grant execute on function public.field_alert_send(uuid, text[], text, text, text, text) to service_role;

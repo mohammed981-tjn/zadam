@@ -100,6 +100,10 @@ jobs:
       - name: مشروعي — قائمة المدخلات لصاحبها، والدفع للمورد مباشرةً
         run: ./scripts/verify-input-plans.sh
 
+      # جرادٌ قرب الأرض ومرضُ ماشيةٍ في الولاية: يصل الخبر مرّةً، ولا يكتبه إلّا مفتاح الخدمة.
+      - name: التنبيهات الحقليّة — الخبر مرّةً واحدة، ولمفتاح الخدمة وحده
+        run: ./scripts/verify-field-alerts.sh
+
       - name: الردّ الآلي على الشكاوى
         run: ./scripts/verify-support-auto-reply.sh
 

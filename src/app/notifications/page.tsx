@@ -28,6 +28,8 @@ const KIND_ICON: Record<string, string> = {
   opportunity_approved: "✅",
   opportunity_rejected: "📝",
   lead_received: "📞",
+  locust_near: "🦗",
+  animal_disease: "🐄",
 };
 
 function timeAgo(iso: string, locale: Locale): string {
@@ -125,8 +127,8 @@ export default async function NotificationsPage() {
           <p className="mb-2 font-medium text-foreground">{t("لا توجد إشعارات بعد.", "No notifications yet.")}</p>
           <p>
             {t(
-              "ستصلك هنا إشعارات عند اعتماد أرضك أو طلب استكمال مستنداتها، وعند البتّ في أي فرصة ترفعها.",
-              "You will be notified here when your land is approved or its documents need completing, and when a decision is made on any opportunity you submit.",
+              "ستصلك هنا إشعارات عند اعتماد أرضك أو طلب استكمال مستنداتها، وعند البتّ في أي فرصة ترفعها، وإن رصدت الفاو جراداً قرب أرضك أو مرضَ ماشيةٍ في ولايتها.",
+              "You will be notified here when your land is approved or its documents need completing, when a decision is made on any opportunity you submit, and when FAO records locusts near your land or a livestock disease in its state.",
             )}
           </p>
         </div>
