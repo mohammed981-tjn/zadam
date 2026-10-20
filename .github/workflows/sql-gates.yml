@@ -96,6 +96,10 @@ jobs:
       - name: الشركات الشريكة — الاتّفاق المبدئي وفهرس المزارع والموافقة قبل الكشف
         run: ./scripts/verify-partners.sh
 
+      # المرحلة الأولى من المحفظة: المنصّة لا تمسك المال، والمزارع يسجّل ما دفع.
+      - name: مشروعي — قائمة المدخلات لصاحبها، والدفع للمورد مباشرةً
+        run: ./scripts/verify-input-plans.sh
+
       - name: الردّ الآلي على الشكاوى
         run: ./scripts/verify-support-auto-reply.sh
 

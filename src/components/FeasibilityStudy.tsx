@@ -38,6 +38,7 @@ import { CROP_INPUTS } from "@/lib/cropInputs";
 import { INPUT_PRICES, LOCAL_REFERENCES, estimateCostPerFeddan } from "@/lib/inputPrices";
 import { irrigationAdvice, PIVOT_MIN_FEDDANS, type Suitability } from "@/lib/irrigationAdvice";
 import FeasibilityRisks from "@/components/FeasibilityRisks";
+import { createPlanFromStudy } from "@/app/my-project/actions";
 import type { LocustSummary } from "@/lib/locust";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
@@ -430,6 +431,18 @@ export default function FeasibilityStudy({
                 </Link>
               ))}
             </div>
+
+            <form action={createPlanFromStudy} className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <input type="hidden" name="crop" value={cropKey} />
+              <input type="hidden" name="feddans" value={study.feddans} />
+              <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">{t("حوّلها إلى مشروع", "Turn it into a project")}</button>
+              <p className="mt-1 text-xs leading-relaxed text-muted">
+                {t(
+                  "تُنشأ قائمة هذه المدخلات لمساحتك في «مشروعي»: توافق عليها، وتدفع لكلّ مورد مباشرةً، وتسجّل ما دفعت وما استلمت. سوداقري لا تستلم مالك ولا تحفظه.",
+                  "This input list is made for your area in “My project”: you approve it, pay each supplier directly, and record what you paid and received. Sudagri does not receive or hold your money.",
+                )}
+              </p>
+            </form>
 
             <h3 className="mb-2 mt-5 font-semibold">
               {t("متوسط التكلفة المتوقَّع للفدان — تقدير البرنامج", "Expected cost per feddan — the platform's estimate")}
