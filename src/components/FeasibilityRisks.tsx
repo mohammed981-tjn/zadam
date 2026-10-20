@@ -13,6 +13,7 @@ import {
   type RiskSetting,
 } from "@/lib/farmRisks";
 import { tr, type Locale } from "@/lib/i18n";
+import { LOCUST_HUB_URL, isGregarious, locustDay, locustLabel, type LocustSummary } from "@/lib/locust";
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -31,12 +32,14 @@ export default function FeasibilityRisks({
   feddans,
   revenueUsd,
   marginUsd,
+  locust = null,
   locale,
 }: {
   cropKey: string;
   feddans: number;
   revenueUsd: number | null;
   marginUsd: number | null;
+  locust?: LocustSummary | null;
   locale: Locale;
 }) {
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -171,6 +174,7 @@ export default function FeasibilityRisks({
                           : t("ينقصه رقم: اكتبه من خبرتك ليدخل الحساب.", "A figure is missing: enter it from experience to count it.")}
                   </p>
 
+                  {r.key === "locust" && locust && <LocustWatch locust={locust} locale={locale} />}
                   {r.basis && <p className="mt-1 text-xs leading-relaxed text-muted">{en ? r.basis.en : r.basis.ar}</p>}
                   <p className="mt-1 text-xs leading-relaxed">
                     <span className="font-medium">{t("كيف يُعالَج: ", "How to handle it: ")}</span>
@@ -262,5 +266,52 @@ export default function FeasibilityRisks({
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * What FAO's survey teams reported in Sudan in the last twelve months. Counts
+ * and dates only, as FAO holds them; the caveat is part of the figure, since a
+ * place nobody could reach reports nothing.
+ */
+function LocustWatch({ locust, locale }: { locust: LocustSummary; locale: Locale }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const gregarious = locust.counts.some((c) => isGregarious(c.category));
+  return (
+    <div className="mt-2 rounded-lg bg-background p-3 text-xs leading-relaxed">
+      <p className="font-medium">{t("ما رصدته الفاو في السودان خلال آخر ١٢ شهراً", "What FAO recorded in Sudan in the last 12 months")}</p>
+      <ul className="mt-1 flex flex-col gap-0.5">
+        {locust.counts.map((c) => (
+          <li key={c.category}>
+            {locustLabel(c.category, locale)}: <span dir="ltr">{c.count.toLocaleString("en-US")}</span>
+            {" — "}
+            {t("آخرها", "latest")} {locustDay(c.lastDate, locale)}
+          </li>
+        ))}
+      </ul>
+      {!gregarious && (
+        <p className="mt-1">{t("لم تُسجَّل أسرابٌ ولا أشرطة حوريّات.", "No swarms or hopper bands were recorded.")}</p>
+      )}
+      {locust.places.length > 0 && (
+        <p className="mt-1">
+          {t("آخر أماكن الرصد: ", "Latest places: ")}
+          {locust.places.map((p, i) => (
+            <span key={`${p.place}-${p.category}`}>
+              {i > 0 && t("، ", ", ")}
+              <span dir="ltr">{p.place}</span> ({locustLabel(p.category, locale)}{t("، ", ", ")}{locustDay(p.lastDate, locale)})
+            </span>
+          ))}
+        </p>
+      )}
+      <p className="mt-1 text-muted">
+        {t(
+          "يُعدّ ما وصل إلى الفاو من فرق المسح وحدَه: مكانٌ لم يصله أحدٌ لا يُرسل شيئاً.",
+          "Only what survey teams sent to FAO is counted: a place nobody reached sends nothing.",
+        )}{" "}
+        <a href={LOCUST_HUB_URL} target="_blank" rel="noopener noreferrer" className="underline">
+          {t("خريطة الجراد — الفاو", "FAO Locust Hub")}
+        </a>
+      </p>
+    </div>
   );
 }

@@ -11,6 +11,7 @@
 import { readFileSync } from "node:fs";
 import { CROP_NAME, fewsMarket, fewsProduct, fewsUnit, latest, parseFews, parseMarketPrices, parseWfpMonthly } from "../src/lib/marketPrices";
 import { isNotYetCreated } from "../src/lib/marketOffers";
+import { orderTowns, parseWfpPrices, pctChange, wfpItem, wfpTown, wfpUnit } from "../src/lib/wfpPrices";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -76,6 +77,23 @@ const wfp = parseWfpMonthly(JSON.parse(readFileSync("content/market/wfp.json", "
 ok(wfp !== null && /^\d{4}-\d{2}$/.test(wfp.month) && wfp.sorghumRetailPerKg.northKordofan.price > 0, "WFP: the monthly file parses");
 ok(parseWfpMonthly({ ...wfp, month: "August" }) === null, "WFP: a month not written YYYY-MM is refused");
 ok(parseWfpMonthly({ ...wfp, sorghumRetailPerKg: { national: { price: "2465", lastMonth: 2071 }, northKordofan: wfp!.sorghumRetailPerKg.northKordofan } }) === null, "WFP: a figure written as a string is refused, not shown");
+
+// WFP's town prices (HDX): the trim the monthly job writes, read through the same reader the page uses.
+const wfpRaw = JSON.parse(readFileSync("content/market/wfp-prices.json", "utf8"));
+const wfpPrices = parseWfpPrices(wfpRaw);
+ok(wfpPrices !== null && /^\d{4}-\d{2}$/.test(wfpPrices.latest), "WFP towns: the trimmed file parses");
+const wfpRawItems = wfpRaw.markets.reduce((n: number, m: { items: unknown[] }) => n + m.items.length, 0);
+const wfpKept = wfpPrices!.towns.reduce((n, m) => n + m.items.length, 0);
+ok(wfpKept === wfpRawItems, `WFP towns: every item survives the reader (${wfpKept} of ${wfpRawItems})`);
+ok(wfpPrices!.towns.every((m) => wfpTown(m.market, "ar") !== m.market), "WFP towns: every town has an Arabic name");
+ok(wfpPrices!.towns.every((m) => m.items.every((i) => wfpItem(i.commodity, "ar") !== i.commodity)), "WFP towns: every item has an Arabic name");
+ok(orderTowns(wfpPrices!.towns, "ar")[0].market === "El Obeid" && orderTowns(wfpPrices!.towns, "ar")[1].market === "El Gedarif", "WFP towns: the two bourse towns come first");
+ok(
+  parseWfpPrices({ latest: "2026-09", markets: [{ market: "X", items: [{ commodity: "Sorghum", unit: "3 KG", month: "2026-09", price: "100" }, { commodity: "Millet", unit: "3.5 KG", month: "Sept", price: 5 }] }] }) === null,
+  "WFP towns: a price written as a string or a bad month is dropped, and a town left empty is not shown",
+);
+ok(pctChange(110, 100) === 10 && pctChange(90, 100) === -10 && pctChange(100, null) === null && pctChange(100, 0) === null, "WFP towns: the change is whole per cent, and nothing to compare is no change");
+ok(wfpUnit("3.5 KG", "ar") === "3.5 كجم" && wfpUnit("KG", "ar") === "كجم" && wfpUnit("L", "en") === "l", "WFP towns: units read plainly");
 
 // Before the migration is applied the offers pages say «تُفعَّل قريباً»; any other failure is an error.
 ok(isNotYetCreated({ code: "42P01", message: 'relation "public.market_offers" does not exist' }), "offers: a missing table reads as not-yet-created");
