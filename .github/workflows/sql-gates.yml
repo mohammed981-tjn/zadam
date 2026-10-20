@@ -104,6 +104,10 @@ jobs:
       - name: التنبيهات الحقليّة — الخبر مرّةً واحدة، ولمفتاح الخدمة وحده
         run: ./scripts/verify-field-alerts.sh
 
+      # جاهزيّة الماشية للتصدير: السجلّ لصاحب القطيع، والقيدُ يُسحب ولا يُحذف.
+      - name: جاهزيّة الماشية للتصدير — سجلّ الصحّة وأرقام الآذان لصاحب القطيع
+        run: ./scripts/verify-herd-readiness.sh
+
       - name: الردّ الآلي على الشكاوى
         run: ./scripts/verify-support-auto-reply.sh
 

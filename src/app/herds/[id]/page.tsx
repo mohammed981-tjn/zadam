@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Explain from "@/components/Explain";
+import HerdReadiness from "@/components/HerdReadiness";
+import type { HealthRecord, HerdTag } from "@/lib/herdHealth";
 import { completeHerdStage, setHerdBudget } from "@/app/herds/actions";
 import {
   SPECIES_LABEL,
@@ -33,10 +35,10 @@ export default async function HerdPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; rerror?: string }>;
 }) {
   const { id } = await params;
-  const { error: errorMessage } = await searchParams;
+  const { error: errorMessage, rerror } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -65,6 +67,20 @@ export default async function HerdPage({
     .order("stage_order");
 
   const stages = (stageRows ?? []) as HerdStage[];
+
+  // الجاهزيّة للتصدير للمجترّات والإبل وحدها: الدواجن والأسماك لا تُصدَّر حيّةً من هنا.
+  const exportable = ["cattle", "sheep", "goat", "camel"].includes(herd.species);
+  const [{ data: recordRows }, { data: tagRows }] = exportable
+    ? await Promise.all([
+        supabase
+          .from("herd_health_records")
+          .select("id, kind, item_key, done_on, heads, result, product, batch, vet_name, note, withdrawn_at, withdrawn_note, created_at")
+          .eq("herd_id", id)
+          .order("done_on", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase.from("herd_tags").select("tag, status, added_on").eq("herd_id", id).order("added_on").order("tag"),
+      ])
+    : [{ data: [] }, { data: [] }];
 
   const done = stages.filter((s) => s.completed).length;
   const totalFeed = stages.reduce((s, x) => s + Number(x.planned_feed_kg ?? 0), 0);
@@ -319,6 +335,18 @@ export default async function HerdPage({
           </li>
         ))}
       </ol>
+
+      {exportable && (
+        <HerdReadiness
+          herdId={herd.id}
+          headCount={herd.head_count}
+          active={herd.status === "active"}
+          records={(recordRows ?? []) as HealthRecord[]}
+          tags={(tagRows ?? []) as HerdTag[]}
+          locale={locale}
+          error={rerror}
+        />
+      )}
     </div>
   );
 }

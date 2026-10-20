@@ -110,8 +110,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           the footer on a narrow screen.
         */}
         {/* شريطُ التوب السوداني (البند ١٠٦) فوق التذييل في كلّ صفحة — بدل الخطّ الرفيع. */}
-        <div className="toub-rule mt-10" aria-hidden />
-        <footer>
+        <div className="toub-rule mt-10 print:hidden" aria-hidden />
+        <footer className="print:hidden">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 pb-24 pt-8 text-center">
             <p className="text-base font-semibold">
               {t("رأيك يبني هذه المنصة", "Your view builds this platform")}
