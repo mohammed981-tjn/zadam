@@ -12,6 +12,8 @@ import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import type { Herd } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
+import AnimalDiseaseWatch from "@/components/AnimalDiseaseWatch";
+import { fetchDiseaseEvents } from "@/lib/animalDisease";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -44,6 +46,11 @@ export default async function HerdsPage() {
     .order("start_date", { ascending: false });
 
   const herds = (rows ?? []) as Herd[];
+  const [{ data: landRows }, diseaseEvents] = await Promise.all([
+    supabase.from("lands").select("name, state, latitude, longitude").eq("owner_id", user.id),
+    fetchDiseaseEvents(),
+  ]);
+  const myLands = (landRows ?? []) as { name: string; state: string; latitude: number | null; longitude: number | null }[];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -73,6 +80,8 @@ export default async function HerdsPage() {
             "A Sudagri film: wealth that walks the land",
           )} />
       </figure>
+
+      <AnimalDiseaseWatch events={diseaseEvents} lands={myLands} locale={locale} />
 
       {herds.length === 0 ? (
         <EmptyState
