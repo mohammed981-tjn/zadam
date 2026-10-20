@@ -231,8 +231,8 @@ export default function FeasibilityStudy({
           {sdgPerUsd !== null && Number.isFinite(costPerFeddan) && costPerFeddan > 0 && (
             <span className="text-xs text-muted">
               {t(
-                `≈ ${n0(costPerFeddan * sdgPerUsd)} جنيه بسعر البنك (${n0(sdgPerUsd)} للدولار)`,
-                `≈ ${n0(costPerFeddan * sdgPerUsd)} SDG at the bank rate (${n0(sdgPerUsd)} per dollar)`,
+                `≈ ${n0(costPerFeddan * sdgPerUsd)} جنيه بسعر بنك الخرطوم (${n0(sdgPerUsd)} للدولار)`,
+                `≈ ${n0(costPerFeddan * sdgPerUsd)} SDG at Bank of Khartoum's rate (${n0(sdgPerUsd)} per dollar)`,
               )}
               {sdgPerUsdParallel !== null &&
                 t(
@@ -470,8 +470,8 @@ export default function FeasibilityStudy({
               {est.missing.map((m) => (en ? m.en : m.ar)).join(t("، ", ", "))}.
               {" "}
               {t(
-                "فهذا حدّ أدنى لا تكلفة كاملة، وتكلفتك التي أدخلتها أعلاه هي التي تُبنى عليها الدراسة. السماد بسعر الميناء العالمي قبل الشحن، والجنيه بسعر البنك.",
-                "So this is a floor, not a full cost; the cost you entered above is the one the study runs on. Fertiliser is at the world port price before freight; pounds are at the bank rate.",
+                "فهذا حدّ أدنى لا تكلفة كاملة، وتكلفتك التي أدخلتها أعلاه هي التي تُبنى عليها الدراسة. السماد بسعر الميناء العالمي قبل الشحن، والجنيه بسعر بنك الخرطوم.",
+                "So this is a floor, not a full cost; the cost you entered above is the one the study runs on. Fertiliser is at the world port price before freight; pounds are at Bank of Khartoum's rate.",
               )}
             </p>
             <ul className="mt-2 list-disc ps-5 text-xs text-muted">

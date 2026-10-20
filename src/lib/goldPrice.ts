@@ -12,7 +12,10 @@
 export const GOLD_SOURCE_URL = "https://gold-api.com/";
 const ENDPOINT = "https://api.gold-api.com/price/XAU";
 
-/** Grams in a troy ounce, as Circular 13/2026 writes it. */
+/**
+ * Grams in a troy ounce. Reports of Circular 13/2026 say the ounce price is
+ * "converted to dollars per gram"; none found so far prints the factor itself.
+ */
 export const GRAMS_PER_TROY_OUNCE = 31.1035;
 /** The circular's discount, in dollars per ounce. */
 export const CIRCULAR_DISCOUNT_USD = 10;
@@ -35,7 +38,10 @@ export function parseGoldSpot(raw: unknown): GoldSpot | null {
 /** Dollars per gram of 24-karat gold, before any rule. */
 export const usdPerGram = (usdPerOunce: number) => usdPerOunce / GRAMS_PER_TROY_OUNCE;
 
-/** Circular 13/2026: (world price − 10) ÷ 31.1035, times purity for gold below 24 karat. */
+/**
+ * Circular 13/2026: (world price − 10) ÷ 31.1035. The purity step for gold
+ * below 24 karat is the platform's own arithmetic, not the circular's text.
+ */
 export function circularUsdPerGram(usdPerOunce: number, karat = 24): number {
   return ((usdPerOunce - CIRCULAR_DISCOUNT_USD) / GRAMS_PER_TROY_OUNCE) * (karat / 24);
 }

@@ -180,8 +180,8 @@ export default async function MySupplierPage({
               <h2 className="font-bold">{t("٣) منتجاتك وأسعارك", "3) Your products and prices")}</h2>
               <p className="mt-1 text-sm text-muted">
                 {t(
-                  "السعر بالدولار، حتى تاريخٍ تحدّده (سنةٌ على الأكثر)، ونعرضه بالجنيه بسعر البنك اليوم. المبيد يُعرض برقم تسجيله لدى المجلس، والبذور باسم صنفها المعتمد.",
-                  "Price in dollars, valid until a date you set (a year at most), shown in pounds at today’s bank rate. A pesticide is listed with its Council registration number, seed under its approved variety.",
+                  "السعر بالدولار، حتى تاريخٍ تحدّده (سنةٌ على الأكثر)، ونعرضه بالجنيه بسعر بنك الخرطوم اليوم. المبيد يُعرض برقم تسجيله لدى المجلس، والبذور باسم صنفها المعتمد.",
+                  "Price in dollars, valid until a date you set (a year at most), shown in pounds at Bank of Khartoum’s rate today. A pesticide is listed with its Council registration number, seed under its approved variety.",
                 )}
               </p>
               {products.length > 0 && (

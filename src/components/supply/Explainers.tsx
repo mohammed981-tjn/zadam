@@ -57,8 +57,8 @@ export function OffersNotReference({ locale }: { locale: Locale }) {
   return (
     <p className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-xs leading-6">
       {t(
-        "أسعار الموردين هنا عروضٌ منهم، بالدولار وحتى التاريخ المكتوب، ونحوّلها إلى الجنيه بسعر البنك اليوم. ولا ندخلها في أيّ متوسّطٍ أو سعرٍ مرجعيٍّ تنشره المنصّة: من يبيع لا يضع سعر السوق.",
-        "Supplier prices here are their own offers, in dollars and until the date shown, converted to pounds at today’s bank rate. They never enter any average or reference price the platform publishes: a seller does not set the market price.",
+        "أسعار الموردين هنا عروضٌ منهم، بالدولار وحتى التاريخ المكتوب، ونحوّلها إلى الجنيه بسعر بنك الخرطوم اليوم. ولا ندخلها في أيّ متوسّطٍ أو سعرٍ مرجعيٍّ تنشره المنصّة: من يبيع لا يضع سعر السوق.",
+        "Supplier prices here are their own offers, in dollars and until the date shown, converted to pounds at Bank of Khartoum’s rate today. They never enter any average or reference price the platform publishes: a seller does not set the market price.",
       )}{" "}
       <Link href="/rates" className="text-primary underline">
         {t("أسعار العملات", "Exchange rates")}

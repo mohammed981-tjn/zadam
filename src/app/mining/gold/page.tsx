@@ -68,7 +68,7 @@ export default async function GoldPage() {
         { label: t("السعر العالمي للأوقية (٢٤ قيراط)", "World price per troy ounce (24k)"), usd: spot.usdPerOunce },
         { label: t("للغرام عيار ٢٤، بلا خصم", "Per gram, 24k, no discount"), usd: usdPerGram(spot.usdPerOunce) },
         { label: t("للغرام عيار ٢٤ بقاعدة المنشور 13/2026", "Per gram, 24k, by Circular 13/2026"), usd: circularUsdPerGram(spot.usdPerOunce, 24), gram: true },
-        { label: t("للغرام عيار ٢١ بقاعدة المنشور 13/2026", "Per gram, 21k, by Circular 13/2026"), usd: circularUsdPerGram(spot.usdPerOunce, 21), gram: true },
+        { label: t("للغرام عيار ٢١: قاعدة المنشور 13/2026 × ٢١÷٢٤", "Per gram, 21k: Circular 13/2026 × 21÷24"), usd: circularUsdPerGram(spot.usdPerOunce, 21), gram: true },
       ]
     : [];
 
@@ -159,8 +159,8 @@ export default async function GoldPage() {
           </div>
           <p className="mt-3 text-sm leading-relaxed text-muted">
             {t(
-              "لذهبٍ أقلّ من عيار ٢٤ يُضرب الناتج في نسبة النقاوة (عيار ٢١ = ٢١÷٢٤). السعر العالمي في أعلى الصفحة من مصدرٍ مجّانيّ يسمح بالنشر، لا من مرجع لندن الذي يحتاج ترخيصاً؛ والسعر الرسمي اليومي هو ما يعلنه البنك عبر نظامه — فاسأل عنه المشتري الرسمي قبل أن تبيع.",
-              "For gold below 24 karat, multiply by its purity (21k = 21÷24). The world price at the top of the page is from a free source that allows republishing, not the London benchmark, which needs a licence; the official daily price is the one the bank announces through its system — ask the official buyer for it before you sell.",
+              "لذهبٍ أقلّ من عيار ٢٤ يُضرب الناتج في نسبة النقاوة (عيار ٢١ = ٢١÷٢٤)، وهذه الخطوة حسابُنا نحن، فلم نجدها في نصّ المنشور كما نُشر. السعر العالمي في أعلى الصفحة من مصدرٍ مجّانيّ يسمح بالنشر، لا من مرجع لندن الذي يحتاج ترخيصاً؛ والسعر الرسمي اليومي هو ما يعلنه البنك عبر نظامه — فاسأل عنه المشتري الرسمي قبل أن تبيع.",
+              "For gold below 24 karat, multiply by its purity (21k = 21÷24) — that step is our own arithmetic; we did not find it in the circular as published. The world price at the top of the page is from a free source that allows republishing, not the London benchmark, which needs a licence; the official daily price is the one the bank announces through its system — ask the official buyer for it before you sell.",
             )}
           </p>
           <p className="mt-3 text-sm leading-relaxed">
