@@ -37,7 +37,7 @@ export default function FxConverter({ bank, parallel }: { bank: Table; parallel:
       <label className="flex flex-col gap-1 text-sm">
         {t("بأيّ سعر", "At which rate")}
         <select value={which} onChange={(e) => setWhich(e.target.value as "bank" | "parallel")} className={field}>
-          <option value="bank">{t("سعر البنك", "Bank rate")}</option>
+          <option value="bank">{t("سعر بنك الخرطوم", "Bank of Khartoum")}</option>
           <option value="parallel">{t("السوق الموازي", "Parallel market")}</option>
         </select>
       </label>

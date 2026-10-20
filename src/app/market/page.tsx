@@ -102,7 +102,7 @@ export default async function MarketPage() {
                 <>
                   {" · "}
                   <span dir="ltr">≈ ${money(last.price / usdRate, 2)}</span>
-                  {t(" بسعر البنك اليوم", " at today's bank rate")}
+                  {t(" بسعر بنك الخرطوم اليوم", " at Bank of Khartoum's rate today")}
                 </>
               )}
             </div>

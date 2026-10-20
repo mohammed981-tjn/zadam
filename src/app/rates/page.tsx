@@ -22,8 +22,8 @@ export async function generateMetadata() {
     title: tr(locale, "أسعار العملات مقابل الجنيه السوداني | سوداقري", "Exchange rates against the Sudanese pound | Sudagri"),
     description: tr(
       locale,
-      "سعر الدولار والريال والدرهم وغيرها بالجنيه السوداني: سعر البنك والسوق الموازي، كلٌّ بتاريخه ومصدره، مع محوّل للعملات.",
-      "The dollar, riyal, dirham and others in Sudanese pounds: the bank rate and the parallel market, each with its date and source, with a converter.",
+      "سعر الدولار والريال والدرهم وغيرها بالجنيه السوداني: سعر بنك الخرطوم والسوق الموازي، كلٌّ بتاريخه ومصدره، مع محوّل للعملات.",
+      "The dollar, riyal, dirham and others in Sudanese pounds: Bank of Khartoum's rate and the parallel market, each with its date and source, with a converter.",
     ),
   };
 }
@@ -75,8 +75,8 @@ export default async function RatesPage() {
       <h1 className="text-2xl font-bold">{t("أسعار العملات مقابل الجنيه السوداني", "Exchange rates against the Sudanese pound")}</h1>
       <p className="mb-6 mt-2 text-sm text-muted">
         {t(
-          "سعران للجنيه، لأنّ الفرق بينهما كبير: سعر البنك، وسعر السوق الموازي. كلٌّ بتاريخه ومصدره.",
-          "Two rates for the pound, because the gap between them is large: the bank rate and the parallel-market rate, each with its date and source.",
+          "سعران للجنيه، لأنّ الفرق بينهما كبير: سعر بنك الخرطوم، وسعر السوق الموازي. كلٌّ بتاريخه ومصدره.",
+          "Two rates for the pound, because the gap between them is large: Bank of Khartoum's rate and the parallel-market rate, each with its date and source.",
         )}
       </p>
 
@@ -95,7 +95,7 @@ export default async function RatesPage() {
             <thead className="bg-background text-muted">
               <tr>
                 <th className="px-4 py-2 text-start font-medium">{t("العملة", "Currency")}</th>
-                <th className="px-4 py-2 text-start font-medium">{t("بسعر البنك", "At the bank rate")}</th>
+                <th className="px-4 py-2 text-start font-medium">{t("بسعر بنك الخرطوم", "At Bank of Khartoum")}</th>
                 <th className="px-4 py-2 text-start font-medium">{t("بالسوق الموازي", "Parallel market")}</th>
               </tr>
             </thead>
