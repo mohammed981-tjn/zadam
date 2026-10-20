@@ -76,7 +76,11 @@ export function readinessVerdict(
   locale: Locale = "ar",
 ): string {
   const en = locale === "en";
-  if (r.source === "none") return en ? "No data." : "لا بيانات.";
+  if (r.source === "none") {
+    return en
+      ? "This destination's requirements for this product have not been studied on the platform yet — ask a licensed exporter which documents it needs."
+      : "لم تُدرس شروطُ هذه الوجهة لهذا المنتج في المنصّة بعد — اسأل المصدّرَ المرخَّص عن مستنداتها.";
+  }
   if (r.required_total === 0) {
     return en
       ? "No required documents on this corridor."

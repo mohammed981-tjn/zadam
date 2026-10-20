@@ -6,11 +6,17 @@ import { offerAmounts, formatMinor } from "@/lib/exportOffers";
 import { useLocale } from "@/components/LocaleProvider";
 import { tr } from "@/lib/i18n";
 
-export interface CorridorOption {
+export interface CommodityOption {
   id: string;
-  commodityId: string;
   label: string;
   defaultUom: string;
+}
+
+export interface DestinationOption {
+  id: string;
+  label: string;
+  /** The heading it is listed under. */
+  group: string;
 }
 
 export interface GradeOption {
@@ -41,13 +47,25 @@ export interface UomOption {
  * without a release in between. The commodity carries a default, the field
  * starts on it, and changing it is allowed — because the price the buyer
  * discounts for weight variance is exactly what documenting weight recovers.
+ *
+ * WHY THE PRODUCT AND THE DESTINATION ARE TWO CHOICES
+ *
+ * The owner asked for it (backlog 118): one list of nine product-and-country
+ * pairs hid every pair nobody had written down yet. Now the product is chosen,
+ * then the country, and the pair is opened on the first offer. Whether its
+ * documents have been studied is said under the two fields, before saving.
  */
 export default function ExportOfferForm({
-  corridors,
+  commodities,
+  destinations,
+  studied,
   grades,
   uoms,
 }: {
-  corridors: CorridorOption[];
+  commodities: CommodityOption[];
+  destinations: DestinationOption[];
+  /** Requirements on record for a pair, keyed "commodityId|destinationId"; absent means not studied. */
+  studied: Record<string, number>;
   grades: GradeOption[];
   uoms: UomOption[];
 }) {
@@ -58,25 +76,25 @@ export default function ExportOfferForm({
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 
-  const [corridorId, setCorridorId] = useState(corridors[0]?.id ?? "");
-  const [uom, setUom] = useState(corridors[0]?.defaultUom ?? "");
+  const [commodityId, setCommodityId] = useState(commodities[0]?.id ?? "");
+  const [destinationId, setDestinationId] = useState("");
+  const [uom, setUom] = useState(commodities[0]?.defaultUom ?? "");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
   const [area, setArea] = useState("");
 
-  const corridor = corridors.find((c) => c.id === corridorId);
-  const relevantGrades = grades.filter(
-    (g) => g.commodityId === corridor?.commodityId,
-  );
+  const relevantGrades = grades.filter((g) => g.commodityId === commodityId);
+  const studiedCount = destinationId ? studied[`${commodityId}|${destinationId}`] : undefined;
+  const groups = [...new Set(destinations.map((d) => d.group))];
 
   const amounts = offerAmounts(quantity, price, 100);
   // Four hectares is where a point stops being enough and a boundary polygon is
   // required. Shown as it is typed, so the field appears before the refusal.
   const needsBoundary = Number(area) >= 4;
 
-  function pickCorridor(id: string) {
-    setCorridorId(id);
-    const next = corridors.find((c) => c.id === id);
+  function pickCommodity(id: string) {
+    setCommodityId(id);
+    const next = commodities.find((c) => c.id === id);
     if (next) setUom(next.defaultUom);
   }
 
@@ -85,29 +103,66 @@ export default function ExportOfferForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <div>
-        <label className={label} htmlFor="corridor_id">
-          {t("السلعة والوجهة", "Commodity and destination")}
-        </label>
-        <select
-          id="corridor_id"
-          name="corridor_id"
-          className={field}
-          value={corridorId}
-          onChange={(e) => pickCorridor(e.target.value)}
-          required
-        >
-          {corridors.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={label} htmlFor="commodity_id">
+            {t("المنتج", "Product")}
+          </label>
+          <select
+            id="commodity_id"
+            name="commodity_id"
+            className={field}
+            value={commodityId}
+            onChange={(e) => pickCommodity(e.target.value)}
+            required
+          >
+            {commodities.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={label} htmlFor="destination_id">
+            {t("الوجهة", "Destination")}
+          </label>
+          <select
+            id="destination_id"
+            name="destination_id"
+            className={field}
+            value={destinationId}
+            onChange={(e) => setDestinationId(e.target.value)}
+            required
+          >
+            <option value="" disabled>
+              {t("اختر البلد…", "Choose the country…")}
             </option>
-          ))}
-        </select>
-        <p className="mt-1 text-xs text-muted">
-          {t(
-            "الوجهةُ تحدّد المستنداتِ المطلوبة. ولا ممرَّ لسلعةٍ ووجهةٍ لم تُدرس شروطُهما بعد.",
-            "The destination determines the documents required. There is no corridor for a commodity and destination whose requirements have not been studied yet.",
-          )}
+            {groups.map((g) => (
+              <optgroup key={g} label={g}>
+                {destinations
+                  .filter((d) => d.group === g)
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+        <p className="text-xs text-muted sm:col-span-2">
+          {!destinationId
+            ? t("الوجهةُ تحدّد المستنداتِ المطلوبة.", "The destination determines the documents required.")
+            : studiedCount
+              ? t(
+                  `شروطُ هذه الوجهة لهذا المنتج مدروسة: ${studiedCount} مستنداتٍ تظهر في صفحة العرض بعد الحفظ.`,
+                  `This destination's requirements for this product are on record: ${studiedCount} documents, shown on the offer page once saved.`,
+                )
+              : t(
+                  "لم تُدرس شروطُ هذه الوجهة لهذا المنتج في المنصّة بعد. يُحفظ العرض، وتقول صفحتُه ذلك صراحةً — واسأل المصدّرَ المرخَّص عن مستنداتها.",
+                  "This destination's requirements for this product have not been studied on the platform yet. The offer is saved and its page says so plainly — ask a licensed exporter which documents it needs.",
+                )}
         </p>
       </div>
 

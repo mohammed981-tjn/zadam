@@ -51,9 +51,20 @@ export async function createOffer(
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 
-  const corridorId = str(formData, "corridor_id");
-  if (!corridorId) {
-    return { ok: false, message: t("اختر السلعة والوجهة.", "Choose the commodity and the destination.") };
+  const commodityId = str(formData, "commodity_id");
+  const destinationId = str(formData, "destination_id");
+  if (!commodityId || !destinationId) {
+    return { ok: false, message: t("اختر المنتج والوجهة.", "Choose the product and the destination.") };
+  }
+  // The pair is opened on its first offer; one nobody has studied yet is
+  // created without rules, and the offer page says so.
+  const { data: corridorId, error: corridorError } = await supabase.rpc("export_corridor_for", {
+    p_commodity: commodityId,
+    p_destination: destinationId,
+  });
+  if (corridorError || !corridorId) {
+    console.error("export: corridor lookup failed", corridorError);
+    return { ok: false, message: t("تعذّر فتح طريق هذا المنتج إلى هذه الوجهة. حاول ثانية.", "Could not open this product's route to this destination. Try again.") };
   }
 
   const amounts = offerAmounts(
