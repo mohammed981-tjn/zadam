@@ -38,6 +38,7 @@ import { CROP_INPUTS } from "@/lib/cropInputs";
 import { INPUT_PRICES, LOCAL_REFERENCES, estimateCostPerFeddan } from "@/lib/inputPrices";
 import { irrigationAdvice, PIVOT_MIN_FEDDANS, type Suitability } from "@/lib/irrigationAdvice";
 import FeasibilityRisks from "@/components/FeasibilityRisks";
+import type { LocustSummary } from "@/lib/locust";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 
@@ -56,6 +57,7 @@ export default function FeasibilityStudy({
   sdgPerUsd = null,
   sdgPerUsdParallel = null,
   initialCrop = "sorghum",
+  locust = null,
 }: {
   markets: Record<string, CropMarket>;
   /** Crop to open on, e.g. from the new-crops page (?crop=soybean). */
@@ -63,6 +65,8 @@ export default function FeasibilityStudy({
   /** Pounds per dollar at the bank and on the parallel market, from /rates. */
   sdgPerUsd?: number | null;
   sdgPerUsdParallel?: number | null;
+  /** What FAO's locust survey reported in Sudan over the last year, or null. */
+  locust?: LocustSummary | null;
 }) {
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -690,6 +694,7 @@ export default function FeasibilityStudy({
         feddans={study.feddans}
         revenueUsd={study.revenueAtNational}
         marginUsd={study.marginAtNational}
+        locust={locust}
         locale={locale}
       />
 

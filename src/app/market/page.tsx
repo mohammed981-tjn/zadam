@@ -7,6 +7,7 @@ import Sparkline from "@/components/market/Sparkline";
 import { ageInDays, readFxReference } from "@/lib/fxRates";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
+import { WFP_PRICES_SOURCE, orderTowns, pctChange, readWfpPrices, wfpItem, wfpTown, wfpUnit, type WfpTown } from "@/lib/wfpPrices";
 import {
   BOURSE_QUIET_DAYS,
   CROP_NAME,
@@ -49,6 +50,7 @@ export default async function MarketPage() {
   const fx = readFxReference();
   const fews = await fetchFewsPrices();
   const wfp = readWfpMonthly();
+  const wfpPrices = readWfpPrices();
   const usdRate = fx?.bank.sell ?? null;
   // The warehouse-receipt study, when it lands, is linked from here; until then the idea is stated without a dead link.
   const bourseStudy = existsSync(join(process.cwd(), "content/studies/bourse-ar.md"));
@@ -200,8 +202,85 @@ export default async function MarketPage() {
       <p className="mt-2 text-xs text-muted">
         <a href={FEWS_SOURCE_URL} className="underline" target="_blank" rel="noopener noreferrer">FEWS NET — Sudan</a>
       </p>
+
+      {wfpPrices && (
+        <div className="mt-8">
+          <h3 className="mb-1 text-base font-bold">
+            {t(
+              `أسعار التجزئة في ${wfpPrices.towns.length} مدينة — برنامج الأغذية العالمي`,
+              `Retail prices in ${wfpPrices.towns.length} towns — World Food Programme`,
+            )}
+          </h3>
+          <p className="mb-3 text-sm text-muted">
+            {t(
+              `الحبوب واللحوم والسكر والزيت والبصل، كما جمعها البرنامج في عاصمة كلّ ولاية. أحدث شهر: ${monthName(wfpPrices.latest)}. والتغيّر محسوبٌ من أرقام البرنامج نفسه للشهر السابق والعام الماضي.`,
+              `Cereals, meat, sugar, oil and onions as WFP collected them in each state's capital. Newest month: ${monthName(wfpPrices.latest)}. The change is worked out from WFP's own figures for the month and the year before.`,
+            )}
+          </p>
+          <div className="flex flex-col gap-2">
+            {orderTowns(wfpPrices.towns, locale).map((town, i) => (
+              <details key={town.market} open={i < 2} className="rounded-2xl border border-border bg-card">
+                <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">
+                  {wfpTown(town.market, locale)}
+                  <span className="ms-2 text-xs font-normal text-muted">
+                    {town.latest < wfpPrices.latest
+                      ? t(`آخر رقم: ${monthName(town.latest)}`, `Latest figure: ${monthName(town.latest)}`)
+                      : monthName(town.latest)}
+                  </span>
+                </summary>
+                {wfpTownTable(town)}
+              </details>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            <a href={WFP_PRICES_SOURCE} className="underline" target="_blank" rel="noopener noreferrer">
+              {t("برنامج الأغذية العالمي — أسعار الغذاء في السودان (HDX)", "WFP — Sudan food prices (HDX)")}
+            </a>
+          </p>
+        </div>
+      )}
     </section>
   );
+
+  function wfpTownTable(town: WfpTown) {
+    const change = (now: number, before: number | null) => {
+      const p = pctChange(now, before);
+      if (p === null) return <span className="text-muted">—</span>;
+      return (
+        <span dir="ltr" className={p > 0 ? "text-danger" : p < 0 ? "text-primary" : "text-muted"}>
+          {p > 0 ? "+" : ""}
+          {p}%
+        </span>
+      );
+    };
+    return (
+      <div className="overflow-x-auto border-t border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-background text-muted">
+            <tr>
+              <th className="px-3 py-2 text-start font-medium">{t("السلعة", "Item")}</th>
+              <th className="px-3 py-2 text-start font-medium">{t("السعر (جنيه)", "Price (SDG)")}</th>
+              <th className="px-3 py-2 text-start font-medium">{t("عن الشهر السابق", "vs last month")}</th>
+              <th className="px-3 py-2 text-start font-medium">{t("عن العام الماضي", "vs a year ago")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {town.items.map((it) => (
+              <tr key={`${it.commodity}|${it.unit}`} className="border-t border-border">
+                <td className="px-3 py-2">
+                  {wfpItem(it.commodity, locale)} <span className="text-muted">/ <span dir="ltr">{wfpUnit(it.unit, locale)}</span></span>
+                  {it.month < town.latest && <span className="ms-1 text-xs text-muted">({monthName(it.month)})</span>}
+                </td>
+                <td className="px-3 py-2 font-bold" dir="ltr">{money(it.price)}</td>
+                <td className="px-3 py-2">{change(it.price, it.prevMonth)}</td>
+                <td className="px-3 py-2">{change(it.price, it.yearAgo)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
