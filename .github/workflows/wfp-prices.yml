@@ -1,0 +1,54 @@
+name: WFP prices (Sudan, HDX)
+
+# Fetches WFP's Sudan food-price file from the Humanitarian Data Exchange,
+# trims it to each town's newest month with scripts/wfp-prices-trim.py, and
+# commits content/market/wfp-prices.json. data.humdata.org is not reachable
+# from the environment this repository is developed in; a runner is.
+#
+# Nothing here touches the database. The commit is the deliverable, so a bad
+# refresh is a diff to read.
+
+on:
+  # الملفّ يُحدَّث شهرياً تقريباً (HDX: «كل ٣٠ يوماً»)، فيُقرأ في الحادي
+  # والعشرين من كلّ شهر، ويخرج الوظيفة صامتةً إن لم يتغيّر شيء.
+  schedule:
+    - cron: "40 4 21 * *"
+  push:
+    # Only when the fetch itself changes; the data commit this job makes does
+    # not match these paths, so it cannot retrigger itself.
+    paths:
+      - ".github/workflows/wfp-prices.yml"
+      - "scripts/wfp-prices-trim.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 -o wfp.csv \
+            'https://data.humdata.org/dataset/369e003b-f0af-4e48-99d7-34fc85b44635/resource/8fea18b2-615f-4af5-9bd5-85cc31a25ffd/download/wfp_food_prices_sdn.csv'
+          ls -l wfp.csv
+          head -2 wfp.csv
+
+      - name: Trim
+        run: python3 scripts/wfp-prices-trim.py --csv wfp.csv --out content/market/wfp-prices.json
+
+      - name: Commit
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add content/market/wfp-prices.json
+          # The date the file was fetched changes every run; only commit when a price did.
+          if git diff --cached -U0 | grep '^[+-] ' | grep -qv '"fetched"'; then
+            git commit -m 'Refresh WFP prices for Sudan (HDX)'
+            git push origin HEAD:${GITHUB_REF_NAME}
+          else
+            echo 'WFP prices are unchanged since the last refresh.'
+          fi
