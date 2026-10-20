@@ -8,8 +8,13 @@ import {
   offerStatusHelp,
   formatMinor,
   referenceName,
+  destinationRegion,
+  REGION_LABEL,
+  type DestinationRegion,
   type OfferStatus,
 } from "@/lib/exportOffers";
+
+const REGION_ORDER: DestinationRegion[] = ["arab", "africa", "asia", "europe", "americas", "other"];
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -57,42 +62,53 @@ export default async function ExportOffersPage() {
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 
-  const [{ data: corridorRows }, { data: gradeRows }, { data: uomRows }, { data: offerRows }] =
-    await Promise.all([
-      supabase
-        .from("export_corridors")
-        .select(
-          "id, active, commodity:export_commodities(id, code, name_ar, default_uom_code), destination:export_destinations(code, name_ar)",
-        )
-        .eq("active", true),
-      supabase.from("export_commodity_grades").select("id, commodity_id, name_ar"),
-      supabase.from("export_uom").select("code, name_ar"),
-      supabase
-        .from("export_offers")
-        .select(
-          "id, reference, quantity, uom_code, unit_price_minor, value_minor, status, rejection_reason, created_at",
-        )
-        .eq("owner_id", user.id)
-        .order("created_at", { ascending: false }),
-    ]);
+  const [
+    { data: commodityRows },
+    { data: destinationRows },
+    { data: corridorRows },
+    { data: gradeRows },
+    { data: uomRows },
+    { data: offerRows },
+  ] = await Promise.all([
+    supabase.from("export_commodities").select("id, code, name_ar, default_uom_code").eq("active", true).order("name_ar"),
+    supabase.from("export_destinations").select("id, code, name_ar").eq("active", true).order("name_ar"),
+    // Which pairs have requirements on record, so the form can say so before saving.
+    supabase.from("export_corridors").select("commodity_id, destination_id, export_corridor_requirements(count)"),
+    supabase.from("export_commodity_grades").select("id, commodity_id, name_ar"),
+    supabase.from("export_uom").select("code, name_ar"),
+    supabase
+      .from("export_offers")
+      .select(
+        "id, reference, quantity, uom_code, unit_price_minor, value_minor, status, rejection_reason, created_at",
+      )
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false }),
+  ]);
 
-  type CorridorJoin = {
-    id: string;
-    commodity: { id: string; code: string; name_ar: string; default_uom_code: string } | null;
-    destination: { code: string; name_ar: string } | null;
-  };
-
-  const corridors = ((corridorRows ?? []) as unknown as CorridorJoin[])
-    .filter((c) => c.commodity && c.destination)
-    .map((c) => ({
-      id: c.id,
-      commodityId: c.commodity!.id,
-      label:
-        locale === "en"
-          ? `${referenceName(c.commodity!.code, c.commodity!.name_ar, locale)} → ${referenceName(c.destination!.code, c.destination!.name_ar, locale)}`
-          : `${c.commodity!.name_ar} ← ${c.destination!.name_ar}`,
-      defaultUom: c.commodity!.default_uom_code,
-    }));
+  const commodities = ((commodityRows ?? []) as { id: string; code: string; name_ar: string; default_uom_code: string }[]).map(
+    (c) => ({ id: c.id, label: referenceName(c.code, c.name_ar, locale), defaultUom: c.default_uom_code }),
+  );
+  const destinations = ((destinationRows ?? []) as { id: string; code: string; name_ar: string }[])
+    .map((d) => {
+      const region = destinationRegion(d.code);
+      return {
+        id: d.id,
+        label: referenceName(d.code, d.name_ar, locale),
+        group: locale === "en" ? REGION_LABEL[region].en : REGION_LABEL[region].ar,
+        order: REGION_ORDER.indexOf(region),
+      };
+    })
+    .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, locale))
+    .map((d) => ({ id: d.id, label: d.label, group: d.group }));
+  const studied: Record<string, number> = {};
+  for (const c of (corridorRows ?? []) as {
+    commodity_id: string;
+    destination_id: string;
+    export_corridor_requirements: { count: number }[];
+  }[]) {
+    const n = c.export_corridor_requirements?.[0]?.count ?? 0;
+    if (n > 0) studied[`${c.commodity_id}|${c.destination_id}`] = n;
+  }
 
   const grades = ((gradeRows ?? []) as { id: string; commodity_id: string; name_ar: string }[]).map(
     (g) => ({ id: g.id, commodityId: g.commodity_id, name: g.name_ar }),
@@ -135,12 +151,12 @@ export default async function ExportOffersPage() {
             "It is saved as a draft first. No one sees it until you send it, and it is not published until a reviewer checks that your evidence supports what you claim.",
           )}
         </p>
-        {corridors.length === 0 ? (
+        {commodities.length === 0 || destinations.length === 0 ? (
           <p className="text-sm text-danger">
-            {t("لا ممرّاتٍ مفعّلةٌ بعد. راجع الإدارة.", "No corridors are active yet. Contact the administrators.")}
+            {t("لا منتجاتٍ أو وجهاتٍ مفعّلةٌ بعد. راجع الإدارة.", "No products or destinations are active yet. Contact the administrators.")}
           </p>
         ) : (
-          <ExportOfferForm corridors={corridors} grades={grades} uoms={uoms} />
+          <ExportOfferForm commodities={commodities} destinations={destinations} studied={studied} grades={grades} uoms={uoms} />
         )}
       </div>
 

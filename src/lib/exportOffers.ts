@@ -87,12 +87,49 @@ const REFERENCE_NAME_EN: Record<string, string> = {
   sorghum: "Sorghum",
   hibiscus: "Hibiscus (karkadeh)",
   groundnut: "Groundnuts",
+  cotton: "Cotton",
+  melon_seeds: "Melon seeds",
+  oilseed_cake: "Oilseed cake",
+  live_goats: "Live goats",
+  live_camels: "Live camels",
+  live_cattle: "Live cattle",
+  meat: "Chilled and frozen meat",
+  hides_skins: "Hides and skins",
   // export_destinations
   EU: "European Union",
   SA: "Saudi Arabia",
   AE: "United Arab Emirates",
   CN: "China",
   TR: "Turkey",
+  QA: "Qatar",
+  KW: "Kuwait",
+  OM: "Oman",
+  BH: "Bahrain",
+  YE: "Yemen",
+  JO: "Jordan",
+  SY: "Syria",
+  IQ: "Iraq",
+  LB: "Lebanon",
+  EG: "Egypt",
+  LY: "Libya",
+  ET: "Ethiopia",
+  ER: "Eritrea",
+  TD: "Chad",
+  SS: "South Sudan",
+  KE: "Kenya",
+  DJ: "Djibouti",
+  IN: "India",
+  JP: "Japan",
+  KR: "South Korea",
+  TH: "Thailand",
+  BD: "Bangladesh",
+  ID: "Indonesia",
+  MY: "Malaysia",
+  VN: "Vietnam",
+  GB: "United Kingdom",
+  RU: "Russia",
+  US: "United States",
+  BR: "Brazil",
   // export_uom
   kg: "kilogram",
   ton: "tonne",
@@ -137,6 +174,29 @@ export function referenceName(
   if (locale !== "en" || !code) return nameAr;
   return REFERENCE_NAME_EN[code] ?? nameAr;
 }
+
+export type DestinationRegion = "arab" | "africa" | "asia" | "europe" | "americas" | "other";
+
+const REGION_OF: Record<string, DestinationRegion> = {
+  SA: "arab", AE: "arab", QA: "arab", KW: "arab", OM: "arab", BH: "arab", YE: "arab",
+  JO: "arab", SY: "arab", IQ: "arab", LB: "arab", EG: "arab", LY: "arab",
+  ET: "africa", ER: "africa", TD: "africa", SS: "africa", KE: "africa", DJ: "africa",
+  CN: "asia", IN: "asia", JP: "asia", KR: "asia", TH: "asia", BD: "asia", ID: "asia", MY: "asia", VN: "asia",
+  EU: "europe", GB: "europe", RU: "europe", TR: "europe",
+  US: "americas", BR: "americas",
+};
+
+/** Where a destination sits in the list; one added later from the admin board goes under "other". */
+export const destinationRegion = (code: string): DestinationRegion => REGION_OF[code] ?? "other";
+
+export const REGION_LABEL: Record<DestinationRegion, { ar: string; en: string }> = {
+  arab: { ar: "الخليج والدول العربيّة", en: "The Gulf and Arab countries" },
+  africa: { ar: "أفريقيا والجوار", en: "Africa and neighbours" },
+  asia: { ar: "آسيا", en: "Asia" },
+  europe: { ar: "أوروبا وتركيا", en: "Europe and Turkey" },
+  americas: { ar: "الأمريكتان", en: "The Americas" },
+  other: { ar: "أخرى", en: "Other" },
+};
 
 /** Four decimal places, matching `quantity numeric(16,4)`. */
 export const QUANTITY_SCALE = 4;

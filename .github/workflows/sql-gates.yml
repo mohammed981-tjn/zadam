@@ -108,6 +108,10 @@ jobs:
       - name: جاهزيّة الماشية للتصدير — سجلّ الصحّة وأرقام الآذان لصاحب القطيع
         run: ./scripts/verify-herd-readiness.sh
 
+      # ملفّ الصادر: المنتجُ والوجهةُ منفصلان، والطريقُ يُفتح مرّةً، وما لم يُدرس لا يبدو جاهزاً.
+      - name: ملفّ الصادر — كلّ المنتجات والوجهات، والطريق يُفتح عند أوّل عرض
+        run: ./scripts/verify-export-pairs.sh
+
       - name: الردّ الآلي على الشكاوى
         run: ./scripts/verify-support-auto-reply.sh
 

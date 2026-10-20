@@ -49,7 +49,10 @@ export function ReadinessPanel({
 }) {
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const en = locale === "en";
-  const tone = readiness.ready
+  // «none»: no rule on record for this product and destination — not "nothing
+  // required". Shown as unstudied, never as ready (backlog 118).
+  const unstudied = readiness.source === "none";
+  const tone = readiness.ready && !unstudied
     ? "border-primary/40 bg-primary/5"
     : "border-border bg-card";
 
@@ -57,16 +60,20 @@ export function ReadinessPanel({
     <section className={`mt-6 rounded-xl border p-4 ${tone}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-medium">{t("جاهزيّةُ المستندات", "Document readiness")}</h2>
-        <span className="text-sm text-muted">
-          {readiness.score}
-          {en ? "%" : "٪"}
-        </span>
+        {!unstudied && (
+          <span className="text-sm text-muted">
+            {readiness.score}
+            {en ? "%" : "٪"}
+          </span>
+        )}
       </div>
 
-      <p className={`mt-1 text-sm ${readiness.ready ? "" : "text-danger"}`}>
+      <p className={`mt-1 text-sm ${readiness.ready || unstudied ? "" : "text-danger"}`}>
         <strong>{readinessVerdict(readiness, locale)}</strong>
       </p>
 
+      {!unstudied && (
+        <>
       {/* Progress, not a verdict — which is why it carries no colour of its
           own and sits below the sentence rather than above it. */}
       <div
@@ -83,6 +90,8 @@ export function ReadinessPanel({
           style={{ width: `${readiness.score}%` }}
         />
       </div>
+        </>
+      )}
 
       {lines.length > 0 && (
         <ul className="mt-4 space-y-2 text-sm">
