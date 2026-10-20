@@ -5,7 +5,7 @@
  * returned on 20 October 2026 (category,n,last_date and location_name first for
  * the places), on quoted fields, and on what is refused rather than shown.
  */
-import { isGregarious, locustDay, locustLabel, parseCsv, parseLocustCounts, parseLocustPlaces } from "../src/lib/locust";
+import { LOCUST_ALERT_KM, distanceKm, isGregarious, locustDay, locustLabel, nearestSighting, parseCsv, parseLocustCounts, parseLocustPlaces, parseLocustSightings } from "../src/lib/locust";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -29,6 +29,20 @@ ok(locustLabel("SWARM", "ar") === "أسراب" && locustLabel("SWARM", "en") ===
 ok(locustLabel("SOMETHING NEW", "ar") === "SOMETHING NEW", "labels: a category FAO adds later shows in FAO's own word");
 ok(isGregarious("BAND") && isGregarious("SWARM") && !isGregarious("ADULT"), "bands and swarms are the gregarious phase");
 ok(locustDay("2026-09-26", "ar") === "26 سبتمبر 2026" && locustDay("2026-07-13", "en") === "13 July 2026", "dates: the same text on server and browser");
+
+// Near the land: FAO's sightings as they come, and the nearest one by great-circle distance.
+const sightings = parseLocustSightings(
+  "category,lat,lon,last_date,location_name,country_name\nADULT,18.958927,32.361322,2026-07-13,SHERRI,Sudan\nSWARM,15.6,36.16,2026-07-10,AROMA,Sudan\nHOPPER,,36.1,2026-07-09,NOWHERE,Sudan\nADULT,95,36.1,2026-07-09,BAD,Sudan\n",
+);
+ok(sightings.length === 2 && sightings[0].place === "SHERRI" && sightings[0].lng === 32.361322, "sightings: a row without coordinates or outside the globe is dropped");
+ok(Math.abs(distanceKm(15, 32, 16, 32) - 111.19) < 0.1, "distance: one degree of latitude is about 111 km");
+ok(distanceKm(15.6, 32.5, 15.6, 32.5) === 0, "distance: the same point is zero");
+const khartoum = nearestSighting(15.6, 32.53, sightings);
+ok(khartoum !== null && khartoum.place === "SHERRI" && khartoum.km > LOCUST_ALERT_KM, "from Khartoum the nearest is Sherri, beyond a day's flight");
+const kassala = nearestSighting(15.45, 36.4, sightings);
+ok(kassala !== null && kassala.place === "AROMA" && kassala.km <= LOCUST_ALERT_KM, "from Kassala the swarm at Aroma is within a day's flight: the alert");
+ok(nearestSighting(15, 32, []) === null, "no sighting is no nearest, not a distance of zero");
+ok(LOCUST_ALERT_KM === 150, "the alert distance is FAO's day of flight: 150 km");
 
 if (fail) {
   console.error(`${fail} check(s) failed`);

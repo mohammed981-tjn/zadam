@@ -13,7 +13,16 @@ import {
   type RiskSetting,
 } from "@/lib/farmRisks";
 import { tr, type Locale } from "@/lib/i18n";
-import { LOCUST_HUB_URL, isGregarious, locustDay, locustLabel, type LocustSummary } from "@/lib/locust";
+import {
+  LOCUST_ALERT_DAYS,
+  LOCUST_ALERT_KM,
+  LOCUST_FLIGHT_SOURCE,
+  LOCUST_HUB_URL,
+  isGregarious,
+  locustDay,
+  locustLabel,
+  type LocustSummary,
+} from "@/lib/locust";
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -277,8 +286,68 @@ export default function FeasibilityRisks({
 function LocustWatch({ locust, locale }: { locust: LocustSummary; locale: Locale }) {
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const gregarious = locust.counts.some((c) => isGregarious(c.category));
+  const km = (v: number) => Math.round(v).toLocaleString("en-US");
+  const near = (locust.lands ?? []).filter((l) => l.nearest && l.nearest.km <= LOCUST_ALERT_KM);
   return (
     <div className="mt-2 rounded-lg bg-background p-3 text-xs leading-relaxed">
+      {/* ── قرب أرضك ─────────────────────────────────── */}
+      {near.length > 0 && (
+        <div className="mb-2 rounded-lg border border-danger/40 bg-danger/5 p-3 text-sm">
+          <p className="font-bold text-danger">{t("⚠ رُصد جرادٌ قرب أرضك", "⚠ Locusts were recorded near your land")}</p>
+          <ul className="mt-1 flex flex-col gap-0.5">
+            {near.map((l) => (
+              <li key={l.land}>
+                {t(
+                  `«${l.land}»: ${locustLabel(l.nearest!.category, locale)} على بعد ${km(l.nearest!.km)} كم، في ${locustDay(l.nearest!.date, locale)}`,
+                  `“${l.land}”: ${locustLabel(l.nearest!.category, locale)} ${km(l.nearest!.km)} km away, on ${locustDay(l.nearest!.date, locale)}`,
+                )}{" "}
+                (<span dir="ltr">{[l.nearest!.place, l.nearest!.country].filter(Boolean).join(", ")}</span>)
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs">
+            {t(
+              `الفاو: يطير الجراد نهاراً مع الريح حتى ${LOCUST_ALERT_KM} كم في اليوم. بلّغ وقاية النباتات في ولايتك، وتفقّد الحقل صباحاً.`,
+              `FAO: locusts fly by day downwind for up to ${LOCUST_ALERT_KM} km a day. Tell plant protection in your state, and check the field in the morning.`,
+            )}{" "}
+            <a href={LOCUST_FLIGHT_SOURCE} target="_blank" rel="noopener noreferrer" className="underline">
+              {t("الفاو", "FAO")}
+            </a>
+          </p>
+        </div>
+      )}
+      {locust.signedIn && locust.lands !== null && locust.lands.length > 0 && near.length < locust.lands.length && (
+        <p className="mb-2">
+          {locust.lands
+            .filter((l) => !(l.nearest && l.nearest.km <= LOCUST_ALERT_KM))
+            .map((l) =>
+              l.nearest
+                ? t(
+                    `«${l.land}»: أقرب رصدٍ في آخر ${LOCUST_ALERT_DAYS} يوماً على بعد ${km(l.nearest.km)} كم — أبعد من مسيرة يوم (${LOCUST_ALERT_KM} كم).`,
+                    `“${l.land}”: the nearest sighting in the last ${LOCUST_ALERT_DAYS} days is ${km(l.nearest.km)} km away — beyond a day's flight (${LOCUST_ALERT_KM} km).`,
+                  )
+                : t(
+                    `«${l.land}»: لم يصل الفاو رصدٌ لجراد حول السودان في آخر ${LOCUST_ALERT_DAYS} يوماً.`,
+                    `“${l.land}”: no locust sighting around Sudan reached FAO in the last ${LOCUST_ALERT_DAYS} days.`,
+                  ),
+            )
+            .join(" ")}
+        </p>
+      )}
+      {locust.signedIn && locust.lands !== null && locust.lands.length === 0 && (
+        <p className="mb-2">
+          {t("أضف موقع أرضك (خطّ العرض والطول) في ", "Add your land's location (latitude and longitude) in ")}
+          <Link href="/lands" className="text-primary underline">{t("أراضيّ", "My lands")}</Link>
+          {t(" ليُنبّهك هذا الصندوق إن رُصد جرادٌ قربها.", " and this box will warn you when locusts are recorded near it.")}
+        </p>
+      )}
+      {!locust.signedIn && (
+        <p className="mb-2">
+          <Link href="/login" className="text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>
+          {t(" وأضف موقع أرضك ليُنبّهك هذا الصندوق إن رُصد جرادٌ قربها.", " and add your land's location, and this box will warn you when locusts are recorded near it.")}
+        </p>
+      )}
+
       <p className="font-medium">{t("ما رصدته الفاو في السودان خلال آخر ١٢ شهراً", "What FAO recorded in Sudan in the last 12 months")}</p>
       <ul className="mt-1 flex flex-col gap-0.5">
         {locust.counts.map((c) => (
