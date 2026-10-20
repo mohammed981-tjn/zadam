@@ -1,0 +1,2239 @@
+{
+ "note": "Trimmed by scripts/wfp-prices-trim.py from WFP's Sudan price database on HDX. Each price is read in the file for the month given; prevMonth and yearAgo are the same item's figures one month and twelve months earlier, left out when the file has none. Prices are Sudanese pounds.",
+ "source": "https://data.humdata.org/dataset/wfp-food-prices-for-sudan",
+ "license": "CC BY-IGO",
+ "fetched": "2026-10-20",
+ "latest": "2026-09",
+ "markets": [
+  {
+   "market": "Al Fashir",
+   "state": "North Darfur",
+   "lat": 13.63,
+   "lng": 25.35,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 6156,
+     "yearAgo": 8750
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 10813,
+     "yearAgo": 12500
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 11875,
+     "yearAgo": 11750
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 25750,
+     "yearAgo": 33750
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2025-10",
+     "price": 370833,
+     "prevMonth": 345000,
+     "yearAgo": 9375
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 3656,
+     "yearAgo": 5675
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 3325,
+     "yearAgo": 6250
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 2500,
+     "yearAgo": 5875
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2025-10",
+     "price": 339583,
+     "prevMonth": 334792,
+     "yearAgo": 6969
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 6034,
+     "yearAgo": 14000
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 6719,
+     "yearAgo": 14250
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 3438,
+     "yearAgo": 6000
+    }
+   ],
+   "latest": "2026-04"
+  },
+  {
+   "market": "Damazin",
+   "state": "Blue Nile",
+   "lat": 11.79,
+   "lng": 34.36,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 14188,
+     "prevMonth": 11750,
+     "yearAgo": 6500
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 39500,
+     "prevMonth": 37250,
+     "yearAgo": 23250
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-08",
+     "price": 51938,
+     "prevMonth": 52000,
+     "yearAgo": 25000
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 58750,
+     "prevMonth": 42625,
+     "yearAgo": 32000
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 16500,
+     "prevMonth": 8715,
+     "yearAgo": 4266
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 31200,
+     "prevMonth": 25381,
+     "yearAgo": 11375
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10500,
+     "prevMonth": 3263,
+     "yearAgo": 6875
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7750,
+     "prevMonth": 9444,
+     "yearAgo": 4875
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10188,
+     "prevMonth": 7068,
+     "yearAgo": 5188
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7594,
+     "prevMonth": 5881,
+     "yearAgo": 3000
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 20563,
+     "prevMonth": 21738,
+     "yearAgo": 12500
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 5500,
+     "prevMonth": 4000,
+     "yearAgo": 2850
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Dongola",
+   "state": "Northern",
+   "lat": 19.17,
+   "lng": 30.47,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 13688,
+     "prevMonth": 12376,
+     "yearAgo": 4725
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 45000,
+     "prevMonth": 39063,
+     "yearAgo": 23750
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 60625,
+     "prevMonth": 48313,
+     "yearAgo": 31001
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 45063,
+     "prevMonth": 31875,
+     "yearAgo": 20375
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 24281,
+     "prevMonth": 11250,
+     "yearAgo": 4547
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 28563,
+     "prevMonth": 17688,
+     "yearAgo": 8725
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 2100,
+     "prevMonth": 1944,
+     "yearAgo": 1300
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 2400,
+     "prevMonth": 1950,
+     "yearAgo": 900
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 12917,
+     "prevMonth": 9656,
+     "yearAgo": 4625
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7575,
+     "prevMonth": 6113,
+     "yearAgo": 3213
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 19375,
+     "prevMonth": 12500,
+     "yearAgo": 9625
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 4463,
+     "prevMonth": 2881,
+     "yearAgo": 1775
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Ed Damer",
+   "state": "Nile",
+   "lat": 17.58,
+   "lng": 33.97,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 8000,
+     "prevMonth": 7875,
+     "yearAgo": 4179
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 26000,
+     "prevMonth": 26000,
+     "yearAgo": 16250
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 40250,
+     "prevMonth": 42500,
+     "yearAgo": 26500
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 24750,
+     "prevMonth": 23625,
+     "yearAgo": 17250
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 8250,
+     "prevMonth": 8000
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 8000,
+     "prevMonth": 8438,
+     "yearAgo": 5750
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 795,
+     "yearAgo": 875
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 2000,
+     "prevMonth": 2000,
+     "yearAgo": 1000
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 4875,
+     "prevMonth": 4000
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 3000,
+     "prevMonth": 3000,
+     "yearAgo": 3350
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2025-12",
+     "price": 7500
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 2250,
+     "prevMonth": 2563,
+     "yearAgo": 2250
+    }
+   ],
+   "latest": "2026-01"
+  },
+  {
+   "market": "Eddein",
+   "state": "Eastern Darfur",
+   "lat": 11.43,
+   "lng": 26.15,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10000,
+     "prevMonth": 10000,
+     "yearAgo": 10000
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 11000,
+     "prevMonth": 10750,
+     "yearAgo": 7563
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 14500,
+     "prevMonth": 14750,
+     "yearAgo": 11125
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 50000,
+     "prevMonth": 50000,
+     "yearAgo": 25000
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 17250,
+     "prevMonth": 11250,
+     "yearAgo": 6000
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 14000,
+     "prevMonth": 13750,
+     "yearAgo": 4575
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 3875,
+     "prevMonth": 3250,
+     "yearAgo": 2375
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 8000,
+     "prevMonth": 9000,
+     "yearAgo": 6875
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 12500,
+     "prevMonth": 8625,
+     "yearAgo": 3750
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7188,
+     "prevMonth": 7063,
+     "yearAgo": 5125
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7000,
+     "prevMonth": 14625,
+     "yearAgo": 6000
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7656,
+     "prevMonth": 8563,
+     "yearAgo": 4281
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "El Fula",
+   "state": "West Kordofan",
+   "lat": 11.73,
+   "lng": 28.36,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 13750,
+     "prevMonth": 12000,
+     "yearAgo": 10500
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 19500,
+     "prevMonth": 18000,
+     "yearAgo": 10700
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 23750,
+     "prevMonth": 20000,
+     "yearAgo": 14500
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 32125,
+     "prevMonth": 29167,
+     "yearAgo": 27375
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 15375,
+     "yearAgo": 5412.67
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 6000,
+     "prevMonth": 6000,
+     "yearAgo": 4250
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 3900,
+     "prevMonth": 4417,
+     "yearAgo": 3550
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2025-12",
+     "price": 3000,
+     "prevMonth": 3500,
+     "yearAgo": 2657
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 11125,
+     "yearAgo": 3075
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 6500,
+     "prevMonth": 6500,
+     "yearAgo": 6800
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 8750,
+     "prevMonth": 7333,
+     "yearAgo": 4500
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 5500,
+     "prevMonth": 6000,
+     "yearAgo": 3000
+    }
+   ],
+   "latest": "2026-07"
+  },
+  {
+   "market": "El Gedarif",
+   "state": "Gedaref",
+   "lat": 14.04,
+   "lng": 35.38,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 8563,
+     "prevMonth": 8563,
+     "yearAgo": 6000
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 38188,
+     "prevMonth": 38188,
+     "yearAgo": 20250
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 47625,
+     "prevMonth": 47625,
+     "yearAgo": 27750
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 32000,
+     "prevMonth": 32000,
+     "yearAgo": 21250
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10000,
+     "yearAgo": 4563
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 12500,
+     "prevMonth": 12500,
+     "yearAgo": 9000
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 2581,
+     "prevMonth": 2581,
+     "yearAgo": 1950
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 1581,
+     "prevMonth": 1581,
+     "yearAgo": 1875
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 8413,
+     "yearAgo": 3375
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 5091
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 15750,
+     "prevMonth": 15750,
+     "yearAgo": 17750
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 4025,
+     "prevMonth": 4025,
+     "yearAgo": 2575
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "El Geneina",
+   "state": "West Darfur",
+   "lat": 13.45,
+   "lng": 22.45,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 9188,
+     "prevMonth": 8125,
+     "yearAgo": 9875
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 22438,
+     "prevMonth": 25250,
+     "yearAgo": 10000
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 26750,
+     "prevMonth": 30313,
+     "yearAgo": 12000
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 28313,
+     "prevMonth": 29125,
+     "yearAgo": 18000
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 14000,
+     "prevMonth": 8400,
+     "yearAgo": 4200
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 16000,
+     "prevMonth": 12000,
+     "yearAgo": 6938
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 4700,
+     "prevMonth": 3125,
+     "yearAgo": 2813
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 15063,
+     "prevMonth": 12063,
+     "yearAgo": 5438
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10334,
+     "prevMonth": 6667,
+     "yearAgo": 3333
+    },
+    {
+     "commodity": "Sorghum (food aid)",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10334,
+     "prevMonth": 6000
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 6000,
+     "prevMonth": 6000
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 8125,
+     "prevMonth": 15000,
+     "yearAgo": 5500
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 6563,
+     "prevMonth": 6000,
+     "yearAgo": 4000
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "El Obeid",
+   "state": "North Kordofan",
+   "lat": 13.19,
+   "lng": 30.22,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-08",
+     "price": 13250,
+     "prevMonth": 12938,
+     "yearAgo": 7688
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 39250,
+     "prevMonth": 35875,
+     "yearAgo": 19500
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 53750,
+     "prevMonth": 47188,
+     "yearAgo": 24438
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 40000,
+     "prevMonth": 40000,
+     "yearAgo": 26688
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 17375,
+     "prevMonth": 12813,
+     "yearAgo": 5375
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 24375,
+     "prevMonth": 23750,
+     "yearAgo": 8625
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 2749,
+     "prevMonth": 2042,
+     "yearAgo": 1989
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 3938,
+     "prevMonth": 5000,
+     "yearAgo": 2481
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 11063,
+     "prevMonth": 7781,
+     "yearAgo": 4188
+    },
+    {
+     "commodity": "Sorghum (food aid)",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7563,
+     "prevMonth": 5188
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 8000,
+     "prevMonth": 5594,
+     "yearAgo": 3588
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 19781,
+     "prevMonth": 17729,
+     "yearAgo": 8079
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 5531,
+     "prevMonth": 4406,
+     "yearAgo": 2419
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Kadugli",
+   "state": "South Kordofan",
+   "lat": 11.02,
+   "lng": 29.72,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 20500,
+     "prevMonth": 20000,
+     "yearAgo": 28500
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 43167,
+     "prevMonth": 40000,
+     "yearAgo": 21333
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 66667,
+     "prevMonth": 70000,
+     "yearAgo": 40000
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-01",
+     "price": 30000,
+     "prevMonth": 44500,
+     "yearAgo": 35000
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 13913,
+     "prevMonth": 15000
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 30667,
+     "prevMonth": 24417,
+     "yearAgo": 33167
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 11875,
+     "prevMonth": 5333
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 5708,
+     "prevMonth": 5150,
+     "yearAgo": 43333
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 12125,
+     "prevMonth": 8983,
+     "yearAgo": 27375
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 9125,
+     "prevMonth": 7000,
+     "yearAgo": 24083
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 24000,
+     "prevMonth": 28458,
+     "yearAgo": 15000
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 5017,
+     "yearAgo": 23333
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Kassala",
+   "state": "Kassala",
+   "lat": 15.46,
+   "lng": 36.4,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 11688,
+     "prevMonth": 11625,
+     "yearAgo": 5000
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 47250,
+     "prevMonth": 41250,
+     "yearAgo": 24000
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 63063,
+     "prevMonth": 60500,
+     "yearAgo": 32000
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 57500,
+     "prevMonth": 38875,
+     "yearAgo": 30000
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 15000,
+     "prevMonth": 12167,
+     "yearAgo": 7313
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 16094,
+     "prevMonth": 22000,
+     "yearAgo": 10000
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 2625,
+     "prevMonth": 2750,
+     "yearAgo": 2000
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 1650,
+     "prevMonth": 2188,
+     "yearAgo": 1000
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10000,
+     "prevMonth": 8875,
+     "yearAgo": 3500
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 8031,
+     "prevMonth": 5000,
+     "yearAgo": 3500
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 13000,
+     "prevMonth": 13625,
+     "yearAgo": 5000
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 4644,
+     "prevMonth": 3688,
+     "yearAgo": 2000
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Khartoum",
+   "state": "Khartoum",
+   "lat": 15.51,
+   "lng": 32.54,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 6719,
+     "prevMonth": 5875,
+     "yearAgo": 2375
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 42125,
+     "prevMonth": 40875,
+     "yearAgo": 22000
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 53750,
+     "prevMonth": 53000,
+     "yearAgo": 26500
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 50938,
+     "prevMonth": 35000,
+     "yearAgo": 14750
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 11250,
+     "prevMonth": 10000,
+     "yearAgo": 6571
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 23219,
+     "prevMonth": 17125,
+     "yearAgo": 10313
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 1719,
+     "prevMonth": 1000,
+     "yearAgo": 1056
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 1313,
+     "prevMonth": 1000,
+     "yearAgo": 806
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7625,
+     "prevMonth": 6750,
+     "yearAgo": 6571
+    },
+    {
+     "commodity": "Sorghum (food aid)",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-03",
+     "price": 1183
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7375,
+     "prevMonth": 5100,
+     "yearAgo": 3050
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 24125,
+     "prevMonth": 19125,
+     "yearAgo": 11000
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 4469,
+     "prevMonth": 3156,
+     "yearAgo": 2300
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Kosti",
+   "state": "White Nile",
+   "lat": 13.17,
+   "lng": 32.67,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 12875,
+     "prevMonth": 10625,
+     "yearAgo": 5750
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 38563,
+     "prevMonth": 34750,
+     "yearAgo": 20000
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 55938,
+     "prevMonth": 47125,
+     "yearAgo": 28500
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 56875,
+     "prevMonth": 37500,
+     "yearAgo": 30250
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 17000,
+     "prevMonth": 11625,
+     "yearAgo": 6156
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 23125,
+     "prevMonth": 19000,
+     "yearAgo": 7700
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 8625,
+     "prevMonth": 2079,
+     "yearAgo": 1375
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 1406,
+     "prevMonth": 1750,
+     "yearAgo": 1650
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10938,
+     "prevMonth": 7625,
+     "yearAgo": 3344
+    },
+    {
+     "commodity": "Sorghum (food aid)",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-03",
+     "price": 2229
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 8125,
+     "prevMonth": 5313,
+     "yearAgo": 3500
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 20375,
+     "prevMonth": 26000,
+     "yearAgo": 13500
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 5375,
+     "prevMonth": 3700,
+     "yearAgo": 2450
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Nyala El Kabeer",
+   "state": "South Darfur",
+   "lat": 12.05,
+   "lng": 24.88,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 9094,
+     "prevMonth": 8250,
+     "yearAgo": 7200
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 11969,
+     "prevMonth": 11967,
+     "yearAgo": 7925
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 17281,
+     "prevMonth": 18017,
+     "yearAgo": 10050
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 24250,
+     "prevMonth": 24367,
+     "yearAgo": 24563
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 5375,
+     "prevMonth": 2600,
+     "yearAgo": 4856.25
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-04",
+     "price": 5575,
+     "yearAgo": 4650
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 1544,
+     "prevMonth": 1317,
+     "yearAgo": 1738
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 4431,
+     "prevMonth": 4500,
+     "yearAgo": 1913
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 2900,
+     "prevMonth": 2619,
+     "yearAgo": 2700
+    },
+    {
+     "commodity": "Sorghum (food aid)",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 2919,
+     "prevMonth": 2644
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 5681,
+     "prevMonth": 5125,
+     "yearAgo": 3788
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 9863,
+     "prevMonth": 9750,
+     "yearAgo": 8613
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-05",
+     "price": 6175,
+     "prevMonth": 5550,
+     "yearAgo": 3925
+    }
+   ],
+   "latest": "2026-05"
+  },
+  {
+   "market": "Port Sudan",
+   "state": "Red Sea",
+   "lat": 19.62,
+   "lng": 37.22,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 13625,
+     "prevMonth": 13375,
+     "yearAgo": 6000
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-08",
+     "price": 37083
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 62813,
+     "prevMonth": 52917,
+     "yearAgo": 33500
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 35688
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 19250,
+     "prevMonth": 11650,
+     "yearAgo": 6469
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 28750,
+     "prevMonth": 18083,
+     "yearAgo": 11500
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 3625,
+     "prevMonth": 2750,
+     "yearAgo": 3000
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 2875,
+     "prevMonth": 2000,
+     "yearAgo": 1000
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 13606,
+     "prevMonth": 7350,
+     "yearAgo": 3544
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7250,
+     "prevMonth": 4750,
+     "yearAgo": 3500
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 23250,
+     "prevMonth": 19050,
+     "yearAgo": 9625
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 5750,
+     "prevMonth": 3500,
+     "yearAgo": 2350
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Singa",
+   "state": "Sennar",
+   "lat": 13.14,
+   "lng": 33.93,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 11500,
+     "prevMonth": 10438,
+     "yearAgo": 6500
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 40313,
+     "prevMonth": 43125,
+     "yearAgo": 20000
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 68875,
+     "prevMonth": 63375,
+     "yearAgo": 30000
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 28333,
+     "prevMonth": 33125,
+     "yearAgo": 11250
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 21988,
+     "prevMonth": 15000,
+     "yearAgo": 7000
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 18375,
+     "prevMonth": 14250,
+     "yearAgo": 9500
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 3875,
+     "prevMonth": 3000,
+     "yearAgo": 3250
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 1625,
+     "prevMonth": 1500,
+     "yearAgo": 1000
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 8950,
+     "prevMonth": 6000,
+     "yearAgo": 3750
+    },
+    {
+     "commodity": "Sorghum (food aid)",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-03",
+     "price": 2388
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7506,
+     "prevMonth": 5938,
+     "yearAgo": 4025
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 12500,
+     "prevMonth": 11000,
+     "yearAgo": 6000
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 4875,
+     "prevMonth": 3250,
+     "yearAgo": 2500
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Tawila",
+   "state": "North Darfur",
+   "lat": 13.52,
+   "lng": 24.86,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 6313,
+     "prevMonth": 6438
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 10125,
+     "prevMonth": 8750
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 11125,
+     "prevMonth": 10000
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 19875,
+     "prevMonth": 18750
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2025-11",
+     "price": 3894
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 3288,
+     "prevMonth": 3438
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 8063,
+     "prevMonth": 3844
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 2500,
+     "prevMonth": 2500
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2025-11",
+     "price": 2744
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 5022,
+     "prevMonth": 4156
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 6338,
+     "prevMonth": 7575
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-02",
+     "price": 3525,
+     "prevMonth": 3438
+    }
+   ],
+   "latest": "2026-02"
+  },
+  {
+   "market": "Wad Medani",
+   "state": "Al Gezira",
+   "lat": 14.4,
+   "lng": 33.52,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 11991,
+     "prevMonth": 9500,
+     "yearAgo": 5750
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 48063,
+     "prevMonth": 46750,
+     "yearAgo": 23000
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 59750,
+     "prevMonth": 61250,
+     "yearAgo": 28000
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 49125,
+     "prevMonth": 39625,
+     "yearAgo": 24500
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 19375,
+     "prevMonth": 15125,
+     "yearAgo": 4641
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 27375,
+     "prevMonth": 20375,
+     "yearAgo": 6250
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 2384,
+     "prevMonth": 2000,
+     "yearAgo": 1600
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 1625,
+     "prevMonth": 1500,
+     "yearAgo": 1000
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 12719,
+     "prevMonth": 8000,
+     "yearAgo": 6438
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7094,
+     "prevMonth": 5375,
+     "yearAgo": 3650
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-07",
+     "price": 24500,
+     "prevMonth": 18875,
+     "yearAgo": 13600
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 5000,
+     "prevMonth": 3813,
+     "yearAgo": 2425
+    }
+   ],
+   "latest": "2026-09"
+  },
+  {
+   "market": "Zalingi",
+   "state": "Central Darfur",
+   "lat": 12.9,
+   "lng": 23.48,
+   "items": [
+    {
+     "commodity": "Beans (fava, egyptian)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 8675,
+     "prevMonth": 8725,
+     "yearAgo": 7975
+    },
+    {
+     "commodity": "Meat (beef)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 19938,
+     "prevMonth": 24000,
+     "yearAgo": 9000
+    },
+    {
+     "commodity": "Meat (goat)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 24938,
+     "prevMonth": 28000,
+     "yearAgo": 13000
+    },
+    {
+     "commodity": "Milk (powder)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 30375,
+     "prevMonth": 28375,
+     "yearAgo": 19375
+    },
+    {
+     "commodity": "Millet",
+     "unit": "3.5 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10756,
+     "prevMonth": 7169,
+     "yearAgo": 5638
+    },
+    {
+     "commodity": "Oil (vegetable)",
+     "unit": "L",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 10675,
+     "prevMonth": 11344,
+     "yearAgo": 5263
+    },
+    {
+     "commodity": "Onions",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 1331,
+     "prevMonth": 2225,
+     "yearAgo": 3075
+    },
+    {
+     "commodity": "Salt (iodised)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 6163,
+     "prevMonth": 6069,
+     "yearAgo": 3763
+    },
+    {
+     "commodity": "Sorghum",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 6931,
+     "prevMonth": 4438,
+     "yearAgo": 3288
+    },
+    {
+     "commodity": "Sorghum (food aid)",
+     "unit": "3 KG",
+     "type": "retail",
+     "month": "2025-11",
+     "price": 900
+    },
+    {
+     "commodity": "Sugar",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 7188,
+     "prevMonth": 7775,
+     "yearAgo": 3775
+    },
+    {
+     "commodity": "Tomatoes (dried)",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-09",
+     "price": 12206,
+     "prevMonth": 11969,
+     "yearAgo": 6000
+    },
+    {
+     "commodity": "Wheat flour",
+     "unit": "KG",
+     "type": "retail",
+     "month": "2026-06",
+     "price": 4481,
+     "yearAgo": 3625
+    }
+   ],
+   "latest": "2026-09"
+  }
+ ]
+}
