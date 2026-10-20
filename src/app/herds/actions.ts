@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { planHerd, apportionBudget } from "@/lib/livestock";
+import { parseHealthChoice } from "@/lib/herdHealth";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -260,16 +261,21 @@ export async function setHerdBudget(formData: FormData) {
  * what changed.
  */
 const READY = (herdId: string, error?: string) =>
-  `/herds/${herdId}${error ? `?error=${encodeURIComponent(error)}` : ""}#readiness`;
+  `/herds/${herdId}${error ? `?rerror=${encodeURIComponent(error)}` : ""}#readiness`;
 
 export async function addHealthRecord(formData: FormData) {
   const supabase = await createClient();
   const herdId = str(formData, "herd_id");
-  const kind = str(formData, "kind");
+  const choice = parseHealthChoice(str(formData, "choice"));
+  if (!choice) {
+    const t = await translator();
+    redirect(READY(herdId, t("اختر التطعيم أو الفحص أو العلاج من القائمة.", "Choose the vaccination, test or treatment from the list.")));
+  }
+  const { kind, key } = choice;
   const { error } = await supabase.rpc("herd_health_add", {
     p_herd: herdId,
     p_kind: kind,
-    p_item: str(formData, "item_key"),
+    p_item: key,
     p_done_on: str(formData, "done_on") || null,
     p_heads: Math.round(num(formData, "heads")),
     p_result: kind === "test" ? str(formData, "result") || null : null,

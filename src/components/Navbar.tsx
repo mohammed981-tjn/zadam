@@ -216,7 +216,7 @@ export default async function Navbar() {
   }
 
   return (
-    <header className="border-b border-border">
+    <header className="border-b border-border print:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
         <Link
           href="/"
