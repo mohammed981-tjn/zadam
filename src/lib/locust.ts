@@ -178,9 +178,11 @@ export function parseLocustPlaces(text: string): LocustPlace[] {
     .map((r) => ({ place: r.location_name, category: r.category, count: Number(r.n), lastDate: r.last_date }));
 }
 
-async function query(sql: string): Promise<string | null> {
+/** `fresh` skips the day's cache — for the daily alert job, which must not read yesterday's answer. */
+async function query(sql: string, fresh = false): Promise<string | null> {
   try {
-    const res = await fetch(ENDPOINT + encodeURIComponent(sql), { next: { revalidate: 86_400 }, signal: AbortSignal.timeout(15_000) });
+    const cache: RequestInit = fresh ? { cache: "no-store" } : { next: { revalidate: 86_400 } };
+    const res = await fetch(ENDPOINT + encodeURIComponent(sql), { ...cache, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) {
       console.error("locust: FAO answered", res.status);
       return null;
@@ -192,6 +194,12 @@ async function query(sql: string): Promise<string | null> {
   }
 }
 
+/** Sightings with locusts in the last LOCUST_ALERT_DAYS around Sudan; null when FAO cannot be read. */
+export async function fetchLocustSightings(fresh = false): Promise<LocustSighting[] | null> {
+  const text = await query(NEARBY_SQL, fresh);
+  return text === null ? null : parseLocustSightings(text);
+}
+
 /**
  * Cached for a day: survey teams report daily, the risk does not move by the
  * hour. Null when FAO cannot be reached or answers with nothing readable — the
@@ -201,15 +209,14 @@ export async function fetchSudanLocust(
   myLands: { name: string; latitude: number | null; longitude: number | null }[] | null = null,
 ): Promise<LocustSummary | null> {
   const located = (myLands ?? []).filter((l) => l.latitude !== null && l.longitude !== null);
-  const [counts, places, nearby] = await Promise.all([
+  const [counts, places, sightings] = await Promise.all([
     query(COUNTS_SQL),
     query(PLACES_SQL),
-    located.length ? query(NEARBY_SQL) : Promise.resolve(null),
+    located.length ? fetchLocustSightings() : Promise.resolve(null),
   ]);
   if (counts === null) return null;
   const parsed = parseLocustCounts(counts);
   if (!parsed.length) return null;
-  const sightings = nearby === null ? null : parseLocustSightings(nearby);
   return {
     counts: parsed,
     places: places === null ? [] : parseLocustPlaces(places),

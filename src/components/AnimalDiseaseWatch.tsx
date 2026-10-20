@@ -96,7 +96,7 @@ export default function AnimalDiseaseWatch({
         <p className="mt-3 text-xs">
           {t("أضف أرضك بولايتها وموقعها في ", "Add your land with its state and location in ")}
           <Link href="/lands" className="text-primary underline">{t("أراضيّ", "My lands")}</Link>
-          {t(" ليُنبّهك هذا الصندوق إن أُبلغ عن مرضٍ في ولايتك.", " and this box will warn you when a disease is reported in your state.")}
+          {t(" ليصلك إشعارٌ إن أُبلغ عن مرضٍ في ولايتك، ولو لم تفتح هذه الصفحة.", " and you will be notified when a disease is reported in your state, even without opening this page.")}
         </p>
       )}
 

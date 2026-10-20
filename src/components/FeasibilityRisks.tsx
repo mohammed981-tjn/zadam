@@ -338,13 +338,13 @@ function LocustWatch({ locust, locale }: { locust: LocustSummary; locale: Locale
         <p className="mb-2">
           {t("أضف موقع أرضك (خطّ العرض والطول) في ", "Add your land's location (latitude and longitude) in ")}
           <Link href="/lands" className="text-primary underline">{t("أراضيّ", "My lands")}</Link>
-          {t(" ليُنبّهك هذا الصندوق إن رُصد جرادٌ قربها.", " and this box will warn you when locusts are recorded near it.")}
+          {t(" ليصلك إشعارٌ إن رُصد جرادٌ قربها، ولو لم تفتح هذه الصفحة.", " and you will be notified when locusts are recorded near it, even without opening this page.")}
         </p>
       )}
       {!locust.signedIn && (
         <p className="mb-2">
           <Link href="/login" className="text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>
-          {t(" وأضف موقع أرضك ليُنبّهك هذا الصندوق إن رُصد جرادٌ قربها.", " and add your land's location, and this box will warn you when locusts are recorded near it.")}
+          {t(" وأضف موقع أرضك ليصلك إشعارٌ إن رُصد جرادٌ قربها.", " and add your land's location, and you will be notified when locusts are recorded near it.")}
         </p>
       )}
 
