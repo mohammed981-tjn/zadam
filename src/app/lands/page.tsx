@@ -8,6 +8,8 @@ import type { Land } from "@/types/database";
 import LandDocuments from "@/components/LandDocuments";
 import FilmPlayer from "@/components/FilmPlayer";
 import LandPartnerConsent from "@/components/partners/LandPartnerConsent";
+import LandWater from "@/components/LandWater";
+import { Suspense } from "react";
 import type { PartnerCompany, PartnerInterest } from "@/lib/partners";
 
 export async function generateMetadata() {
@@ -193,6 +195,25 @@ export default async function LandsPage({
                     </div>
                   ))}
                 </dl>
+
+                {l.latitude !== null && l.longitude !== null ? (
+                  <Suspense
+                    fallback={
+                      <p className="mt-4 rounded-xl bg-background p-3 text-xs text-muted">
+                        {t("يُقرأ ماء أرضك من أقمار الفاو…", "Reading your land's water from FAO's satellites…")}
+                      </p>
+                    }
+                  >
+                    <LandWater lat={Number(l.latitude)} lng={Number(l.longitude)} feddans={Number(l.feddans)} locale={locale} />
+                  </Suspense>
+                ) : (
+                  <p className="mt-4 rounded-xl bg-background p-3 text-xs text-muted">
+                    {t(
+                      "أضف خطّ العرض والطول لهذه الأرض (عدّل الأرض) لترى ماءها من أقمار الفاو كلّ عشرة أيّام.",
+                      "Add this land's latitude and longitude (edit the land) to see its water from FAO's satellites every ten days.",
+                    )}
+                  </p>
+                )}
 
                 <LandDocuments
                   landId={l.id}
