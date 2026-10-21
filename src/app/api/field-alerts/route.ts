@@ -13,6 +13,7 @@ import {
   type AlertLand,
 } from "@/lib/fieldAlerts";
 import { stageReminders, type PlannedCycle } from "@/lib/stageReminders";
+import { pushToUser } from "@/lib/push";
 
 /**
  * التنبيهاتُ الحقليّة اليوميّة (البند ١١٥): جرادٌ قرب الأرض، ومرضُ ماشيةٍ في الولاية؛
@@ -123,6 +124,7 @@ export async function GET(req: NextRequest) {
   ];
 
   const written = { locust_near: 0, animal_disease: 0, stage_due: 0 };
+  const pushed = { sent: 0, failed: 0 };
   let failed = 0;
   for (const a of alerts.slice(0, MAX_ALERTS_PER_RUN)) {
     const { data, error } = await supabase.rpc("field_alert_send", {
@@ -138,6 +140,11 @@ export async function GET(req: NextRequest) {
       console.error("field-alerts: send", a.kind, error);
     } else if (data === true) {
       written[a.kind]++;
+      // To the phone's screen too, for whoever turned that on. A push that
+      // fails changes nothing: the notification is already in their inbox.
+      const p = await pushToUser(supabase, a.recipient, { title: a.title, body: a.body, url: a.link });
+      pushed.sent += p.sent;
+      pushed.failed += p.failed;
     }
   }
 
@@ -152,6 +159,7 @@ export async function GET(req: NextRequest) {
     due: alerts.length,
     capped: alerts.length > MAX_ALERTS_PER_RUN,
     written,
+    pushed,
     failed,
   });
 }

@@ -21,7 +21,7 @@
  *
  * Bumping VERSION drops every old cache on the next activation.
  */
-const VERSION = "sudagri-v1";
+const VERSION = "sudagri-v2";
 const PAGES = `${VERSION}-pages`;
 const ASSETS = `${VERSION}-assets`;
 const OFFLINE_URL = "/offline.html";
@@ -103,5 +103,46 @@ self.addEventListener("fetch", (event) => {
         return (await caches.match(OFFLINE_URL)) ?? Response.error();
       }
     })(),
+  );
+});
+
+/*
+ * تنبيهات الهاتف (البند ١١٩). The daily job pushes a small JSON payload —
+ * title, body, url — and the browser shows it even with the site closed. A
+ * tap opens the page it names, in the tab that is already open when one is.
+ */
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  const title = data.title || "سوداقري";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      dir: "rtl",
+      lang: "ar",
+      data: { url: data.url || "/notifications" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/notifications";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ("navigate" in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    }),
   );
 });

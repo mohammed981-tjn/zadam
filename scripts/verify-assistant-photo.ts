@@ -13,7 +13,8 @@ const ok = (c: boolean, m: string) => {
 
 const b64 = "/9j/4AAQSkZJRgABAQ==";
 ok(readImage(undefined) === null && readImage(null) === null, "no photo: null, and the text path runs");
-ok(readImage({ mime: "image/jpeg", data: b64 })?.mime === "image/jpeg", "a JPEG is read");
+const jpeg = readImage({ mime: "image/jpeg", data: b64 });
+ok(jpeg !== null && jpeg !== "bad" && jpeg.mime === "image/jpeg", "a JPEG is read");
 ok(readImage({ mime: "image/webp", data: b64 }) !== "bad" && readImage({ mime: "image/png", data: b64 }) !== "bad", "PNG and WebP too");
 ok(readImage({ mime: "image/gif", data: b64 }) === "bad", "a GIF is refused");
 ok(readImage({ mime: "text/html", data: b64 }) === "bad", "a non-image type is refused");
