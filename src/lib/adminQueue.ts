@@ -101,7 +101,7 @@ const SPECS: Spec[] = [
     row: (r) => ({ id: r.id, title: r.name, meta: (r.states ?? []).join(" · "), at: r.updated_at }),
   },
   {
-    key: "agreements",
+    key: "partner_agreements",
     title: { ar: "اتّفاقات شركاء مسوّدة", en: "Draft partner agreements" },
     what: { ar: "فعّلها حتى تُعرض عليها الأراضي المطابقة.", en: "Activate so matching land is shown to the company." },
     href: "/admin/partners",
