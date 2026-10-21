@@ -240,9 +240,11 @@ export default async function Navbar() {
 
   return (
     // The header stays on screen (backlog 121): the menu is the way around the
-    // site, and on a long page it was a scroll back to the top away. Frosted
-    // rather than solid so the page still reads as one surface beneath it.
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md print:hidden">
+    // site, and on a long page it was a scroll back to the top away. Opaque,
+    // not frosted: a backdrop filter would make the header the frame the
+    // menu's fixed sheet is placed in, and the sheet has to cover the screen;
+    // and even 95% let the headings scrolling under it show through.
+    <header className="sticky top-0 z-40 border-b border-border bg-background print:hidden">
       <div className="brand-edge" aria-hidden />
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <Link

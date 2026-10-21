@@ -24,11 +24,18 @@
   --foreground: #1c2b1e;
   --card: #ffffff;
   --border: #e2ded0;
-  --primary: #1f7a3d;
+  /* A shade lighter and fresher than the #1f7a3d it replaces (backlog 121:
+     «اللون الأخضر الشامل جميل لكن اجعله أفتح مع الوردي»), and still 5:1 under
+     white text and 4.5:1 as text on the beige, the blush and the mint grounds. */
+  --primary: #1b8043;
   --primary-foreground: #ffffff;
   --muted: #6b6558;
   --accent: #b8860b;
-  --danger: #b3261e;
+  /* No red on the site, and no orange (the owner, 21 October: «لا تستعمل
+     الأحمر», then «ابعد البرتقالي لا أريده»). What was red — an error, a figure
+     past its date — is a dark gold: gold is already the site's colour of
+     caution, and this shade holds 4.8:1 as text on every ground. */
+  --danger: #8a6508;
 
   /*
    * Hibiscus — the owner's pink, as a touch and never as a ground (backlog 98:
@@ -36,9 +43,16 @@
    * pink there is, and it marks small things only: the line above the headline,
    * the quick-link icons, a bar under a section title, a hover. Green stays the
    * colour of action and gold the colour of caution; pink never carries a number
-   * or a button, so it cannot be mistaken for either. #be185d holds 6:1 on white.
+   * or a button, so it cannot be mistaken for either.
+   *
+   * Then, 21 October (backlog 121), the pink leads («اجعل الوردي طاغياً»), and
+   * with no orange beside it («ابعد البرتقالي لا أريده»). It is the colour of
+   * where you are — the tab you are on, the
+   * menu section you are in, a section's mark — and it moved from #be185d,
+   * which reads as crimson on a phone, to a true pink. #ca2c72 holds 4.6:1 as
+   * text on every ground the site uses and 5:1 under white.
    */
-  --rose: #be185d;
+  --rose: #ca2c72;
 
   /*
    * Elevation, as light rather than as outline.
@@ -53,9 +67,9 @@
   --shadow-lg: 0 4px 8px rgb(28 43 30 / 0.05), 0 16px 40px rgb(28 43 30 / 0.1);
 
   /* The hero's ground: two wide, low-saturation pools, not a banner image. */
-  --mesh-1: color-mix(in oklab, var(--primary) 14%, transparent);
-  --mesh-2: color-mix(in oklab, var(--accent) 12%, transparent);
-  --mesh-3: color-mix(in oklab, var(--rose) 7%, transparent);
+  --mesh-1: color-mix(in oklab, var(--primary) 12%, transparent);
+  --mesh-2: color-mix(in oklab, var(--accent) 10%, transparent);
+  --mesh-3: color-mix(in oklab, var(--rose) 11%, transparent);
 
   --ring: color-mix(in oklab, var(--primary) 55%, transparent);
 
@@ -82,6 +96,7 @@
     --muted: #a3a698;
     --accent: #d4a72c;
     --rose: #f472b6;
+    --danger: #e0b440;
 
     /* Shadow alone cannot lift a surface on a dark ground — the card is also
        lighter than the page, and the shadow deepens that separation. */
@@ -91,7 +106,7 @@
 
     --mesh-1: color-mix(in oklab, var(--primary) 18%, transparent);
     --mesh-2: color-mix(in oklab, var(--accent) 14%, transparent);
-    --mesh-3: color-mix(in oklab, var(--rose) 9%, transparent);
+    --mesh-3: color-mix(in oklab, var(--rose) 12%, transparent);
 
     --map-sea: #142a36;
     --map-land: #20281f;
@@ -285,7 +300,9 @@ html {
 }
 
 /* The short bar under a section title: a touch that says «a new section starts».
-   Hibiscus (backlog 98) running into field green (backlog 121: «الأخضر والوردي الطاغي»). */
+   Pink for most of it from the reading start — the right, in Arabic — and a
+   green tip (backlog 121: the pink leads, the green beside it). Two blocks,
+   not a blend: green mixed into pink passes through brown. */
 .title-bar::after {
   content: "";
   display: block;
@@ -293,51 +310,44 @@ html {
   block-size: 0.25rem;
   margin-block-start: 0.5rem;
   border-radius: 999px;
-  /* Two clean blocks, not a blend: green mixed into pink passes through brown. */
-  background: linear-gradient(90deg, var(--primary) 55%, var(--rose) 55%);
+  background: linear-gradient(to left, var(--rose) 0 70%, var(--primary) 70%);
+}
+[dir="ltr"] .title-bar::after {
+  background: linear-gradient(to right, var(--rose) 0 70%, var(--primary) 70%);
 }
 
 /*
- * The brand edge (backlog 121): a 3px band across the top of the header, field
- * green into hibiscus — the two colours the owner chose to lead («الأخضر
- * والوردي الطاغي», after an orange draft was turned down), so every page opens
- * with them without either shouting.
+ * The brand edge (backlog 121): a 3px band across the top of the header. The
+ * green of the site at the reading start, then the pink that leads across the
+ * rest — side by side as blocks, because green blended into pink passes
+ * through brown.
  */
 .brand-edge {
   block-size: 3px;
-  background: linear-gradient(90deg, var(--primary) 50%, var(--rose) 50%);
+  background: linear-gradient(to left, var(--primary) 0 30%, var(--rose) 30%);
 }
 
 /*
- * The selected tab, and the menu section you are in: solid green, the one
- * filled tab on a screen. Fixed stops rather than the theme token, because
- * white text has to hold on it in dark mode too — #1f7a3d is 5.3:1 and
- * #155d2e 7.6:1 against white, where the dark theme's lighter green is not.
+ * The selected tab, and the menu section you are in: solid pink, the one
+ * filled tab on a screen, with a soft pink glow under it. Fixed stops rather
+ * than the theme token, because white text has to hold on it in dark mode
+ * too — #b8285f is 6:1 and #ca2c72 5.1:1 against white.
  */
 .tab-on {
-  background: linear-gradient(135deg, #1f7a3d, #155d2e);
+  background: linear-gradient(135deg, #ca2c72, #b8285f);
   color: #fff;
-  box-shadow: 0 2px 8px rgb(31 122 61 / 0.3);
+  box-shadow: 0 3px 10px rgb(202 44 114 / 0.3);
 }
 
-/*
- * A row of tabs that scrolls sideways on a phone instead of wrapping into
- * three ragged lines. The edges fade so a tab cut off at the end reads as
- * «there is more this way» rather than as a layout fault; the scrollbar is
- * hidden because the fade already says it.
- */
-.tab-strip {
-  scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 0.75rem, #000 calc(100% - 0.75rem), transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 0.75rem, #000 calc(100% - 0.75rem), transparent);
-}
-.tab-strip::-webkit-scrollbar {
-  display: none;
-}
-
-/* A word in a headline set in hibiscus, for the one phrase that carries it. */
+/* A word in a headline in hibiscus, for the one phrase that carries it. */
 .text-hibiscus {
   color: var(--rose);
+}
+
+/* The chip behind a quick link's icon: a light pink deepening to hibiscus. */
+.chip-hibiscus {
+  background: linear-gradient(135deg, #e0559a, #b8285f);
+  color: #fff;
 }
 
 /* A border tinted towards the brand, for the one card on a screen that leads. */

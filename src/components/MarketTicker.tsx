@@ -9,7 +9,8 @@ import { MARKET_STALE_DAYS, UNIT_NAME, cropName, latest, money, readMarketPrices
  * A server component (it reads the data file), small enough to sit in a row
  * of the home page. It shows two figures because those two decide a Gedaref
  * farmer's season — the cash crop and the staple — and links to /market for
- * the rest. The date is always shown, and goes red past three days, because a
+ * the rest. The date is always shown, and turns dark gold (the site has no
+ * red since backlog 121) past three days, because a
  * price on a home page without its date reads as today's.
  */
 export default function MarketTicker({ locale = "ar" }: { locale?: Locale }) {
@@ -23,7 +24,7 @@ export default function MarketTicker({ locale = "ar" }: { locale?: Locale }) {
   return (
     <Link
       href="/market"
-      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm transition hover:border-primary"
+      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm transition hover:border-rose"
     >
       <span className="font-bold">{en ? "Gedaref market" : "سوق القضارف"}</span>
       {picks.map((s) => {

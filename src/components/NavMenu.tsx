@@ -112,11 +112,20 @@ export default function NavMenu({
         {tr(locale, "القائمة", "Menu")}
       </button>
 
+      {/* On a phone the menu is a sheet across the screen under the header,
+          with the page dimmed behind it: a 21rem dropdown hung off the
+          button's edge left a strip of page showing beside it and wrapped
+          every section's hint onto a second line («لا يُعرض جيداً»). From
+          `sm` up it is the dropdown again. A tap on the dimmed page closes
+          it, through the outside-tap listener above. */}
+      {open && (
+        <div aria-hidden className="fixed inset-x-0 bottom-0 top-[4.4rem] z-40 bg-foreground/30 sm:hidden" />
+      )}
       {open && (
         <div
           ref={panelRef}
           role="menu"
-          className="absolute end-0 top-full z-50 mt-2 max-h-[80vh] w-[min(21rem,calc(100vw-2rem))] overflow-y-auto rounded-3xl border border-border bg-card shadow-float"
+          className="fixed inset-x-3 top-[4.9rem] z-50 max-h-[calc(100dvh-5.9rem)] overflow-y-auto rounded-3xl border border-border bg-card shadow-float sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-[22rem]"
         >
           <button
             role="menuitem"
@@ -154,7 +163,7 @@ export default function NavMenu({
                   }`}
                 >
                   <span className="flex items-center gap-3">
-                    {/* The section's mark. Solid green when the page you are
+                    {/* The section's mark. Solid pink when the page you are
                         on is inside it, so the closed menu still says where
                         you are. */}
                     {group.icon && (
@@ -170,7 +179,7 @@ export default function NavMenu({
                     <span className="flex flex-col gap-0.5">
                       <span
                         className={`text-sm font-bold ${
-                          holdsCurrentPage ? "text-primary" : ""
+                          holdsCurrentPage ? "text-rose" : ""
                         }`}
                       >
                         {group.title}
@@ -227,7 +236,7 @@ export default function NavMenu({
                           // the entries read as inside their section.
                           className={`mx-2 block rounded-xl py-2.5 pe-3 ps-14 text-sm transition ${
                             active
-                              ? "bg-primary/10 font-bold text-primary"
+                              ? "bg-rose/10 font-bold text-rose"
                               : "hover:bg-card"
                           }`}
                         >

@@ -298,8 +298,8 @@ export default async function MarketPage() {
 
       <div className="mb-6 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-sm leading-relaxed">
         {t(
-          "البورصتان لا تنشران نشرةً على الإنترنت؛ تصل أرقامهما في أخبار وكالة السودان للأنباء (سونا) والصحف، وأحياناً تغيب أسابيع. لذلك نكتب تاريخ كلّ رقم، ونعلّمه بالأحمر إذا مضى عليه أكثر من ثلاثة أيام. لا نقدّر رقماً لم نجده.",
-          "Neither bourse publishes a bulletin online; their figures reach the public in SUNA wire stories and newspapers, and sometimes not for weeks. So every figure carries its date, and turns red when it is more than three days old. We never estimate a figure we did not find.",
+          "البورصتان لا تنشران نشرةً على الإنترنت؛ تصل أرقامهما في أخبار وكالة السودان للأنباء (سونا) والصحف، وأحياناً تغيب أسابيع. لذلك نكتب تاريخ كلّ رقم، ونعلّمه بالذهبيّ الداكن إذا مضى عليه أكثر من ثلاثة أيام. لا نقدّر رقماً لم نجده.",
+          "Neither bourse publishes a bulletin online; their figures reach the public in SUNA wire stories and newspapers, and sometimes not for weeks. So every figure carries its date, and turns dark gold when it is more than three days old. We never estimate a figure we did not find.",
         )}
       </div>
 

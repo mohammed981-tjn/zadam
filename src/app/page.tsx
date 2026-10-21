@@ -242,7 +242,9 @@ export default async function Home() {
     <div>
       {/* ───────────────────────── الواجهة ───────────────────────── */}
       <section className="mesh overflow-x-clip">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
+        {/* Less ground above the films (backlog 121): the header now stays on
+            screen, and 56px of empty beige under it read as a gap, not a frame. */}
+        <div className="mx-auto max-w-6xl px-4 pb-12 pt-6 sm:pb-20 sm:pt-12">
           {/*
             الفيديو والشعارُ في إطارٍ واحد: يعمل المقطعُ مرّةً ثمّ يظهر الشعار
             مكانه (المالك، 26 سبتمبر: «ادمجهم»). والشعارُ المنفصل تحت الإطار حُذف
@@ -282,18 +284,20 @@ export default async function Home() {
             )}
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-3">
+          {/* Equal widths, one under the other on a phone: two buttons of two
+              different widths, right-aligned, read as a layout that slipped. */}
+          <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
             {/* والمزارعُ له بابٌ في الواجهة لا في أسفل الصفحة وحدها، وحاسبةُ
                 الماء أكبرُ بطاقات اللوحة. */}
             <Link
               href="/signup"
-              className="rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground shadow-raised transition hover:opacity-90"
+              className="rounded-xl bg-primary px-5 py-3 text-center font-bold text-primary-foreground shadow-raised transition hover:opacity-90 active:scale-[0.98]"
             >
               {t("سجّل أرضك ووثّق موسمك", "Register your land and record your season")}
             </Link>
             <Link
               href="/arc-canal"
-              className="rounded-xl border border-border bg-card px-5 py-3 font-medium shadow-card transition hover:shadow-raised"
+              className="rounded-xl border border-rose/30 bg-card px-5 py-3 text-center font-bold text-rose shadow-card transition hover:bg-rose/5 hover:shadow-raised"
             >
               {t("اقرأ دراسة القناة القوسية", "Read the Arc Canal study")}
             </Link>
@@ -339,7 +343,7 @@ export default async function Home() {
        */}
       <section className="mx-auto max-w-6xl px-4 pt-8">
         <QuickTabs tabs={tabs} label={t("تبويبات سريعة", "Quick links")} />
-        <div className="mt-3">
+        <div className="mt-4 flex flex-col gap-3">
           <SeasonStrip locale={locale} />
           <MarketTicker locale={locale} />
         </div>

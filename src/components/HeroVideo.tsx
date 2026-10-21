@@ -51,7 +51,8 @@ const NUDGE_AFTER_MS = 2600;
 
 /** `wide`: where the 16:9 cut lives when it is shared with another page rather than `/video/{key}-wide`. */
 /** `enAudio`: an English-narrated copy exists at `{base}-en.mp4` (the owner chose voice 2, 11 October). */
-type Film = { key: string; label: string; en: string; wide?: string; enAudio?: boolean };
+/** `short`: the name on the film's button under the frame, where the full title was cut off with «…». */
+type Film = { key: string; label: string; en: string; short: string; shortEn: string; wide?: string; enAudio?: boolean };
 const FILMS: Film[] = [
   // One film on the homepage (the owner, 4 October: «اعمل فلم واحد شامل في
   // الرئيسية ووزّع باقي المقاطع كلٌّ في صفحته»): the vision from the owner's
@@ -61,11 +62,11 @@ const FILMS: Film[] = [
   // the port and the round logo once. Each clip also plays on its own page: /export, /herds,
   // /services, /tools/water, /rain, /seasons, /projects, /knowledge, /guide,
   // /lands, /arc-canal, and the nafir pages.
-  { key: "sudagri", label: "سوداقري — من الماء إلى السوق", en: "Sudagri — from water to market", enAudio: true },
+  { key: "sudagri", label: "سوداقري — من الماء إلى السوق", en: "Sudagri — from water to market", short: "من الماء إلى السوق", shortEn: "Water to market", enAudio: true },
   // The second film, beside the first and not instead of it (the owner, 11
   // October): the clips that came in random order, set in order — the crops,
   // then the herds, then the ideas that develop farming, and the closing.
-  { key: "sudagri2", label: "ثرواتٌ وأفكار — من الحقل إلى المستقبل", en: "Wealth and ideas — from the field to the future" },
+  { key: "sudagri2", label: "ثرواتٌ وأفكار — من الحقل إلى المستقبل", en: "Wealth and ideas — from the field to the future", short: "ثرواتٌ وأفكار", shortEn: "Wealth and ideas" },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
@@ -313,7 +314,7 @@ export default function HeroVideo() {
       <div
         className={
           deck
-            ? "relative -mr-4 pr-[calc(var(--sx)*2)] pt-[calc(var(--sy)*2)] [--sx:18px] [--sy:12px] sm:[--sx:40px] sm:[--sy:22px]"
+            ? "relative -mr-4 pr-[calc(var(--sx)*2)] pt-[calc(var(--sy)*2)] [--sx:12px] [--sy:9px] sm:[--sx:28px] sm:[--sy:16px]"
             : "relative"
         }
         style={{ clipPath: "inset(-40px 0 -60px -16px)", perspective: "1400px", perspectiveOrigin: "30% 40%" }}
@@ -346,12 +347,10 @@ export default function HeroVideo() {
                   opacity: at === 0 ? 0 : 0.75 + 0.15 * at,
                 }}
               />
-              <span
-                className="absolute inset-y-0 right-0 flex w-[var(--sx)] items-center justify-center overflow-hidden text-[11px] font-bold text-white transition-opacity duration-300 [writing-mode:vertical-rl] sm:text-sm"
-                style={{ opacity: at === 0 ? 0 : 1 }}
-              >
-                <span className="truncate drop-shadow">{f.label}</span>
-              </span>
+              {/* No name down the edge any more (backlog 121): a strip a few
+                  pixels wide held a title cut to «…», and the owner found the
+                  films «شكلها غير جميل». The deck says «there is another film»;
+                  the buttons under the frame say which. */}
             </button>
           );
         })}
@@ -421,11 +420,26 @@ export default function HeroVideo() {
             )}
           </video>
 
+          {/* The film's name on the film, at the top where the closing logo
+              card does not reach: a soft shade from the edge, white type, and
+              which film of how many. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-gradient-to-b from-black/55 via-black/20 to-transparent px-4 pb-10 pt-3 text-white"
+          >
+            <span className="text-sm font-bold leading-snug drop-shadow sm:text-base">{t(film.label, film.en)}</span>
+            {deck && (
+              <span dir="ltr" className="figure shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold backdrop-blur-sm">
+                {idx + 1} / {N}
+              </span>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={toggleSound}
             aria-pressed={!muted}
-            className="absolute bottom-3 left-3 rounded-full border border-border bg-card/90 px-4 py-2 text-sm font-medium shadow-card transition hover:border-primary"
+            className="absolute bottom-3 left-3 rounded-full border border-white/25 bg-black/45 px-4 py-2 text-sm font-bold text-white shadow-card backdrop-blur-sm transition hover:bg-black/60"
           >
             {muted ? t("🔊 بالصوت", "🔊 Sound on") : t("🔇 بلا صوت", "🔇 Mute")}
           </button>
@@ -449,7 +463,7 @@ export default function HeroVideo() {
             <button
               type="button"
               onClick={() => go(idx)}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card/90 px-6 py-3 text-base font-bold shadow-float transition hover:border-primary"
+              className="tab-on absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full px-7 py-3 text-base font-bold transition hover:opacity-90"
             >
               {t("▶ شاهد", "▶ Watch")}
             </button>
@@ -458,17 +472,20 @@ export default function HeroVideo() {
         </div>
       </div>
 
-      {deck && (
-        <p className="mt-2 text-center text-xs text-muted">{t("اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق", "Swipe the film or tap the card behind it for the next film")}</p>
-      )}
-
-      {/* One button per film, each with its own progress line; one film has a progress line alone. */}
+      {/* One button per film, each with its own progress line; one film has a
+          progress line alone. Two equal halves with short names, in place of
+          a line of instructions over two buttons whose titles were cut to
+          «…» (backlog 121); swiping the frame still works as before. */}
       {!deck ? (
-        <div aria-hidden className="mt-2 h-1 overflow-hidden rounded-full bg-border">
-          <div className="h-full bg-primary transition-[width] duration-300" style={{ width: `${progress * 100}%` }} />
+        <div aria-hidden className="mt-3 h-1 overflow-hidden rounded-full bg-border">
+          <div className="h-full bg-rose transition-[width] duration-300" style={{ width: `${progress * 100}%` }} />
         </div>
       ) : (
-      <nav aria-label={t("أفلام سوداقري", "Sudagri films")} className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <nav
+        aria-label={t("أفلام سوداقري", "Sudagri films")}
+        className="mt-3 grid gap-1.5 rounded-2xl bg-card p-1.5 shadow-card ring-1 ring-border"
+        style={{ gridTemplateColumns: `repeat(${N}, minmax(0, 1fr))` }}
+      >
         {FILMS.map((f, i) => {
           const active = i === idx;
           const fill = active ? progress : 0;
@@ -478,17 +495,16 @@ export default function HeroVideo() {
               type="button"
               onClick={() => go(i)}
               aria-current={active ? "true" : undefined}
-              className={`relative overflow-hidden rounded-xl border px-2 py-2 text-center text-xs font-medium leading-snug transition sm:text-sm ${
-                active ? "border-primary bg-primary/10 text-foreground" : "border-border bg-card text-muted hover:border-primary"
+              aria-label={t(f.label, f.en)}
+              className={`relative flex min-h-11 items-center justify-center gap-1.5 overflow-hidden rounded-xl px-2 py-2 text-center text-[13px] font-bold leading-tight transition sm:text-sm ${
+                active ? "tab-on" : "bg-background text-muted hover:bg-rose/10 hover:text-rose"
               }`}
             >
-              <span className="block truncate">
-                {active ? "▶ " : ""}
-                {t(f.label, f.en)}
-              </span>
+              <span aria-hidden>{active ? "▶" : "▷"}</span>
+              {t(f.short, f.shortEn)}
               <span
                 aria-hidden
-                className="absolute bottom-0 right-0 h-1 bg-primary transition-[width] duration-300"
+                className="absolute bottom-0 right-0 h-1 bg-white/70 transition-[width] duration-300"
                 style={{ width: `${fill * 100}%` }}
               />
             </button>
