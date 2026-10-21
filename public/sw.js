@@ -38,6 +38,11 @@ const PUBLIC_PAGES = [
   /^\/guide$/,
   /^\/mining$/,
   /^\/services$/,
+  // البند ١١٩: الأسعار والصرف والذهب تُفتح في الحقل بلا إنترنت — كلٌّ منها
+  // يحمل تاريخ أرقامه، فالنسخة الأخيرة تُقرأ على أنّها كذلك.
+  /^\/market$/,
+  /^\/rates$/,
+  /^\/mining\/gold$/,
 ];
 
 self.addEventListener("install", (event) => {
