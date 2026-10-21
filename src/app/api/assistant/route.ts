@@ -118,7 +118,6 @@ export async function POST(req: NextRequest) {
   // answers. Either being absent costs its own half and nothing more.
   const embedder = activeProvider();
   const engines = buildEngines({
-    anthropicKey: process.env.ANTHROPIC_API_KEY,
     geminiKey: process.env.GEMINI_API_KEY,
     openRouterKey: process.env.OPENROUTER_API_KEY,
     openRouterModels: process.env.OPENROUTER_MODELS,

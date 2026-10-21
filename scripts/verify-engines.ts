@@ -74,23 +74,6 @@ ok(
   both[0].name.startsWith("gemini/"),
   "gemini leads, since the prompt was tuned against it",
 );
-
-// The owner's Claude key (21 October): when set it heads the chain, for the
-// assistant, the photo reading and the complaints auto-reply alike; when not
-// set, nothing changes.
-const withClaude = buildEngines({ anthropicKey: "k", geminiKey: "k", openRouterKey: "k" });
-ok(
-  withClaude[0].name === "anthropic/claude-opus-5-5" && withClaude.length === both.length + 1,
-  "a Claude key puts one Claude engine ahead of the rest",
-);
-ok(
-  typeof withClaude[0].generateWithImage === "function",
-  "and it reads photos, so «صوّر وأسأل» does not depend on Gemini alone",
-);
-ok(
-  buildEngines({ anthropicKey: "k" }).length === 1,
-  "Claude alone is a valid chain",
-);
 ok(
   both.filter((e) => e.name.startsWith("gemini/")).length === 2,
   "both gemini entries survive alongside openrouter",

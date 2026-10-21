@@ -82,7 +82,6 @@ export async function POST(req: NextRequest) {
   }
 
   const engines = buildEngines({
-    anthropicKey: process.env.ANTHROPIC_API_KEY,
     geminiKey: process.env.GEMINI_API_KEY,
     openRouterKey: process.env.OPENROUTER_API_KEY,
     openRouterModels: process.env.OPENROUTER_MODELS,

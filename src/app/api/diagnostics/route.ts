@@ -111,13 +111,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
   }
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
   const openRouterKey = process.env.OPENROUTER_API_KEY;
 
   const embedder = activeProvider();
   const engines = buildEngines({
-    anthropicKey,
     geminiKey,
     openRouterKey,
     openRouterModels: process.env.OPENROUTER_MODELS,
@@ -138,7 +136,6 @@ export async function GET(req: NextRequest) {
       // embedding provider look absent, which is the exact confusion this
       // endpoint exists to end.
       describe("JINA_API_KEY", process.env.JINA_API_KEY),
-      describe("ANTHROPIC_API_KEY", anthropicKey),
       describe("GEMINI_API_KEY", geminiKey),
       describe("OPENROUTER_API_KEY", openRouterKey),
       /*
