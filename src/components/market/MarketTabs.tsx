@@ -13,10 +13,13 @@ export default function MarketTabs({ active, locale }: { active: string; locale:
     <SectionTabs
       label={t("أقسام السوق", "Market sections")}
       active={active}
+      // One or two words each, so the four sit in one row on a phone
+      // (backlog 122: tab labels «no more than two words» — CMS, BBC GEL).
+      // The page's own heading carries the full name.
       tabs={[
-        { href: "/market", label: t("أسعار المحاصيل", "Crop prices") },
-        { href: "/market/offers", label: t("البيع والشراء", "Buy & sell") },
-        { href: "/market/inputs", label: t("السماد والجازولين", "Fertiliser & diesel") },
+        { href: "/market", label: t("الأسعار", "Prices") },
+        { href: "/market/offers", label: t("العروض", "Offers") },
+        { href: "/market/inputs", label: t("المدخلات", "Inputs") },
         { href: "/rates", label: t("العملات", "Currencies") },
       ]}
     />

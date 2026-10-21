@@ -31,6 +31,7 @@ export default async function SupplyShell({
     <div className="mx-auto max-w-4xl px-4 py-8">
       <SectionTabs
         label={tr(locale, "أقسام المدخلات", "Inputs sections")}
+        moreLabel={tr(locale, "المزيد", "More")}
         active={active}
         tabs={TABS.map((t) => ({ href: t.href, label: tr(locale, t.ar, t.en) }))}
       />

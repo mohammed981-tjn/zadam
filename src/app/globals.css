@@ -198,6 +198,20 @@ p {
   background: color-mix(in oklab, var(--primary) 25%, transparent);
 }
 
+:root {
+  /* The phone's bottom bar (backlog 122): its height, so the page, the
+     assistant's button and the menu sheet all leave room for it. */
+  --nav-bottom: 0px;
+}
+@media (max-width: 639.98px) {
+  :root {
+    --nav-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+  body {
+    padding-bottom: var(--nav-bottom);
+  }
+}
+
 html {
   scroll-behavior: smooth;
   /* The header stays on screen now, so an in-page anchor lands below it

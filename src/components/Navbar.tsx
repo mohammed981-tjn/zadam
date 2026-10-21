@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import NavMenu, { type NavGroup } from "./NavMenu";
 import LangToggle from "./LangToggle";
+import BottomNav from "./BottomNav";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -239,11 +240,12 @@ export default async function Navbar() {
   }
 
   return (
-    // The header stays on screen (backlog 121): the menu is the way around the
-    // site, and on a long page it was a scroll back to the top away. Opaque,
-    // not frosted: a backdrop filter would make the header the frame the
-    // menu's fixed sheet is placed in, and the sheet has to cover the screen;
-    // and even 95% let the headings scrolling under it show through.
+    <>
+    {/* The header stays on screen (backlog 121): the menu is the way around the
+        site, and on a long page it was a scroll back to the top away. Opaque,
+        not frosted: a backdrop filter would make the header the frame the
+        menu's fixed sheet is placed in, and the sheet has to cover the screen;
+        and even 95% let the headings scrolling under it show through. */}
     <header className="sticky top-0 z-40 border-b border-border bg-background print:hidden">
       <div className="brand-edge" aria-hidden />
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
@@ -338,5 +340,7 @@ export default async function Navbar() {
         </div>
       </div>
     </header>
+    <BottomNav signedIn={Boolean(user)} />
+    </>
   );
 }

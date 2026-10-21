@@ -121,6 +121,16 @@ export default function HeroVideo() {
   /** The reader asked for less motion: the logo shows until they choose a film. */
   const [calm, setCalm] = useState(false);
   const [muted, setMuted] = useState(true);
+  /** The film is stopped by the reader (or has not started): the pause button reads «تشغيل». */
+  const [paused, setPaused] = useState(true);
+  /**
+   * Arabic reads from the right, so the reel does too (backlog 122: carousels
+   * and swipeable elements «flow from right to left» — Apple, «Design for
+   * Arabic»; Material, «Bidirectionality»). In Arabic the next film is a drag
+   * to the right and the leaving film goes off to the right; in English, the
+   * other way. Every pose below is written for English and mirrored here.
+   */
+  const dir = locale === "ar" ? -1 : 1;
   const [progress, setProgress] = useState(0);
   const [pose, setPose] = useState<Pose>(REST);
   const [easing, setEasing] = useState("none");
@@ -179,8 +189,9 @@ export default function HeroVideo() {
   }, [idx, tall]);
 
   /**
-   * Move to film `to`: the front film turns away and slips off to the left,
-   * and the chosen one swings in from the left.
+   * Move to film `to`: the front film turns away and slips off towards the
+   * end of the reading line (left in English, right in Arabic), and the chosen
+   * one swings in from that side.
    */
   const slideTo = (to: number) => {
     if (moving.current) return;
@@ -234,7 +245,7 @@ export default function HeroVideo() {
   const along = (d: NonNullable<typeof drag.current>, e: PointerEvent<HTMLElement>) => {
     const dx = e.clientX - d.x;
     const dy = e.clientY - d.y;
-    const f = Math.abs(dx) > Math.abs(dy) ? -dx / d.w : dy / d.h;
+    const f = Math.abs(dx) > Math.abs(dy) ? (-dx * dir) / d.w : dy / d.h;
     return Math.max(-1, Math.min(1, f));
   };
   const onPointerMove = (e: PointerEvent<HTMLElement>) => {
@@ -300,8 +311,8 @@ export default function HeroVideo() {
           onPointerCancel={onPointerUp}
           className={`relative select-none overflow-hidden rounded-[1.75rem] bg-card shadow-float ring-[3px] ring-primary ${deck ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
           style={{
-            transform: `translate(${pose.x}%, ${pose.y}%) rotateY(${pose.ry}deg) scale(${pose.s})`,
-            transformOrigin: "0% 50%",
+            transform: `translate(${pose.x * dir}%, ${pose.y}%) rotateY(${pose.ry * dir}deg) scale(${pose.s})`,
+            transformOrigin: dir === 1 ? "0% 50%" : "100% 50%",
             opacity: pose.o,
             transition: easing,
           }}
@@ -317,6 +328,8 @@ export default function HeroVideo() {
             disableRemotePlayback
             onContextMenu={(e) => e.preventDefault()}
             poster={`${base}.jpg`}
+            onPlay={() => setPaused(false)}
+            onPause={() => setPaused(true)}
             onTimeUpdate={(e) => {
               const v = e.currentTarget;
               if (v.duration) setProgress(Math.round((v.currentTime / v.duration) * 100) / 100);
@@ -358,14 +371,39 @@ export default function HeroVideo() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={toggleSound}
-            aria-pressed={!muted}
-            className="absolute bottom-3 left-3 rounded-full border border-white/25 bg-black/45 px-4 py-2 text-sm font-bold text-white shadow-card backdrop-blur-sm transition hover:bg-black/60"
-          >
-            {muted ? t("🔊 بالصوت", "🔊 Sound on") : t("🔇 بلا صوت", "🔇 Mute")}
-          </button>
+          {/* Sound, and a way to stop the film (backlog 122: anything that moves
+              on its own for more than five seconds needs a pause — WebAIM;
+              WCAG 2.2.2). Media controls are not mirrored in Arabic (IBM Carbon,
+              «Right-to-left»), so the play mark points the same way in both. */}
+          <div className="absolute bottom-3 left-3 flex items-center gap-2">
+            {!idle && (
+              <button
+                type="button"
+                onClick={() => {
+                  const v = ref.current;
+                  if (!v) return;
+                  if (v.paused) v.play().catch(() => setIdle(true));
+                  else v.pause();
+                }}
+                aria-label={paused ? t("تشغيل", "Play") : t("إيقاف مؤقّت", "Pause")}
+                className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white shadow-card backdrop-blur-sm transition hover:bg-black/60"
+              >
+                {paused ? (
+                  <svg aria-hidden viewBox="0 0 12 13" className="ms-0.5 h-3.5 w-3.5 fill-current"><path d="M11 6.5 1 12V1l10 5.5Z" /></svg>
+                ) : (
+                  <svg aria-hidden viewBox="0 0 12 12" className="h-3.5 w-3.5 fill-current"><path d="M2 1h3v10H2zM7 1h3v10H7z" /></svg>
+                )}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={toggleSound}
+              aria-pressed={!muted}
+              className="rounded-full border border-white/25 bg-black/45 px-4 py-2 text-sm font-bold text-white shadow-card backdrop-blur-sm transition hover:bg-black/60"
+            >
+              {muted ? t("🔊 بالصوت", "🔊 Sound on") : t("🔇 بلا صوت", "🔇 Mute")}
+            </button>
+          </div>
 
           {/* Less motion asked for: the logo until a film is chosen. */}
           <div

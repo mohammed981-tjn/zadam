@@ -292,7 +292,7 @@ export default function AssistantWidget() {
       {open && (
         <div
           className="fixed inset-x-4 z-[99] print:hidden flex h-[28rem] max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl sm:right-auto sm:left-4 sm:w-80"
-          style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
+          style={{ bottom: "calc(1.25rem + max(var(--nav-bottom, 0px), env(safe-area-inset-bottom)))" }}
         >
           <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
             <span className="font-bold">🌾 {t("مساعد سوداقري", "Sudagri assistant")}</span>
@@ -504,7 +504,7 @@ export default function AssistantWidget() {
           suppressHydrationWarning
           className="fixed left-4 z-[100] print:hidden"
           style={{
-            bottom: "calc(1.25rem + env(safe-area-inset-bottom))",
+            bottom: "calc(1.25rem + max(var(--nav-bottom, 0px), env(safe-area-inset-bottom)))",
             transform: `translate(${offset.x}px, ${offset.y}px)`,
             touchAction: "none",
           }}
