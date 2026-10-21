@@ -7,6 +7,7 @@ import { assessProject, type ProjectFacts, type WaterSource } from "@/lib/risk";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { readOfferableLand } from "@/lib/landOpportunity";
 
 export interface SubmitResult {
   ok: boolean;
@@ -81,6 +82,24 @@ export async function submitOpportunity(
     const p = profile as { completed_seasons: number; reporting_rate: number };
     facts.operatorSeasons = p.completed_seasons ?? 0;
     facts.operatorReportingRate = p.reporting_rate ?? 0;
+  }
+
+  // An opportunity offered from a verified land (backlog 123). The land is
+  // read again here rather than trusted from the form, and its documents on
+  // file count whatever boxes arrived — they are files, not ticks.
+  const landId = str(formData, "land_id");
+  const land = landId ? await readOfferableLand(supabase, user.id, landId) : null;
+  if (landId && !land) {
+    return {
+      ok: false,
+      message: t(
+        "الأرض المختارة ليست أرضك الموثّقة. ارجع إلى «أراضيّ» وابدأ من أرضٍ موثّقة.",
+        "The chosen land is not your verified land. Go back to «My land» and start from a verified one.",
+      ),
+    };
+  }
+  if (land) {
+    facts.documentsOnFile = Math.max(facts.documentsOnFile || 0, land.docs.filter(Boolean).length);
   }
 
   const totalFeddans = num(formData, "total_feddans");

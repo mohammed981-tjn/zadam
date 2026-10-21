@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import OpportunityForm from "@/components/OpportunityForm";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { readOfferableLand } from "@/lib/landOpportunity";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -11,13 +12,22 @@ export async function generateMetadata() {
   };
 }
 
-export default async function NewOpportunityPage() {
+export default async function NewOpportunityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ land?: string }>;
+}) {
+  const sp = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  // «ارفع فرصة للمستثمرين» on a verified land opens this page with ?land=
+  // (backlog 123), and the form starts from that land.
+  const fromLand = sp.land ? await readOfferableLand(supabase, user.id, sp.land) : null;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -56,9 +66,18 @@ export default async function NewOpportunityPage() {
           "An opportunity is not published to the public straight away. It goes into the review queue and appears only after the administration approves it and its documentation is complete.",
         )}
       </p>
+      {sp.land && !fromLand && (
+        <p role="alert" className="mb-6 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm">
+          {t(
+            "هذه الأرض ليست أرضك الموثّقة، فلم تُملأ الفرصة منها. املأها بنفسك، أو ارجع إلى «أراضيّ».",
+            "This land is not your verified land, so the opportunity was not filled from it. Fill it in yourself, or go back to «My land».",
+          )}
+        </p>
+      )}
       <OpportunityForm
         operatorSeasons={p?.completed_seasons ?? 0}
         operatorReportingRate={p?.reporting_rate ?? 0}
+        fromLand={fromLand}
       />
     </div>
   );
