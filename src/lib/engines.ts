@@ -31,9 +31,22 @@ export interface EngineResult {
   attempts: EngineAttempt[];
 }
 
+/** A photo the visitor attached: its MIME type and the bytes, base64. */
+export interface EngineImage {
+  mime: string;
+  data: string;
+}
+
 export interface Engine {
   name: string;
   generate(system: string, user: string): Promise<string>;
+  /**
+   * The same call with a photo in front of the text. Only an engine whose
+   * model reads images implements it; the chain skips the others when a photo
+   * is attached rather than sending a text-only model a question about a
+   * picture it cannot see.
+   */
+  generateWithImage?(system: string, user: string, image: EngineImage): Promise<string>;
 }
 
 class EngineFailure extends Error {}
@@ -50,9 +63,8 @@ const ENGINE_TIMEOUT_MS = 25000;
  * ------------------------------------------------------------------ */
 
 function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
-  return {
-    name: `gemini/${model}`,
-    async generate(system, user) {
+  type GeminiPart = { text: string } | { inline_data: { mime_type: string; data: string } };
+  const call = async (system: string, parts: GeminiPart[]): Promise<string> => {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
@@ -66,7 +78,7 @@ function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
           },
           body: JSON.stringify({
             system_instruction: { parts: [{ text: system }] },
-            contents: [{ role: "user", parts: [{ text: user }] }],
+            contents: [{ role: "user", parts }],
             generationConfig: { maxOutputTokens: 3072, temperature: 0.3 },
           }),
           signal: AbortSignal.timeout(ENGINE_TIMEOUT_MS),
@@ -88,8 +100,8 @@ function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
        * flagged as thoughts are dropped; they are not for the reader.
        */
       type Part = { text?: string; thought?: boolean };
-      const parts: Part[] = data.candidates?.[0]?.content?.parts ?? [];
-      const text = parts
+      const answerParts: Part[] = data.candidates?.[0]?.content?.parts ?? [];
+      const text = answerParts
         .filter((p) => !p.thought && typeof p.text === "string")
         .map((p) => p.text)
         .join("")
@@ -97,7 +109,13 @@ function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
 
       if (!text) throw new EngineFailure("empty response");
       return text;
-    },
+  };
+  return {
+    name: `gemini/${model}`,
+    generate: (system, user) => call(system, [{ text: user }]),
+    // The photo goes first, as Google's own examples order it; the question follows.
+    generateWithImage: (system, user, image) =>
+      call(system, [{ inline_data: { mime_type: image.mime, data: image.data } }, { text: user }]),
   };
 }
 
@@ -330,12 +348,21 @@ export async function generateWithFallback(
   engines: Engine[],
   system: string,
   user: string,
+  image?: EngineImage,
 ): Promise<{ result: EngineResult | null; attempts: EngineAttempt[] }> {
   const attempts: EngineAttempt[] = [];
 
-  for (const engine of engines) {
+  // With a photo attached only the engines that can look at it are in the
+  // chain. None configured is recorded as an attempt, so the caller's message
+  // names the real reason rather than "every engine failed".
+  const usable = image ? engines.filter((e) => e.generateWithImage) : engines;
+  if (image && usable.length === 0) {
+    attempts.push({ engine: "-", reason: "no engine that reads images is configured" });
+  }
+
+  for (const engine of usable) {
     try {
-      const text = await engine.generate(system, user);
+      const text = image ? await engine.generateWithImage!(system, user, image) : await engine.generate(system, user);
 
       // ويُعامَل كفشلِ محرّك لا كفشلِ طلب: الاحتياطيُّ بعده قد يُحسن.
       const wrong = wrongScriptReason(text);
