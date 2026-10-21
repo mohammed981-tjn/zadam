@@ -262,22 +262,23 @@ reset role;
 
 \echo ''
 \echo '=========================================================================='
-\echo 'هـ) والأرضُ الموثّقة نصفُ الجواز — وتُقرأ بلا حساب'
+\echo 'هـ) والأرضُ الموثّقة نصفُ الجواز — وتُقرأ بلا حساب، من الدالّة لا من الجدول'
 \echo '=========================================================================='
 
 set role anon;
 do $$
 begin
-  -- بلا دالّةٍ ولا مفتاحِ خدمة: `lands_public_read` تسمح بالمنشورة الموثّقة.
-  perform _eq((select count(*)::int from lands
-                where owner_id = 'fa000000-0000-0000-0000-0000000000fa'),
-    1, 'زائرٌ بلا حساب يرى الأرضَ الموثّقةَ المنشورة');
-  perform _eq((select name from lands
-                where owner_id = 'fa000000-0000-0000-0000-0000000000fa'),
+  -- البند ١٢٧: كانت `lands_public_read` تعطي الزائرَ كلَّ أعمدة الصفّ — القريةَ
+  -- والإحداثيّاتِ ومعرّفَ صاحبه. فأُسقطت، والجوازُ يقرأ ما يعرضه فقط.
+  perform _eq((select count(*)::int from lands), 0,
+    'الزائرُ لا يقرأ صفَّ الأرض من الجدول');
+  perform _eq((select count(*)::int from public_farmer_lands('fa000000-0000-0000-0000-0000000000fa')),
+    1, 'بل يرى الأرضَ الموثّقةَ المنشورة في الجواز');
+  perform _eq((select name from public_farmer_lands('fa000000-0000-0000-0000-0000000000fa')),
     'حواشة الشمال', 'باسمها وولايتها');
 
   -- وما لم يُفحص لا يظهر — لا لأنّه غيرُ موجود، بل لأنّ المنصّة لا تشهد به.
-  perform _eq((select count(*)::int from lands
+  perform _eq((select count(*)::int from public_farmer_lands('fa000000-0000-0000-0000-0000000000fa')
                 where name = 'قطعةٌ لم تُفحص'),
     0, 'ولا يرى ما لم تُوثَّق');
 
@@ -288,6 +289,34 @@ begin
     'ولا صفوفَ الأدلّة');
 end $$;
 reset role;
+
+-- والأرضُ المعروضة على المستثمرين أو الشركات تظهر في الجواز بولايتها وحدها،
+-- وإلّا كشف الجوازُ ما يَعِد العرضُ بإخفائه.
+update lands set open_to_investors = true where owner_id = 'fa000000-0000-0000-0000-0000000000fa';
+
+set role anon;
+do $$
+begin
+  perform _eq((select count(*)::int from public_farmer_lands('fa000000-0000-0000-0000-0000000000fa')
+                where offered and name is null and id is null and locality is null and feddans is null),
+    1, 'المعروضةُ بلا اسمٍ ولا معرّفٍ ولا محليّةٍ ولا مساحة');
+  perform _eq((select state is not null from public_farmer_lands('fa000000-0000-0000-0000-0000000000fa')),
+    true, 'وبولايتها');
+end $$;
+reset role;
+
+update lands set open_to_investors = false where owner_id = 'fa000000-0000-0000-0000-0000000000fa';
+
+-- ومَن لم يأذن بنشر سجلّه فلا أرضَ له في الجواز.
+update profiles set publish_record = false where id = 'fa000000-0000-0000-0000-0000000000fa';
+set role anon;
+do $$
+begin
+  perform _eq((select count(*)::int from public_farmer_lands('fa000000-0000-0000-0000-0000000000fa')),
+    0, 'وبلا إذنٍ بالنشر لا تظهر أرضُه');
+end $$;
+reset role;
+update profiles set publish_record = true where id = 'fa000000-0000-0000-0000-0000000000fa';
 
 \echo ''
 \echo '=========================================================================='

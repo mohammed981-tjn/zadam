@@ -22,10 +22,15 @@ pg_start land-season-journey
 
 BASE="$(pg_stage "$ROOT/scripts/base-schema.sql" base-schema.sql)"
 POLICIES="$(pg_stage "$ROOT/supabase/migrations/20260817120000_document_existing_policies_and_guards.sql" policies.sql)"
+OFFER="$(pg_stage "$ROOT/scripts/land-offer-columns.fixture.sql" offer-columns.sql)"
+PRIVATE="$(pg_stage "$ROOT/supabase/migrations/20261021220000_land_rows_not_public.sql" land-private.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-land-season-journey.sql" checks.sql)"
 
 echo "── الأساس";           pg_run_quiet "$BASE"
 echo "── السياسات والحرّاس"; pg_run_quiet "$POLICIES"
+# البند ١٢٧: صفُّ الأرض لا يُقرأ كاملاً لغير صاحبها.
+echo "── أعمدة العرض";       pg_run_quiet "$OFFER"
+echo "── صفُّ الأرض خاصّ";   pg_run_quiet "$PRIVATE"
 
 echo "── الرحلة"
 pg_run "$CHECKS"

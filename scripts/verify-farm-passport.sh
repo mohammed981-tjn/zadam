@@ -26,6 +26,8 @@ BASE="$(pg_stage "$ROOT/scripts/base-schema.sql" base-schema.sql)"
 POLICIES="$(pg_stage "$ROOT/supabase/migrations/20260817120000_document_existing_policies_and_guards.sql" policies.sql)"
 CONSENT="$(pg_stage "$ROOT/supabase/migrations/20260825120000_publish_record_consent.sql" consent.sql)"
 RECORD="$(pg_stage "$ROOT/supabase/migrations/20260905090000_the_record_counts_only_what_happened.sql" record.sql)"
+OFFER="$(pg_stage "$ROOT/scripts/land-offer-columns.fixture.sql" offer-columns.sql)"
+PRIVATE="$(pg_stage "$ROOT/supabase/migrations/20261021220000_land_rows_not_public.sql" land-private.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-farm-passport.sql" checks.sql)"
 
 # ولا تُنصَّب `20260903120000` هنا. تُعلن `match_knowledge_entries` بنوعٍ اسمُه
@@ -41,6 +43,11 @@ echo "── السجلّ الصادق";      pg_run_quiet "$RECORD"
 # مرّتين: الهجرةُ تُسقط الدالّةَ وتُنشئها، وهجرةٌ لا تُعاد لا تُطبَّق على قاعدةٍ
 # سبق أن رأت نصفَها.
 echo "── وثانيةً";            pg_run_quiet "$RECORD"
+
+# البند ١٢٧: الجوازُ يقرأ الأرضَ بدالّةٍ لا من الجدول.
+echo "── أعمدة العرض";        pg_run_quiet "$OFFER"
+echo "── صفُّ الأرض خاصّ";    pg_run_quiet "$PRIVATE"
+echo "── وثانيةً";            pg_run_quiet "$PRIVATE"
 
 echo "── الحرّاس"
 pg_run "$CHECKS"
