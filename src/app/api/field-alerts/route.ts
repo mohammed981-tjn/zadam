@@ -12,9 +12,11 @@ import {
   sentKey,
   type AlertLand,
 } from "@/lib/fieldAlerts";
+import { stageReminders, type PlannedCycle } from "@/lib/stageReminders";
 
 /**
- * التنبيهاتُ الحقليّة اليوميّة (البند ١١٥): جرادٌ قرب الأرض، ومرضُ ماشيةٍ في الولاية.
+ * التنبيهاتُ الحقليّة اليوميّة (البند ١١٥): جرادٌ قرب الأرض، ومرضُ ماشيةٍ في الولاية؛
+ * ومعها (البند ١١٩) تذكيرُ الموسم والقطيع حين يحين موعد مرحلة.
  *
  * Once a day (vercel.json) this reads FAO's locust sightings and EMPRES-i's
  * disease events, every land with a place or a state, and what each owner was
@@ -95,12 +97,32 @@ export async function GET(req: NextRequest) {
     if (!data || data.length < PAGE) break;
   }
 
+  // Running seasons and herds with their stages, for «حان موعد المرحلة».
+  const cycles: PlannedCycle[] = [];
+  const [{ data: seasonRows, error: seasonsError }, { data: herdRows, error: herdsError }] = await Promise.all([
+    supabase.from("seasons").select("id, owner_id, name, season_stages(id, stage_key, stage_order, planned_start, completed)").eq("status", "active"),
+    supabase.from("herds").select("id, owner_id, name, herd_stages(id, stage_key, stage_order, planned_start, completed)").eq("status", "active"),
+  ]);
+  if (seasonsError) console.error("field-alerts: seasons", seasonsError);
+  if (herdsError) console.error("field-alerts: herds", herdsError);
+  type StageRow = { id: string; stage_key: string; stage_order: number; planned_start: string | null; completed: boolean };
+  const toCycle = (kind: PlannedCycle["kind"], r: Record<string, unknown>, stages: StageRow[]): PlannedCycle => ({
+    id: r.id as string,
+    ownerId: r.owner_id as string,
+    name: (r.name as string) || (kind === "season" ? "موسمك" : "قطيعك"),
+    kind,
+    stages: stages.map((s) => ({ id: s.id, key: s.stage_key, order: s.stage_order, plannedStart: s.planned_start, completed: s.completed })),
+  });
+  for (const r of seasonRows ?? []) cycles.push(toCycle("season", r, (r.season_stages ?? []) as StageRow[]));
+  for (const r of herdRows ?? []) cycles.push(toCycle("herd", r, (r.herd_stages ?? []) as StageRow[]));
+
   const alerts = [
     ...(sightings ? locustAlerts(lands, sightings, sent) : []),
     ...(events ? diseaseAlerts(lands, events, sent, today) : []),
+    ...stageReminders(cycles, sent, today),
   ];
 
-  const written = { locust_near: 0, animal_disease: 0 };
+  const written = { locust_near: 0, animal_disease: 0, stage_due: 0 };
   let failed = 0;
   for (const a of alerts.slice(0, MAX_ALERTS_PER_RUN)) {
     const { data, error } = await supabase.rpc("field_alert_send", {
@@ -123,6 +145,7 @@ export async function GET(req: NextRequest) {
     ok: failed === 0,
     checkedAt: new Date().toISOString(),
     lands: lands.length,
+    cycles: cycles.length,
     // null: FAO could not be read this run, so that half was skipped, not empty.
     sightings: sightings === null ? null : sightings.length,
     events: events === null ? null : events.length,

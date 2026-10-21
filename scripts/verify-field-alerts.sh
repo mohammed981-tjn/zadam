@@ -15,6 +15,7 @@ pg_start field-alerts
 
 BASE="$(pg_stage "$ROOT/scripts/base-schema.sql" base-schema.sql)"
 ALERTS="$(pg_stage "$ROOT/supabase/migrations/20261020150000_field_alerts.sql" alerts.sql)"
+STAGES="$(pg_stage "$ROOT/supabase/migrations/20261021140000_stage_reminders.sql" stages.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-field-alerts.sql" checks.sql)"
 
 # Supabase's own grants on a new table and function, which the migration's
@@ -27,6 +28,7 @@ DEFAULTS="$(printf '%s\n' \
 echo "── الأساس";      pg_run_quiet "$BASE"
 echo "── الافتراضي";   pg_run_quiet "$DEFAULTS"
 echo "── التنبيهات";   pg_run "$ALERTS" >/dev/null
+echo "── التذكير";     pg_run "$STAGES" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"

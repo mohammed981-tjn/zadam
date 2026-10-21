@@ -30,6 +30,7 @@ const KIND_ICON: Record<string, string> = {
   lead_received: "📞",
   locust_near: "🦗",
   animal_disease: "🐄",
+  stage_due: "📅",
 };
 
 function timeAgo(iso: string, locale: Locale): string {
