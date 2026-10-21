@@ -1387,7 +1387,7 @@ redirect(`/admin/canal-images?message=${encodeURIComponent("حُفظ.")}`);
 
 - **المهمّة اليوميّة `/api/field-alerts`** صارت تكتب نوعاً ثالثاً `stage_due` (تذكيرٌ بموعد المرحلة، `src/lib/stageReminders.ts`)، وتدفع كلّ تنبيهٍ تكتبه إلى هاتف صاحبه عبر Web Push (`src/lib/push.ts`). الهجرتان `20261021140000_stage_reminders.sql` و`20261021160000_web_push.sql` مطبَّقتان على الإنتاج. قيد `notifications_kind_check` فيه الآن ١٧ نوعاً.
 - **المساعد:** `generateWithFallback` يقبل صورةً (`EngineImage`)، والمحرّكات التي تقرأ الصور تعلن `generateWithImage`. مسار `/api/assistant` يقبل `image: {mime, data}`. والويدجت فيه كاميرا وميكروفون و«اسمع الجواب».
-- **سلسلة المحرّكات لم تتغيّر:** ربطُ Claude (`anthropicKey` في `buildEngines`، يخدم المساعد والشكاوى معاً) كُتب ثمّ **أُجِّل بطلب المالك** وسُحب بإيداعٍ عكسيّ؛ محفوظٌ في `e85166b`. لا تُعيدوه قبل كلمةٍ منه.
+- **سلسلة المحرّكات:** `buildEngines` يقبل `anthropicKey` ويضع Claude أوّلاً متى وُجد `ANTHROPIC_API_KEY`. **الشكاوى** (`/api/support/auto-reply`) تستفيد تلقائيّاً، بطلب المالك. بلا مفتاح لا يتغيّر شيء، والمفتاح ليس في Vercel بعد.
 - **عامل الخدمة** `public/sw.js`: الإصدار `sudagri-v2`؛ معالجا `push` و`notificationclick`؛ وصفحات `/market` و`/rates` و`/mining/gold` تُخزَّن للعمل بلا إنترنت.
 - **معلومة تشغيل:** مفتاح Gemini في بيئتي المعاينة والتطوير على Vercel قديم (نسخة الإنتاج حُدِّثت في 23 سبتمبر ولم تُحدَّثا)؛ فلا تحكموا على المساعد من المعاينة حتى يُنسخ.
 
