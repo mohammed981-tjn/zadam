@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useId, useRef, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
+import { MENU_STATE_EVENT, OPEN_ASSISTANT_EVENT, TOGGLE_MENU_EVENT } from "@/lib/events";
 import { activeHref, groupForPath, type NavGroup } from "@/lib/nav";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "./LocaleProvider";
@@ -49,6 +49,27 @@ export default function NavMenu({
   const baseId = useId();
   const current = activeHref(groups, pathname);
   const locale = useLocale();
+  /** The open state as the bottom bar's toggle reads it, outside React's render. */
+  const openRef = useRef(open);
+
+  // The bottom bar on a phone (backlog 122) opens and closes this same menu,
+  // and lights its own «القائمة» while the menu is open.
+  useEffect(() => {
+    openRef.current = open;
+    window.dispatchEvent(new CustomEvent(MENU_STATE_EVENT, { detail: open }));
+  }, [open]);
+  useEffect(() => {
+    const onToggle = () => {
+      if (openRef.current) {
+        setOpen(false);
+        return;
+      }
+      setOpenGroup(groupForPath(groups, window.location.pathname));
+      setOpen(true);
+    };
+    window.addEventListener(TOGGLE_MENU_EVENT, onToggle);
+    return () => window.removeEventListener(TOGGLE_MENU_EVENT, onToggle);
+  }, [groups]);
 
   useEffect(() => {
     if (!open) return;
@@ -98,7 +119,9 @@ export default function NavMenu({
         onClick={toggleMenu}
         aria-expanded={open}
         aria-haspopup="menu"
-        className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition ${
+        // On a phone the bottom bar carries «القائمة», so the header does
+        // not show the same button a second time.
+        className={`hidden items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition sm:flex ${
           open ? "border-rose bg-rose/10 text-rose" : "border-rose/50 bg-card text-rose hover:border-rose"
         }`}
       >
@@ -119,13 +142,13 @@ export default function NavMenu({
           `sm` up it is the dropdown again. A tap on the dimmed page closes
           it, through the outside-tap listener above. */}
       {open && (
-        <div aria-hidden className="fixed inset-x-0 bottom-0 top-[4.4rem] z-40 bg-foreground/30 sm:hidden" />
+        <div aria-hidden className="fixed inset-x-0 bottom-0 top-[4.4rem] z-30 bg-foreground/30 sm:hidden" />
       )}
       {open && (
         <div
           ref={panelRef}
           role="menu"
-          className="fixed inset-x-3 top-[4.9rem] z-50 max-h-[calc(100dvh-5.9rem)] overflow-y-auto rounded-3xl border border-border bg-card shadow-float sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-[22rem]"
+          className="fixed inset-x-3 top-[4.9rem] z-50 max-h-[calc(100dvh_-_5.9rem_-_var(--nav-bottom))] overflow-y-auto rounded-3xl border border-border bg-card shadow-float sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-[22rem]"
         >
           <button
             role="menuitem"
