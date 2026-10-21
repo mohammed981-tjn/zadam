@@ -9,6 +9,7 @@ import {
 } from "@/lib/retrieval";
 import { activeProvider, embedQuestion } from "@/lib/embedding";
 import { buildEngines, generateWithFallback } from "@/lib/engines";
+import { PHOTO_DEFAULT_QUESTION, PHOTO_SYSTEM_PROMPT, readImage } from "@/lib/assistantPhoto";
 import {
   answerLocally,
   bestEffortAnswer,
@@ -69,21 +70,25 @@ const TRANSLATE_PROMPT =
 export async function POST(req: NextRequest) {
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  let question: unknown;
+  let rawQuestion: unknown;
   let path: unknown;
+  let rawImage: unknown;
   try {
-    ({ question, path } = await req.json());
+    ({ question: rawQuestion, path, image: rawImage } = await req.json());
   } catch {
     return NextResponse.json({ error: t("طلب غير صالح", "Invalid request") }, { status: 400 });
   }
 
-  if (
-    typeof question !== "string" ||
-    question.trim().length === 0 ||
-    question.length > 500
-  ) {
+  const image = readImage(rawImage);
+  if (image === "bad") {
+    return NextResponse.json({ error: t("الصورة غير صالحة أو أكبر من الحدّ. أرسل صورة JPEG أو PNG أصغر.", "The photo is invalid or too large. Send a smaller JPEG or PNG.") }, { status: 400 });
+  }
+
+  // With a photo, the question may be left empty; the photo is the question.
+  if (typeof rawQuestion !== "string" || rawQuestion.length > 500 || (rawQuestion.trim().length === 0 && !image)) {
     return NextResponse.json({ error: t("سؤال غير صالح", "Invalid question") }, { status: 400 });
   }
+  const question: string = rawQuestion.trim().length === 0 ? PHOTO_DEFAULT_QUESTION : rawQuestion;
 
   /*
    * Which page the question was asked from.
@@ -113,6 +118,7 @@ export async function POST(req: NextRequest) {
   // answers. Either being absent costs its own half and nothing more.
   const embedder = activeProvider();
   const engines = buildEngines({
+    anthropicKey: process.env.ANTHROPIC_API_KEY,
     geminiKey: process.env.GEMINI_API_KEY,
     openRouterKey: process.env.OPENROUTER_API_KEY,
     openRouterModels: process.env.OPENROUTER_MODELS,
@@ -267,7 +273,7 @@ export async function POST(req: NextRequest) {
       }
       return admin
         .rpc("log_assistant_question", {
-          p_question: question,
+          p_question: image ? `[صورة] ${question}` : question,
           p_matched:
             matched.length === allKnowledge.length
               ? allKnowledge.length
@@ -281,6 +287,36 @@ export async function POST(req: NextRequest) {
           (e: unknown) => console.error("assistant: question log failed", e),
         );
     };
+
+    /*
+     * A photo goes to a model that can look at it, and to nothing else: the
+     * local resolvers and the cache answer text, and a cached answer to someone
+     * else's picture is the wrong answer. The entries the question matched
+     * still ride along, so a known Sudanese pest is named as the base names it.
+     */
+    if (image) {
+      const { result, attempts } = await generateWithFallback(
+        engines,
+        locale === "en" ? PHOTO_SYSTEM_PROMPT + ENGLISH_ANSWER : PHOTO_SYSTEM_PROMPT,
+        `${pageContext ? `${pageContext}\n\n` : ""}مقتطفات من قاعدة معرفة سوداقري قد تخصّ الصورة (JSON):\n${JSON.stringify(matched.slice(0, 6))}\n\nسؤال الزائر مع الصورة: ${question}`,
+        image,
+      );
+      if (!result) {
+        console.error("assistant: photo answer failed", attempts);
+        await logQuestion(false, "photo_failed");
+        return NextResponse.json(
+          {
+            error: attempts.some((a) => a.engine === "-")
+              ? t("قراءة الصور غير مفعّلة على هذا النشر حالياً. اكتب ما تراه بالكلمات وسأجيب.", "Photo reading is not enabled on this deployment right now. Describe what you see in words and I will answer.")
+              : t("تعذّرت قراءة الصورة الآن. حاول بعد قليل، أو اكتب ما تراه بالكلمات.", "The photo could not be read just now. Try again shortly, or describe what you see in words."),
+          },
+          { status: 503 },
+        );
+      }
+      const photoAnswer = result.text.replace(/[*#_`]+/g, "").trim();
+      await logQuestion(true, "photo", photoAnswer);
+      return NextResponse.json({ answer: photoAnswer, source: "photo" });
+    }
 
     /*
      * Answer from the platform itself before reaching for the model.

@@ -14,9 +14,14 @@
  * next instead of ending the request. Running out of engines entirely is still
  * survivable — the caller degrades to the nearest knowledge entries.
  *
- * Order is deliberate: Gemini first because the knowledge base and the prompt
- * were tuned against it, then the OpenRouter free pool as the standby.
+ * Order is deliberate: Claude first when its key is set (the owner's choice,
+ * 21 October — it reads photos and answers Arabic well, and it is paid, so it
+ * is not subject to a free tier's afternoon), then Gemini, against which the
+ * knowledge base and the prompt were tuned, then the OpenRouter free pool as
+ * the standby.
  */
+
+import Anthropic from "@anthropic-ai/sdk";
 
 export interface EngineAttempt {
   engine: string;
@@ -31,9 +36,22 @@ export interface EngineResult {
   attempts: EngineAttempt[];
 }
 
+/** A photo the visitor attached: its MIME type and the bytes, base64. */
+export interface EngineImage {
+  mime: string;
+  data: string;
+}
+
 export interface Engine {
   name: string;
   generate(system: string, user: string): Promise<string>;
+  /**
+   * The same call with a photo in front of the text. Only an engine whose
+   * model reads images implements it; the chain skips the others when a photo
+   * is attached rather than sending a text-only model a question about a
+   * picture it cannot see.
+   */
+  generateWithImage?(system: string, user: string, image: EngineImage): Promise<string>;
 }
 
 class EngineFailure extends Error {}
@@ -46,13 +64,78 @@ class EngineFailure extends Error {}
 const ENGINE_TIMEOUT_MS = 25000;
 
 /* ------------------------------------------------------------------ *
+ * Claude (Anthropic)
+ * ------------------------------------------------------------------ */
+
+/**
+ * The owner's Claude key (البند ١١٩، 21 أكتوبر: «هناك مفتاح كلاود جرّبه…
+ * استفد منه في الشكاوى»). One engine serves the assistant, the photo
+ * reading and the complaints auto-reply alike, because all three build the
+ * same chain.
+ *
+ * Effort is low on purpose: a visitor is waiting behind ENGINE_TIMEOUT_MS,
+ * and these are short answers about a crop or a complaint, not proofs. The
+ * server-side fallback is on, so a request the model's own safeguards decline
+ * is re-run on a sibling model inside the same call rather than failing here.
+ * No retries: the chain itself is the retry.
+ */
+function anthropicEngine(apiKey: string, model = "claude-opus-5-5"): Engine {
+  const client = new Anthropic({ apiKey, timeout: ENGINE_TIMEOUT_MS, maxRetries: 0 });
+  const call = async (system: string, content: Anthropic.Beta.BetaContentBlockParam[]): Promise<string> => {
+    let res: Anthropic.Beta.BetaMessage;
+    try {
+      res = await client.beta.messages.create({
+        model,
+        // Thinking is always on for this model and counts against the cap, so
+        // the cap leaves room for it and for the answer.
+        max_tokens: 8000,
+        output_config: { effort: "low" },
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        system,
+        messages: [{ role: "user", content }],
+      });
+    } catch (err) {
+      if (err instanceof Anthropic.APIError) {
+        throw new EngineFailure(`HTTP ${err.status}: ${err.message.slice(0, 200)}`);
+      }
+      throw err;
+    }
+
+    if (res.stop_reason === "refusal") {
+      throw new EngineFailure(`refused${res.stop_details?.category ? ` (${res.stop_details.category})` : ""}`);
+    }
+    const text = res.content
+      .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .trim();
+    if (!text) throw new EngineFailure(`empty response (${res.stop_reason})`);
+    return text;
+  };
+  return {
+    name: `anthropic/${model}`,
+    generate: (system, user) => call(system, [{ type: "text", text: user }]),
+    // The photo first, then the question, as the API's own examples order them.
+    generateWithImage: (system, user, image) =>
+      call(system, [
+        {
+          type: "image",
+          // The route admits only JPEG, PNG and WebP (assistantPhoto.ts), all of which the API accepts.
+          source: { type: "base64", media_type: image.mime as "image/jpeg" | "image/png" | "image/webp", data: image.data },
+        },
+        { type: "text", text: user },
+      ]),
+  };
+}
+
+/* ------------------------------------------------------------------ *
  * Gemini
  * ------------------------------------------------------------------ */
 
 function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
-  return {
-    name: `gemini/${model}`,
-    async generate(system, user) {
+  type GeminiPart = { text: string } | { inline_data: { mime_type: string; data: string } };
+  const call = async (system: string, parts: GeminiPart[]): Promise<string> => {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
@@ -66,7 +149,7 @@ function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
           },
           body: JSON.stringify({
             system_instruction: { parts: [{ text: system }] },
-            contents: [{ role: "user", parts: [{ text: user }] }],
+            contents: [{ role: "user", parts }],
             generationConfig: { maxOutputTokens: 3072, temperature: 0.3 },
           }),
           signal: AbortSignal.timeout(ENGINE_TIMEOUT_MS),
@@ -88,8 +171,8 @@ function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
        * flagged as thoughts are dropped; they are not for the reader.
        */
       type Part = { text?: string; thought?: boolean };
-      const parts: Part[] = data.candidates?.[0]?.content?.parts ?? [];
-      const text = parts
+      const answerParts: Part[] = data.candidates?.[0]?.content?.parts ?? [];
+      const text = answerParts
         .filter((p) => !p.thought && typeof p.text === "string")
         .map((p) => p.text)
         .join("")
@@ -97,7 +180,13 @@ function geminiEngine(apiKey: string, model = "gemini-flash-latest"): Engine {
 
       if (!text) throw new EngineFailure("empty response");
       return text;
-    },
+  };
+  return {
+    name: `gemini/${model}`,
+    generate: (system, user) => call(system, [{ text: user }]),
+    // The photo goes first, as Google's own examples order it; the question follows.
+    generateWithImage: (system, user, image) =>
+      call(system, [{ inline_data: { mime_type: image.mime, data: image.data } }, { text: user }]),
   };
 }
 
@@ -194,6 +283,7 @@ function openRouterEngine(apiKey: string, models: string[]): Engine {
  * ------------------------------------------------------------------ */
 
 export interface EngineEnv {
+  anthropicKey?: string;
   geminiKey?: string;
   openRouterKey?: string;
   /** Comma-separated override for the free pool. */
@@ -207,6 +297,10 @@ export interface EngineEnv {
  */
 export function buildEngines(env: EngineEnv): Engine[] {
   const engines: Engine[] = [];
+
+  if (env.anthropicKey) {
+    engines.push(anthropicEngine(env.anthropicKey));
+  }
 
   /*
    * Two Gemini entries: the alias first, a pinned id behind it.
@@ -330,12 +424,21 @@ export async function generateWithFallback(
   engines: Engine[],
   system: string,
   user: string,
+  image?: EngineImage,
 ): Promise<{ result: EngineResult | null; attempts: EngineAttempt[] }> {
   const attempts: EngineAttempt[] = [];
 
-  for (const engine of engines) {
+  // With a photo attached only the engines that can look at it are in the
+  // chain. None configured is recorded as an attempt, so the caller's message
+  // names the real reason rather than "every engine failed".
+  const usable = image ? engines.filter((e) => e.generateWithImage) : engines;
+  if (image && usable.length === 0) {
+    attempts.push({ engine: "-", reason: "no engine that reads images is configured" });
+  }
+
+  for (const engine of usable) {
     try {
-      const text = await engine.generate(system, user);
+      const text = image ? await engine.generateWithImage!(system, user, image) : await engine.generate(system, user);
 
       // ويُعامَل كفشلِ محرّك لا كفشلِ طلب: الاحتياطيُّ بعده قد يُحسن.
       const wrong = wrongScriptReason(text);

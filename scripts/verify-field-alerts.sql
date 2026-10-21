@@ -69,6 +69,8 @@ do $$ begin
   perform _eq((select count(*)::int from field_alerts_sent), 3, 'وتُحفظ المفاتيح: اثنان لأ وواحدٌ لـب');
   perform _eq((select kind from notifications where recipient_id = 'b2000000-0000-0000-0000-0000000000b2'), 'animal_disease', 'بنوعه');
   perform _eq(field_alert_send('b2000000-0000-0000-0000-0000000000b2', '{}'::text[], 'animal_disease', 'x', 'x', '/herds'), false, 'وبلا مفاتيح لا يكتب شيئاً');
+  perform _eq(field_alert_send('a1000000-0000-0000-0000-0000000000a1', array['stage:s1'], 'stage_due', 'اليوم موعد مرحلة «الزراعة»', 'نصّ', '/seasons/x'), true, 'وتذكير المرحلة يُكتب');
+  perform _eq(field_alert_send('a1000000-0000-0000-0000-0000000000a1', array['stage:s1'], 'stage_due', 'اليوم موعد مرحلة «الزراعة»', 'نصّ', '/seasons/x'), false, 'ومرّةً واحدة لكلّ مرحلة');
   perform _refuses($q$select field_alert_send('b2000000-0000-0000-0000-0000000000b2', array['k:1'], 'land_verified', 'x', 'x', '/')$q$,
     'ولا يكتب نوعاً آخر من الإشعارات');
   perform _refuses($q$select field_alert_send('b2000000-0000-0000-0000-0000000000b2', array['k:2'], 'animal_disease', '  ', 'x', '/herds')$q$,

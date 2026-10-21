@@ -6,9 +6,56 @@ import { sendLead } from "@/lib/leads";
 import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { useDraggable } from "@/lib/useDraggable";
 import { tr } from "@/lib/i18n";
+import { collectTranscript, recognitionCtor, speechErrorText, speechLang, type RecognitionLike } from "@/lib/speech";
 import { useLocale } from "./LocaleProvider";
 
-type Msg = { role: "user" | "assistant"; text: string; source?: string };
+type Msg = { role: "user" | "assistant"; text: string; source?: string; image?: string };
+
+/** The photo as it goes to the server (base64 JPEG) and as it is shown back (a data URL). */
+type Photo = { mime: string; data: string; preview: string };
+
+/**
+ * «صوّر وأسأل»: the phone's camera photo is a few megabytes, and the farmer is
+ * on a weak connection. Drawn onto a canvas no wider than PHOTO_MAX_PX and
+ * re-encoded as JPEG, it becomes a couple of hundred kilobytes — enough for a
+ * model to read a leaf, small enough to send from the field.
+ */
+const PHOTO_MAX_PX = 1024;
+
+async function shrinkPhoto(file: File): Promise<Photo> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("unreadable image"));
+      el.src = url;
+    });
+    const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no canvas");
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const preview = canvas.toDataURL("image/jpeg", 0.75);
+    return { mime: "image/jpeg", data: preview.slice(preview.indexOf(",") + 1), preview };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Reads an answer aloud with the phone's own Arabic voice, when it has one; false when it has none. */
+function speak(text: string, lang: string): boolean {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang;
+  const voice = window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang.slice(0, 2)));
+  if (voice) u.voice = voice;
+  window.speechSynthesis.speak(u);
+  return true;
+}
 
 /*
  * Where the answer came from, shown under it.
@@ -28,6 +75,7 @@ const SOURCE_LABEL: Record<string, string> = {
   platform: "من حالة المنصة الحالية",
   cache: "معرفة عامة خارج قاعدة سوداقري المتحقَّقة",
   model: "معرفة عامة خارج قاعدة سوداقري المتحقَّقة",
+  photo: "قراءةٌ عامّة للصورة بنموذج ذكاء اصطناعيّ — ليست تشخيصاً؛ الفحص للمرشد الزراعيّ أو الطبيب البيطريّ",
 };
 
 const SOURCE_LABEL_EN: Record<string, string> = {
@@ -39,6 +87,7 @@ const SOURCE_LABEL_EN: Record<string, string> = {
   platform: "From the platform's current state",
   cache: "General knowledge outside Sudagri's verified base",
   model: "General knowledge outside Sudagri's verified base",
+  photo: "A general AI reading of the photo — not a diagnosis; the extension officer or the vet examines",
 };
 
 export default function AssistantWidget() {
@@ -49,6 +98,11 @@ export default function AssistantWidget() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [loading, setLoading] = useState(false);
+  const [photo, setPhoto] = useState<Photo | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [listening, setListening] = useState(false);
+  const recRef = useRef<RecognitionLike | null>(null);
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [leadResult, setLeadResult] = useState<{
     ok: boolean;
@@ -76,12 +130,68 @@ export default function AssistantWidget() {
     return () => window.removeEventListener(OPEN_ASSISTANT_EVENT, openIt);
   }, []);
 
+  async function pickPhoto(file: File | undefined) {
+    if (!file) return;
+    setPhotoBusy(true);
+    try {
+      setPhoto(await shrinkPhoto(file));
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", text: t("تعذّرت قراءة هذه الصورة. جرّب صورة أخرى.", "This photo could not be read. Try another.") }]);
+    } finally {
+      setPhotoBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  /*
+   * «قُل سؤالك»: one press starts the phone's own recogniser, what it hears
+   * lands in the box as it is heard, and a second press (or silence) stops
+   * it. The farmer still presses Send — a misheard word is a wrong answer,
+   * and the box is where it gets corrected.
+   */
+  function toggleListening() {
+    if (listening) {
+      recRef.current?.stop();
+      return;
+    }
+    const Ctor = recognitionCtor();
+    if (!Ctor) {
+      setMessages((m) => [...m, { role: "assistant", text: t("هذا المتصفّح لا يسمع الصوت. جرّب متصفّح كروم.", "This browser cannot take dictation. Try the Chrome browser.") }]);
+      return;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    const rec = new Ctor();
+    rec.lang = speechLang(locale);
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e) => setInput(collectTranscript(e.results));
+    rec.onerror = (e) => {
+      const text = speechErrorText(e.error, locale);
+      if (text) setMessages((m) => [...m, { role: "assistant", text }]);
+    };
+    rec.onend = () => {
+      recRef.current = null;
+      setListening(false);
+    };
+    recRef.current = rec;
+    setListening(true);
+    try {
+      rec.start();
+    } catch {
+      recRef.current = null;
+      setListening(false);
+    }
+  }
+
   async function send() {
     const question = input.trim();
-    if (!question || loading) return;
+    const attached = photo;
+    if ((!question && !attached) || loading) return;
 
-    setMessages((m) => [...m, { role: "user", text: question }]);
+    setMessages((m) => [...m, { role: "user", text: question || t("📷 صورة", "📷 Photo"), image: attached?.preview }]);
     setInput("");
+    setPhoto(null);
     setLoading(true);
 
     try {
@@ -91,7 +201,11 @@ export default function AssistantWidget() {
         // The page the question was asked from, so the assistant can answer a
         // vague "ما هذا؟" about the screen in front of the visitor. This is why
         // the platform needs no help page per screen.
-        body: JSON.stringify({ question, path: pathname }),
+        body: JSON.stringify({
+          question,
+          path: pathname,
+          ...(attached ? { image: { mime: attached.mime, data: attached.data } } : {}),
+        }),
         /*
          * A deadline, because the alternative has no end.
          *
@@ -125,6 +239,7 @@ export default function AssistantWidget() {
       // Hand the question back to the box so a retry is one press rather than
       // retyping it. Only on failure — a delivered question must not reappear.
       setInput(question);
+      if (attached) setPhoto(attached);
     } finally {
       setLoading(false);
     }
@@ -202,8 +317,8 @@ export default function AssistantWidget() {
             {messages.length === 0 && !showLeadForm && (
               <p className="text-muted">
                 {t(
-                  "اسألني عن أي مشروع معروض على المنصة، أو أي محصول أو ماشية سودانية — تربة، ري، آفات، أصناف.",
-                  "Ask me about any project on the platform, or any Sudanese crop or livestock — soil, irrigation, pests, varieties.",
+                  "اسألني عن أي محصول أو ماشية سودانية — تربة، ري، آفات، أصناف. اكتب، أو قُل سؤالك بزرّ الميكروفون، أو صوّر الورقة أو الحيوان بزرّ الكاميرا.",
+                  "Ask me about any Sudanese crop or livestock — soil, irrigation, pests, varieties. Type, say your question with the microphone button, or photograph the leaf or the animal with the camera button.",
                 )}
               </p>
             )}
@@ -217,7 +332,24 @@ export default function AssistantWidget() {
                       : "self-start border border-border bg-background"
                   }`}
                 >
+                  {m.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.image} alt="" className="mb-1 max-h-40 rounded-lg" />
+                  )}
                   <p className="whitespace-pre-wrap">{m.text}</p>
+                  {m.role === "assistant" && m.text.length > 20 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!speak(m.text, locale === "en" ? "en-GB" : "ar-SA")) {
+                          setMessages((all) => [...all, { role: "assistant", text: t("هذا الهاتف لا يقرأ النصّ بصوت. جرّب متصفّح كروم.", "This phone cannot read text aloud. Try the Chrome browser.") }]);
+                        }
+                      }}
+                      className="mt-1 text-[0.7rem] text-muted underline"
+                    >
+                      🔊 {t("اسمع الجواب", "Listen")}
+                    </button>
+                  )}
                   {m.source && SOURCE_LABEL[m.source] && (
                     <p className="mt-1.5 border-t border-border pt-1.5 text-[0.7rem] text-muted">
                       {(locale === "en" ? SOURCE_LABEL_EN : SOURCE_LABEL)[m.source]}
@@ -299,6 +431,16 @@ export default function AssistantWidget() {
             <div ref={endRef} />
           </div>
 
+          {photo && (
+            <div className="flex items-center gap-2 border-t border-border px-2 pt-2 text-xs">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo.preview} alt="" className="h-10 w-10 rounded object-cover" />
+              <span className="flex-1 text-muted">{t("صورة مرفقة — اكتب سؤالك أو أرسلها كما هي", "Photo attached — add a question or send it as it is")}</span>
+              <button type="button" onClick={() => setPhoto(null)} aria-label={t("أزل الصورة", "Remove photo")} className="text-lg leading-none">
+                ×
+              </button>
+            </div>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -306,11 +448,41 @@ export default function AssistantWidget() {
             }}
             className="flex gap-2 border-t border-border p-2"
           >
+            {/* صوّر وأسأل: الكاميرا الخلفيّة مباشرةً على الهاتف، أو ملفٌّ على الحاسوب. */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => pickPhoto(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={loading || photoBusy}
+              aria-label={t("صوّر النبات أو الحيوان واسأل", "Photograph the plant or animal and ask")}
+              title={t("صوّر واسأل", "Photo and ask")}
+              className="rounded-lg border border-border px-2 text-lg disabled:opacity-50"
+            >
+              📷
+            </button>
+            <button
+              type="button"
+              onClick={toggleListening}
+              disabled={loading}
+              aria-pressed={listening}
+              aria-label={listening ? t("أوقف الاستماع", "Stop listening") : t("قُل سؤالك بالصوت", "Say your question")}
+              title={listening ? t("أوقف", "Stop") : t("قُل سؤالك", "Say your question")}
+              className={`rounded-lg border px-2 text-lg disabled:opacity-50 ${listening ? "animate-pulse border-danger bg-danger/10" : "border-border"}`}
+            >
+              🎤
+            </button>
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={t("اكتب سؤالك...", "Type your question...")}
-              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+              placeholder={listening ? t("أسمعك… تكلّم", "Listening… speak") : photo ? t("سؤالك عن الصورة (اختياري)", "Your question about the photo (optional)") : t("اكتب سؤالك...", "Type your question...")}
+              className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <button
               type="submit"

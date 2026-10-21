@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { markAllRead } from "./actions";
+import PushToggle from "@/components/PushToggle";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
 
@@ -30,6 +31,7 @@ const KIND_ICON: Record<string, string> = {
   lead_received: "📞",
   locust_near: "🦗",
   animal_disease: "🐄",
+  stage_due: "📅",
 };
 
 function timeAgo(iso: string, locale: Locale): string {
@@ -115,6 +117,8 @@ export default async function NotificationsPage() {
           </form>
         )}
       </div>
+
+      <PushToggle />
 
       {error && (
         <p className="rounded-xl border border-danger/40 bg-danger/5 p-4 text-sm text-danger">

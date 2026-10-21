@@ -38,7 +38,7 @@ export interface AlertLand {
   longitude: number | null;
 }
 
-export type AlertKind = "locust_near" | "animal_disease";
+export type AlertKind = "locust_near" | "animal_disease" | "stage_due";
 
 export interface FieldAlert {
   recipient: string;
