@@ -1,0 +1,85 @@
+{
+  "note": "Copied by hand. Each figure and each trend is read in the source named beside it, for the date or month given. A sack whose size the source does not state stays «sack». FEWS NET is not here: it has no fertiliser series for Sudan, and its diesel series carry no value since 2024 (checked 21 October 2026). Replace a line when a newer one is found; never estimate one.",
+  "checked": "2026-10-21",
+  "figures": [
+    {
+      "item": "urea",
+      "place_ar": "مشروع الجزيرة والمناقل",
+      "place_en": "Gezira and Managil Scheme",
+      "price": 300000,
+      "unit": "sack",
+      "date": "2026-10-09",
+      "source_ar": "بيان تحالف مزارعي الجزيرة والمناقل، الغد السوداني",
+      "source_en": "Gezira and Managil Farmers' Alliance statement, Alghad Alsudani",
+      "url": "https://alghadalsudani.com/34434/"
+    },
+    {
+      "item": "dap",
+      "place_ar": "مشروع الجزيرة والمناقل",
+      "place_en": "Gezira and Managil Scheme",
+      "price": 450000,
+      "unit": "sack",
+      "date": "2026-10-09",
+      "source_ar": "بيان تحالف مزارعي الجزيرة والمناقل، الغد السوداني",
+      "source_en": "Gezira and Managil Farmers' Alliance statement, Alghad Alsudani",
+      "url": "https://alghadalsudani.com/34434/"
+    },
+    {
+      "item": "diesel",
+      "place_ar": "مدينة القضارف",
+      "place_en": "Gedaref city",
+      "price": 42000,
+      "unit": "gallon",
+      "date": "2026-09-15",
+      "note_ar": "في بداية الموسم الصيفيّ الحاليّ، كما نقلها التقرير",
+      "note_en": "At the start of the current summer season, as the report gives it",
+      "source_ar": "تقرير «أتر»: من الدعم إلى البقاء",
+      "source_en": "Atar report: From Subsidy to Survival",
+      "url": "https://atarnetwork.com/?p=34423"
+    },
+    {
+      "item": "diesel",
+      "place_ar": "مدينة القضارف",
+      "place_en": "Gedaref city",
+      "price": 2070000,
+      "unit": "barrel",
+      "date": "2026-09-15",
+      "note_ar": "البرميل ٤٨ جالوناً (٢٠٠ لتر)، ويصل في بعض المناطق إلى ٢٫٢ مليون",
+      "note_en": "A barrel is 48 gallons (200 litres); in some areas it reaches 2.2 million",
+      "source_ar": "تقرير «أتر»: من الدعم إلى البقاء",
+      "source_en": "Atar report: From Subsidy to Survival",
+      "url": "https://atarnetwork.com/?p=34423"
+    },
+    {
+      "item": "diesel",
+      "place_ar": "ولاية النيل الأبيض",
+      "place_en": "White Nile State",
+      "price": 43000,
+      "unit": "gallon",
+      "date": "2026-09-15",
+      "note_ar": "بعد تخفيض السعر في الولاية «في الأيّام الأخيرة»، كما قال مزارعٌ للتقرير",
+      "note_en": "After the state's price cut «in recent days», as a farmer told the report",
+      "source_ar": "تقرير «أتر»: من الدعم إلى البقاء",
+      "source_en": "Atar report: From Subsidy to Survival",
+      "url": "https://atarnetwork.com/?p=34423"
+    }
+  ],
+  "trends": [
+    {
+      "month": "2026-08",
+      "source_ar": "برنامج الأغذية العالمي — مرصد أسواق السودان، سبتمبر ٢٠٢٦",
+      "source_en": "WFP Sudan Market Monitor, September 2026",
+      "url": "https://logcluster.org/system/files/2026-09/market-monitor-sudan-report-september-2026.pdf",
+      "ar": "في أغسطس ٢٠٢٦ انخفضت أسعار الوقود عن يوليو: في الأسواق التجاريّة البنزين ٢٢٪ والجازولين ١٣٪، وفي السوق الموازي البنزين ١٤٪ والجازولين ١٨٪. وبقيت أعلى بكثير من أغسطس ٢٠٢٥: الجازولين أعلى بـ١٣٣٪ في الأسواق التجاريّة و١٥٥٪ في الموازي، والبنزين بـ٦٨٪ و١٥٠٪.",
+      "en": "In August 2026 fuel prices fell from July: in commercial markets petrol by 22% and diesel by 13%, in the parallel market petrol by 14% and diesel by 18%. They stayed far above August 2025: diesel 133% higher in commercial markets and 155% in the parallel market, petrol 68% and 150%."
+    },
+    {
+      "month": "2026-08",
+      "source_ar": "المعهد الدوليّ لبحوث السياسات الغذائيّة (IFPRI) — تقرير أسعار السلع وتوفّرها رقم ١٩، أغسطس ٢٠٢٦",
+      "source_en": "IFPRI, Sudan Market Prices and Availability Report 19, August 2026",
+      "url": "https://hdl.handle.net/10568/185792",
+      "ar": "أسعار السماد بالتجزئة بقيت مستقرّةً نسبيّاً في أغسطس ٢٠٢٦، وانخفض الداب قليلاً عن آخر أسبوعين من يوليو. ونسبةُ التجّار الذين قالوا إنّ اليوريا متوفّرةٌ بكثرة ارتفعت قليلاً، ونسبتُهم في الداب انخفضت قليلاً. وأسعار الوقود في السوق الموازي واصلت الارتفاع حتى أغسطس، وفي السوق الرسميّ بقيت مستقرّةً نسبيّاً؛ وهي أعلى بكثير في ولايات دارفور وكردفان، خاصّةً شمال دارفور وجنوب كردفان.",
+      "en": "Retail fertiliser prices stayed relatively stable in August 2026, with DAP slightly down from the last two weeks of July. The share of traders reporting high availability rose modestly for urea and fell slightly for DAP. Parallel-market fuel prices kept rising through August while regular-market prices stayed relatively stable; they remained far higher in the Darfur and Kordofan states, especially North Darfur and South Kordofan."
+    }
+  ]
+}

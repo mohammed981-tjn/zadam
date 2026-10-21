@@ -296,6 +296,9 @@ export default async function MarketPage() {
         <Link href="/market/offers" className="rounded-full border border-primary bg-primary/10 px-4 py-2 font-bold text-primary">
           {t("عروض البيع والشراء ←", "Buy and sell offers →")}
         </Link>
+        <Link href="/market/inputs" className="rounded-full border border-primary bg-primary/10 px-4 py-2 font-bold text-primary">
+          {t("أين السماد والجازولين؟ ←", "Where are fertiliser and diesel? →")}
+        </Link>
         <Link href="/rates" className="rounded-full border border-border px-4 py-2">
           {t("أسعار العملات", "Exchange rates")}
         </Link>
