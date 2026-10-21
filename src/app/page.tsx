@@ -216,7 +216,7 @@ export default async function Home() {
       : null,
     {
       value: n0(CROPS.length),
-      label: t("محصولاً بمعاملات FAO-56", "crops with FAO-56 coefficients"),
+      label: t("محصولاً بمعاملات FAO‑56", "crops with FAO‑56 coefficients"),
       note: t("أطوار النمو ومعاملات المحصول", "Growth stages and crop coefficients"),
     },
     {
@@ -240,99 +240,82 @@ export default async function Home() {
 
   return (
     <div>
-      {/* ───────────────────────── الواجهة ───────────────────────── */}
-      <section className="mesh overflow-x-clip">
-        {/* Less ground above the films (backlog 121): the header now stays on
-            screen, and 56px of empty beige under it read as a gap, not a frame. */}
-        <div className="mx-auto max-w-6xl px-4 pb-12 pt-6 sm:pb-20 sm:pt-12">
-          {/*
-            الفيديو والشعارُ في إطارٍ واحد: يعمل المقطعُ مرّةً ثمّ يظهر الشعار
-            مكانه (المالك، 26 سبتمبر: «ادمجهم»). والشعارُ المنفصل تحت الإطار حُذف
-            بطلبه («احذفها… واستفد من المساحة، الفيديو أكبر»)، فكبُر الإطار.
-          */}
-          <HeroVideo />
-
-          <div className="mt-10">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-rose/10 px-3 py-1 text-sm font-bold text-rose">
-            <Icon name="wheat" className="size-5" />
+      {/* ───────────────────────── الواجهة ─────────────────────────
+       * The front, as the Figma design the owner was sent (backlog 121: «خلفيّة
+       * ورديّة… اجعل الوردي طاغياً والأخضر لمسات»): a pink band with the
+       * headline in white and the two doors, then the films, then the figures.
+       * The films moved below the headline: the band says what the platform is
+       * before the player asks for attention.
+       */}
+      <section className="hero-band">
+        <div className="relative mx-auto max-w-6xl px-5 pb-9 pt-7 sm:pb-14 sm:pt-12">
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
+            {/* A green touch: a sprout-coloured dot. */}
+            <span aria-hidden className="size-2 rounded-full bg-[#86efac]" />
             {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
           </p>
 
-          <h1
-            className="max-w-3xl font-black leading-[1.15]"
-            style={{ fontSize: "var(--text-display)" }}
-          >
-            {t("كل رقمٍ هنا يمكنك أن تعيد حسابه", "Every number here is one you can recompute")}{" "}
-            {/* The phrase the whole platform rests on, green into hibiscus (backlog 121). */}
-            <span className="text-hibiscus">{t("بنفسك", "yourself")}</span>
+          <h1 className="max-w-3xl font-black leading-[1.2]" style={{ fontSize: "var(--text-display)" }}>
+            {t("كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك", "Every number here is one you can recompute yourself")}
           </h1>
-          {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان، أخضرَ ينساب إلى الكركدي. */}
-          <svg className="nile-line mt-3 h-4 w-56 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>
-            <defs>
-              <linearGradient id="nile" x1="1" x2="0">
-                <stop offset="0" stopColor="var(--primary)" />
-                <stop offset="1" stopColor="var(--rose)" />
-              </linearGradient>
-            </defs>
-            <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="url(#nile)" strokeWidth="4" strokeLinecap="round" />
+          {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان — أخضرَ فاتحاً على الوردي، لمسةُ الأخضر في الواجهة. */}
+          <svg className="nile-line mt-3 h-4 w-52 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>
+            <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="#86efac" strokeWidth="5" strokeLinecap="round" />
           </svg>
 
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg">
             {t(
               "سوداقري منصّة معرفة زراعية وبيانات للسودان. لا يُعرض رقمٌ دون مصدره ومنهجه: الغلّة من FAOSTAT، والمناخ من NASA POWER، والتربة من SoilGrids، والاحتياج المائي محسوبٌ بمحرّك FAO-56 داخل المنصّة نفسها.",
               "Sudagri is an agricultural knowledge and data platform for Sudan. No number is shown without its source and method: yields from FAOSTAT, climate from NASA POWER, soil from SoilGrids, and crop water needs computed by an FAO-56 engine on the platform itself.",
             )}
           </p>
 
-          {/* Equal widths, one under the other on a phone: two buttons of two
-              different widths, right-aligned, read as a layout that slipped. */}
-          <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
-            {/* والمزارعُ له بابٌ في الواجهة لا في أسفل الصفحة وحدها، وحاسبةُ
-                الماء أكبرُ بطاقات اللوحة. */}
+          {/* Equal widths, one under the other on a phone: white for the
+              farmer's door, an outline for the study. */}
+          <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
             <Link
               href="/signup"
-              className="rounded-xl bg-primary px-5 py-3 text-center font-bold text-primary-foreground shadow-raised transition hover:opacity-90 active:scale-[0.98]"
+              className="rounded-2xl bg-white px-6 py-3.5 text-center font-extrabold text-[#ca2c72] shadow-float transition hover:bg-white/95 active:scale-[0.98]"
             >
               {t("سجّل أرضك ووثّق موسمك", "Register your land and record your season")}
             </Link>
             <Link
               href="/arc-canal"
-              className="rounded-xl border border-rose/30 bg-card px-5 py-3 text-center font-bold text-rose shadow-card transition hover:bg-rose/5 hover:shadow-raised"
+              className="rounded-2xl border-[1.5px] border-white/70 bg-white/10 px-6 py-3.5 text-center font-bold transition hover:bg-white/20"
             >
               {t("اقرأ دراسة القناة القوسية", "Read the Arc Canal study")}
             </Link>
           </div>
-          </div>
-
-
-          {/*
-            The gap-px over a border-coloured background draws the hairlines
-            between tiles without giving each tile its own border, so the strip
-            reads as one instrument panel rather than four boxes.
-
-            auto-fit rather than a fixed four columns, because the tile count is
-            not fixed: a count that fails drops its tile, and a fixed grid then
-            leaves an empty cell showing the border colour as a grey slab. That
-            is not hypothetical — it is exactly what rendering this page in an
-            environment that could not reach the database produced.
-          */}
-          <dl
-            className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-card"
-            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(11rem, 1fr))" }}
-          >
-            {stats.map((s) => (
-              <div key={s.label} className="bg-card p-5">
-                <dt className="text-xs text-muted">{s.label}</dt>
-                <dd className="figure mt-1 text-2xl font-black text-primary sm:text-3xl">
-                  {s.value}
-                </dd>
-                <dd className="mt-1 text-xs leading-relaxed text-muted">
-                  {s.note}
-                </dd>
-              </div>
-            ))}
-          </dl>
         </div>
+      </section>
+
+      {/* ───────────────────────── الأفلام ─────────────────────────
+       * الفيديو والشعارُ في إطارٍ واحد: يعمل المقطعُ مرّةً ثمّ يظهر الشعار
+       * مكانه (المالك، 26 سبتمبر: «ادمجهم»). والإطارُ كبيرٌ بطلبه («الفيديو
+       * أكبر»)، وتحته بطاقةٌ لكلّ فيلم (البند ١٢١).
+       */}
+      <section className="mx-auto max-w-6xl px-4 pt-8">
+        <HeroVideo />
+      </section>
+
+      {/* ───────────────────────── الأرقام ─────────────────────────
+       * Cards rather than one strip: the number in pink, a green dot by its
+       * label. auto-fit, because the count is not fixed — a count that fails
+       * drops its card, and a fixed grid would leave an empty cell.
+       */}
+      <section className="mx-auto max-w-6xl px-4 pb-10 pt-6">
+        <dl className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))" }}>
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-2xl border border-border bg-card p-4 shadow-card">
+              <dt className="flex items-center gap-1.5 text-xs font-bold text-muted">
+                <span aria-hidden className="size-2 shrink-0 rounded-full bg-leaf" />
+                {s.label}
+              </dt>
+              <dd className="figure mt-1 text-3xl font-black text-primary">{s.value}</dd>
+              <dd className="mt-1 text-xs leading-relaxed text-muted">{s.note}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
       {/* شريطُ التوب السوداني (البند ١٠٦) بدل الخطّ الرفيع بين الواجهة وما بعدها. */}
       <div className="toub-rule" aria-hidden />

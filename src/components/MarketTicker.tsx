@@ -38,7 +38,7 @@ export default function MarketTicker({ locale = "ar" }: { locale?: Locale }) {
               {en ? `SDG/${UNIT_NAME[s.unit].en}` : `جنيه/${UNIT_NAME[s.unit].ar.slice(2)}`}
             </span>
             {change !== null && change !== 0 && (
-              <span className={change > 0 ? "text-primary" : "text-danger"}>{change > 0 ? "▲" : "▼"}</span>
+              <span className={change > 0 ? "text-leaf" : "text-danger"}>{change > 0 ? "▲" : "▼"}</span>
             )}
             <span className={`text-xs ${stale ? "text-danger" : "text-muted"}`} dir="ltr">{last.date}</span>
           </span>

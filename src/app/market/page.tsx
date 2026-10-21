@@ -114,7 +114,7 @@ export default async function MarketPage() {
 
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
           {change !== null && (
-            <span className={change > 0 ? "font-bold text-primary" : change < 0 ? "font-bold text-danger" : "text-muted"}>
+            <span className={change > 0 ? "font-bold text-leaf" : change < 0 ? "font-bold text-danger" : "text-muted"}>
               {change > 0 ? "▲" : change < 0 ? "▼" : "＝"}{" "}
               <span dir="ltr">
                 {change > 0 ? "+" : ""}
@@ -189,7 +189,7 @@ export default async function MarketPage() {
                   <td className="px-3 py-2 font-bold" dir="ltr">
                     {money(f.value)}
                     {f.prev !== null && (
-                      <span className={`ms-1 text-xs ${f.value >= f.prev ? "text-primary" : "text-danger"}`}>
+                      <span className={`ms-1 text-xs ${f.value >= f.prev ? "text-leaf" : "text-danger"}`}>
                         {f.value >= f.prev ? "▲" : "▼"}
                       </span>
                     )}

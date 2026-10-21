@@ -99,7 +99,7 @@ export default function NavMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition ${
-          open ? "border-rose bg-rose/10 text-rose" : "border-border bg-card hover:border-rose"
+          open ? "border-rose bg-rose/10 text-rose" : "border-rose/50 bg-card text-rose hover:border-rose"
         }`}
       >
         {/* Three bars in hibiscus pink; the middle one shorter, so the

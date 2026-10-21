@@ -49,7 +49,7 @@ export default function SeasonStrip({ locale }: { locale: Locale }) {
   const sep = locale === "en" ? ", " : "، ";
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-rose/25 bg-rose/5 px-4 py-3 text-sm">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm shadow-card">
       <span className="inline-flex items-center gap-1.5 rounded-full bg-rose px-2.5 py-0.5 text-xs font-bold text-white">
         {t("موسمه الآن", "In season")}
       </span>
