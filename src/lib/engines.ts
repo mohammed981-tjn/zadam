@@ -14,9 +14,14 @@
  * next instead of ending the request. Running out of engines entirely is still
  * survivable — the caller degrades to the nearest knowledge entries.
  *
- * Order is deliberate: Gemini first because the knowledge base and the prompt
- * were tuned against it, then the OpenRouter free pool as the standby.
+ * Order is deliberate: Claude first when its key is set (the owner's choice,
+ * 21 October — it reads photos and answers Arabic well, and it is paid, so it
+ * is not subject to a free tier's afternoon), then Gemini, against which the
+ * knowledge base and the prompt were tuned, then the OpenRouter free pool as
+ * the standby.
  */
+
+import Anthropic from "@anthropic-ai/sdk";
 
 export interface EngineAttempt {
   engine: string;
@@ -57,6 +62,72 @@ class EngineFailure extends Error {}
  * that has not replied by now is treated as one that will not.
  */
 const ENGINE_TIMEOUT_MS = 25000;
+
+/* ------------------------------------------------------------------ *
+ * Claude (Anthropic)
+ * ------------------------------------------------------------------ */
+
+/**
+ * The owner's Claude key (البند ١١٩، 21 أكتوبر: «هناك مفتاح كلاود جرّبه…
+ * استفد منه في الشكاوى»). One engine serves the assistant, the photo
+ * reading and the complaints auto-reply alike, because all three build the
+ * same chain.
+ *
+ * Effort is low on purpose: a visitor is waiting behind ENGINE_TIMEOUT_MS,
+ * and these are short answers about a crop or a complaint, not proofs. The
+ * server-side fallback is on, so a request the model's own safeguards decline
+ * is re-run on a sibling model inside the same call rather than failing here.
+ * No retries: the chain itself is the retry.
+ */
+function anthropicEngine(apiKey: string, model = "claude-opus-5-5"): Engine {
+  const client = new Anthropic({ apiKey, timeout: ENGINE_TIMEOUT_MS, maxRetries: 0 });
+  const call = async (system: string, content: Anthropic.Beta.BetaContentBlockParam[]): Promise<string> => {
+    let res: Anthropic.Beta.BetaMessage;
+    try {
+      res = await client.beta.messages.create({
+        model,
+        // Thinking is always on for this model and counts against the cap, so
+        // the cap leaves room for it and for the answer.
+        max_tokens: 8000,
+        output_config: { effort: "low" },
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        system,
+        messages: [{ role: "user", content }],
+      });
+    } catch (err) {
+      if (err instanceof Anthropic.APIError) {
+        throw new EngineFailure(`HTTP ${err.status}: ${err.message.slice(0, 200)}`);
+      }
+      throw err;
+    }
+
+    if (res.stop_reason === "refusal") {
+      throw new EngineFailure(`refused${res.stop_details?.category ? ` (${res.stop_details.category})` : ""}`);
+    }
+    const text = res.content
+      .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .trim();
+    if (!text) throw new EngineFailure(`empty response (${res.stop_reason})`);
+    return text;
+  };
+  return {
+    name: `anthropic/${model}`,
+    generate: (system, user) => call(system, [{ type: "text", text: user }]),
+    // The photo first, then the question, as the API's own examples order them.
+    generateWithImage: (system, user, image) =>
+      call(system, [
+        {
+          type: "image",
+          // The route admits only JPEG, PNG and WebP (assistantPhoto.ts), all of which the API accepts.
+          source: { type: "base64", media_type: image.mime as "image/jpeg" | "image/png" | "image/webp", data: image.data },
+        },
+        { type: "text", text: user },
+      ]),
+  };
+}
 
 /* ------------------------------------------------------------------ *
  * Gemini
@@ -212,6 +283,7 @@ function openRouterEngine(apiKey: string, models: string[]): Engine {
  * ------------------------------------------------------------------ */
 
 export interface EngineEnv {
+  anthropicKey?: string;
   geminiKey?: string;
   openRouterKey?: string;
   /** Comma-separated override for the free pool. */
@@ -225,6 +297,10 @@ export interface EngineEnv {
  */
 export function buildEngines(env: EngineEnv): Engine[] {
   const engines: Engine[] = [];
+
+  if (env.anthropicKey) {
+    engines.push(anthropicEngine(env.anthropicKey));
+  }
 
   /*
    * Two Gemini entries: the alias first, a pinned id behind it.
