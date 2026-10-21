@@ -411,7 +411,7 @@ export default function OpportunityForm({
         </button>
       </form>
 
-      <aside className="h-fit lg:sticky lg:top-6">
+      <aside className="h-fit lg:sticky lg:top-24">
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-xs text-muted">{t("درجة التقييم الآن", "Current score")}</p>
           <p className={`mt-1 text-4xl font-black ${scoreTone}`}>

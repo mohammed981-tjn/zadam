@@ -1,4 +1,7 @@
 import Link from "next/link";
+import ActionNotice from "@/components/ActionNotice";
+import PageHeader from "@/components/PageHeader";
+import MarketTabs from "@/components/market/MarketTabs";
 import { tr, type Locale } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import {
@@ -79,20 +82,16 @@ export default async function OffersPage({
   const field = "rounded-lg border border-border bg-background px-3 py-2 text-sm";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <p className="mb-2 text-sm">
-        <Link href="/market" className="text-primary underline">{t("→ سوق المحاصيل اليوم", "← Crop market today")}</Link>
-      </p>
-      <h1 className="text-2xl font-bold">{t("عروض البيع والشراء", "Buy and sell offers")}</h1>
-      <p className="mb-4 mt-2 text-sm leading-relaxed text-muted">
+    <div className="mx-auto max-w-3xl px-4 py-6">
+      <MarketTabs active="/market/offers" locale={locale} />
+      <PageHeader icon="chart" eyebrow={t("السوق والأسعار", "Market and prices")} title={t("عروض البيع والشراء", "Buy and sell offers")}>
         {t(
           "مزارعٌ عنده محصول، وتاجرٌ يبحث عنه: اكتب ما عندك أو ما تطلبه، ومكانك، ورقمك، فيتّصل بك من يهمّه الأمر مباشرة.",
           "A farmer with a crop, a trader looking for one: post what you have or what you want, where you are and your number, and whoever is interested calls you directly.",
         )}
-      </p>
+      </PageHeader>
 
-      {ok && <p role="status" className="mb-4 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm">{ok}</p>}
-      {flash && <p role="alert" className="mb-4 rounded-xl border border-danger/40 bg-danger/5 px-4 py-3 text-sm">{flash}</p>}
+      <ActionNotice ok={ok} error={flash} />
 
       <OfferNotice locale={locale} />
 
@@ -128,7 +127,7 @@ export default async function OffersPage({
                   <option key={s} value={s}>{stateName(s, locale)}</option>
                 ))}
               </select>
-              <button className="rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-primary">{t("اعرض", "Show")}</button>
+              <button className="rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-orange hover:text-orange">{t("اعرض", "Show")}</button>
             </form>
             <Link href="/market/offers/new" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">
               {t("+ أضف عرضاً", "+ Add an offer")}

@@ -31,7 +31,10 @@ export type IconName =
   | "cloud"
   | "compass"
   | "people"
-  | "message";
+  | "message"
+  | "home"
+  | "wrench"
+  | "user";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   // A stalk with grain — agriculture, without the emoji's cartoon warmth.
@@ -120,6 +123,21 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   message: <path d="M4 5h16v11H9l-5 4V5Z" />,
+  // The menu's section marks (backlog 121): the front page, the services, the account.
+  home: (
+    <>
+      <path d="M3 11.5 12 4l9 7.5" />
+      <path d="M5.5 10v10h13V10" />
+      <path d="M10 20v-5.5h4V20" />
+    </>
+  ),
+  wrench: <path d="M14.7 6.3a4 4 0 0 0-5.3 5.3L3.5 17.5a1.4 1.4 0 0 0 2 2l5.9-5.9a4 4 0 0 0 5.3-5.3l-2.4 2.4-2.1-.4-.4-2.1 2.4-2.4Z" />,
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </>
+  ),
 };
 
 export default function Icon({

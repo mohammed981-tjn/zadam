@@ -39,9 +39,11 @@ export function QuickTabs({ tabs, label = "تبويبات سريعة" }: { tabs:
         <Link
           key={t.href}
           href={t.href}
-          className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-3 text-center text-sm font-medium shadow-card transition hover:-translate-y-0.5 hover:border-rose/60 hover:shadow-raised"
+          className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-3 text-center text-sm font-bold shadow-card transition hover:-translate-y-0.5 hover:border-orange/60 hover:shadow-raised"
         >
-          <span className="flex size-10 items-center justify-center rounded-xl bg-rose/10 text-rose">
+          {/* Sunset into hibiscus (backlog 121, keeping 98's pink): the one
+              solid colour on the strip, so the six doors read as doors. */}
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-bright to-rose text-white shadow-card">
             <Icon name={t.icon} className="size-5" />
           </span>
           {t.label}

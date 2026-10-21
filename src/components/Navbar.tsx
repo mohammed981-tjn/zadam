@@ -46,10 +46,19 @@ export default async function Navbar() {
    * before mining and administration, so the order does not reshuffle on
    * login — the menu should look like the same menu with more in it.
    */
+  /*
+   * Twelve links under «الرئيسية» was not a section, it was the rest of the
+   * site (backlog 121). They split by what the reader came to do: start and
+   * read; check a price; work out something for the farm. And each page is in
+   * the menu once — /guide sat under «الرئيسية» and again under «مزرعتك»,
+   * /export/market under «مزرعتك» and again under the studies, and a visitor
+   * saw /signup in two sections. The second copies are gone, not the pages.
+   */
   const groups: NavGroup[] = [
     {
       title: t("الرئيسية", "Home"),
       hint: t("ابدأ من هنا", "Start here"),
+      icon: "home",
       items: [
         { href: "/", label: t("الصفحة الرئيسية", "Home page") },
         // الأخبار خرجت من الرئيسيّة إلى صفحتها (طلب المالك، 25 سبتمبر)، فبابُها
@@ -59,19 +68,35 @@ export default async function Navbar() {
         // كانت تُوعَد من الصفحة الأولى مرّتين ولا توجد. ووجودُها في القائمة
         // يجعلها قابلةً للوصول من كلّ صفحة، لا من الأولى وحدها.
         { href: "/knowledge", label: t("قاعدة المعرفة", "Knowledge base") },
+        { href: "/feedback", label: t("ملاحظات واقتراحات", "Feedback and suggestions") },
+      ],
+    },
+    {
+      title: t("السوق والأسعار", "Market and prices"),
+      hint: t("المحاصيل والعروض والسماد والوقود والعملات", "Crops, offers, fertiliser, fuel and currencies"),
+      icon: "chart",
+      items: [
+        { href: "/market", label: t("سوق المحاصيل اليوم", "Crop market today") },
+        { href: "/market/offers", label: t("عروض البيع والشراء", "Buy and sell offers") },
+        { href: "/market/inputs", label: t("أين السماد والجازولين وبكم", "Where fertiliser and diesel are, and at what price") },
+        { href: "/rates", label: t("أسعار العملات", "Exchange rates") },
+      ],
+    },
+    {
+      title: t("أدوات المزرعة", "Farm tools"),
+      hint: t("المطر والماء والجدوى ومحاصيل جديدة", "Rain, water, feasibility and new crops"),
+      icon: "droplet",
+      items: [
         { href: "/rain", label: t("توقّع الأمطار والخرائط", "Rain forecast and maps") },
         { href: "/tools/water", label: t("حاسبة الاحتياج المائي", "Crop water calculator") },
         { href: "/tools/feasibility", label: t("دراسة الجدوى المرحلية", "Staged feasibility study") },
-        { href: "/market", label: t("سوق المحاصيل اليوم", "Crop market today") },
-        { href: "/market/offers", label: t("عروض البيع والشراء", "Buy and sell offers") },
         { href: "/tools/new-crops", label: t("محاصيل جديدة تستحق التجربة", "New crops worth trying") },
-        { href: "/rates", label: t("أسعار العملات", "Exchange rates") },
-        { href: "/feedback", label: t("ملاحظات واقتراحات", "Feedback and suggestions") },
       ],
     },
     {
       title: t("الخدمات التعاقدية", "Contract services"),
       hint: t("مسح ورَي وميكنة وإرشاد وخدمات بيطرية", "Surveying, irrigation, machinery, extension and veterinary services"),
+      icon: "wrench",
       items: [
         { href: "/how-we-work", label: t("إجراءات العمل: من البذرة إلى السوق", "How we work: from seed to market") },
         { href: "/services", label: t("كتالوج الخدمات", "Services catalogue") },
@@ -104,15 +129,18 @@ export default async function Navbar() {
    * `/dashboard` — the investor portfolio — so a farmer who followed the honest
    * href would arrive somewhere that has nothing to do with what they clicked.
    * Pointing at signup states the requirement instead of walking them into it.
+   *
+   * It also carries sign-in now. The visitor had a separate «حسابك» section at
+   * the bottom whose first link was the same /signup — two doors to one room.
    */
   if (!user) {
     groups.push({
-      title: t("مزرعتك", "Your farm"),
+      title: t("مزرعتك وحسابك", "Your farm and account"),
       hint: t("سجّل أرضك ووثّق موسمك — يحتاج حساباً", "Register your land and record your season — needs an account"),
+      icon: "wheat",
       items: [
-        { href: "/signup", label: t("سجّل أرضك", "Register your land") },
-        { href: "/guide", label: t("كيف تسير الخطوات", "How the steps work") },
-        { href: "/export/market", label: t("عروض التصدير المنشورة", "Published export offers") },
+        { href: "/signup", label: t("أنشئ حساباً وسجّل أرضك", "Create an account and register your land") },
+        { href: "/login", label: t("لديك حساب؟ ادخل", "Have an account? Sign in") },
       ],
     });
   }
@@ -121,6 +149,7 @@ export default async function Navbar() {
     groups.push({
       title: t("مزرعتي", "My farm"),
       hint: t("الأرض والمواسم والقطيع", "Land, seasons and herd"),
+      icon: "wheat",
       items: [
         { href: "/lands", label: t("أراضيّ", "My land") },
         { href: "/seasons", label: t("مواسمي", "My seasons") },
@@ -133,6 +162,7 @@ export default async function Navbar() {
     groups.push({
       title: t("استثماري", "My investment"),
       hint: t("محفظتك وخططك", "Your portfolio and plans"),
+      icon: "spark",
       items: [
         { href: "/dashboard", label: t("محفظتي", "My portfolio") },
         { href: "/projects", label: t("المشاريع المطروحة", "Open projects") },
@@ -141,11 +171,12 @@ export default async function Navbar() {
     });
   }
 
-  // النفير قبل الملكيّة والدراسات: بابٌ عامّ يدخله الزائر قبل أن يسجّل،
+  // النفير قبل الدراسات: بابٌ عامّ يدخله الزائر قبل أن يسجّل،
   // لأنّ دعوةً إلى حصادٍ هذا الأسبوع هي ما قد يجعله يسجّل.
   groups.push({
     title: t("النفير — العمل المشترك", "Nafir — working together"),
     hint: t("الميثاق والنفير والفزعة والشورى والجودية", "Charter, nafir, faza, shura and judiyya"),
+    icon: "people",
     items: [
       { href: "/nafir", label: t("ساحة النفير", "Nafir square") },
       { href: "/nafir/charter", label: t("الميثاق", "The charter") },
@@ -159,7 +190,8 @@ export default async function Navbar() {
 
   groups.push({
     title: t("مشاريع ودراسات", "Projects and studies"),
-    hint: t("قراءات في أرقام المشاريع الكبرى والاقتصاد", "Readings in the numbers of major projects and the economy"),
+    hint: t("قراءات في أرقام المشاريع الكبرى والاقتصاد، والصادر", "Readings in the numbers of major projects and the economy, and exports"),
+    icon: "book",
     items: [
       { href: "/studies", label: t("كلّ الدراسات", "All studies") },
       { href: "/studies/exchange-rate", label: t("أزمة سعر الصرف والتضخم", "The exchange-rate and inflation crisis") },
@@ -172,6 +204,7 @@ export default async function Navbar() {
   groups.push({
     title: t("التعدين", "Mining"),
     hint: t("قسم مستقل عن الزراعة", "A section separate from agriculture"),
+    icon: "pickaxe",
     items: [
       { href: "/mining", label: t("قسم التعدين", "Mining section") },
       { href: "/mining/registry", label: t("سجلّ إثبات المنشأ", "Proof-of-origin registry") },
@@ -183,6 +216,7 @@ export default async function Navbar() {
     groups.push({
       title: t("الإدارة", "Administration"),
       hint: t("للمشرفين وحدهم", "Administrators only"),
+      icon: "shield",
       items: [
         { href: "/admin", label: t("لوحة المشاريع", "Projects board") },
         // الشاشةُ التي كان إجراؤها موجوداً وهي مفقودة — وبلاها لا تُوثَّق أرضٌ
@@ -204,23 +238,16 @@ export default async function Navbar() {
     });
   }
 
-  if (!user) {
-    groups.push({
-      title: t("حسابك", "Your account"),
-      hint: t("الدخول أو التسجيل", "Sign in or sign up"),
-      items: [
-        { href: "/login", label: t("تسجيل الدخول", "Sign in") },
-        { href: "/signup", label: t("إنشاء حساب", "Create an account") },
-      ],
-    });
-  }
-
   return (
-    <header className="border-b border-border print:hidden">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
+    // The header stays on screen (backlog 121): the menu is the way around the
+    // site, and on a long page it was a scroll back to the top away. Frosted
+    // rather than solid so the page still reads as one surface beneath it.
+    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md print:hidden">
+      <div className="sunrise-edge" aria-hidden />
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <Link
           href="/"
-          className="flex items-center gap-2 text-lg font-bold text-primary"
+          className="flex shrink-0 items-center gap-2 text-lg font-black text-primary sm:text-xl"
         >
           {/*
             السنبلةُ هنا، والشعارُ في الواجهة — وهذا ما طلبه المالك حرفيّاً.
@@ -267,7 +294,7 @@ export default async function Navbar() {
                   ? t(`الإشعارات، ${unread} غير مقروء`, `Notifications, ${unread} unread`)
                   : t("الإشعارات", "Notifications")
               }
-              className="relative rounded-lg border border-border px-2.5 py-2 text-sm hover:border-primary"
+              className="relative rounded-xl border border-border bg-card px-2.5 py-2 text-sm transition hover:border-orange"
             >
               🔔
               {unread > 0 && (
@@ -296,7 +323,7 @@ export default async function Navbar() {
           {!user && (
             <Link
               href="/signup"
-              className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+              className="whitespace-nowrap rounded-xl bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground shadow-card transition hover:opacity-90 active:scale-[0.98]"
             >
               {t("ابدأ الآن", "Get started")}
             </Link>

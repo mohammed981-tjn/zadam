@@ -2,6 +2,8 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import Link from "next/link";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
+import PageHeader from "@/components/PageHeader";
+import MarketTabs from "@/components/market/MarketTabs";
 import PriceAlert from "@/components/market/PriceAlert";
 import Sparkline from "@/components/market/Sparkline";
 import { ageInDays, readFxReference } from "@/lib/fxRates";
@@ -283,26 +285,16 @@ export default async function MarketPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{t("سوق المحاصيل اليوم", "Crop market today")}</h1>
-      <p className="mb-4 mt-2 text-sm leading-relaxed text-muted">
+    <div className="mx-auto max-w-3xl px-4 py-6">
+      {/* الأبوابُ الثلاثة التي كانت هنا أزراراً («عروض البيع والشراء ←»…)
+          صارت تبويباتِ السوق فوق كلّ صفحاته (البند ١٢١). */}
+      <MarketTabs active="/market" locale={locale} />
+      <PageHeader icon="chart" eyebrow={t("السوق والأسعار", "Market and prices")} title={t("سوق المحاصيل اليوم", "Crop market today")}>
         {t(
           "آخر ما نُشر من أسعار بورصتي القضارف والأبيض: بالوحدة التي يُباع بها المحصول هناك، بالجنيه وبما يقابله بالدولار، مع الوارد والتغيّر وتاريخ كلّ رقمٍ ومصدره.",
           "The latest published prices from the Gedaref and El Obeid bourses: in the unit each crop is sold by there, in pounds and their dollar equivalent, with arrivals, the change, and each figure's date and source.",
         )}
-      </p>
-
-      <div className="mb-6 flex flex-wrap gap-2 text-sm">
-        <Link href="/market/offers" className="rounded-full border border-primary bg-primary/10 px-4 py-2 font-bold text-primary">
-          {t("عروض البيع والشراء ←", "Buy and sell offers →")}
-        </Link>
-        <Link href="/market/inputs" className="rounded-full border border-primary bg-primary/10 px-4 py-2 font-bold text-primary">
-          {t("أين السماد والجازولين؟ ←", "Where are fertiliser and diesel? →")}
-        </Link>
-        <Link href="/rates" className="rounded-full border border-border px-4 py-2">
-          {t("أسعار العملات", "Exchange rates")}
-        </Link>
-      </div>
+      </PageHeader>
 
       <div className="mb-6 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-sm leading-relaxed">
         {t(

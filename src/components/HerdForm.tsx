@@ -185,7 +185,7 @@ export default function HerdForm({
         )}
       </div>
 
-      <aside className="flex h-fit flex-col gap-3 rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-6">
+      <aside className="flex h-fit flex-col gap-3 rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-24">
         <h2 className="text-sm font-bold">{t("خطة الدورة", "Cycle plan")}</h2>
 
         {!plan ? (

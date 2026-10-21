@@ -251,7 +251,7 @@ export default async function Home() {
           <HeroVideo />
 
           <div className="mt-10">
-          <p className="mb-4 flex items-center gap-2 text-sm font-medium text-rose">
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-rose/10 px-3 py-1 text-sm font-bold text-rose">
             <Icon name="wheat" className="size-5" />
             {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
           </p>
@@ -260,7 +260,9 @@ export default async function Home() {
             className="max-w-3xl font-black leading-[1.15]"
             style={{ fontSize: "var(--text-display)" }}
           >
-            {t("كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك", "Every number here is one you can recompute yourself")}
+            {t("كل رقمٍ هنا يمكنك أن تعيد حسابه", "Every number here is one you can recompute")}{" "}
+            {/* The phrase the whole platform rests on, in the sunset (backlog 121). */}
+            <span className="text-sunset">{t("بنفسك", "yourself")}</span>
           </h1>
           {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان، أخضرَ ينساب إلى الكركدي. */}
           <svg className="nile-line mt-3 h-4 w-56 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>
