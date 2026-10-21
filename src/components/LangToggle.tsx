@@ -25,7 +25,7 @@ export default function LangToggle() {
       disabled={pending}
       lang={next}
       aria-label={next === "en" ? "Switch to English" : "التحويل إلى العربية"}
-      className="rounded-xl border border-border bg-card px-2.5 py-2 text-sm font-bold transition hover:border-orange hover:text-orange disabled:opacity-60"
+      className="rounded-xl border border-border bg-card px-2.5 py-2 text-sm font-bold transition hover:border-rose hover:text-rose disabled:opacity-60"
     >
       {next === "en" ? "EN" : "ع"}
     </button>

@@ -41,19 +41,6 @@
   --rose: #be185d;
 
   /*
-   * Sunset orange — the colour of where you are (backlog 121: «لمسات جمالية
-   * باللون البرتقالي والتبويبات والقوائم»). It marks navigation and selection
-   * only: the open tab, the menu entry you are on, a section's icon, the line
-   * across the top of the header. Green stays action, gold caution, pink the
-   * small decorative touch — so orange always answers one question, «أين أنا؟»,
-   * and never carries a number or a button. #c2410c holds 5.2:1 on white; the
-   * bright stop is for gradients and fills behind white text at bold weight.
-   */
-  --orange: #c2410c;
-  --orange-bright: #f97316;
-  --orange-soft: color-mix(in oklab, var(--orange-bright) 12%, transparent);
-
-  /*
    * Elevation, as light rather than as outline.
    *
    * The site drew a 1px border around every card, which at a dozen cards a
@@ -69,7 +56,6 @@
   --mesh-1: color-mix(in oklab, var(--primary) 14%, transparent);
   --mesh-2: color-mix(in oklab, var(--accent) 12%, transparent);
   --mesh-3: color-mix(in oklab, var(--rose) 7%, transparent);
-  --mesh-4: color-mix(in oklab, var(--orange-bright) 10%, transparent);
 
   --ring: color-mix(in oklab, var(--primary) 55%, transparent);
 
@@ -96,9 +82,6 @@
     --muted: #a3a698;
     --accent: #d4a72c;
     --rose: #f472b6;
-    --orange: #fb923c;
-    --orange-bright: #f97316;
-    --orange-soft: color-mix(in oklab, var(--orange-bright) 16%, transparent);
 
     /* Shadow alone cannot lift a surface on a dark ground — the card is also
        lighter than the page, and the shadow deepens that separation. */
@@ -109,7 +92,6 @@
     --mesh-1: color-mix(in oklab, var(--primary) 18%, transparent);
     --mesh-2: color-mix(in oklab, var(--accent) 14%, transparent);
     --mesh-3: color-mix(in oklab, var(--rose) 9%, transparent);
-    --mesh-4: color-mix(in oklab, var(--orange-bright) 12%, transparent);
 
     --map-sea: #142a36;
     --map-land: #20281f;
@@ -131,9 +113,6 @@
   --color-accent: var(--accent);
   --color-danger: var(--danger);
   --color-rose: var(--rose);
-  --color-orange: var(--orange);
-  --color-orange-bright: var(--orange-bright);
-  --color-orange-soft: var(--orange-soft);
   --font-sans: var(--font-tajawal);
 
   --shadow-card: var(--shadow-sm);
@@ -266,9 +245,7 @@ html {
     ),
     radial-gradient(45rem 25rem at 10% 110%, var(--mesh-2), transparent 60%),
     /* A third, faint hibiscus pool between the two — the pink as a breath, not a band. */
-    radial-gradient(30rem 18rem at 50% 45%, var(--mesh-3), transparent 65%),
-    /* And a low sunset glow on the far side (backlog 121). */
-    radial-gradient(28rem 20rem at 0% 20%, var(--mesh-4), transparent 65%);
+    radial-gradient(30rem 18rem at 50% 45%, var(--mesh-3), transparent 65%);
 }
 
 /*
@@ -308,7 +285,7 @@ html {
 }
 
 /* The short bar under a section title: a touch that says «a new section starts».
-   Hibiscus still ends it (backlog 98); the sunset orange now leads in (backlog 121). */
+   Hibiscus (backlog 98) running into field green (backlog 121: «الأخضر والوردي الطاغي»). */
 .title-bar::after {
   content: "";
   display: block;
@@ -316,35 +293,31 @@ html {
   block-size: 0.25rem;
   margin-block-start: 0.5rem;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--rose), var(--orange-bright));
+  /* Two clean blocks, not a blend: green mixed into pink passes through brown. */
+  background: linear-gradient(90deg, var(--primary) 55%, var(--rose) 55%);
 }
 
 /*
- * The sunrise edge (backlog 121): a 3px band across the top of the header,
- * green field to gold grain to sunset orange to hibiscus — the whole palette in
- * one line, so every page opens with the colour without any of it shouting.
+ * The brand edge (backlog 121): a 3px band across the top of the header, field
+ * green into hibiscus — the two colours the owner chose to lead («الأخضر
+ * والوردي الطاغي», after an orange draft was turned down), so every page opens
+ * with them without either shouting.
  */
-.sunrise-edge {
+.brand-edge {
   block-size: 3px;
-  background: linear-gradient(
-    90deg,
-    var(--primary),
-    var(--accent) 35%,
-    var(--orange-bright) 65%,
-    var(--rose)
-  );
+  background: linear-gradient(90deg, var(--primary) 50%, var(--rose) 50%);
 }
 
 /*
- * The selected tab, the menu entry you are on: the one solid orange on a
- * screen. Fixed stops rather than the theme token, because white text has to
- * hold on it in dark mode too — #c2410c is 5.2:1 and #9a3412 7.3:1 against
- * white, where the dark theme's lighter orange would not be.
+ * The selected tab, and the menu section you are in: solid green, the one
+ * filled tab on a screen. Fixed stops rather than the theme token, because
+ * white text has to hold on it in dark mode too — #1f7a3d is 5.3:1 and
+ * #155d2e 7.6:1 against white, where the dark theme's lighter green is not.
  */
 .tab-on {
-  background: linear-gradient(135deg, #c2410c, #9a3412);
+  background: linear-gradient(135deg, #1f7a3d, #155d2e);
   color: #fff;
-  box-shadow: 0 2px 8px rgb(194 65 12 / 0.3);
+  box-shadow: 0 2px 8px rgb(31 122 61 / 0.3);
 }
 
 /*
@@ -362,13 +335,9 @@ html {
   display: none;
 }
 
-/* A word in a headline set in the sunset, for the one phrase that carries it. */
-.text-sunset {
-  /* The deep orange, not the bright: a headline still has to hold 3:1. */
-  background: linear-gradient(90deg, var(--orange), var(--rose));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* A word in a headline set in hibiscus, for the one phrase that carries it. */
+.text-hibiscus {
+  color: var(--rose);
 }
 
 /* A border tinted towards the brand, for the one card on a screen that leads. */

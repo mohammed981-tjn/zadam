@@ -124,7 +124,7 @@ export default async function InputsBoardPage({ searchParams }: { searchParams: 
         <Link href="/market/inputs/report" className="rounded-full border border-primary bg-primary px-4 py-2 font-bold text-primary-foreground">
           {t("بلّغ عن سعر ←", "Report a price →")}
         </Link>
-        <Link href="/suppliers?item=fertilizer" className="rounded-full border border-border px-4 py-2 transition hover:border-orange hover:text-orange">
+        <Link href="/suppliers?item=fertilizer" className="rounded-full border border-border px-4 py-2 transition hover:border-rose hover:text-rose">
           {t("موردو السماد", "Fertiliser suppliers")}
         </Link>
       </div>

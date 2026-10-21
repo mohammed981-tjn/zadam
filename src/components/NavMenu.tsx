@@ -99,12 +99,12 @@ export default function NavMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition ${
-          open ? "border-orange bg-orange-soft text-orange" : "border-border bg-card hover:border-orange"
+          open ? "border-rose bg-rose/10 text-rose" : "border-border bg-card hover:border-rose"
         }`}
       >
-        {/* Three bars in the sunset orange; the middle one shorter, so the
+        {/* Three bars in hibiscus pink; the middle one shorter, so the
             mark reads as a list and not as a flag. */}
-        <span aria-hidden className="flex flex-col items-end gap-[3px] text-orange">
+        <span aria-hidden className="flex flex-col items-end gap-[3px] text-rose">
           <span className="block h-[2px] w-4 rounded-full bg-current" />
           <span className="block h-[2px] w-3 rounded-full bg-current" />
           <span className="block h-[2px] w-4 rounded-full bg-current" />
@@ -154,14 +154,14 @@ export default function NavMenu({
                   }`}
                 >
                   <span className="flex items-center gap-3">
-                    {/* The section's mark. Solid orange when the page you are
+                    {/* The section's mark. Solid green when the page you are
                         on is inside it, so the closed menu still says where
                         you are. */}
                     {group.icon && (
                       <span
                         aria-hidden
                         className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
-                          holdsCurrentPage ? "tab-on" : "bg-orange-soft text-orange"
+                          holdsCurrentPage ? "tab-on" : "bg-rose/10 text-rose"
                         }`}
                       >
                         <Icon name={group.icon} className="size-5" />
@@ -170,7 +170,7 @@ export default function NavMenu({
                     <span className="flex flex-col gap-0.5">
                       <span
                         className={`text-sm font-bold ${
-                          holdsCurrentPage ? "text-orange" : ""
+                          holdsCurrentPage ? "text-primary" : ""
                         }`}
                       >
                         {group.title}
@@ -227,7 +227,7 @@ export default function NavMenu({
                           // the entries read as inside their section.
                           className={`mx-2 block rounded-xl py-2.5 pe-3 ps-14 text-sm transition ${
                             active
-                              ? "bg-orange-soft font-bold text-orange"
+                              ? "bg-primary/10 font-bold text-primary"
                               : "hover:bg-card"
                           }`}
                         >

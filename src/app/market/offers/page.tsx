@@ -127,7 +127,7 @@ export default async function OffersPage({
                   <option key={s} value={s}>{stateName(s, locale)}</option>
                 ))}
               </select>
-              <button className="rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-orange hover:text-orange">{t("اعرض", "Show")}</button>
+              <button className="rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-rose hover:text-rose">{t("اعرض", "Show")}</button>
             </form>
             <Link href="/market/offers/new" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">
               {t("+ أضف عرضاً", "+ Add an offer")}

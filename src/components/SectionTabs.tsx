@@ -54,7 +54,7 @@ export default function SectionTabs({
               href={t.href}
               aria-current={on ? "page" : undefined}
               className={`shrink-0 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-bold transition ${
-                on ? "tab-on" : "text-muted hover:bg-orange-soft hover:text-orange"
+                on ? "tab-on" : "text-muted hover:bg-rose/10 hover:text-rose"
               }`}
             >
               {t.label}

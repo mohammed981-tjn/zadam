@@ -234,7 +234,7 @@ export default async function ReportInputPricePage({ searchParams }: { searchPar
                 {!r.hidden_at && (
                   <form action={hideReport} className="mt-2 flex gap-2">
                     <input type="hidden" name="report_id" value={r.id} />
-                    <input name="note" required minLength={2} maxLength={200} placeholder={t("سبب الإخفاء", "Reason for hiding")} className="w-full rounded-lg border border-border bg-background px-3 py-1 text-xs focus:border-orange focus:outline-none" />
+                    <input name="note" required minLength={2} maxLength={200} placeholder={t("سبب الإخفاء", "Reason for hiding")} className="w-full rounded-lg border border-border bg-background px-3 py-1 text-xs focus:border-primary focus:outline-none" />
                     <button className="shrink-0 text-xs text-danger underline">{t("أخفِ", "Hide")}</button>
                   </form>
                 )}

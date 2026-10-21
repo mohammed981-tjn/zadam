@@ -35,15 +35,20 @@ export interface QuickTab {
 export function QuickTabs({ tabs, label = "تبويبات سريعة" }: { tabs: QuickTab[]; label?: string }) {
   return (
     <nav aria-label={label} className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-      {tabs.map((t) => (
+      {tabs.map((t, i) => (
         <Link
           key={t.href}
           href={t.href}
-          className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-3 text-center text-sm font-bold shadow-card transition hover:-translate-y-0.5 hover:border-orange/60 hover:shadow-raised"
+          className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-3 text-center text-sm font-bold shadow-card transition hover:-translate-y-0.5 hover:border-rose/60 hover:shadow-raised"
         >
-          {/* Sunset into hibiscus (backlog 121, keeping 98's pink): the one
-              solid colour on the strip, so the six doors read as doors. */}
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-bright to-rose text-white shadow-card">
+          {/* Green and hibiscus in turn (backlog 121: «الأخضر والوردي الطاغي»):
+              solid chips, so the six doors read as doors. Alternating rather
+              than blended — green mixed into pink passes through brown. */}
+          <span
+            className={`flex size-11 items-center justify-center rounded-2xl text-white shadow-card ${
+              i % 2 === 0 ? "bg-primary" : "bg-rose"
+            }`}
+          >
             <Icon name={t.icon} className="size-5" />
           </span>
           {t.label}

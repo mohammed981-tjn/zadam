@@ -261,8 +261,8 @@ export default async function Home() {
             style={{ fontSize: "var(--text-display)" }}
           >
             {t("كل رقمٍ هنا يمكنك أن تعيد حسابه", "Every number here is one you can recompute")}{" "}
-            {/* The phrase the whole platform rests on, in the sunset (backlog 121). */}
-            <span className="text-sunset">{t("بنفسك", "yourself")}</span>
+            {/* The phrase the whole platform rests on, green into hibiscus (backlog 121). */}
+            <span className="text-hibiscus">{t("بنفسك", "yourself")}</span>
           </h1>
           {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان، أخضرَ ينساب إلى الكركدي. */}
           <svg className="nile-line mt-3 h-4 w-56 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>

@@ -243,7 +243,7 @@ export default async function Navbar() {
     // site, and on a long page it was a scroll back to the top away. Frosted
     // rather than solid so the page still reads as one surface beneath it.
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md print:hidden">
-      <div className="sunrise-edge" aria-hidden />
+      <div className="brand-edge" aria-hidden />
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <Link
           href="/"
@@ -294,7 +294,7 @@ export default async function Navbar() {
                   ? t(`الإشعارات، ${unread} غير مقروء`, `Notifications, ${unread} unread`)
                   : t("الإشعارات", "Notifications")
               }
-              className="relative rounded-xl border border-border bg-card px-2.5 py-2 text-sm transition hover:border-orange"
+              className="relative rounded-xl border border-border bg-card px-2.5 py-2 text-sm transition hover:border-rose"
             >
               🔔
               {unread > 0 && (
