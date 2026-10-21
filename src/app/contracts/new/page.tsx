@@ -33,11 +33,13 @@ export default async function NewContractPage({
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 
-  // RLS limits seasons to the caller's own, and services to those of verified
-  // active providers, so neither query needs a filter for it.
+  // RLS limits services to those of verified active providers. Seasons are
+  // filtered by owner here: an investor may now read the season of a signed
+  // partnership (backlog 129), and a contract is the landowner's to write.
   const { data: seasonRows } = await supabase
     .from("seasons")
     .select("id, name, crop_key, station_key, irrigation, feddans, budget_per_feddan, planting_date")
+    .eq("owner_id", user.id)
     .eq("status", "active")
     .order("planting_date", { ascending: false });
 

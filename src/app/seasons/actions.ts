@@ -102,6 +102,9 @@ export async function createSeason(
        */
       project_id: str(formData, "project_id") || null,
       land_id: str(formData, "land_id") || null,
+      // A signed partnership agreement (backlog 129). seasons_links_guard
+      // accepts it only from the landowner, once both have signed, on its land.
+      ...(str(formData, "partnership_id") ? { partnership_id: str(formData, "partnership_id") } : {}),
     })
     .select("id")
     .single();

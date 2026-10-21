@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -58,6 +59,11 @@ export default async function SeasonPage({
 
   if (!seasonRow) notFound();
   const season = seasonRow as Season;
+  // The investor of a signed partnership reads this season (backlog 129); only
+  // its owner writes in it — the database refuses the rest anyway, so the
+  // forms are not offered.
+  const isOwner = season.owner_id === user.id;
+  const canWrite = isOwner && season.status === "active";
 
   const [{ data: stageRows }, { data: ledgerRows }] = await Promise.all([
     supabase
@@ -131,6 +137,37 @@ export default async function SeasonPage({
           </>
         )}
       </p>
+
+      {/* What this season is tied to (backlog 129): the agreement it carries
+          out, and for its owner the next step — services for its stages. */}
+      {!isOwner && season.partnership_id && (
+        <p className="mt-4 rounded-xl bg-leaf/5 px-4 py-3 text-sm ring-1 ring-leaf/20">
+          {t(
+            "أنت شريكٌ في هذا الموسم بعقدٍ موقَّع: تقرأ مراحله وأدلّته ودفتره كما يكتبها صاحب الأرض، ولا تكتب فيه.",
+            "You are a partner in this season under a signed agreement: you read its stages, evidence and ledger as the landowner records them, and write none of it.",
+          )}{" "}
+          <Link href={`/invest/agreements/${season.partnership_id}`} className="font-bold text-primary underline">
+            {t("العقد", "The agreement")}
+          </Link>
+        </p>
+      )}
+      {isOwner && (
+        <div className="mt-4 flex flex-wrap gap-2 text-sm">
+          {season.partnership_id && (
+            <Link href={`/invest/agreements/${season.partnership_id}`} className="rounded-lg px-3 py-1.5 font-bold text-primary ring-1 ring-primary/30 hover:bg-primary/10">
+              {t("عقد الشراكة", "Partnership agreement")}
+            </Link>
+          )}
+          {season.status === "active" && (
+            <Link href={`/contracts/new?season=${season.id}`} className="rounded-lg bg-primary px-3 py-1.5 font-bold text-primary-foreground hover:opacity-90">
+              {t("اطلب خدمة لهذا الموسم", "Request a service for this season")}
+            </Link>
+          )}
+          <Link href="/partners" className="rounded-lg px-3 py-1.5 font-bold text-leaf ring-1 ring-leaf/30 hover:bg-leaf/10">
+            {t("الشركات الشريكة", "Partner companies")}
+          </Link>
+        </div>
+      )}
 
       {error && (
         <p className="mt-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
@@ -268,7 +305,7 @@ export default async function SeasonPage({
                   </ul>
                 )}
 
-                {season.status === "active" && (
+                {canWrite && (
                   <div className="mt-4 flex flex-wrap items-end gap-3">
                     <StageEvidenceUpload stageId={s.id} seasonId={season.id} />
 
@@ -338,7 +375,7 @@ export default async function SeasonPage({
           </div>
         )}
 
-        {season.status === "active" && (
+        {canWrite && (
           <form
             action={addLedgerEntry}
             className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-4"
@@ -399,7 +436,7 @@ export default async function SeasonPage({
         )}
       </section>
 
-      {season.status === "active" &&
+      {canWrite &&
         doneCount === stages.length &&
         stages.length > 0 && (
           <form action={completeSeason} className="mt-10">

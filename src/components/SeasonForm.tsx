@@ -28,11 +28,37 @@ export interface SeasonProjectOption {
   name: string;
 }
 
+/** One of the caller's own lands (backlog 129): a season stands on a land. */
+export interface SeasonLandOption {
+  id: string;
+  name: string;
+  location: string;
+  stationKey: string;
+  feddans: number;
+}
+
+/** A signed partnership agreement the season carries out (backlog 129). */
+export interface SeasonFromAgreement {
+  id: string;
+  landId: string;
+  name: string;
+  feddans: number;
+}
+
 export default function SeasonForm({
   today,
   projects = [],
+  lands = [],
+  landId,
+  agreement,
 }: {
   today: string;
+  /** The caller's own lands; the land field appears when there is one. */
+  lands?: SeasonLandOption[];
+  /** `?land=` — the land the season opens on. */
+  landId?: string;
+  /** `?agreement=` — a signed agreement whose terms fill the form. */
+  agreement?: SeasonFromAgreement;
   /**
    * Projects this season may be attached to. Empty is normal — a farmer
    * planning ahead of any investor is the common case, and the field stays
@@ -48,11 +74,15 @@ export default function SeasonForm({
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const arrow = locale === "en" ? "→" : "←";
 
+  const startLand = lands.find((l) => l.id === (agreement?.landId ?? landId));
+  const [chosenLand, setChosenLand] = useState(startLand?.id ?? "");
   const [cropKey, setCropKey] = useState("wheat");
-  const [stationKey, setStationKey] = useState("gezira");
+  const [stationKey, setStationKey] = useState(
+    startLand && STATIONS.some((s) => s.key === startLand.stationKey) ? startLand.stationKey : "gezira",
+  );
   const [plantingDate, setPlantingDate] = useState(today);
   const [irrigation, setIrrigation] = useState<IrrigationMethod>("flood");
-  const [feddans, setFeddans] = useState(20);
+  const [feddans, setFeddans] = useState(agreement?.feddans ?? startLand?.feddans ?? 20);
   const [budget, setBudget] = useState(120);
 
   // The plan the farmer will get, computed as they choose — no surprises after
@@ -76,11 +106,22 @@ export default function SeasonForm({
         <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2">
           <legend className="px-2 text-sm font-bold">{t("الموسم", "Season")}</legend>
 
+          {agreement && (
+            <p className="rounded-xl bg-leaf/5 px-3 py-2 text-xs leading-6 ring-1 ring-leaf/20 sm:col-span-2">
+              <input type="hidden" name="partnership_id" value={agreement.id} />
+              {t(
+                "هذا الموسم ينفّذ عقد الشراكة الموقَّع: على أرض العقد، ويقرأ شريكك مراحله وصوره ودفتره ولا يكتب فيه.",
+                "This season carries out the signed partnership agreement: on the agreement's land, and your partner reads its stages, photos and ledger without writing in it.",
+              )}
+            </p>
+          )}
+
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             {t("اسم الموسم", "Season name")}
             <input
               name="name"
               required
+              defaultValue={agreement?.name}
               className={field}
               placeholder={t(
                 "مثال: قمح شتوي ٢٠٢٦ — حقل الشمال",
@@ -89,10 +130,49 @@ export default function SeasonForm({
             />
           </label>
 
+          {lands.length > 0 && (
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              {t("الأرض", "Land")}
+              {agreement ? (
+                <>
+                  <input type="hidden" name="land_id" value={agreement.landId} />
+                  <span className="font-medium">{startLand?.name ?? "—"}</span>
+                </>
+              ) : (
+                <select
+                  name="land_id"
+                  value={chosenLand}
+                  onChange={(e) => {
+                    setChosenLand(e.target.value);
+                    const l = lands.find((x) => x.id === e.target.value);
+                    if (l && STATIONS.some((s) => s.key === l.stationKey)) setStationKey(l.stationKey);
+                    if (l) setFeddans(l.feddans);
+                  }}
+                  className={field}
+                >
+                  <option value="">{t("بلا أرض مسجّلة", "No registered land")}</option>
+                  {lands.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name} — {l.location}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <span className="text-xs text-muted">
+                {t(
+                  "يقوم الموسم على أرضك المسجّلة، فيظهر في سجلّها وتتّصل به دراسة جدواها.",
+                  "The season stands on your registered land, so it shows in its record and its feasibility study connects to it.",
+                )}
+              </span>
+            </label>
+          )}
+
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             {t("الموقع", "Location")}
             <input
               name="location"
+              key={chosenLand}
+              defaultValue={lands.find((l) => l.id === chosenLand)?.location}
               className={field}
               placeholder={t("القرية والمحلية", "Village and locality")}
             />

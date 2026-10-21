@@ -6,6 +6,8 @@ import FilmPlayer from "@/components/FilmPlayer";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import InvestTabs from "@/components/invest/InvestTabs";
+import LandOfferCard from "@/components/invest/LandOfferCard";
+import { loadLandOffers, loadProjectLands } from "@/lib/landOffers";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -13,8 +15,8 @@ export async function generateMetadata() {
     title: tr(locale, "المشاريع المطروحة · سوداقري", "Projects on offer · Sudagri"),
     description: tr(
       locale,
-      "المشاريع الزراعية المطروحة للاستثمار في السودان — ولا يُعرض مشروع قبل توثيق حيازته ومعاينته ميدانياً.",
-      "Agricultural projects on offer for investment in Sudan — no project is listed before its land tenure is documented and it has been inspected in the field.",
+      "أراضٍ زراعيّة موثّقة يبحث أصحابها عن شريك، ومشاريع مطروحة للاستثمار في السودان — وتراجعها الإدارة قبل نشرها.",
+      "Verified farmland whose owners are looking for a partner, and projects on offer for investment in Sudan — reviewed by the administrators before publication.",
     ),
   };
 }
@@ -44,6 +46,15 @@ export default async function ProjectsPage() {
   const supabase = await createClient();
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // The investor browses projects, not land (the owner, 22 October, backlog
+  // 129) — so the verified land offered to investors is here too, on the same
+  // card as on «فرص الاستثمار», and each project says whether a verified land
+  // stands under it.
+  const [offers, projectLands] = await Promise.all([loadLandOffers(supabase, Boolean(user)), loadProjectLands(supabase)]);
 
   const { data, error } = await supabase
     .from("projects")
@@ -65,15 +76,42 @@ export default async function ProjectsPage() {
       <h1 className="text-2xl font-bold sm:text-3xl">{t("المشاريع المطروحة", "Projects on offer")}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
         {t(
-          "كلُّ مشروعٍ هنا مرّ بتوثيق حيازة الأرض ومعاينةٍ ميدانية قبل أن يُعرض. وما تشهد به المنصّة هو",
-          "Every project here went through land-tenure documentation and a field inspection before being listed. What the platform vouches for is",
+          "طريقان إلى الاستثمار: أرضٌ موثّقة يبحث صاحبها عن شريك — مشاركةً بالمحصول أو إيجاراً أو تمويلاً — بلا اسمه ولا موقعها حتى يقبل؛ أو مشروعٌ كتبه صاحبه بالمحصول والحصص وراجعته الإدارة. والمشروع القائم على أرضٍ وثّقتها الإدارة يحمل شارة «على أرضٍ موثّقة». وما تشهد به المنصّة هو",
+          "Two ways to invest: verified land whose owner is looking for a partner — crop sharing, lease or finance — without their name or its location until they accept; or a project its owner wrote out with a crop and shares, reviewed by the administrators. A project standing on land the administrators verified carries the «On verified land» badge. What the platform vouches for is",
         )}{" "}
-        <strong>{t("أنّ ما يقوله المشروع مسنودٌ بأوراق", "that what the project claims is backed by documents")}</strong>{" "}
+        <strong>{t("أنّ ما يقوله العرض مسنودٌ بأوراق", "that what the offer claims is backed by documents")}</strong>{" "}
         {t(
-          "— لا أنّ الموسم سيربح. تلك تبقى مخاطرةً تخصّك، وفي صفحة كلّ مشروع تفصيلُها ودرجةُ مخاطرته.",
-          "— not that the season will make a profit. That remains your risk, and each project's page sets it out with its risk level.",
+          "— لا أنّ الموسم سيربح. تلك تبقى مخاطرةً تخصّك.",
+          "— not that the season will make a profit. That remains your risk.",
         )}
       </p>
+
+      {offers.lands.length > 0 && (
+        <section aria-labelledby="lands" className="mt-8">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="lands" className="title-bar text-lg font-black">
+              {t("أراضٍ موثّقة تبحث عن شريك", "Verified land looking for a partner")}{" "}
+              <span className="text-muted">({offers.lands.length})</span>
+            </h2>
+            <Link href="/invest" className="text-sm font-bold text-primary underline">
+              {t("كيف تعمل الشراكة", "How the partnership works")}
+            </Link>
+          </div>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {offers.lands.map((l) => (
+              <LandOfferCard
+                key={l.land_id}
+                land={l}
+                signedIn={Boolean(user)}
+                fee={offers.fee}
+                inspection={offers.openInspection.get(l.land_id)}
+                inspectionsOn={offers.inspectionsOn}
+                locale={locale}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
 
       <figure className="my-6">
         <FilmPlayer base="/video/projects-wide" poster="/video/projects-wide.jpg" label={t("فيلم سوداقري: حين نتّفق نزرع أكثر", "A Sudagri film: when we agree, we grow more")} />
@@ -90,8 +128,8 @@ export default async function ProjectsPage() {
           <h2 className="mb-2 font-bold">{t("لا توجد مشاريع مطروحة بعد", "No projects on offer yet")}</h2>
           <p className="mx-auto max-w-lg text-sm leading-relaxed text-muted">
             {t(
-              "لا يُعرض مشروع حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة ميدانية، وموافقة الجهة الزراعية.",
-              "No project is listed until its documentation is complete: proof of land tenure, a field inspection, and approval from the agricultural authority.",
+              "المشروع فرصةٌ يكتبها صاحبها بالمحصول والحصص، وتراجعها الإدارة قبل نشرها.",
+              "A project is an opportunity its owner writes out with a crop and shares; the administrators review it before publication.",
             )}{" "}
             <Link href="/feedback" className="text-primary underline">
               {t("سجّل اهتمامك", "Register your interest")}
@@ -102,7 +140,7 @@ export default async function ProjectsPage() {
       ) : (
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} locale={locale} />
+            <ProjectCard key={project.id} project={project} locale={locale} verifiedLand={projectLands.get(project.id)} />
           ))}
         </div>
       )}

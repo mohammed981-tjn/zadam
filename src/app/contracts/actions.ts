@@ -232,12 +232,14 @@ export async function createContract(
     return { ok: false, message: t("اختر خدمة واحدة على الأقل.", "Choose at least one service.") };
   }
 
-  // The season, straight from the database. RLS means a season that is not the
-  // caller's simply does not come back, so this doubles as the ownership check.
+  // The season, straight from the database, and the caller's own: an investor
+  // can read the season of a signed partnership (backlog 129) but does not
+  // contract for it, so the owner filter is the ownership check.
   const { data: seasonRow, error: seasonError } = await supabase
     .from("seasons")
     .select("id, project_id, crop_key, station_key, irrigation, feddans, budget_per_feddan, planting_date")
     .eq("id", seasonId)
+    .eq("owner_id", user.id)
     .single();
 
   if (seasonError || !seasonRow) {

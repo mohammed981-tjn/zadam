@@ -175,7 +175,7 @@ export default async function Home() {
   );
   const supabase = await createClient();
 
-  const [{ data: projects }, { count: kbCount }, { count: faoCount }, { data: kbLatest }] = await Promise.all([
+  const [{ data: projects }, { count: kbCount }, { count: faoCount }, { data: kbLatest }, { data: openLands }] = await Promise.all([
     supabase
       .from("projects")
       .select("*")
@@ -191,7 +191,10 @@ export default async function Home() {
       .select("created_at")
       .order("created_at", { ascending: false })
       .limit(1),
+    // أراضٍ موثّقة معروضة على المستثمرين (البند ١٢٩): فرصٌ أيضاً، وإن لم يُكتب مشروع.
+    supabase.rpc("investor_open_lands"),
   ]);
+  const openLandCount = ((openLands ?? []) as unknown[]).length;
   const kbLatestAt = (kbLatest?.[0] as { created_at?: string } | undefined)?.created_at;
 
   /*
@@ -357,7 +360,30 @@ export default async function Home() {
        * حين لا يُنشر مشروع فقط: كانت تظهر دائماً، فتقول «لا توجد فرص» فوق
        * قائمةِ المشاريع نفسها يوم يُنشر أوّلها.
        */}
-      {!(projects && projects.length > 0) && (
+      {!(projects && projects.length > 0) && openLandCount > 0 && (
+        <section className="mx-auto max-w-6xl px-4 py-10">
+          <Link
+            href="/projects"
+            className="flex items-start gap-3 rounded-2xl border border-leaf/30 bg-leaf/5 p-5 transition hover:border-leaf"
+          >
+            <Icon name="shield" className="mt-0.5 size-5 shrink-0 text-leaf" />
+            <p className="text-sm leading-relaxed">
+              <strong className="font-bold">
+                {t(
+                  `${openLandCount.toLocaleString("ar-EG")} ${openLandCount === 1 ? "أرضٌ موثّقة تبحث" : "أراضٍ موثّقة تبحث"} عن شريك`,
+                  `${openLandCount} verified ${openLandCount === 1 ? "plot is" : "plots are"} looking for a partner`,
+                )}
+              </strong>{" "}
+              {t(
+                "— مشاركةً بالمحصول أو إيجاراً أو تمويلاً، بلا اسم صاحبها ولا موقعها حتى يقبل. تصفّحها ←",
+                "— crop sharing, lease or finance, without the owner's name or its location until they accept. Browse them →",
+              )}
+            </p>
+          </Link>
+        </section>
+      )}
+
+      {!(projects && projects.length > 0) && openLandCount === 0 && (
         <section className="mx-auto max-w-6xl px-4 py-10">
           <div className="flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-5">
             <Icon name="shield" className="mt-0.5 size-5 shrink-0 text-accent" />

@@ -176,17 +176,19 @@ export async function setLandConsent(fd: FormData) {
   const open = str(fd, "open") === "true";
   const { data: land } = await supabase
     .from("lands")
-    .select("latitude, longitude")
+    .select("latitude, longitude, crop_keys")
     .eq("id", landId)
     .eq("owner_id", user.id)
     .maybeSingle();
   if (!land) back("/lands", "error", t("ليست لك هذه الأرض.", "This land is not yours."));
   const soil = soilAt(land.longitude, land.latitude);
+  // Closing to companies keeps the crops: investors read the same list on
+  // /invest, and the close form sends none (backlog 129).
   const { error } = await supabase.rpc("land_set_partner_consent", {
     p_land: landId,
     p_open: open,
     p_soil_class: soil,
-    p_crop_keys: pick(fd, "crop_keys", PARTNER_CROP_KEYS).slice(0, 8),
+    p_crop_keys: open ? pick(fd, "crop_keys", PARTNER_CROP_KEYS).slice(0, 8) : ((land.crop_keys as string[] | null) ?? []),
   });
   if (error) back("/lands", "error", explain(locale, error));
   back(

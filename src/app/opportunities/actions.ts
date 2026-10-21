@@ -160,6 +160,9 @@ export async function submitOpportunity(
     documents_on_file: facts.documentsOnFile,
     documents_required: 4,
     km_to_market: facts.kmToMarket,
+    // The project remembers its land (backlog 130); projects_land_guard
+    // accepts only a verified land the submitter owns.
+    ...(land ? { land_id: land.id } : {}),
   });
 
   if (error) {

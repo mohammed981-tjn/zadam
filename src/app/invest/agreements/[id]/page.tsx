@@ -60,6 +60,12 @@ export default async function AgreementPage({
 
   const x = a.terms;
   const signed = a.status === "signed";
+  // The seasons that carry out this agreement (backlog 129): the owner's own,
+  // and the investor's to read once it is signed.
+  const { data: seasonRows } = signed
+    ? await supabase.from("seasons").select("id, name, status").eq("partnership_id", a.id).order("planting_date", { ascending: false })
+    : { data: null };
+  const seasons = (seasonRows ?? []) as { id: string; name: string; status: string }[];
   const mine = a.signatures.find((s) => s.role === a.me);
   const other = a.signatures.find((s) => s.role !== a.me);
   const clauses = agreementClauses(a, locale);
@@ -168,6 +174,45 @@ export default async function AgreementPage({
           )}
         </article>
       </NoCopy>
+
+      {/* ── من العقد إلى الموسم (البند ١٢٩) ─────────────────────────────── */}
+      {signed && a.me !== "admin" && (
+        <section className={`${card} mt-6 text-sm`}>
+          <h2 className="font-black">{t("الموسم", "The season")}</h2>
+          {seasons.length > 0 ? (
+            <ul className="mt-2 flex flex-col gap-1">
+              {seasons.map((s) => (
+                <li key={s.id}>
+                  <Link href={`/seasons/${s.id}`} className="font-bold text-primary underline">
+                    {s.name}
+                  </Link>
+                  <span className="text-muted">
+                    {" "}
+                    · {s.status === "completed" ? t("مكتمل", "Completed") : t("جارٍ", "In progress")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-muted">
+              {a.me === "owner"
+                ? t(
+                    "ابدأ الموسم على أرض العقد: تُولَّد مراحله بتواريخها، وتسجّل فيها الصور والمصروفات، فيقرؤها شريكك.",
+                    "Start the season on the agreement's land: its stages are generated with their dates, you record photos and spending in them, and your partner reads them.",
+                  )
+                : t(
+                    "حين يبدأ صاحب الأرض الموسم يظهر هنا، فتقرأ مراحله وصوره ودفتره.",
+                    "Once the landowner starts the season it appears here, and you read its stages, photos and ledger.",
+                  )}
+            </p>
+          )}
+          {a.me === "owner" && (
+            <Link href={`/seasons/new?agreement=${a.id}`} className={`${button} mt-3 inline-block`}>
+              {seasons.length > 0 ? t("ابدأ موسماً آخر من العقد", "Start another season from the agreement") : t("ابدأ الموسم", "Start the season")}
+            </Link>
+          )}
+        </section>
+      )}
 
       {/* ── التوقيع ─────────────────────────────────────────────────────── */}
       {!signed && a.me !== "admin" && (

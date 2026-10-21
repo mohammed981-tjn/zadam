@@ -31,10 +31,13 @@ export interface OfferableLand {
  * The caller's own verified land, or null. Someone else's land, or one still
  * under review, is null.
  *
- * The project does not keep a link to the land: that needs a `projects.land_id`
- * column, and the migration for it was declined on 21 October. So the land
- * fills the form and counts its documents, and the project stands on its own
- * as before.
+ * The project keeps the link (`projects.land_id`, backlog 130), so the project
+ * page can say «على أرضٍ موثّقة» with the land's own documents.
+ *
+ * The location it fills stops at the locality. A project is public under the
+ * owner's name, and the village would put that name on the same land the
+ * investor and partner offers show without one (backlog 129). The owner may
+ * still write the village in; the form does not do it for them.
  */
 export async function readOfferableLand(
   supabase: SupabaseClient,
@@ -44,7 +47,7 @@ export async function readOfferableLand(
   if (!landId) return null;
   const { data: land } = await supabase
     .from("lands")
-    .select("id, name, state, locality, village, feddans, station_key, water_source, water_per_feddan, km_to_market")
+    .select("id, name, state, locality, feddans, station_key, water_source, water_per_feddan, km_to_market")
     .eq("id", landId)
     .eq("owner_id", userId)
     .eq("verification", "verified")
@@ -57,7 +60,7 @@ export async function readOfferableLand(
   return {
     id: land.id,
     name: land.name,
-    location: [land.state, land.locality, land.village].filter(Boolean).join(" · "),
+    location: [land.state, land.locality].filter(Boolean).join(" · "),
     feddans: Number(land.feddans),
     stationKey: land.station_key,
     waterSource: land.water_source as WaterSource,

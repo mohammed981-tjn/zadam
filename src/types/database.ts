@@ -58,6 +58,8 @@ export interface Project {
   documents_on_file: number;
   documents_required: number;
   km_to_market: number | null;
+  /** The verified land under the project (backlog 130); absent before that migration. */
+  land_id?: string | null;
   created_by: string | null;
   created_at: string;
 }
@@ -158,6 +160,9 @@ export interface Season {
   created_at: string;
   /** الوزن المحصود بالكيلوغرام، مصرَّحٌ به عند الإقفال. */
   harvest_kg?: number | null;
+  land_id?: string | null;
+  /** The signed partnership agreement this season carries out (backlog 129). */
+  partnership_id?: string | null;
 }
 
 export interface SeasonStage {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loadProjectLands } from "@/lib/landOffers";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cropVisual, formatUsd, riskLabel, statusLabel } from "@/lib/format";
@@ -33,11 +34,12 @@ export default async function ProjectPage({
 
   const typedProject = project as Project;
 
-  const { data: updates } = await supabase
-    .from("project_updates")
-    .select("*")
-    .eq("project_id", typedProject.id)
-    .order("created_at", { ascending: false });
+  const [{ data: updates }, projectLands] = await Promise.all([
+    supabase.from("project_updates").select("*").eq("project_id", typedProject.id).order("created_at", { ascending: false }),
+    loadProjectLands(supabase),
+  ]);
+  // «على أرضٍ موثّقة» (backlog 130): the land's own documents, not the form's ticks.
+  const verifiedLand = projectLands.get(typedProject.id);
 
   const {
     data: { user },
@@ -88,6 +90,14 @@ export default async function ProjectPage({
           <span className="rounded-full bg-border/60 px-3 py-1">
             {typedProject.total_feddans} {t("فدان", "feddans")}
           </span>
+          {verifiedLand && (
+            <span className="rounded-full bg-leaf/10 px-3 py-1 font-bold text-leaf">
+              {t(
+                `على أرضٍ موثّقة · ${verifiedLand.documents} من ${verifiedLand.required} مستندات في الملفّ`,
+                `On verified land · ${verifiedLand.documents} of ${verifiedLand.required} documents on file`,
+              )}
+            </span>
+          )}
           {typedProject.expected_annual_return && (
             <span className="rounded-full bg-border/60 px-3 py-1">
               {t("عائد سنوي متوقع", "Expected annual return")} {typedProject.expected_annual_return}%
