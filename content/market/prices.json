@@ -1,6 +1,6 @@
 {
   "note": "Updated by hand or by a routine. Every figure is read in the source named beside it, on the market day given as `date` (when a report says «أمس», the day before publication). A figure that was not found is left out, never estimated. `arrivals` is sacks (جوال) entering the market that day; for the sorghum varieties it is all sorghum together, as the bulletins report it. Gedaref and El Obeid publish nothing official online; these are the State Markets Administration's bulletins as SUNA and Sudanese papers carried them.",
-  "checked": "2026-10-20",
+  "checked": "2026-10-21",
   "markets": {
     "gedaref": {
       "name_ar": "القضارف",
@@ -88,7 +88,8 @@
       "history": [
         { "date": "2026-02-09", "price": 125000, "source": "https://sudanalaan.net/22207" },
         { "date": "2026-07-21", "price": 260000, "source": "https://ainelhagega.com/?p=36912" },
-        { "date": "2026-10-02", "price": 440000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "date of publication; the report does not name the market day" }
+        { "date": "2026-10-02", "price": 440000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "date of publication; the report does not name the market day" },
+        { "date": "2026-10-14", "price": 470000, "source": "https://sudafax.com/585058/", "note": "«السمسم الأحمر (القنطار)»; Sudafax daily list for Wednesday 14 October, El Obeid crop bourse" }
       ]
     },
     {
@@ -99,7 +100,8 @@
         { "date": "2026-01-28", "price": 120000, "source": "https://sudanalaan.net/21476" },
         { "date": "2026-02-09", "price": 112000, "source": "https://sudanalaan.net/22207" },
         { "date": "2026-07-21", "price": 260000, "source": "https://ainelhagega.com/?p=36912" },
-        { "date": "2026-10-02", "price": 500000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "«الفول الخام»; date of publication; the report does not name the market day" }
+        { "date": "2026-10-02", "price": 500000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "«الفول الخام»; date of publication; the report does not name the market day" },
+        { "date": "2026-10-14", "price": 450000, "source": "https://sudafax.com/585058/", "note": "«الفول الخام (القنطار)»; Sudafax daily list for Wednesday 14 October, El Obeid crop bourse" }
       ]
     },
     {
@@ -111,7 +113,8 @@
         { "date": "2026-02-09", "price": 200000, "source": "https://sudanalaan.net/22207" },
         { "date": "2026-07-21", "price": 430000, "source": "https://ainelhagega.com/?p=36912" },
         { "date": "2026-08-14", "price": 440000, "source": "https://www.dabangasudan.org/ar/all-news/article/%d8%a8%d8%b9%d8%af-%d8%a7%d8%b3%d8%aa%d9%82%d8%b1%d8%a7%d8%b1-%d9%86%d8%b3%d8%a8%d9%8a-%d8%a3%d8%b3%d8%b9%d8%a7%d8%b1-%d8%a7%d9%84%d9%85%d8%ad%d8%a7%d8%b5%d9%8a%d9%84-%d8%aa%d8%b9%d8%a7%d9%88%d8%af", "note": "a trader's quote to Radio Dabanga, not the bourse bulletin" },
-        { "date": "2026-10-02", "price": 650000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "date of publication; the report does not name the market day" }
+        { "date": "2026-10-02", "price": 650000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "date of publication; the report does not name the market day" },
+        { "date": "2026-10-14", "price": 630000, "source": "https://sudafax.com/585058/", "note": "«الكركدي (القنطار)»; Sudafax daily list for Wednesday 14 October, El Obeid crop bourse" }
       ]
     },
     {
@@ -121,7 +124,8 @@
       "history": [
         { "date": "2026-02-09", "price": 195000, "source": "https://khartoumsport.com/37085" },
         { "date": "2026-07-21", "price": 350000, "source": "https://ainelhagega.com/?p=36912", "note": "spelt «الفريتة» in the report" },
-        { "date": "2026-10-02", "price": 880000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "date of publication; the report does not name the market day" }
+        { "date": "2026-10-02", "price": 880000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "date of publication; the report does not name the market day" },
+        { "date": "2026-10-14", "price": 1100000, "source": "https://sudafax.com/585058/", "note": "«الفتريتة الخيش (الأردب)»; Sudafax daily list for Wednesday 14 October, El Obeid crop bourse" }
       ]
     },
     {
@@ -130,7 +134,8 @@
       "unit": "ardeb",
       "history": [
         { "date": "2026-02-09", "price": 220000, "source": "https://khartoumsport.com/37085" },
-        { "date": "2026-07-21", "price": 335000, "source": "https://ainelhagega.com/?p=36912" }
+        { "date": "2026-07-21", "price": 335000, "source": "https://ainelhagega.com/?p=36912" },
+        { "date": "2026-10-14", "price": 1020000, "source": "https://sudafax.com/585058/", "note": "«الطابت (الأردب)»; Sudafax daily list for Wednesday 14 October, El Obeid crop bourse" }
       ]
     },
     {
@@ -140,7 +145,8 @@
       "history": [
         { "date": "2026-02-09", "price": 318000, "source": "https://khartoumsport.com/37085", "note": "yellow millet" },
         { "date": "2026-07-21", "price": 610000, "source": "https://ainelhagega.com/?p=36912", "note": "yellow millet" },
-        { "date": "2026-10-02", "price": 1350000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "the report says «دخن» without a colour; date of publication; the report does not name the market day" }
+        { "date": "2026-10-02", "price": 1350000, "source": "https://elhadaf-sd.com/2026/10/02/%D8%A3%D8%B3%D8%B9%D8%A7%D8%B1-%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D8%B5%D9%8A%D9%84-%D8%AA%D8%B9%D8%A7%D9%88%D8%AF-%D8%A7%D9%84%D8%A7%D8%B1%D8%AA%D9%81%D8%A7%D8%B9-%D9%81%D9%8A-%D8%A8%D9%88%D8%B1%D8%B5/", "note": "the report says «دخن» without a colour; date of publication; the report does not name the market day" },
+        { "date": "2026-10-14", "price": 1575000, "source": "https://sudafax.com/585058/", "note": "«الدخن (الأردب)»; Sudafax daily list for Wednesday 14 October, El Obeid crop bourse" }
       ]
     }
   ]
