@@ -8,6 +8,8 @@ import type { Land } from "@/types/database";
 import LandDocuments from "@/components/LandDocuments";
 import FilmPlayer from "@/components/FilmPlayer";
 import LandPartnerConsent from "@/components/partners/LandPartnerConsent";
+import LandInvestorConsent from "@/components/invest/LandInvestorConsent";
+import type { LandRequest } from "@/lib/investors";
 import LandWater from "@/components/LandWater";
 import { Suspense } from "react";
 import type { PartnerCompany, PartnerInterest } from "@/lib/partners";
@@ -88,6 +90,13 @@ export default async function LandsPage({
         .in("id", [...new Set(interests.map((i) => i.company_id))]);
       for (const c of (cRows ?? []) as Pick<PartnerCompany, "id" | "name" | "kinds" | "phone">[]) companies.set(c.id, c);
     }
+  }
+
+  // طلباتُ المستثمرين على أراضيه (البند ١٢٤). قبل الهجرة يعود خطأ، فلا يُعرض شيء.
+  let investorRequests: LandRequest[] = [];
+  if (lands.some((l) => l.verification === "verified")) {
+    const { data: rRows } = await supabase.rpc("land_investor_requests");
+    investorRequests = (rRows ?? []) as LandRequest[];
   }
 
   return (
@@ -213,8 +222,8 @@ export default async function LandsPage({
                     <p className="font-bold text-primary">{t("أرضك موثّقة ومنشورة", "Your land is verified and published")}</p>
                     <p className="mt-1 text-xs leading-6 text-muted">
                       {t(
-                        "تظهر الآن في صفحتك العامّة. المستثمرون لا يتصفّحون الأراضي، بل المشاريع — فلتصل إليهم ارفع فرصةً على هذه الأرض: تُفتح مملوءةً من بياناتها، فتختار المحصول والحصص، وتراجعها الإدارة ثمّ تُنشر في صفحة المشاريع.",
-                        "It now shows on your public page. Investors browse projects, not land — to reach them, post an opportunity on this land: it opens filled in from the land, you choose the crop and shares, and the administrators review it before it is published on the projects page.",
+                        "تظهر الآن في صفحتك العامّة. وتصل إلى المستثمرين بطريقين: اعرضها عليهم من قسم «المستثمرون» أدناه فتظهر في «فرص الاستثمار» بلا اسمك ولا موقعها حتى توافق؛ أو ارفع فرصةً كاملةً بالمحصول والحصص تُفتح مملوءةً من بيانات أرضك، وتراجعها الإدارة قبل نشرها.",
+                        "It now shows on your public page, and reaches investors two ways: offer it to them in the «Investors» section below, and it appears in «Investment opportunities» without your name or its location until you agree; or post a full opportunity with a crop and shares, filled in from your land and reviewed before publication.",
                       )}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -250,6 +259,12 @@ export default async function LandsPage({
                 <LandDocuments
                   landId={l.id}
                   existing={documents.filter((d) => d.land_id === l.id)}
+                />
+
+                <LandInvestorConsent
+                  land={l}
+                  requests={investorRequests.filter((r) => r.land_id === l.id)}
+                  locale={locale}
                 />
 
                 <LandPartnerConsent

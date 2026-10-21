@@ -111,6 +111,20 @@ export default async function AdminPage() {
         </div>
       </div>
 
+      {/* البند ١٢٤: الطريقُ إلى كلّ ما ينتظر، قبل أيّ شيءٍ آخر في اللوحة. */}
+      <Link
+        href="/admin/inbox"
+        className="mb-6 flex items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-primary-foreground shadow-card hover:opacity-95"
+      >
+        <span>
+          <span className="block text-lg font-black">قائمة المراجعة</span>
+          <span className="block text-xs opacity-90">
+            الأراضي والفرص ومقدّمو الخدمة والموردون والشركات والصادر والنفير — في مكانٍ واحد
+          </span>
+        </span>
+        <span className="text-2xl font-black">←</span>
+      </Link>
+
       <section
         className={`mb-6 rounded-xl border p-4 ${
           !check || scheduleStalled || !check.ok

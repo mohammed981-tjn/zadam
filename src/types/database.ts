@@ -114,6 +114,10 @@ export interface Land {
   soil_class?: string | null;
   crop_keys?: string[];
   open_to_partners?: boolean;
+  /** From 20261021210000_investor_partnerships.sql (backlog 124), optional for the same reason. */
+  open_to_investors?: boolean;
+  investor_models?: string[];
+  investor_note?: string | null;
 }
 
 /**
