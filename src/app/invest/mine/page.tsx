@@ -11,6 +11,7 @@ import { lbl } from "@/lib/partners";
 import { button, card, ghost } from "@/lib/ui";
 import { withdrawInvestorInterest } from "../actions";
 import { openAgreement } from "../agreements/actions";
+import { INSPECTION_STATUS_LABEL, VERDICT_LABEL, type InspectionRow } from "@/lib/inspections";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -38,9 +39,15 @@ export default async function MyInvestorRequestsPage({
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
-  const { data, error } = await supabase.rpc("investor_my_interests");
+  const [{ data, error }, { data: inspectionRows }] = await Promise.all([
+    supabase.rpc("investor_my_interests"),
+    supabase.rpc("land_inspection_list"),
+  ]);
   if (error) console.error("invest/mine: read failed", error);
   const rows = (data ?? []) as MyInterest[];
+  const inspections = (inspectionRows ?? []) as InspectionRow[];
+  const asked = inspections.filter((i) => i.role === "investor");
+  const assigned = inspections.filter((i) => i.role === "inspector");
 
   const tone: Record<MyInterest["status"], string> = {
     pending: "bg-accent/10 text-accent",
@@ -59,6 +66,46 @@ export default async function MyInvestorRequestsPage({
       </PageHeader>
       <InvestTabs active="/invest/mine" locale={locale} />
       <ActionNotice ok={sp.ok} error={sp.error} />
+
+      {assigned.length > 0 && (
+        <section className="mb-6 rounded-2xl border border-leaf/30 bg-leaf/5 p-4">
+          <h2 className="font-black text-leaf">{t("معايناتٌ أُسندت إليك", "Inspections assigned to you")}</h2>
+          <ul className="mt-2 flex flex-col gap-2 text-sm">
+            {assigned.map((i) => (
+              <li key={i.id}>
+                <Link href={`/invest/inspections/${i.id}`} className="font-bold text-primary underline">
+                  <span {...arText}>{[i.state, i.locality].filter(Boolean).join(" · ")}</span> —{" "}
+                  {Number(i.feddans).toLocaleString("en-US")} {t("فدان", "feddans")}
+                </Link>
+                <span className="text-muted"> · {lbl(INSPECTION_STATUS_LABEL[i.status], locale)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {asked.length > 0 && (
+        <section className="mb-6">
+          <h2 className="title-bar mb-3 font-black">{t("طلبات المعاينة", "Inspection requests")}</h2>
+          <ul className="flex flex-col gap-2 text-sm">
+            {asked.map((i) => (
+              <li key={i.id} className={`${card} flex flex-wrap items-center justify-between gap-2`}>
+                <Link href={`/invest/inspections/${i.id}`} className="font-bold text-primary underline">
+                  <span {...arText}>{[i.state, i.locality].filter(Boolean).join(" · ")}</span>
+                  {i.ref ? ` · ${i.ref}` : ""}
+                </Link>
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
+                  {i.verdict ? lbl(VERDICT_LABEL[i.verdict], locale) : lbl(INSPECTION_STATUS_LABEL[i.status], locale)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {rows.length > 0 && asked.length + assigned.length > 0 && (
+        <h2 className="title-bar mb-3 font-black">{t("طلبات الشراكة", "Partnership requests")}</h2>
+      )}
 
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted">

@@ -36,6 +36,8 @@ const KIND_ICON: Record<string, string> = {
   investor_decision: "🤝",
   agreement_update: "✍️",
   agreement_signed: "📜",
+  inspection_update: "🔎",
+  inspection_report: "📋",
 };
 
 function timeAgo(iso: string, locale: Locale): string {

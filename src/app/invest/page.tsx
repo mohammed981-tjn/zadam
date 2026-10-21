@@ -18,6 +18,16 @@ import {
 } from "@/lib/investors";
 import { button, card, field, ghost, label } from "@/lib/ui";
 import { expressInvestorInterest } from "./actions";
+import { requestInspection } from "./inspections/actions";
+import {
+  CHECK_DETAIL,
+  CHECK_LABEL,
+  INSPECTION_CHECKS,
+  INSPECTION_STATUS_LABEL,
+  feeLine,
+  type InspectionRow,
+  type InspectionStats,
+} from "@/lib/inspections";
 import type { Project } from "@/types/database";
 
 export async function generateMetadata() {
@@ -59,13 +69,26 @@ export default async function InvestPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: landRows, error: landError }, { data: projectRows }] = await Promise.all([
-    supabase.rpc("investor_open_lands"),
-    supabase.from("projects").select("*").neq("status", "draft").order("created_at", { ascending: false }).limit(6),
-  ]);
+  const [{ data: landRows, error: landError }, { data: projectRows }, { data: statRows }, { data: feeRow }, { data: myInspections }] =
+    await Promise.all([
+      supabase.rpc("investor_open_lands"),
+      supabase.from("projects").select("*").neq("status", "draft").order("created_at", { ascending: false }).limit(6),
+      supabase.rpc("land_inspection_stats"),
+      supabase.from("platform_fees").select("amount_sdg").eq("key", "land_inspection").maybeSingle(),
+      user ? supabase.rpc("land_inspection_list") : Promise.resolve({ data: null }),
+    ]);
   if (landError) console.error("invest: open lands failed", landError);
   const lands = (landRows ?? []) as OpenLand[];
   const projects = (projectRows ?? []) as Project[];
+  // Both read as "nothing yet" on a database the inspection migration has not reached.
+  const stats = ((statRows ?? []) as InspectionStats[])[0] ?? null;
+  const inspectionsOn = statRows !== null;
+  const fee = (feeRow as { amount_sdg: number | null } | null)?.amount_sdg ?? null;
+  const openInspection = new Map(
+    ((myInspections ?? []) as InspectionRow[])
+      .filter((i) => i.role === "investor" && ["requested", "accepted", "assigned", "reported"].includes(i.status))
+      .map((i) => [i.land_id, i]),
+  );
 
   const soil = (s: string | null) => (s ? (locale === "en" ? wrbShortEn(s) : wrbShort(s)) : "—");
 
@@ -239,6 +262,53 @@ export default async function InvestPage({
                         </form>
                       </details>
                     )}
+
+                    {inspectionsOn && !l.mine && user && (
+                      <div className="mt-3 border-t border-border pt-3">
+                        {openInspection.has(l.land_id) ? (
+                          <Link
+                            href={`/invest/inspections/${openInspection.get(l.land_id)!.id}`}
+                            className="text-sm font-bold text-leaf underline"
+                          >
+                            {t("معاينتك: ", "Your inspection: ")}
+                            {lbl(INSPECTION_STATUS_LABEL[openInspection.get(l.land_id)!.status], locale)}
+                          </Link>
+                        ) : (
+                          <details>
+                            <summary className="cursor-pointer text-sm font-bold text-leaf underline">
+                              {t("اطلب تقرير معاينةٍ مستقلّ قبل أن تقرّر", "Ask for an independent inspection before you decide")}
+                            </summary>
+                            <form action={requestInspection} className="mt-3 flex flex-col gap-3 text-sm">
+                              <input type="hidden" name="land_id" value={l.land_id} />
+                              <fieldset className="flex flex-col gap-1.5">
+                                <legend className="mb-1 font-bold">{t("ما الذي يتحقّق منه المفتّش؟", "What should the inspector check?")}</legend>
+                                {INSPECTION_CHECKS.map((c) => (
+                                  <label key={c} className="flex items-start gap-2">
+                                    <input type="checkbox" name="checks" value={c} defaultChecked className="mt-1 size-4" />
+                                    <span>
+                                      <span className="font-bold">{lbl(CHECK_LABEL[c], locale)}</span>
+                                      <span className="block text-xs text-muted">{lbl(CHECK_DETAIL[c], locale)}</span>
+                                    </span>
+                                  </label>
+                                ))}
+                              </fieldset>
+                              <label className={label}>
+                                {t("ما يهمّك أكثر (اختياري)", "What matters most to you (optional)")}
+                                <textarea name="note" rows={2} maxLength={1000} className={field} />
+                              </label>
+                              <p className="text-xs leading-5 text-muted">
+                                {feeLine(fee, locale)}{" "}
+                                {t(
+                                  "يزور الأرضَ مفتّشٌ تعيّنه سوداقري بعد موافقة صاحبها، وليس طرفاً في شيء. ولا تعرف اسم صاحب الأرض ولا موقعها من التقرير.",
+                                  "An inspector appointed by Sudagri visits the land once its owner agrees, and is party to nothing. The report does not tell you the owner's name or where the land is.",
+                                )}
+                              </p>
+                              <button className={`${ghost} self-start`}>{t("اطلب المعاينة", "Request the inspection")}</button>
+                            </form>
+                          </details>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </li>
               );
@@ -282,7 +352,10 @@ export default async function InvestPage({
               t("تتصفّح الأراضي: الولاية والمساحة والتربة والماء، بلا اسمٍ ولا موقع.", "Browse the land: state, area, soil and water — no name, no location."),
               t("ترسل طلب شراكة بالنموذج الذي يقبله صاحب الأرض، فيصله إشعار.", "Send a request in a model the owner accepts; they are notified."),
               t("يقبل صاحب الأرض، فيرى كلٌّ منكما اسم الآخر وهاتفه، وترى موقع الأرض.", "The owner accepts; each of you sees the other's name and phone, and you see where the land is."),
-              t("تعاين الأرض بنفسك أو بشركةٍ شريكة، وتقرأ دراسة جدواها: الماء والتكلفة والمخاطر.", "Inspect the land yourself or through a partner company, and read its feasibility study: water, cost and risk."),
+              t(
+                "تعاين الأرض بنفسك، أو تطلب تقرير معاينةٍ مستقلّاً من سوداقري، وتقرأ دراسة جدواها: الماء والتكلفة والمخاطر.",
+                "Inspect the land yourself, or ask Sudagri for an independent inspection report, and read its feasibility study: water, cost and risk.",
+              ),
               t("تتّفقان كتابةً على النسبة أو الأجرة والمدّة، ثمّ تدفع مباشرةً مرحلةً بمرحلة بعد دليلها.", "Agree the share or rent and the term in writing, then pay directly, stage by stage, after each stage's evidence."),
             ].map((s, i) => (
               <li key={i} className="flex gap-3">
@@ -301,6 +374,18 @@ export default async function InvestPage({
               [t("أرضٌ موثّقة", "Verified land"), t("راجعت الإدارة مستنداتها قبل أن تُعرض.", "The administrators checked its documents before it was shown."), "/how-we-work"],
               [t("خصوصيّةٌ حتى القبول", "Privacy until acceptance"), t("لا اسمَ ولا هاتفَ ولا موقعَ قبل موافقة صاحب الأرض.", "No name, phone or location before the owner agrees."), null],
               [t("دراسة جدوى للأرض", "A feasibility study"), t("الماء والتكلفة والمخاطر بالأرقام قبل أن تقرّر.", "Water, cost and risk in figures before you decide."), "/tools/feasibility"],
+              [
+                t("تقرير معاينةٍ مستقلّ", "An independent inspection"),
+                `${t("مفتّشٌ ليس طرفاً يزور الأرض ويكتب تقريراً بصوره.", "An inspector who is party to nothing visits the land and writes a report with photos.")} ${feeLine(fee, locale)}${
+                  stats && stats.reported > 0
+                    ? t(
+                        ` كُتب ${stats.reported} تقريراً: ${stats.clear} سليمة، و${stats.conditional} بشروط، و${stats.not_recommended} لا يُنصح بها.`,
+                        ` ${stats.reported} written: ${stats.clear} sound, ${stats.conditional} with conditions, ${stats.not_recommended} not recommended.`,
+                      )
+                    : ""
+                }`,
+                null,
+              ],
               [t("شركات للإشراف والعمل", "Companies for supervision and work"), t("حرثٌ وريّ وحصاد وإشراف من شركاتٍ موثّقة.", "Ploughing, irrigation, harvest and supervision from verified companies."), "/partners"],
               [t("السوق والصادر", "The market and export"), t("أسعار المحاصيل اليوم، وملفّ الصادر للمشترين.", "Today's crop prices, and the export file for buyers."), "/market"],
               [t("المال لا يمرّ بنا", "The money does not pass through us"), t("تدفع مباشرةً، مرحلةً بمرحلة، بعد دليل المرحلة.", "You pay directly, stage by stage, after each stage's evidence."), null],

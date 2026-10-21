@@ -179,7 +179,7 @@ export default async function Navbar() {
       { href: "/projects", label: t("المشاريع المطروحة", "Open projects") },
       ...(user
         ? [
-            { href: "/invest/mine", label: t("طلبات شراكتي", "My partnership requests") },
+            { href: "/invest/mine", label: t("طلباتي: الشراكة والمعاينة", "My requests: partnership and inspection") },
             { href: "/dashboard", label: t("محفظتي", "My portfolio") },
             { href: "/plan", label: t("خطط استثمارك", "Plan your investment") },
           ]
@@ -253,6 +253,7 @@ export default async function Navbar() {
         // كانت تُبلغ من لوحة المشاريع وحدها، فلا يجدها المدير من القائمة.
         { href: "/admin/suppliers", label: t("الموردون والناقلون والبلاغات", "Suppliers, carriers and reports") },
         { href: "/admin/partners", label: t("الشركات الشريكة واتّفاقاتها", "Partner companies and agreements") },
+        { href: "/admin/inspections", label: t("تقارير المعاينة", "Inspection reports") },
         { href: "/admin/land-groups", label: t("فهرس مجموعات المزارع", "Farm groups index") },
         { href: "/admin/feedback", label: t("ملاحظات الزوّار", "Visitor feedback") },
         { href: "/admin/leads", label: t("العملاء المحتملون", "Leads") },

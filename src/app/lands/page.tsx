@@ -9,6 +9,7 @@ import LandDocuments from "@/components/LandDocuments";
 import FilmPlayer from "@/components/FilmPlayer";
 import LandPartnerConsent from "@/components/partners/LandPartnerConsent";
 import LandInvestorConsent from "@/components/invest/LandInvestorConsent";
+import type { InspectionRow } from "@/lib/inspections";
 import type { LandRequest } from "@/lib/investors";
 import LandWater from "@/components/LandWater";
 import { Suspense } from "react";
@@ -94,9 +95,15 @@ export default async function LandsPage({
 
   // طلباتُ المستثمرين على أراضيه (البند ١٢٤). قبل الهجرة يعود خطأ، فلا يُعرض شيء.
   let investorRequests: LandRequest[] = [];
+  // وطلباتُ المعاينة على أرضه (البند ١٢٨).
+  let inspections: InspectionRow[] = [];
   if (lands.some((l) => l.verification === "verified")) {
-    const { data: rRows } = await supabase.rpc("land_investor_requests");
+    const [{ data: rRows }, { data: iRows }] = await Promise.all([
+      supabase.rpc("land_investor_requests"),
+      supabase.rpc("land_inspection_list"),
+    ]);
     investorRequests = (rRows ?? []) as LandRequest[];
+    inspections = ((iRows ?? []) as InspectionRow[]).filter((i) => i.role === "owner");
   }
 
   return (
@@ -264,6 +271,7 @@ export default async function LandsPage({
                 <LandInvestorConsent
                   land={l}
                   requests={investorRequests.filter((r) => r.land_id === l.id)}
+                  inspections={inspections.filter((i) => i.land_id === l.id)}
                   locale={locale}
                 />
 
