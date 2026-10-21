@@ -1,4 +1,7 @@
 import Link from "next/link";
+import ActionNotice from "@/components/ActionNotice";
+import PageHeader from "@/components/PageHeader";
+import MarketTabs from "@/components/market/MarketTabs";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import { money } from "@/lib/marketCrops";
@@ -106,25 +109,22 @@ export default async function InputsBoardPage({ searchParams }: { searchParams: 
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <p className="mb-2 text-sm">
-        <Link href="/market" className="text-primary underline">{t("→ سوق المحاصيل", "← Crop market")}</Link>
-      </p>
-      <h1 className="text-2xl font-bold">{t("أين السماد والجازولين هذا الأسبوع وبكم", "Where fertiliser and diesel are this week, and at what price")}</h1>
-      <p className="mb-4 mt-2 text-sm leading-relaxed text-muted">
+    <div className="mx-auto max-w-3xl px-4 py-6">
+      <MarketTabs active="/market/inputs" locale={locale} />
+      <PageHeader icon="chart" eyebrow={t("السوق والأسعار", "Market and prices")} title={t("أين السماد والجازولين هذا الأسبوع وبكم", "Where fertiliser and diesel are this week, and at what price")}>
         {t(
           "لا جهةَ تنشر سعرَ اليوريا أو الجازولين في السودان كلَّ أسبوع. لذلك يأتي سعرُ هذا الأسبوع من الناس: مزارعٌ أو تاجرٌ يقول بكم اشترى وأين ومتى، أو أنّه لم يجده. وتحته الموردون الموثّقون، ثمّ آخر ما نشرته المصادر بتاريخه.",
           "No one publishes the price of urea or diesel in Sudan every week. So this week's price comes from people: a farmer or trader says what he paid, where and when, or that he could not find it. Below that are the verified suppliers, then the latest published figures with their dates.",
         )}
-      </p>
+      </PageHeader>
 
-      {ok && <p role="status" className="mb-4 rounded-xl border border-primary/40 bg-primary/5 px-4 py-3 text-sm">{ok}</p>}
+      <ActionNotice ok={ok} />
 
       <div className="mb-8 flex flex-wrap gap-2 text-sm">
         <Link href="/market/inputs/report" className="rounded-full border border-primary bg-primary px-4 py-2 font-bold text-primary-foreground">
           {t("بلّغ عن سعر ←", "Report a price →")}
         </Link>
-        <Link href="/suppliers?item=fertilizer" className="rounded-full border border-border px-4 py-2">
+        <Link href="/suppliers?item=fertilizer" className="rounded-full border border-border px-4 py-2 transition hover:border-rose hover:text-rose">
           {t("موردو السماد", "Fertiliser suppliers")}
         </Link>
       </div>

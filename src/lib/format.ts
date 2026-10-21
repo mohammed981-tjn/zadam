@@ -73,7 +73,7 @@ export function cropVisual(projectName: string) {
   if (projectName.includes("قمح"))
     return { emoji: "🌾", gradient: "from-amber-500 to-amber-700" };
   if (projectName.includes("سمسم"))
-    return { emoji: "🌻", gradient: "from-yellow-500 to-orange-600" };
+    return { emoji: "🌻", gradient: "from-yellow-500 to-amber-600" };
   if (projectName.includes("ذرة") || projectName.includes("الذرة"))
     return { emoji: "🌽", gradient: "from-yellow-400 to-amber-600" };
   return { emoji: "🌿", gradient: "from-primary to-emerald-800" };

@@ -367,7 +367,7 @@ export default function ContractBuilder({
       </div>
 
       {/* The receipt, built as you choose — nobody signs a number they have not seen. */}
-      <aside className="flex h-fit flex-col gap-3 rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-6">
+      <aside className="flex h-fit flex-col gap-3 rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-24">
         <h2 className="text-sm font-bold">{t("خطة العقد", "Contract plan")}</h2>
 
         {preview.length === 0 ? (

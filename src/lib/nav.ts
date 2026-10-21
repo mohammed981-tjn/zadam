@@ -17,6 +17,8 @@
  * "مواسمي" — so the answer cannot simply be equality.
  */
 
+import type { IconName } from "@/components/Icon";
+
 export interface NavItem {
   href: string;
   label: string;
@@ -26,6 +28,8 @@ export interface NavGroup {
   title: string;
   /** One line under the title saying what the section is for. */
   hint?: string;
+  /** The section's mark in the menu (backlog 121). */
+  icon?: IconName;
   items: NavItem[];
 }
 

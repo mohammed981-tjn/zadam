@@ -1,4 +1,7 @@
 import Link from "next/link";
+import ActionNotice from "@/components/ActionNotice";
+import PageHeader from "@/components/PageHeader";
+import MarketTabs from "@/components/market/MarketTabs";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import { money } from "@/lib/marketCrops";
@@ -21,6 +24,7 @@ import {
   type InputUnit,
 } from "@/lib/inputBoard";
 import { hideReport, reportPrice, withdrawReport } from "../actions";
+import { field, label as labelCls } from "@/lib/ui";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -79,8 +83,6 @@ export default async function ReportInputPricePage({ searchParams }: { searchPar
     others = admin ? rows.filter((r) => r.reporter_id !== user.id) : [];
   }
 
-  const field = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none";
-  const labelCls = "flex flex-col gap-1 text-sm";
   const fertiliser = INPUT_ITEMS.filter((i) => !unitsFor(i).includes("liter"));
   const fuel = INPUT_ITEMS.filter((i) => unitsFor(i).includes("liter"));
 
@@ -101,20 +103,16 @@ export default async function ReportInputPricePage({ searchParams }: { searchPar
   );
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-10">
-      <p className="mb-2 text-sm">
-        <Link href="/market/inputs" className="text-primary underline">{t("→ لوحة السماد والجازولين", "← Fertiliser and diesel board")}</Link>
-      </p>
-      <h1 className="mb-2 text-2xl font-bold">{t("بلّغ عن سعر", "Report a price")}</h1>
-      <p className="mb-4 text-sm leading-relaxed text-muted">
+    <div className="mx-auto max-w-xl px-4 py-6">
+      <MarketTabs active="/market/inputs" locale={locale} />
+      <PageHeader icon="chart" eyebrow={t("السماد والجازولين", "Fertiliser & diesel")} title={t("بلّغ عن سعر", "Report a price")}>
         {t(
           "بكم اشتريت السماد أو الوقود، وأين، وفي أيّ يوم — أو أنّك بحثت ولم تجد. لا نطلب رقمك ولا نُظهر اسمك.",
           "What you paid for fertiliser or fuel, where, and on what day — or that you looked and could not find it. We do not ask for your number and do not show your name.",
         )}
-      </p>
+      </PageHeader>
 
-      {flash && <p role="alert" className="mb-4 rounded-xl border border-danger/40 bg-danger/5 px-4 py-3 text-sm">{flash}</p>}
-      {ok && <p role="status" className="mb-4 rounded-xl border border-primary/40 bg-primary/5 px-4 py-3 text-sm">{ok}</p>}
+      <ActionNotice ok={ok} error={flash} />
 
       {!user ? (
         <p className="rounded-2xl border border-border bg-card p-5 text-sm">
@@ -236,7 +234,7 @@ export default async function ReportInputPricePage({ searchParams }: { searchPar
                 {!r.hidden_at && (
                   <form action={hideReport} className="mt-2 flex gap-2">
                     <input type="hidden" name="report_id" value={r.id} />
-                    <input name="note" required minLength={2} maxLength={200} placeholder={t("سبب الإخفاء", "Reason for hiding")} className={`${field} py-1 text-xs`} />
+                    <input name="note" required minLength={2} maxLength={200} placeholder={t("سبب الإخفاء", "Reason for hiding")} className="w-full rounded-lg border border-border bg-background px-3 py-1 text-xs focus:border-primary focus:outline-none" />
                     <button className="shrink-0 text-xs text-danger underline">{t("أخفِ", "Hide")}</button>
                   </form>
                 )}

@@ -7,6 +7,7 @@ import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { activeHref, groupForPath, type NavGroup } from "@/lib/nav";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "./LocaleProvider";
+import Icon from "./Icon";
 
 export type { NavItem, NavGroup } from "@/lib/nav";
 
@@ -97,21 +98,34 @@ export default function NavMenu({
         onClick={toggleMenu}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:border-primary"
+        className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition ${
+          open ? "border-rose bg-rose/10 text-rose" : "border-rose/50 bg-card text-rose hover:border-rose"
+        }`}
       >
-        <span aria-hidden className="flex flex-col gap-[3px]">
-          <span className="block h-[2px] w-4 bg-current" />
-          <span className="block h-[2px] w-4 bg-current" />
-          <span className="block h-[2px] w-4 bg-current" />
+        {/* Three bars in hibiscus pink; the middle one shorter, so the
+            mark reads as a list and not as a flag. */}
+        <span aria-hidden className="flex flex-col items-end gap-[3px] text-rose">
+          <span className="block h-[2px] w-4 rounded-full bg-current" />
+          <span className="block h-[2px] w-3 rounded-full bg-current" />
+          <span className="block h-[2px] w-4 rounded-full bg-current" />
         </span>
         {tr(locale, "القائمة", "Menu")}
       </button>
 
+      {/* On a phone the menu is a sheet across the screen under the header,
+          with the page dimmed behind it: a 21rem dropdown hung off the
+          button's edge left a strip of page showing beside it and wrapped
+          every section's hint onto a second line («لا يُعرض جيداً»). From
+          `sm` up it is the dropdown again. A tap on the dimmed page closes
+          it, through the outside-tap listener above. */}
+      {open && (
+        <div aria-hidden className="fixed inset-x-0 bottom-0 top-[4.4rem] z-40 bg-foreground/30 sm:hidden" />
+      )}
       {open && (
         <div
           ref={panelRef}
           role="menu"
-          className="absolute end-0 top-full z-50 mt-2 max-h-[80vh] w-72 overflow-y-auto rounded-2xl border border-border bg-card shadow-xl"
+          className="fixed inset-x-3 top-[4.9rem] z-50 max-h-[calc(100dvh-5.9rem)] overflow-y-auto rounded-3xl border border-border bg-card shadow-float sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-[22rem]"
         >
           <button
             role="menuitem"
@@ -119,9 +133,11 @@ export default function NavMenu({
               setOpen(false);
               window.dispatchEvent(new Event(OPEN_ASSISTANT_EVENT));
             }}
-            className="flex w-full items-center gap-2 border-b border-border bg-primary/10 px-4 py-3 text-start text-sm font-bold text-primary transition hover:bg-primary/15"
+            className="flex w-full items-center gap-3 border-b border-border bg-primary/10 px-4 py-3.5 text-start text-sm font-bold text-primary transition hover:bg-primary/15"
           >
-            <span aria-hidden>💬</span>
+            <span aria-hidden className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Icon name="message" className="size-5" />
+            </span>
             {tr(locale, "اسأل مساعد سوداقري", "Ask the Sudagri assistant")}
           </button>
 
@@ -142,28 +158,45 @@ export default function NavMenu({
                   aria-expanded={expanded}
                   aria-controls={sectionId}
                   onClick={() => setOpenGroup(expanded ? null : group.title)}
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start transition hover:bg-background"
+                  className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-start transition hover:bg-background ${
+                    expanded ? "bg-background" : ""
+                  }`}
                 >
-                  <span className="flex flex-col gap-0.5">
-                    <span
-                      className={`text-sm font-semibold ${
-                        holdsCurrentPage ? "text-primary" : ""
-                      }`}
-                    >
-                      {group.title}
-                    </span>
-                    {group.hint && (
-                      <span className="text-xs font-normal text-muted">
-                        {group.hint}
+                  <span className="flex items-center gap-3">
+                    {/* The section's mark. Solid pink when the page you are
+                        on is inside it, so the closed menu still says where
+                        you are. */}
+                    {group.icon && (
+                      <span
+                        aria-hidden
+                        className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
+                          holdsCurrentPage ? "tab-on" : "bg-rose/10 text-rose"
+                        }`}
+                      >
+                        <Icon name={group.icon} className="size-5" />
                       </span>
                     )}
+                    <span className="flex flex-col gap-0.5">
+                      <span
+                        className={`text-sm font-bold ${
+                          holdsCurrentPage ? "text-rose" : ""
+                        }`}
+                      >
+                        {group.title}
+                      </span>
+                      {group.hint && (
+                        <span className="text-xs font-normal leading-snug text-muted">
+                          {group.hint}
+                        </span>
+                      )}
+                    </span>
                   </span>
 
                   <span className="flex items-center gap-2">
                     {/* A closed section says how much is inside it, so the
                         reader can judge whether it is worth opening. */}
                     {!expanded && (
-                      <span className="text-xs text-muted">
+                      <span className="figure min-w-6 rounded-full bg-background px-1.5 text-center text-xs font-bold text-muted">
                         {group.items.length}
                       </span>
                     )}
@@ -187,7 +220,7 @@ export default function NavMenu({
                 </button>
 
                 {expanded && (
-                  <div id={sectionId} className="pb-2">
+                  <div id={sectionId} className="bg-background pb-2">
                     {group.items.map((item) => {
                       const active = item.href === current;
                       return (
@@ -199,10 +232,12 @@ export default function NavMenu({
                           // path, so the menu never lingers over the page being
                           // navigated to.
                           onClick={() => setOpen(false)}
-                          className={`block border-e-2 py-2.5 pe-4 ps-8 text-sm transition hover:bg-background ${
+                          // Indented to the title's text, past the icon, so
+                          // the entries read as inside their section.
+                          className={`mx-2 block rounded-xl py-2.5 pe-3 ps-14 text-sm transition ${
                             active
-                              ? "border-e-primary font-bold text-primary"
-                              : "border-e-transparent"
+                              ? "bg-rose/10 font-bold text-rose"
+                              : "hover:bg-card"
                           }`}
                         >
                           {item.label}

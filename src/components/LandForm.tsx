@@ -265,7 +265,7 @@ export default function LandForm() {
         </button>
       </form>
 
-      <aside className="h-fit lg:sticky lg:top-6">
+      <aside className="h-fit lg:sticky lg:top-24">
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-xs text-muted">
             {t("ماذا تكفي مياهك؟", "What does your water support?")}

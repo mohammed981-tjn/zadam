@@ -43,15 +43,23 @@ import { SUDAGRI_LOGO } from "@/lib/brand";
  * visit where the full-screen intro (SplashOnce) is showing, the films wait for
  * it (`sudagri:intro-done`), with a ceiling. A reader who asked for less
  * motion is shown the logo, and films change without the motion.
+ *
+ * 21 October (backlog 121): the deck behind the frame is gone. The owner found
+ * the films «شكلها غير جميل» and asked for them «بإبداع» on a page that reads
+ * in order; the Figma design he was sent puts one large player with a pink
+ * ring, and under it a reel — a card per film with its poster, its name and
+ * its progress. The cards behind the frame said «there is another film»
+ * without saying which; the reel says both. The swipe still works, and the
+ * leaving film still turns away to the left while the chosen one swings in.
  */
 const INTRO_WAIT_MAX_MS = 16000;
 const DROP_MS = 420;
 const SETTLE_MS = 560;
-const NUDGE_AFTER_MS = 2600;
 
 /** `wide`: where the 16:9 cut lives when it is shared with another page rather than `/video/{key}-wide`. */
 /** `enAudio`: an English-narrated copy exists at `{base}-en.mp4` (the owner chose voice 2, 11 October). */
-type Film = { key: string; label: string; en: string; wide?: string; enAudio?: boolean };
+/** `short`: the name on the film's button under the frame, where the full title was cut off with «…». */
+type Film = { key: string; label: string; en: string; short: string; shortEn: string; wide?: string; enAudio?: boolean };
 const FILMS: Film[] = [
   // One film on the homepage (the owner, 4 October: «اعمل فلم واحد شامل في
   // الرئيسية ووزّع باقي المقاطع كلٌّ في صفحته»): the vision from the owner's
@@ -61,11 +69,11 @@ const FILMS: Film[] = [
   // the port and the round logo once. Each clip also plays on its own page: /export, /herds,
   // /services, /tools/water, /rain, /seasons, /projects, /knowledge, /guide,
   // /lands, /arc-canal, and the nafir pages.
-  { key: "sudagri", label: "سوداقري — من الماء إلى السوق", en: "Sudagri — from water to market", enAudio: true },
+  { key: "sudagri", label: "سوداقري — من الماء إلى السوق", en: "Sudagri — from water to market", short: "من الماء إلى السوق", shortEn: "Water to market", enAudio: true },
   // The second film, beside the first and not instead of it (the owner, 11
   // October): the clips that came in random order, set in order — the crops,
   // then the herds, then the ideas that develop farming, and the closing.
-  { key: "sudagri2", label: "ثرواتٌ وأفكار — من الحقل إلى المستقبل", en: "Wealth and ideas — from the field to the future" },
+  { key: "sudagri2", label: "ثرواتٌ وأفكار — من الحقل إلى المستقبل", en: "Wealth and ideas — from the field to the future", short: "ثرواتٌ وأفكار", shortEn: "Wealth and ideas" },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
@@ -116,23 +124,18 @@ export default function HeroVideo() {
   const [progress, setProgress] = useState(0);
   const [pose, setPose] = useState<Pose>(REST);
   const [easing, setEasing] = useState("none");
-  /** The deck is coming forward a step while the front film leaves. */
-  const [rising, setRising] = useState(false);
   const drag = useRef<{ x: number; y: number; w: number; h: number; on: boolean } | null>(null);
   const moving = useRef(false);
   const tall = useSyncExternalStore(subscribe, isNarrow, () => false);
   const film = FILMS[idx];
   const cut = tall ? "tall" : "wide";
   const base = filmBase(film, cut);
-  /** More than one film: the deck behind the frame, the swipe and the buttons. One film is just the frame. */
+  /** More than one film: the swipe and the reel. One film is just the frame. */
   const deck = N > 1;
-  /** The cards behind the frame: the next film, then the one after. */
-  const behind = deck ? [1, 2].map((k) => ({ k, film: FILMS[wrap(idx + k)], i: wrap(idx + k) })) : [];
 
   // Start the programme: now, or once the full-screen intro has finished.
   useEffect(() => {
     let cap = 0;
-    const timers: number[] = [];
     const start = () => {
       window.clearTimeout(cap);
       const v = ref.current;
@@ -149,19 +152,6 @@ export default function HeroVideo() {
       armed.current = true;
       v.load();
       v.play().catch(() => setIdle(true));
-      // Once, on its own: the frame leans aside and back, so the deck behind it shows.
-      if (N > 1) timers.push(
-        window.setTimeout(() => {
-          if (moving.current || drag.current) return;
-          setEasing("transform 380ms ease-in");
-          setPose({ x: -9, y: 0, ry: 12, s: 0.98, o: 1 });
-        }, NUDGE_AFTER_MS),
-        window.setTimeout(() => {
-          if (moving.current || drag.current) return;
-          setEasing("transform 560ms cubic-bezier(.3,1.6,.5,1)");
-          setPose(REST);
-        }, NUDGE_AFTER_MS + 380),
-      );
     };
     // After every mount effect has run, so SplashOnce has set `data-intro`.
     const t = window.setTimeout(() => {
@@ -175,7 +165,6 @@ export default function HeroVideo() {
     return () => {
       window.clearTimeout(t);
       window.clearTimeout(cap);
-      timers.forEach((n) => window.clearTimeout(n));
       window.removeEventListener("sudagri:intro-done", start);
     };
   }, []);
@@ -190,12 +179,8 @@ export default function HeroVideo() {
   }, [idx, tall]);
 
   /**
-   * Move to film `to`. To the next film: the front film turns away and slips
-   * off to the left while the deck comes forward a step, so the second card
-   * lands where the frame was, already showing the film's first picture; the
-   * frame is then swapped in over it without a jump. Anywhere else (the
-   * previous film, or the third): the front film leaves the same way and the
-   * chosen one swings in from the left.
+   * Move to film `to`: the front film turns away and slips off to the left,
+   * and the chosen one swings in from the left.
    */
   const slideTo = (to: number) => {
     if (moving.current) return;
@@ -208,20 +193,13 @@ export default function HeroVideo() {
       return;
     }
     moving.current = true;
-    const fromDeck = wrap(to) === wrap(idx + 1);
     setEasing(`transform ${DROP_MS}ms cubic-bezier(.55,0,.9,.45), opacity ${DROP_MS}ms ease-in`);
     setPose(AWAY);
-    if (fromDeck) setRising(true);
     window.setTimeout(() => {
       setEasing("none");
-      setRising(false);
-      setPose(fromDeck ? REST : AWAY);
+      setPose(AWAY);
       setProgress(0);
       setIdx(wrap(to));
-      if (fromDeck) {
-        window.setTimeout(() => (moving.current = false), 60);
-        return;
-      }
       // Two frames so the start off to the left is painted before the swing in.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
@@ -295,74 +273,32 @@ export default function HeroVideo() {
     setMuted(v.muted);
   };
 
+  /** «فيلمان» for two, as Arabic counts them; a number with «أفلام» beyond. */
+  const filmCount = N === 1 ? t("فيلم", "1 film") : N === 2 ? t("فيلمان", "2 films") : t(`${N} أفلام`, `${N} films`);
+
   return (
     <div>
       <style>{`
-        @keyframes sudagri-deal { from { opacity: 0; translate: 24px 0 } to { opacity: 1; translate: 0 0 } }
         @media (prefers-reduced-motion: reduce) { .sudagri-anim { animation: none !important; transition: none !important } }
       `}</style>
 
-      {/*
-        The deck. Each card behind is the frame's own size, moved a step right
-        and a step up, scaled from its top-right corner and turned a little
-        away, so a strip of it stands out beyond the card in front. The wrapper
-        leaves room for two steps on the right and on top, and reaches into the
-        page's right margin for them; it clips at the sides so a film leaving to
-        the left never widens the page.
-      */}
-      <div
-        className={
-          deck
-            ? "relative -mr-4 pr-[calc(var(--sx)*2)] pt-[calc(var(--sy)*2)] [--sx:18px] [--sy:12px] sm:[--sx:40px] sm:[--sy:22px]"
-            : "relative"
-        }
-        style={{ clipPath: "inset(-40px 0 -60px -16px)", perspective: "1400px", perspectiveOrigin: "30% 40%" }}
-      >
-        {behind.map(({ k, film: f, i }) => {
-          const at = rising ? k - 1 : k;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => slideTo(i)}
-              aria-label={`${k === 1 ? t("الفيلم التالي", "Next film") : t("ثمّ", "Then")}: ${t(f.label, f.en)}`}
-              className="sudagri-anim absolute left-0 right-[calc(var(--sx)*2)] top-[calc(var(--sy)*2)] block aspect-[4/5] overflow-hidden rounded-3xl border border-white/40 bg-card shadow-float sm:aspect-video"
-              style={{
-                transform: `translate3d(calc(var(--sx) * ${at}), calc(var(--sy) * ${-at}), ${-at * 30}px) rotateY(${-at * 4}deg) scale(${1 - 0.03 * at})`,
-                transformOrigin: "100% 0%",
-                zIndex: 3 - k,
-                transition: rising ? `transform ${DROP_MS}ms cubic-bezier(.3,.7,.4,1)` : "none",
-                animation: "sudagri-deal 500ms ease-out both",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- a poster frame, already sized for the web */}
-              <img src={`${filmBase(f, cut)}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              {/* Light from the front: the edge that stands out is lit, the rest falls into shade. */}
-              <span
-                aria-hidden
-                className="absolute inset-0 transition-opacity duration-300"
-                style={{
-                  background: "linear-gradient(to left, rgba(255,255,255,.18), rgba(0,0,0,.55) 22%, rgba(0,0,0,.7))",
-                  opacity: at === 0 ? 0 : 0.75 + 0.15 * at,
-                }}
-              />
-              <span
-                className="absolute inset-y-0 right-0 flex w-[var(--sx)] items-center justify-center overflow-hidden text-[11px] font-bold text-white transition-opacity duration-300 [writing-mode:vertical-rl] sm:text-sm"
-                style={{ opacity: at === 0 ? 0 : 1 }}
-              >
-                <span className="truncate drop-shadow">{f.label}</span>
-              </span>
-            </button>
-          );
-        })}
+      <div className="mb-4 flex items-start gap-2">
+        <h2 className="title-bar font-black" style={{ fontSize: "var(--text-section)" }}>
+          {t("أفلام سوداقري", "Sudagri films")}
+        </h2>
+        <span className="mt-1.5 rounded-full bg-rose/10 px-2.5 py-0.5 text-xs font-bold text-rose">{filmCount}</span>
+      </div>
 
+      {/* The player: one large frame with a pink ring, clipped at the sides so
+          a film leaving to the left never widens the page. */}
+      <div className="relative" style={{ clipPath: "inset(-40px 0 -60px 0)", perspective: "1400px", perspectiveOrigin: "30% 40%" }}>
         <div className="relative z-10" style={{ perspective: "1100px", perspectiveOrigin: "100% 50%" }}>
         <figure
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className={`relative select-none overflow-hidden rounded-3xl bg-card shadow-float ${deck ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
+          className={`relative select-none overflow-hidden rounded-[1.75rem] bg-card shadow-float ring-[3px] ring-primary ${deck ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
           style={{
             transform: `translate(${pose.x}%, ${pose.y}%) rotateY(${pose.ry}deg) scale(${pose.s})`,
             transformOrigin: "0% 50%",
@@ -387,23 +323,9 @@ export default function HeroVideo() {
             }}
             onEnded={() => {
               setProgress(1);
-              // One film: it ends on the logo card, with «شاهد» to see it again.
-              if (!deck) {
-                setIdle(true);
-                return;
-              }
-              // Every film ends on the logo card and stays there; the frame
-              // leans towards the deck once, to say the next film is a swipe away.
-              window.setTimeout(() => {
-                if (moving.current || drag.current) return;
-                setEasing("transform 380ms ease-in");
-                setPose({ x: -9, y: 0, ry: 12, s: 0.98, o: 1 });
-                window.setTimeout(() => {
-                  if (moving.current || drag.current) return;
-                  setEasing("transform 560ms cubic-bezier(.3,1.6,.5,1)");
-                  setPose(REST);
-                }, 380);
-              }, 900);
+              // A film ends on the logo card and stays there, with the play
+              // button over it; the next film is a card in the reel below.
+              setIdle(true);
             }}
             draggable={false}
             className="pointer-events-none aspect-[4/5] w-full object-cover sm:aspect-video"
@@ -421,11 +343,26 @@ export default function HeroVideo() {
             )}
           </video>
 
+          {/* The film's name on the film, at the top where the closing logo
+              card does not reach: a soft shade from the edge, white type, and
+              which film of how many. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-gradient-to-b from-black/55 via-black/20 to-transparent px-4 pb-10 pt-3 text-white"
+          >
+            <span className="text-sm font-bold leading-snug drop-shadow sm:text-base">{t(film.label, film.en)}</span>
+            {deck && (
+              <span dir="ltr" className="figure shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold backdrop-blur-sm">
+                {idx + 1} / {N}
+              </span>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={toggleSound}
             aria-pressed={!muted}
-            className="absolute bottom-3 left-3 rounded-full border border-border bg-card/90 px-4 py-2 text-sm font-medium shadow-card transition hover:border-primary"
+            className="absolute bottom-3 left-3 rounded-full border border-white/25 bg-black/45 px-4 py-2 text-sm font-bold text-white shadow-card backdrop-blur-sm transition hover:bg-black/60"
           >
             {muted ? t("🔊 بالصوت", "🔊 Sound on") : t("🔇 بلا صوت", "🔇 Mute")}
           </button>
@@ -445,56 +382,81 @@ export default function HeroVideo() {
             />
           </div>
 
+          {/* Nothing playing: a white disc with the pink play mark, the one
+              thing on the frame to press. */}
           {idle && (
             <button
               type="button"
               onClick={() => go(idx)}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card/90 px-6 py-3 text-base font-bold shadow-float transition hover:border-primary"
+              aria-label={t("شاهد", "Watch")}
+              className="absolute left-1/2 top-1/2 flex size-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 shadow-float transition hover:scale-105 active:scale-95"
             >
-              {t("▶ شاهد", "▶ Watch")}
+              <svg aria-hidden viewBox="0 0 28 30" className="ms-1 h-8 w-7 fill-primary">
+                <path d="M26 15 2 28V2l24 13Z" />
+              </svg>
             </button>
           )}
         </figure>
         </div>
       </div>
 
-      {deck && (
-        <p className="mt-2 text-center text-xs text-muted">{t("اسحب الفيلم لليسار أو المس البطاقة التي خلفه للفيلم التالي — ولليمين للسابق", "Swipe the film or tap the card behind it for the next film")}</p>
-      )}
-
-      {/* One button per film, each with its own progress line; one film has a progress line alone. */}
+      {/* The reel: a card per film with its poster, its name and how far it
+          has played. In place of a line of instructions over two buttons whose
+          titles were cut to «…» (backlog 121). One film has a progress line alone. */}
       {!deck ? (
-        <div aria-hidden className="mt-2 h-1 overflow-hidden rounded-full bg-border">
+        <div aria-hidden className="mt-3 h-1 overflow-hidden rounded-full bg-border">
           <div className="h-full bg-primary transition-[width] duration-300" style={{ width: `${progress * 100}%` }} />
         </div>
       ) : (
-      <nav aria-label={t("أفلام سوداقري", "Sudagri films")} className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {FILMS.map((f, i) => {
-          const active = i === idx;
-          const fill = active ? progress : 0;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => go(i)}
-              aria-current={active ? "true" : undefined}
-              className={`relative overflow-hidden rounded-xl border px-2 py-2 text-center text-xs font-medium leading-snug transition sm:text-sm ${
-                active ? "border-primary bg-primary/10 text-foreground" : "border-border bg-card text-muted hover:border-primary"
-              }`}
-            >
-              <span className="block truncate">
-                {active ? "▶ " : ""}
-                {t(f.label, f.en)}
-              </span>
-              <span
-                aria-hidden
-                className="absolute bottom-0 right-0 h-1 bg-primary transition-[width] duration-300"
-                style={{ width: `${fill * 100}%` }}
-              />
-            </button>
-          );
-        })}
-      </nav>
+        <>
+          <nav
+            aria-label={t("أفلام سوداقري", "Sudagri films")}
+            className="mt-4 grid gap-2.5"
+            style={{ gridTemplateColumns: `repeat(${N}, minmax(0, 1fr))` }}
+          >
+            {FILMS.map((f, i) => {
+              const active = i === idx;
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => go(i)}
+                  aria-current={active ? "true" : undefined}
+                  aria-label={t(f.label, f.en)}
+                  className={`flex flex-col gap-2 rounded-2xl bg-card p-2 pb-2.5 text-start shadow-card transition hover:-translate-y-0.5 hover:shadow-raised ${
+                    active ? "ring-2 ring-primary" : "ring-1 ring-border"
+                  }`}
+                >
+                  <span className="relative block aspect-[16/10] overflow-hidden rounded-xl bg-background">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- a poster frame, already sized for the web */}
+                    <img src={`${filmBase(f, "wide")}.jpg`} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                    <span
+                      aria-hidden
+                      className={`absolute bottom-2 start-2 flex size-8 items-center justify-center rounded-full shadow-card ${
+                        active ? "bg-primary" : "bg-white/90"
+                      }`}
+                    >
+                      <svg viewBox="0 0 12 13" className={`ms-0.5 h-3 w-3 ${active ? "fill-white" : "fill-primary"}`}>
+                        <path d="M11 6.5 1 12V1l10 5.5Z" />
+                      </svg>
+                    </span>
+                  </span>
+                  <span className={`px-1 text-sm font-extrabold leading-snug ${active ? "text-primary" : ""}`}>{t(f.short, f.shortEn)}</span>
+                  <span className="px-1 text-xs text-muted">
+                    {i === 0 ? t("الفيلم الأوّل", "First film") : i === 1 ? t("الفيلم الثاني", "Second film") : t(`الفيلم ${i + 1}`, `Film ${i + 1}`)}
+                  </span>
+                  <span aria-hidden className="mx-1 block h-1 overflow-hidden rounded-full bg-rose/15">
+                    <span
+                      className="block h-full rounded-full bg-primary transition-[width] duration-300"
+                      style={{ width: `${(active ? progress : 0) * 100}%` }}
+                    />
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+          <p className="mt-2 text-center text-xs text-muted">{t("اسحب الفيلم أو المس بطاقته", "Swipe the film, or tap its card")}</p>
+        </>
       )}
     </div>
   );

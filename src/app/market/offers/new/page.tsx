@@ -1,4 +1,7 @@
 import Link from "next/link";
+import ActionNotice from "@/components/ActionNotice";
+import PageHeader from "@/components/PageHeader";
+import MarketTabs from "@/components/market/MarketTabs";
 import OfferNotice from "@/components/market/OfferNotice";
 import PhoneField from "@/components/PhoneField";
 import { tr } from "@/lib/i18n";
@@ -7,6 +10,7 @@ import { OFFER_CROPS, OFFER_UNITS, OFFER_UNIT_NAME, isNotYetCreated } from "@/li
 import { SUDAN_STATES, stateName } from "@/lib/nafir";
 import { createClient } from "@/lib/supabase/server";
 import { createOffer } from "../actions";
+import { field, label } from "@/lib/ui";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -33,17 +37,13 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Pro
   const probe = user ? await supabase.from("market_offers").select("id").limit(1) : null;
   const pending = isNotYetCreated(probe?.error);
 
-  const field = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none";
-  const label = "flex flex-col gap-1 text-sm";
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-10">
-      <p className="mb-2 text-sm">
-        <Link href="/market/offers" className="text-primary underline">{t("→ العروض", "← Offers")}</Link>
-      </p>
-      <h1 className="mb-4 text-2xl font-bold">{t("أضف عرضاً", "Add an offer")}</h1>
+    <div className="mx-auto max-w-xl px-4 py-6">
+      <MarketTabs active="/market/offers" locale={locale} />
+      <PageHeader icon="chart" eyebrow={t("البيع والشراء", "Buy & sell")} title={t("أضف عرضاً", "Add an offer")} />
 
-      {flash && <p role="alert" className="mb-4 rounded-xl border border-danger/40 bg-danger/5 px-4 py-3 text-sm">{flash}</p>}
+      <ActionNotice error={flash} />
 
       {!user ? (
         <p className="rounded-2xl border border-border bg-card p-5 text-sm">

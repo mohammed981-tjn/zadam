@@ -15,6 +15,8 @@ import {
 } from "@/lib/fxRates";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
+import PageHeader from "@/components/PageHeader";
+import MarketTabs from "@/components/market/MarketTabs";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -71,14 +73,14 @@ export default async function RatesPage() {
   const rows = Object.keys(bankTable) as FxCurrency[];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{t("أسعار العملات مقابل الجنيه السوداني", "Exchange rates against the Sudanese pound")}</h1>
-      <p className="mb-6 mt-2 text-sm text-muted">
+    <div className="mx-auto max-w-3xl px-4 py-6">
+      <MarketTabs active="/rates" locale={locale} />
+      <PageHeader icon="chart" eyebrow={t("السوق والأسعار", "Market and prices")} title={t("أسعار العملات مقابل الجنيه السوداني", "Exchange rates against the Sudanese pound")}>
         {t(
           "سعران للجنيه، لأنّ الفرق بينهما كبير: سعر بنك الخرطوم، وسعر السوق الموازي. كلٌّ بتاريخه ومصدره.",
           "Two rates for the pound, because the gap between them is large: Bank of Khartoum's rate and the parallel-market rate, each with its date and source.",
         )}
-      </p>
+      </PageHeader>
 
       {ref === null ? (
         <div className="rounded-2xl border border-danger/40 bg-danger/5 p-6 text-sm">
