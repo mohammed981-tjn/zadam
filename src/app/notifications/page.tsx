@@ -32,6 +32,8 @@ const KIND_ICON: Record<string, string> = {
   locust_near: "🦗",
   animal_disease: "🐄",
   stage_due: "📅",
+  investor_interest: "🤝",
+  investor_decision: "🤝",
 };
 
 function timeAgo(iso: string, locale: Locale): string {

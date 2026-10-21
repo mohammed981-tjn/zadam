@@ -6,6 +6,7 @@ import LangToggle from "./LangToggle";
 import BottomNav from "./BottomNav";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { adminPendingTotal } from "@/lib/adminQueue";
 
 export default async function Navbar() {
   const locale = await getLocale();
@@ -31,6 +32,11 @@ export default async function Navbar() {
     role = profile?.role ?? null;
     unread = count ?? 0;
   }
+
+  // ما ينتظر قرار الإدارة (البند ١٢٤): المالكُ وجد الأرض في الإشعارات وحدها،
+  // والإشعارُ يُقرأ فيختفي ولا يقول إن قُرّر في الأمر شيء. فالعدد هنا من
+  // القوائم نفسها، ويُحسب للمدير وحده.
+  const pending = role === "admin" ? await adminPendingTotal(supabase) : 0;
 
   /*
    * Grouped by what the reader is trying to do, not by which table the page
@@ -160,17 +166,26 @@ export default async function Navbar() {
         { href: "/export/offers", label: t("عروضي للتصدير", "My export offers") },
       ],
     });
-    groups.push({
-      title: t("استثماري", "My investment"),
-      hint: t("محفظتك وخططك", "Your portfolio and plans"),
-      icon: "spark",
-      items: [
-        { href: "/dashboard", label: t("محفظتي", "My portfolio") },
-        { href: "/projects", label: t("المشاريع المطروحة", "Open projects") },
-        { href: "/plan", label: t("خطط استثمارك", "Plan your investment") },
-      ],
-    });
   }
+
+  // الاستثمار للجميع (البند ١٢٤): المستثمر يتصفّح قبل أن يسجّل، فالبابُ لا
+  // ينتظر الدخول. وما يخصّ صاحب الحساب يُضاف إليه.
+  groups.push({
+    title: user ? t("الاستثمار واستثماري", "Investment and mine") : t("الاستثمار", "Investment"),
+    hint: t("أراضٍ موثّقة تبحث عن شريك، ومشاريع مطروحة", "Verified land looking for a partner, and projects on offer"),
+    icon: "spark",
+    items: [
+      { href: "/invest", label: t("فرص الاستثمار", "Investment opportunities") },
+      { href: "/projects", label: t("المشاريع المطروحة", "Open projects") },
+      ...(user
+        ? [
+            { href: "/invest/mine", label: t("طلبات شراكتي", "My partnership requests") },
+            { href: "/dashboard", label: t("محفظتي", "My portfolio") },
+            { href: "/plan", label: t("خطط استثمارك", "Plan your investment") },
+          ]
+        : []),
+    ],
+  });
 
   // النفير قبل الدراسات: بابٌ عامّ يدخله الزائر قبل أن يسجّل،
   // لأنّ دعوةً إلى حصادٍ هذا الأسبوع هي ما قد يجعله يسجّل.
@@ -219,6 +234,10 @@ export default async function Navbar() {
       hint: t("للمشرفين وحدهم", "Administrators only"),
       icon: "shield",
       items: [
+        {
+          href: "/admin/inbox",
+          label: pending > 0 ? t(`قائمة المراجعة (${pending})`, `Review list (${pending})`) : t("قائمة المراجعة", "Review list"),
+        },
         { href: "/admin", label: t("لوحة المشاريع", "Projects board") },
         // الشاشةُ التي كان إجراؤها موجوداً وهي مفقودة — وبلاها لا تُوثَّق أرضٌ
         // أبداً، فتقف السلسلةُ كلُّها عند خطوتها الأولى.
@@ -231,10 +250,13 @@ export default async function Navbar() {
         { href: "/admin/export/corridors", label: t("مراجعة قواعد الممرّات", "Corridor rules review") },
         { href: "/admin/export/interests", label: t("طلبات المشترين", "Buyer requests") },
         { href: "/admin/providers", label: t("توثيق مقدّمي الخدمة", "Provider verification") },
+        // كانت تُبلغ من لوحة المشاريع وحدها، فلا يجدها المدير من القائمة.
+        { href: "/admin/suppliers", label: t("الموردون والناقلون والبلاغات", "Suppliers, carriers and reports") },
         { href: "/admin/partners", label: t("الشركات الشريكة واتّفاقاتها", "Partner companies and agreements") },
         { href: "/admin/land-groups", label: t("فهرس مجموعات المزارع", "Farm groups index") },
         { href: "/admin/feedback", label: t("ملاحظات الزوّار", "Visitor feedback") },
         { href: "/admin/leads", label: t("العملاء المحتملون", "Leads") },
+        { href: "/admin/canal-images", label: t("صور القناة", "Canal images") },
       ],
     });
   }
@@ -290,6 +312,15 @@ export default async function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+          {pending > 0 && (
+            <Link
+              href="/admin/inbox"
+              aria-label={t(`قائمة المراجعة، ${pending} ينتظر`, `Review list, ${pending} waiting`)}
+              className="whitespace-nowrap rounded-xl bg-primary px-2.5 py-2 text-xs font-black text-primary-foreground shadow-card transition hover:opacity-90"
+            >
+              {t("للمراجعة", "Review")} {pending > 99 ? "99+" : pending}
+            </Link>
+          )}
           {user && (
             <Link
               href="/notifications"

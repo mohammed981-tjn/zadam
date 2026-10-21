@@ -5,6 +5,7 @@ import type { Project } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import InvestTabs from "@/components/invest/InvestTabs";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -60,6 +61,7 @@ export default async function ProjectsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      <InvestTabs active="/projects" locale={locale} />
       <h1 className="text-2xl font-bold sm:text-3xl">{t("المشاريع المطروحة", "Projects on offer")}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
         {t(

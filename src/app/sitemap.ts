@@ -45,6 +45,7 @@ const PUBLIC_ROUTES: {
   { path: "/mining", priority: 0.6, changeFrequency: "monthly" },
   { path: "/news", priority: 0.6, changeFrequency: "weekly" },
   { path: "/projects", priority: 0.5, changeFrequency: "weekly" },
+  { path: "/invest", priority: 0.6, changeFrequency: "daily" },
   { path: "/guide", priority: 0.5, changeFrequency: "monthly" },
   { path: "/signup", priority: 0.4, changeFrequency: "yearly" },
 ];
