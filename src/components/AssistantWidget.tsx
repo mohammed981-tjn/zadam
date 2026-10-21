@@ -6,6 +6,7 @@ import { sendLead } from "@/lib/leads";
 import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { useDraggable } from "@/lib/useDraggable";
 import { tr } from "@/lib/i18n";
+import { collectTranscript, recognitionCtor, speechErrorText, speechLang, type RecognitionLike } from "@/lib/speech";
 import { useLocale } from "./LocaleProvider";
 
 type Msg = { role: "user" | "assistant"; text: string; source?: string; image?: string };
@@ -100,6 +101,8 @@ export default function AssistantWidget() {
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [listening, setListening] = useState(false);
+  const recRef = useRef<RecognitionLike | null>(null);
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [leadResult, setLeadResult] = useState<{
     ok: boolean;
@@ -137,6 +140,47 @@ export default function AssistantWidget() {
     } finally {
       setPhotoBusy(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  /*
+   * «قُل سؤالك»: one press starts the phone's own recogniser, what it hears
+   * lands in the box as it is heard, and a second press (or silence) stops
+   * it. The farmer still presses Send — a misheard word is a wrong answer,
+   * and the box is where it gets corrected.
+   */
+  function toggleListening() {
+    if (listening) {
+      recRef.current?.stop();
+      return;
+    }
+    const Ctor = recognitionCtor();
+    if (!Ctor) {
+      setMessages((m) => [...m, { role: "assistant", text: t("هذا المتصفّح لا يسمع الصوت. جرّب متصفّح كروم.", "This browser cannot take dictation. Try the Chrome browser.") }]);
+      return;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    const rec = new Ctor();
+    rec.lang = speechLang(locale);
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e) => setInput(collectTranscript(e.results));
+    rec.onerror = (e) => {
+      const text = speechErrorText(e.error, locale);
+      if (text) setMessages((m) => [...m, { role: "assistant", text }]);
+    };
+    rec.onend = () => {
+      recRef.current = null;
+      setListening(false);
+    };
+    recRef.current = rec;
+    setListening(true);
+    try {
+      rec.start();
+    } catch {
+      recRef.current = null;
+      setListening(false);
     }
   }
 
@@ -273,8 +317,8 @@ export default function AssistantWidget() {
             {messages.length === 0 && !showLeadForm && (
               <p className="text-muted">
                 {t(
-                  "اسألني عن أي محصول أو ماشية سودانية — تربة، ري، آفات، أصناف — أو صوّر الورقة أو الحيوان بزرّ الكاميرا وأسأل.",
-                  "Ask me about any Sudanese crop or livestock — soil, irrigation, pests, varieties — or photograph the leaf or the animal with the camera button and ask.",
+                  "اسألني عن أي محصول أو ماشية سودانية — تربة، ري، آفات، أصناف. اكتب، أو قُل سؤالك بزرّ الميكروفون، أو صوّر الورقة أو الحيوان بزرّ الكاميرا.",
+                  "Ask me about any Sudanese crop or livestock — soil, irrigation, pests, varieties. Type, say your question with the microphone button, or photograph the leaf or the animal with the camera button.",
                 )}
               </p>
             )}
@@ -423,10 +467,21 @@ export default function AssistantWidget() {
             >
               📷
             </button>
+            <button
+              type="button"
+              onClick={toggleListening}
+              disabled={loading}
+              aria-pressed={listening}
+              aria-label={listening ? t("أوقف الاستماع", "Stop listening") : t("قُل سؤالك بالصوت", "Say your question")}
+              title={listening ? t("أوقف", "Stop") : t("قُل سؤالك", "Say your question")}
+              className={`rounded-lg border px-2 text-lg disabled:opacity-50 ${listening ? "animate-pulse border-danger bg-danger/10" : "border-border"}`}
+            >
+              🎤
+            </button>
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={photo ? t("سؤالك عن الصورة (اختياري)", "Your question about the photo (optional)") : t("اكتب سؤالك...", "Type your question...")}
+              placeholder={listening ? t("أسمعك… تكلّم", "Listening… speak") : photo ? t("سؤالك عن الصورة (اختياري)", "Your question about the photo (optional)") : t("اكتب سؤالك...", "Type your question...")}
               className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <button
