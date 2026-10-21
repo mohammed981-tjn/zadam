@@ -213,12 +213,12 @@ export default async function LandsPage({
                     <p className="font-bold text-primary">{t("أرضك موثّقة ومنشورة", "Your land is verified and published")}</p>
                     <p className="mt-1 text-xs leading-6 text-muted">
                       {t(
-                        "تظهر الآن في صفحتك العامّة. المستثمرون لا يتصفّحون الأراضي، بل المشاريع — فلتصل إليهم ارفع فرصةً على هذه الأرض، فتراجعها الإدارة ثمّ تُنشر في صفحة المشاريع.",
-                        "It now shows on your public page. Investors browse projects, not land — to reach them, post an opportunity on this land; the administrators review it, then it is published on the projects page.",
+                        "تظهر الآن في صفحتك العامّة. المستثمرون لا يتصفّحون الأراضي، بل المشاريع — فلتصل إليهم ارفع فرصةً على هذه الأرض: تُفتح مملوءةً من بياناتها، فتختار المحصول والحصص، وتراجعها الإدارة ثمّ تُنشر في صفحة المشاريع.",
+                        "It now shows on your public page. Investors browse projects, not land — to reach them, post an opportunity on this land: it opens filled in from the land, you choose the crop and shares, and the administrators review it before it is published on the projects page.",
                       )}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <Link href="/opportunities/new" className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90">
+                      <Link href={`/opportunities/new?land=${l.id}`} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90">
                         {t("ارفع فرصة للمستثمرين", "Post an opportunity for investors")}
                       </Link>
                       <Link href={`/farmers/${l.owner_id}`} className="rounded-lg px-3 py-1.5 text-xs font-bold text-primary ring-1 ring-primary/30 hover:bg-primary/10">

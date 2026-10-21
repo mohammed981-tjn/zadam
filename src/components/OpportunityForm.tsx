@@ -20,6 +20,7 @@ import {
 } from "@/app/opportunities/actions";
 import { useLocale } from "@/components/LocaleProvider";
 import { tr } from "@/lib/i18n";
+import type { OfferableLand } from "@/lib/landOpportunity";
 
 const METHODS = Object.keys(IRRIGATION_EFFICIENCY) as IrrigationMethod[];
 const SOURCES = Object.keys(WATER_SOURCE_LABEL) as WaterSource[];
@@ -106,9 +107,12 @@ const WATER_SOURCE_EN: Record<WaterSource, string> = {
 export default function OpportunityForm({
   operatorSeasons,
   operatorReportingRate,
+  fromLand = null,
 }: {
   operatorSeasons: number;
   operatorReportingRate: number;
+  /** A verified land the opportunity starts from (backlog 123). */
+  fromLand?: OfferableLand | null;
 }) {
   const [state, formAction, pending] = useActionState<
     SubmitResult | null,
@@ -120,13 +124,16 @@ export default function OpportunityForm({
   const arText = en ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
   const [cropKey, setCropKey] = useState("wheat");
-  const [stationKey, setStationKey] = useState("gezira");
+  const [stationKey, setStationKey] = useState(fromLand?.stationKey ?? "gezira");
   const [plantingMonth, setPlantingMonth] = useState(10);
   const [irrigation, setIrrigation] = useState<IrrigationMethod>("flood");
-  const [waterSource, setWaterSource] = useState<WaterSource>("canal");
-  const [water, setWater] = useState(3600);
-  const [kmToMarket, setKmToMarket] = useState(15);
-  const [docs, setDocs] = useState<boolean[]>([false, false, false, false]);
+  const [waterSource, setWaterSource] = useState<WaterSource>(fromLand?.waterSource ?? "canal");
+  const [water, setWater] = useState(fromLand?.waterPerFeddan ?? 3600);
+  const [kmToMarket, setKmToMarket] = useState(fromLand?.kmToMarket ?? 15);
+  // A document already on the verified land is a file the administration has
+  // seen, not a tick — it starts checked and cannot be unticked here.
+  const onLand = fromLand?.docs ?? [false, false, false, false];
+  const [docs, setDocs] = useState<boolean[]>(onLand);
 
   const documentsOnFile = docs.filter(Boolean).length;
 
@@ -179,6 +186,22 @@ export default function OpportunityForm({
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
       <form action={formAction} className="flex flex-col gap-5">
+        {fromLand && (
+          <div className="rounded-2xl bg-primary/5 p-4 text-sm ring-1 ring-primary/20">
+            <input type="hidden" name="land_id" value={fromLand.id} />
+            <p className="font-bold text-primary">
+              {t("على أرضك الموثّقة:", "On your verified land:")}{" "}
+              <span {...arText}>{fromLand.name}</span>
+            </p>
+            <p className="mt-1 text-xs leading-6 text-muted">
+              {t(
+                "ملأنا الاسم والموقع والمساحة والمنطقة والمياه والمستندات من بيانات أرضك. اختر المحصول وشهر الزراعة وطريقة الري والحصص، وغيّر ما تريد.",
+                "The name, location, area, zone, water and documents are filled in from your land. Choose the crop, planting month, irrigation and shares, and change what you like.",
+              )}
+            </p>
+          </div>
+        )}
+
         <fieldset className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5">
           <legend className="px-2 text-sm font-bold">{t("التعريف", "Basics")}</legend>
 
@@ -187,6 +210,7 @@ export default function OpportunityForm({
             <input
               name="name"
               required
+              defaultValue={fromLand?.name}
               className={field}
               placeholder={t("مثال: زراعة قمح — ٢٠٠ فدان", "e.g. Wheat farming — 200 feddans")}
             />
@@ -197,6 +221,7 @@ export default function OpportunityForm({
             <input
               name="location"
               required
+              defaultValue={fromLand?.location}
               className={field}
               placeholder={t("الولاية والمحلية والقرية", "State, locality and village")}
             />
@@ -317,7 +342,7 @@ export default function OpportunityForm({
               type="number"
               name="total_feddans"
               min={1}
-              defaultValue={100}
+              defaultValue={fromLand?.feddans ?? 100}
               required
               className={field}
             />
@@ -372,6 +397,7 @@ export default function OpportunityForm({
               <input
                 type="checkbox"
                 checked={docs[i]}
+                disabled={onLand[i]}
                 onChange={(e) => {
                   const next = [...docs];
                   next[i] = e.target.checked;
@@ -379,7 +405,14 @@ export default function OpportunityForm({
                 }}
                 className="mt-1"
               />
-              {en ? DOCUMENTS_EN[i] : d}
+              <span>
+                {en ? DOCUMENTS_EN[i] : d}
+                {onLand[i] && (
+                  <span className="ms-1 text-xs font-bold text-primary">
+                    {t("— مرفوعٌ على أرضك", "— on file with your land")}
+                  </span>
+                )}
+              </span>
             </label>
           ))}
           <input
