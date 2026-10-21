@@ -37,14 +37,21 @@ interface SeasonRow {
  * asking «where is this farm» had no answer on this page, and a record with no
  * place attached to it is a reference, not a passport.
  */
+/**
+ * A row of public_farmer_lands(). A land its owner has offered to investors or
+ * partner companies comes back by state only (`offered`), with no id, name,
+ * locality or area — the passport must not undo the anonymity the offer
+ * promises (backlog 127).
+ */
 interface VerifiedLand {
-  id: string;
-  name: string;
+  id: string | null;
+  name: string | null;
   state: string | null;
   locality: string | null;
   feddans: number | null;
   tenure: string;
   verification_note: string | null;
+  offered: boolean;
 }
 
 const TENURE_LABEL: Record<string, string> = {
@@ -109,15 +116,10 @@ export default async function FarmerPage({
     await Promise.all([
       supabase.rpc("public_farmer_profile", { p_id: id }),
       admin ? admin.rpc("farmer_season_records", { p_id: id }) : null,
-      // بمفتاح الجلسة لا بمفتاح الخدمة، عمداً: إن كانت السياسةُ تمنع قراءتَها
-      // فالصفحةُ يجب أن تفرغ، لا أن تلتفّ على المنع بمفتاحٍ أقوى.
-      supabase
-        .from("lands")
-        .select("id, name, state, locality, feddans, tenure, verification_note")
-        .eq("owner_id", id)
-        .eq("listed", true)
-        .eq("verification", "verified")
-        .order("name"),
+      // بمفتاح الجلسة لا بمفتاح الخدمة، عمداً. والقراءةُ بدالّةٍ لا من الجدول
+      // (البند ١٢٧): الجدولُ لم يعد يُقرأ لغير صاحبه، والدالّةُ تُرجع ما
+      // يعرضه الجواز فقط — وتحترم إذنَ النشر نفسَه.
+      supabase.rpc("public_farmer_lands", { p_owner: id }),
     ]);
 
   const profile = (
@@ -270,10 +272,12 @@ export default async function FarmerPage({
             )}
           </p>
           <ul className="flex flex-col gap-3">
-            {lands.map((l) => (
-              <li key={l.id} className="rounded-xl border border-border bg-card p-4">
+            {lands.map((l, i) => (
+              <li key={l.id ?? `offered-${i}`} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-medium" {...arText}>{l.name}</span>
+                  <span className="font-medium" {...arText}>
+                    {l.offered ? t("أرضٌ معروضة للشراكة", "A plot offered for partnership") : l.name}
+                  </span>
                   <span className="text-xs text-muted">
                     {(en ? TENURE_LABEL_EN : TENURE_LABEL)[l.tenure] ?? l.tenure}
                   </span>

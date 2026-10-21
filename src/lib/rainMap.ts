@@ -555,23 +555,25 @@ async function fetchElevations(cells: RainCell[]): Promise<(number | null)[] | n
 }
 
 /**
- * Verified, listed lands per cell. Asked with the anon key, so row-level
- * security returns exactly what a stranger may see, and filtered the same way
- * here so the count cannot widen if a policy ever does. Null on any failure;
- * the lands layer then says it has nothing, which is also what it says today.
+ * Verified, listed lands per cell. Asked with the anon key. The lands table is
+ * no longer readable by strangers (backlog 127 — a row carried its village and
+ * coordinates), so public_land_cells() snaps each land to its cell's centre
+ * inside the database and returns counts; no coordinate leaves it. Null on any
+ * failure; the lands layer then says it has nothing.
  */
 async function fetchLandCounts(): Promise<Map<string, number> | null> {
   try {
-    const { data, error } = await createPublicClient()
-      .from("lands")
-      .select("latitude, longitude")
-      .eq("listed", true)
-      .eq("verification", "verified");
+    const { data, error } = await createPublicClient().rpc("public_land_cells");
     if (error) {
       console.error("rain map lands:", error.message);
       return null;
     }
-    return countLands(data ?? []);
+    const counts = new Map<string, number>();
+    for (const c of (data ?? []) as { longitude: number | string; latitude: number | string; lands: number }[]) {
+      const k = cellKeyAt(Number(c.longitude), Number(c.latitude));
+      if (k) counts.set(k, (counts.get(k) ?? 0) + Number(c.lands));
+    }
+    return counts;
   } catch (e) {
     console.error("rain map lands: request failed", e);
     return null;

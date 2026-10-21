@@ -42,18 +42,18 @@ export const INVESTOR_MODEL_DETAIL: Record<InvestorModel, { investor: Bi; owner:
       en: "Rents the land for an agreed term and farms it directly or through a partner company.",
     },
     owner: {
-      ar: "يأخذ أجرةً ثابتةً متّفقاً عليها، ربح الموسم أو خسر.",
-      en: "Receives an agreed fixed rent, whether the season gains or loses.",
+      ar: "يأخذ أجرةً متّفقاً عليها لا تتغيّر بحجم المحصول.",
+      en: "Receives an agreed rent that does not change with the size of the harvest.",
     },
   },
   finance: {
     investor: {
-      ar: "يدفع ثمن البذور والسماد والوقود والحرث، ويستردّه مع حصّةٍ متّفقٍ عليها عند الحصاد.",
-      en: "Pays for the seed, fertiliser, fuel and ploughing, and is repaid with an agreed share at harvest.",
+      ar: "يدفع ثمن البذور والسماد والوقود والحرث مباشرةً للمورّد أو الشركة المنفّذة، ويأخذ مقابل ذلك حصّةً متّفقاً عليها من المحصول.",
+      en: "Pays for the seed, fertiliser, fuel and ploughing directly to the supplier or service company, and takes an agreed share of the harvest in return.",
     },
     owner: {
-      ar: "يزرع أرضه بنفسه، ويردّ التمويل وحصّته من المحصول.",
-      en: "Farms their own land and repays the finance and its share from the harvest.",
+      ar: "يزرع أرضه بنفسه، ويعطي المستثمر حصّته المتّفق عليها من المحصول.",
+      en: "Farms their own land and gives the investor the agreed share of the harvest.",
     },
   },
 };
