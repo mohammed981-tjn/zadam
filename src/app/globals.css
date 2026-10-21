@@ -168,6 +168,9 @@ body {
      paragraphs looking cramped without spacing every element by hand. */
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
+  /* A word longer than its box — a file name, a link — breaks instead of
+     widening the page past the phone's edge (backlog 123). */
+  overflow-wrap: break-word;
 }
 
 /*
