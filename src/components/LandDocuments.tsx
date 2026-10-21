@@ -59,7 +59,10 @@ export default function LandDocuments({
       {existing.length > 0 && (
         <ul className="mb-3 flex flex-col gap-1 text-xs text-muted">
           {existing.map((e) => (
-            <li key={e.id}>
+            // A caption left empty is the file's own name, and a phone names
+            // a screenshot with one long unbroken word that pushed the whole
+            // page sideways and the bottom bar off the screen (backlog 123).
+            <li key={e.id} className="[overflow-wrap:anywhere]">
               {kindLabel(e.kind)}
               {e.caption && (
                 <>

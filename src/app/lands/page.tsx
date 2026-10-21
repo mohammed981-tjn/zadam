@@ -166,8 +166,16 @@ export default async function LandsPage({
                     >
                       {VERIFICATION_LABEL[locale][l.verification]}
                     </span>
+                    {/* The counter counts kinds, and four kinds can be on file
+                        against three required — «4/3» read as a mistake
+                        (backlog 123). */}
                     <p className="text-xs text-muted">
-                      {t("التوثيق", "Documents")} {l.documents_on_file}/{l.documents_required}
+                      {l.documents_on_file >= l.documents_required
+                        ? t("المستندات مكتملة ✓", "Documents complete ✓")
+                        : t(
+                            `المستندات: ${l.documents_on_file} من ${l.documents_required}`,
+                            `Documents: ${l.documents_on_file} of ${l.documents_required}`,
+                          )}
                     </p>
                   </div>
                 </div>
@@ -195,6 +203,30 @@ export default async function LandsPage({
                     </div>
                   ))}
                 </dl>
+
+                {/* After «وثّق وانشر» the card said «محقّقة» and nothing about
+                    where the land now shows or how an investor reaches it
+                    (backlog 123). Investors see projects, not lands, so the
+                    way to them is an opportunity. */}
+                {l.verification === "verified" && l.listed && (
+                  <div className="mt-4 rounded-xl bg-primary/5 p-3 text-sm ring-1 ring-primary/15">
+                    <p className="font-bold text-primary">{t("أرضك موثّقة ومنشورة", "Your land is verified and published")}</p>
+                    <p className="mt-1 text-xs leading-6 text-muted">
+                      {t(
+                        "تظهر الآن في صفحتك العامّة. المستثمرون لا يتصفّحون الأراضي، بل المشاريع — فلتصل إليهم ارفع فرصةً على هذه الأرض، فتراجعها الإدارة ثمّ تُنشر في صفحة المشاريع.",
+                        "It now shows on your public page. Investors browse projects, not land — to reach them, post an opportunity on this land; the administrators review it, then it is published on the projects page.",
+                      )}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Link href="/opportunities/new" className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90">
+                        {t("ارفع فرصة للمستثمرين", "Post an opportunity for investors")}
+                      </Link>
+                      <Link href={`/farmers/${l.owner_id}`} className="rounded-lg px-3 py-1.5 text-xs font-bold text-primary ring-1 ring-primary/30 hover:bg-primary/10">
+                        {t("صفحتي العامّة", "My public page")}
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
                 {l.latitude !== null && l.longitude !== null ? (
                   <Suspense
