@@ -8,8 +8,9 @@ import ActionNotice from "@/components/ActionNotice";
 import InvestTabs from "@/components/invest/InvestTabs";
 import { INTEREST_STATUS_LABEL, INVESTOR_MODEL_LABEL, type MyInterest } from "@/lib/investors";
 import { lbl } from "@/lib/partners";
-import { card, ghost } from "@/lib/ui";
+import { button, card, ghost } from "@/lib/ui";
 import { withdrawInvestorInterest } from "../actions";
+import { openAgreement } from "../agreements/actions";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -137,6 +138,11 @@ export default async function MyInvestorRequestsPage({
                       {t("الشركات الشريكة", "Partner companies")}
                     </Link>
                   </p>
+                  <form action={openAgreement} className="mt-3">
+                    <input type="hidden" name="interest_id" value={r.interest_id} />
+                    <input type="hidden" name="from" value="investor" />
+                    <button className={button}>{t("اكتبا العقد ووقّعاه هنا", "Write and sign the agreement here")}</button>
+                  </form>
                 </div>
               )}
 

@@ -4,6 +4,7 @@ import { lbl } from "@/lib/partners";
 import { INVESTOR_MODEL_DETAIL, INVESTOR_MODEL_LABEL, INVESTOR_MODELS, type LandRequest } from "@/lib/investors";
 import { button, field, ghost } from "@/lib/ui";
 import { decideInvestorInterest, setInvestorConsent } from "@/app/invest/actions";
+import { openAgreement } from "@/app/invest/agreements/actions";
 import type { Land } from "@/types/database";
 
 /**
@@ -119,7 +120,7 @@ export default function LandInvestorConsent({
                 {r.message}
               </p>
               {r.status === "accepted" ? (
-                <p className="mt-1 text-xs text-muted">
+                <div className="mt-1 text-xs text-muted">
                   {t("هاتفه:", "Phone:")}{" "}
                   {r.investor_phone ? (
                     <a href={`tel:${r.investor_phone}`} className="font-bold text-primary underline">
@@ -130,7 +131,12 @@ export default function LandInvestorConsent({
                   )}
                   {" · "}
                   {t("اتّفقا كتابةً قبل أيّ دفع.", "Agree in writing before any payment.")}
-                </p>
+                  <form action={openAgreement} className="mt-2">
+                    <input type="hidden" name="interest_id" value={r.interest_id} />
+                    <input type="hidden" name="from" value="owner" />
+                    <button className={button}>{t("اكتبا العقد ووقّعاه هنا", "Write and sign the agreement here")}</button>
+                  </form>
+                </div>
               ) : (
                 <div className="mt-2 flex flex-wrap gap-2">
                   <form action={decideInvestorInterest}>

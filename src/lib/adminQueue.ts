@@ -222,6 +222,21 @@ const SPECS: Spec[] = [
     row: (r) => ({ id: r.id, title: r.title, meta: null, at: r.created_at }),
   },
   {
+    key: "agreements",
+    title: { ar: "عقود شراكة لم يوقّعها الطرفان بعد", en: "Partnership agreements not yet signed by both" },
+    what: {
+      ar: "للاطّلاع: يكتبها المستثمر وصاحب الأرض ويوقّعانها، والإدارة تتابع.",
+      en: "For information: the investor and the landowner write and sign them; the administrators follow up.",
+    },
+    href: "/admin/inbox#agreements",
+    info: true,
+    table: "partnership_agreements",
+    select: "id, model, version, updated_at",
+    filter: (q) => q.eq("status", "draft"),
+    order: "updated_at",
+    row: (r) => ({ id: r.id, title: `${r.model} — v${r.version}`, meta: null, at: r.updated_at }),
+  },
+  {
     key: "investor_interests",
     title: { ar: "طلبات شراكة من مستثمرين", en: "Investor partnership requests" },
     what: {

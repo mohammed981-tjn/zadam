@@ -34,6 +34,8 @@ const KIND_ICON: Record<string, string> = {
   stage_due: "📅",
   investor_interest: "🤝",
   investor_decision: "🤝",
+  agreement_update: "✍️",
+  agreement_signed: "📜",
 };
 
 function timeAgo(iso: string, locale: Locale): string {
