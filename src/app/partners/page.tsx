@@ -16,6 +16,7 @@ import PartnersShell from "@/components/partners/PartnersShell";
 import AgreementGroups from "@/components/partners/AgreementGroups";
 import { ComingSoon, button, card, field } from "@/components/supply/SupplyShell";
 import { ContactButtons, StatesList, VerifiedBadge } from "@/components/supply/Explainers";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -44,14 +45,14 @@ export default async function PartnersPage({
   const supabase = await createClient();
   const { data: cRows, error: cErr } = await supabase
     .from("partner_companies")
-    .select("*")
+    .select(VISITOR_COLUMNS.partner_companies)
     .not("verified_at", "is", null)
     .eq("active", true)
     .order("name")
     .limit(500);
   const notDeployed = isNotDeployed(cErr);
   if (cErr && !notDeployed) console.error("partners: list failed", cErr);
-  const companies = (cRows ?? []) as PartnerCompany[];
+  const companies = (cRows ?? []) as unknown as PartnerCompany[];
 
   let agreements: PartnerAgreement[] = [];
   if (companies.length > 0) {

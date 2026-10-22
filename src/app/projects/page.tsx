@@ -8,6 +8,7 @@ import { tr } from "@/lib/i18n";
 import InvestTabs from "@/components/invest/InvestTabs";
 import LandOfferCard from "@/components/invest/LandOfferCard";
 import { loadLandOffers, loadProjectLands } from "@/lib/landOffers";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -58,7 +59,7 @@ export default async function ProjectsPage() {
 
   const { data, error } = await supabase
     .from("projects")
-    .select("*")
+    .select(VISITOR_COLUMNS.projects)
     // نفسُ مِصفاة الصفحة الأولى: المسوّدةُ ليست عرضاً، وعرضُها هنا وحدها كان
     // سيجعل الفهرسَ يناقض الصفحةَ التي يُكمّلها.
     .neq("status", "draft")
@@ -68,7 +69,7 @@ export default async function ProjectsPage() {
     console.error("projects: read failed", error);
   }
 
-  const projects = (data ?? []) as Project[];
+  const projects = (data ?? []) as unknown as Project[];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">

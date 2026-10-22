@@ -19,6 +19,7 @@ import {
 } from "@/lib/nafir";
 import { openCase, verifyMediator, volunteer } from "./actions";
 import FilmPlayer from "@/components/FilmPlayer";
+import { columnsFor } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -71,13 +72,13 @@ export default async function JudiyyaPage({
   const { supabase, user, name, isAdmin } = await nafirViewer();
 
   const [{ data: meds }, { data: counts }, { data: mine }] = await Promise.all([
-    supabase.from("judiyya_mediators").select("*").order("verified_at", { ascending: false, nullsFirst: false }),
+    supabase.from("judiyya_mediators").select(columnsFor("judiyya_mediators", Boolean(user))).order("verified_at", { ascending: false, nullsFirst: false }),
     supabase.rpc("judiyya_counts").single(),
     user
       ? supabase.from("judiyya_cases").select("*").order("created_at", { ascending: false })
       : Promise.resolve({ data: [] }),
   ]);
-  const mediators = (meds ?? []) as JudiyyaMediator[];
+  const mediators = (meds ?? []) as unknown as JudiyyaMediator[];
   const verified = mediators.filter((m) => m.verified_at);
   const pending = mediators.filter((m) => !m.verified_at);
   const c = counts as { mediators_verified: number; cases_active: number; cases_settled: number } | null;
@@ -245,8 +246,8 @@ export default async function JudiyyaPage({
           <p className="text-sm text-muted">{t("لا أجويد في السجلّ بعد.", "No mediators in the register yet.")}</p>
         ) : (
           <ul className="grid gap-2 sm:grid-cols-2">
-            {verified.map((m) => (
-              <li key={m.user_id} className="rounded-xl border border-border bg-card p-3">
+            {verified.map((m, i) => (
+              <li key={m.user_id ?? i} className="rounded-xl border border-border bg-card p-3">
                 <p className="font-bold">
                   <bdi>{m.display_name}</bdi> <span className="text-xs font-normal text-muted">· {stateName(m.state, locale)}</span>
                 </p>

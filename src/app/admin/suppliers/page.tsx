@@ -17,6 +17,7 @@ import {
 import { ComingSoon, card } from "@/components/supply/SupplyShell";
 import { StatesList } from "@/components/supply/Explainers";
 import { reviewCarrier, reviewReport, reviewSupplier, setSupplierActiveAdmin } from "./actions";
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -46,14 +47,17 @@ export default async function AdminSuppliersPage({
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
-  const [{ data: sRows, error: sErr }, { data: pRows }, { data: cRows }, { data: rRows }] = await Promise.all([
-    supabase.from("suppliers").select("*").order("created_at"),
+  const [{ data: sRows, error: sErr }, { data: pRows }, { data: cRows }, { data: rRows }, { data: noteRows }] = await Promise.all([
+    supabase.from("suppliers").select(MEMBER_COLUMNS.suppliers).order("created_at"),
     supabase.from("supplier_products").select("id, supplier_id, category, name, registration_no, active"),
     supabase.from("carriers").select("*").order("created_at"),
     supabase.from("product_reports").select("*").order("created_at", { ascending: false }).limit(200),
+    // The review note left the table's member columns (backlog 132); the administrators read it here.
+    supabase.rpc("review_notes", { p_kind: "supplier" }),
   ]);
   const notDeployed = isNotDeployed(sErr);
-  const suppliers = (sRows ?? []) as Supplier[];
+  const notes = new Map(((noteRows ?? []) as { id: string; review_note: string }[]).map((r) => [r.id, r.review_note]));
+  const suppliers = ((sRows ?? []) as unknown as Supplier[]).map((s) => ({ ...s, review_note: notes.get(s.id) ?? null }));
   const products = (pRows ?? []) as Pick<SupplierProduct, "id" | "supplier_id" | "category" | "name" | "registration_no" | "active">[];
   const carriers = (cRows ?? []) as Carrier[];
   const reports = (rRows ?? []) as ProductReport[];

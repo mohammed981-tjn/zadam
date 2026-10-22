@@ -9,6 +9,7 @@ import NotifyMeForm from "@/components/NotifyMeForm";
 import { invest } from "./actions";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 export default async function ProjectPage({
   params,
@@ -26,13 +27,13 @@ export default async function ProjectPage({
   const supabase = await createClient();
   const { data: project } = await supabase
     .from("projects")
-    .select("*")
+    .select(VISITOR_COLUMNS.projects)
     .eq("slug", slug)
     .single();
 
   if (!project) notFound();
 
-  const typedProject = project as Project;
+  const typedProject = project as unknown as Project;
 
   const [{ data: updates }, projectLands] = await Promise.all([
     supabase.from("project_updates").select("*").eq("project_id", typedProject.id).order("created_at", { ascending: false }),

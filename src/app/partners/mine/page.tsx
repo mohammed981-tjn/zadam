@@ -25,6 +25,7 @@ import AgreementGroups from "@/components/partners/AgreementGroups";
 import { ComingSoon, button, card, field, ghost } from "@/components/supply/SupplyShell";
 import { VerifiedBadge } from "@/components/supply/Explainers";
 import { endAgreement, saveAgreement, savePartner, setPartnerActive } from "../actions";
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -49,11 +50,15 @@ export default async function MyPartnerPage({
   let agreements: PartnerAgreement[] = [];
   let notDeployed = false;
   if (user) {
-    const { data, error } = await supabase.from("partner_companies").select("*").eq("owner_id", user.id).maybeSingle();
+    const { data, error } = await supabase.from("partner_companies").select(MEMBER_COLUMNS.partner_companies).eq("owner_id", user.id).maybeSingle();
     notDeployed = isNotDeployed(error);
     if (error && !notDeployed) console.error("partners/mine: company failed", error);
-    company = data as PartnerCompany | null;
+    company = data as unknown as PartnerCompany | null;
     if (company) {
+      // The administrator's note is the owner's to read, not every member's (backlog 132).
+      const { data: noteRows } = await supabase.rpc("review_notes", { p_kind: "partner_company" });
+      const note = ((noteRows ?? []) as { id: string; review_note: string }[]).find((r) => r.id === company!.id);
+      company = { ...company, review_note: note?.review_note ?? null };
       const { data: a } = await supabase
         .from("partner_agreements")
         .select("*")

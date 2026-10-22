@@ -20,6 +20,7 @@ import {
   type NafirCall,
   type NafirIndicators,
 } from "@/lib/nafir";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -56,19 +57,19 @@ export default async function NafirPage({
   const [calls, done, faza, ind, joins] = await Promise.all([
     supabase
       .from("nafir_calls")
-      .select("*")
+      .select(VISITOR_COLUMNS.nafir_calls)
       .eq("status", "open")
       .order("starts_on", { ascending: true })
       .limit(20),
     supabase
       .from("nafir_calls")
-      .select("*")
+      .select(VISITOR_COLUMNS.nafir_calls)
       .eq("status", "done")
       .order("closed_at", { ascending: false })
       .limit(6),
     supabase
       .from("faza_requests")
-      .select("*")
+      .select(VISITOR_COLUMNS.faza_requests)
       .eq("status", "open")
       .order("created_at", { ascending: false })
       .limit(4),
@@ -76,8 +77,8 @@ export default async function NafirPage({
     supabase.from("nafir_joins").select("call_id"),
   ]);
 
-  const open = (calls.data ?? []) as NafirCall[];
-  const finished = (done.data ?? []) as NafirCall[];
+  const open = (calls.data ?? []) as unknown as NafirCall[];
+  const finished = (done.data ?? []) as unknown as NafirCall[];
   const needs = (faza.data ?? []) as FazaRequest[];
   const i = ind.data as NafirIndicators | null;
   const joined = new Map<string, number>();

@@ -16,6 +16,7 @@ import { SUDAN_STATES, stateName, typed } from "@/lib/nafir";
 import { createClient } from "@/lib/supabase/server";
 import OfferNotice from "@/components/market/OfferNotice";
 import { closeOffer } from "./actions";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -52,7 +53,7 @@ export default async function OffersPage({
 
   let q = supabase
     .from("market_offers")
-    .select("*")
+    .select(VISITOR_COLUMNS.market_offers)
     .eq("status", "open")
     .gt("expires_at", new Date().toISOString())
     .order("created_at", { ascending: false })
@@ -63,7 +64,7 @@ export default async function OffersPage({
   const { data, error } = await q;
   const pending = isNotYetCreated(error);
   if (error && !pending) console.error("market offers: list failed", error);
-  const offers = (data ?? []) as MarketOffer[];
+  const offers = (data ?? []) as unknown as MarketOffer[];
 
   const mine =
     user && !error
