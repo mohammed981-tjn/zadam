@@ -105,7 +105,9 @@ export default async function InvestPage({
       {/* ── أراضٍ تبحث عن شريك ─────────────────────────────────────────── */}
       <section aria-labelledby="lands" className="mb-10">
         <h2 id="lands" className="title-bar mb-4 text-lg font-black">
-          {t("أراضٍ تبحث عن شريك", "Land looking for a partner")} <span className="text-muted">({lands.length})</span>
+          {t("أراضٍ تبحث عن شريك", "Land looking for a partner")}{" "}
+          {/* «(0)» reads as «٥» to an Arabic reader; the empty notice below says it instead. */}
+          {lands.length > 0 && <span className="text-muted">({lands.length})</span>}
         </h2>
 
         {landError ? (
@@ -143,7 +145,8 @@ export default async function InvestPage({
       <section aria-labelledby="projects" className="mb-10">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="projects" className="title-bar text-lg font-black">
-            {t("مشاريع مطروحة", "Projects on offer")} <span className="text-muted">({projects.length})</span>
+            {t("مشاريع مطروحة", "Projects on offer")}{" "}
+            {projects.length > 0 && <span className="text-muted">({projects.length})</span>}
           </h2>
           <Link href="/projects" className="text-sm font-bold text-primary underline">
             {t("كلّ المشاريع", "All projects")}

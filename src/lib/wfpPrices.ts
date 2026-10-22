@@ -73,6 +73,66 @@ export function readWfpPrices(): WfpPrices | null {
   }
 }
 
+/**
+ * Where WFP collects a town's prices, when the place is not the town the name
+ * suggests (backlog 133). Read in the HDX file's own `admin2` column on
+ * 22 October 2026: WFP's "Khartoum" is one market in Jebel Aulia locality,
+ * south of the city — not the city's markets at large. Every other town's
+ * admin2 is the town itself or the locality that holds it.
+ */
+const MARKET_PLACE: Record<string, string> = {
+  Khartoum: "سوقٌ في محلّيّة جبل أولياء",
+};
+const MARKET_PLACE_EN: Record<string, string> = {
+  Khartoum: "one market in Jebel Aulia locality",
+};
+export const wfpMarketPlace = (name: string, locale: Locale): string | null =>
+  (locale === "en" ? MARKET_PLACE_EN[name] : MARKET_PLACE[name]) ?? null;
+
+/**
+ * The middle of the towns' prices for one item in one month (backlog 133).
+ *
+ * The owner asked how faba beans can cost more in Dongola than in Khartoum.
+ * WFP's own September 2026 national average for them is SDG 12,345/kg
+ * (Sudan Market Monitor, October 2026, Annex 2); Dongola's 13,688 sits by it
+ * and Khartoum's 6,719 at about half. So the page shows, beside a town's
+ * figure, how far it lies from the other towns that month — computed from the
+ * same file, never estimated — and says when it lies far out. The median, not
+ * the mean, so one far-off town does not move the middle it is measured from.
+ * Only when at least five towns report the item that month.
+ */
+export const MEDIAN_MIN_TOWNS = 5;
+/** Further than this from the median, below or above, a figure is called unusual: 0.6× and 1/0.6 ≈ 1.67×. */
+export const UNUSUAL_LOW = 0.6;
+export const UNUSUAL_HIGH = 1 / UNUSUAL_LOW;
+
+const medianKey = (it: Pick<WfpItem, "commodity" | "unit" | "month">) => `${it.commodity}|${it.unit}|${it.month}`;
+
+export function townMedians(towns: WfpTown[]): Map<string, number> {
+  const groups = new Map<string, number[]>();
+  for (const town of towns) for (const it of town.items) {
+    const k = medianKey(it);
+    groups.set(k, [...(groups.get(k) ?? []), it.price]);
+  }
+  const out = new Map<string, number>();
+  for (const [k, prices] of groups) {
+    if (prices.length < MEDIAN_MIN_TOWNS) continue;
+    const s = [...prices].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    out.set(k, s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2);
+  }
+  return out;
+}
+
+export const medianFor = (medians: Map<string, number>, it: WfpItem) => medians.get(medianKey(it)) ?? null;
+
+/** "low" or "high" when the figure lies far from the towns' median that month; null otherwise. */
+export function unusual(price: number, median: number | null): "low" | "high" | null {
+  if (median === null || median <= 0) return null;
+  const r = price / median;
+  return r < UNUSUAL_LOW ? "low" : r > UNUSUAL_HIGH ? "high" : null;
+}
+
 /** Whole per cent, or null when there is nothing to compare with. */
 export function pctChange(now: number, before: number | null): number | null {
   if (before === null || before <= 0) return null;

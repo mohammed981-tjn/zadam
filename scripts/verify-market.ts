@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { CROP_NAME, fewsMarket, fewsProduct, fewsUnit, latest, parseFews, parseMarketPrices, parseWfpMonthly } from "../src/lib/marketPrices";
 import { isNotYetCreated } from "../src/lib/marketOffers";
-import { orderTowns, parseWfpPrices, pctChange, wfpItem, wfpTown, wfpUnit } from "../src/lib/wfpPrices";
+import { medianFor, orderTowns, parseWfpPrices, pctChange, townMedians, unusual, wfpItem, wfpMarketPlace, wfpTown, wfpUnit } from "../src/lib/wfpPrices";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -94,6 +94,22 @@ ok(
 );
 ok(pctChange(110, 100) === 10 && pctChange(90, 100) === -10 && pctChange(100, null) === null && pctChange(100, 0) === null, "WFP towns: the change is whole per cent, and nothing to compare is no change");
 ok(wfpUnit("3.5 KG", "ar") === "3.5 كجم" && wfpUnit("KG", "ar") === "كجم" && wfpUnit("L", "en") === "l", "WFP towns: units read plainly");
+
+// Backlog 133: faba beans dearer in Dongola than in Khartoum. The figures are WFP's own (HDX, read row by row
+// on 22 October 2026); the page says where Khartoum's market is and which figures lie far from the towns' middle.
+const fixture = (market: string, price: number) => ({ market, state: "", latest: "2026-09", items: [{ commodity: "Beans (fava, egyptian)", unit: "KG", month: "2026-09", price, prevMonth: null, yearAgo: null }] });
+const sept = [fixture("A", 11000), fixture("B", 12345), fixture("Dongola", 13688), fixture("Khartoum", 6719), fixture("Kadugli", 20500)];
+const med = townMedians(sept);
+ok(medianFor(med, sept[0].items[0]) === 12345, "median: the middle of five towns' figures for the month");
+ok(unusual(6719, 12345) === "low" && unusual(22000, 12345) === "high", "median: Khartoum far below; a figure 1.8 times the middle far above");
+ok(unusual(13688, 12345) === null && unusual(11000, 12345) === null, "median: Dongola and a town close by are not flagged");
+ok(townMedians(sept.slice(0, 4)).size === 0, "median: fewer than five towns give no middle at all");
+ok(wfpMarketPlace("Khartoum", "ar") !== null && wfpMarketPlace("Dongola", "ar") === null, "place: Khartoum says it is one market in Jebel Aulia; Dongola needs nothing");
+const real = townMedians(wfpPrices!.towns);
+const kh = wfpPrices!.towns.find((m) => m.market === "Khartoum")?.items.find((i) => i.commodity === "Beans (fava, egyptian)");
+ok(!kh || unusual(kh.price, medianFor(real, kh)) !== null || kh.month !== "2026-09", "median: in the real file, Khartoum's September faba beans are flagged");
+const kd = wfpPrices!.towns.find((m) => m.market === "Kadugli")?.items.find((i) => i.commodity === "Beans (fava, egyptian)");
+ok(!kd || kd.month !== "2026-09" || unusual(kd.price, medianFor(real, kd)) === "high", "median: and Kadugli's far above the towns' middle");
 
 // Before the migration is applied the offers pages say «تُفعَّل قريباً»; any other failure is an error.
 ok(isNotYetCreated({ code: "42P01", message: 'relation "public.market_offers" does not exist' }), "offers: a missing table reads as not-yet-created");

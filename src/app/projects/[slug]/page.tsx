@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { loadProjectLands } from "@/lib/landOffers";
+import { loadLandOffers, loadProjectLands, type LandOffers } from "@/lib/landOffers";
+import LandOfferCard from "@/components/invest/LandOfferCard";
+import type { OpenLand } from "@/lib/investors";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cropVisual, formatUsd, riskLabel, statusLabel } from "@/lib/format";
@@ -46,6 +48,23 @@ export default async function ProjectPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // «اطلب الشراكة» على صفحة المشروع (البند ١٣٥، المالك 22 أكتوبر): المشروع القائم على
+  // أرضٍ موثّقة يحمل طريق الشراكة نفسه الذي في «الفرص» — المال لا يمرّ بالمنصّة.
+  // A visitor cannot read projects.land_id (backlog 132), so the land's own card
+  // is found only for a member; a visitor is asked to sign in first.
+  let landOffers: LandOffers | null = null;
+  let landOffer: OpenLand | null = null;
+  if (user && verifiedLand) {
+    const [{ data: landRow }, offers] = await Promise.all([
+      supabase.from("projects").select("land_id").eq("id", typedProject.id).maybeSingle(),
+      loadLandOffers(supabase, true),
+    ]);
+    const landId = (landRow as { land_id: string | null } | null)?.land_id ?? null;
+    landOffers = offers;
+    landOffer = landId ? (offers.lands.find((l) => l.land_id === landId) ?? null) : null;
+  }
+  const isSubmitter = Boolean(user) && user?.id === typedProject.submitted_by;
+
   const fundedPct = Math.min(
     100,
     Math.round((typedProject.shares_sold / typedProject.total_shares) * 100),
@@ -86,7 +105,7 @@ export default async function ProjectPage({
           <span className="rounded-full bg-border/60 px-3 py-1">
             {locale === "en"
               ? `${riskLabel(typedProject.risk_level, locale)} risk`
-              : `مخاطرة ${riskLabel(typedProject.risk_level)}`}
+              : `خطر ${riskLabel(typedProject.risk_level)}`}
           </span>
           <span className="rounded-full bg-border/60 px-3 py-1">
             {typedProject.total_feddans} {t("فدان", "feddans")}
@@ -154,6 +173,54 @@ export default async function ProjectPage({
             )}
           </section>
 
+          <div className="flex h-fit flex-col gap-4">
+          {verifiedLand && (
+            <section aria-labelledby="partner" className="rounded-2xl border border-primary/30 bg-card p-5">
+              <h2 id="partner" className="mb-1 text-lg font-bold">
+                {t("الشراكة مع صاحب الأرض", "Partner with the landowner")}
+              </h2>
+              <p className="mb-3 text-sm text-muted">
+                {t(
+                  "تختار نوع الشراكة وتكتب لصاحب الأرض، فيصله إشعار. وحين يقبل يُكتب العقد ويوقّعه الطرفان على المنصّة، ثمّ يبدأ الموسم وتتابعه بالصور والمصروفات. المال بينكما مباشرةً، لا يمرّ بالمنصّة.",
+                  "Choose a partnership model and write to the landowner, who is notified. Once they accept, the contract is written and both sign it on the platform; then the season starts and you follow it in photos and costs. The money passes between you directly, never through the platform.",
+                )}
+              </p>
+              {landOffer && landOffers ? (
+                <ul className="list-none">
+                  <LandOfferCard
+                    land={landOffer}
+                    signedIn
+                    fee={landOffers.fee}
+                    inspection={landOffers.openInspection.get(landOffer.land_id)}
+                    inspectionsOn={landOffers.inspectionsOn}
+                    locale={locale}
+                    returnTo={`/projects/${typedProject.slug}`}
+                  />
+                </ul>
+              ) : !user ? (
+                <Link href="/login" className="inline-block rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90">
+                  {t("سجّل الدخول لتطلب الشراكة", "Sign in to request a partnership")}
+                </Link>
+              ) : isSubmitter ? (
+                <p className="rounded-xl bg-background px-3 py-2 text-sm">
+                  {t(
+                    "ليظهر للمستثمرين زرّ «اطلب الشراكة» هنا، افتح أرض هذا المشروع لهم من «أراضيّ» واختر نوع الشراكة الذي تقبله.",
+                    "For investors to see «Request a partnership» here, open this project's land to them from «My land» and choose the partnership models you accept.",
+                  )}{" "}
+                  <Link href="/lands" className="font-bold text-primary underline">
+                    {t("أراضيّ", "My land")}
+                  </Link>
+                </p>
+              ) : (
+                <p className="text-sm text-muted">
+                  {t(
+                    "لم يفتح صاحب الأرض باب الشراكة بعد. اترك بياناتك أدناه وسنبلغك.",
+                    "The landowner has not opened partnership yet. Leave your details below and we will tell you.",
+                  )}
+                </p>
+              )}
+            </section>
+          )}
           <aside className="h-fit rounded-2xl border border-border bg-card p-5">
             {!investmentOpen ? (
               <>
@@ -161,12 +228,12 @@ export default async function ProjectPage({
                   {t("قريباً", "Coming soon")}
                 </span>
                 <h2 className="mb-2 text-lg font-bold">
-                  {t("الاستثمار لم يُفتح بعد", "Investment is not open yet")}
+                  {t("الدفع عبر المنصّة لم يُفتح بعد", "Paying through the platform is not open yet")}
                 </h2>
                 <p className="mb-4 text-sm text-muted">
                   {t(
-                    "نحن نبني المنصة الآن ولا نستقبل أي أموال حتى تكتمل الترتيبات القانونية وتوثيق المشاريع. اترك بياناتك وسنبلغك أول ما يُفتح باب الاستثمار.",
-                    "We are building the platform now and accept no money until the legal arrangements and project documentation are complete. Leave your details and we will tell you as soon as investment opens.",
+                    "لا تستقبل المنصّة أموالاً حتى تكتمل الترتيبات القانونية وترتيبُ حفظ المال. اترك بياناتك وسنبلغك أوّل ما يُفتح.",
+                    "The platform accepts no money until the legal arrangements and a way to hold the money are in place. Leave your details and we will tell you as soon as it opens.",
                   )}
                 </p>
                 <p className="mb-4 text-sm">
@@ -239,6 +306,7 @@ export default async function ProjectPage({
               </>
             )}
           </aside>
+          </div>
         </div>
       </div>
     </div>
