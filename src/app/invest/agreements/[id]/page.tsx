@@ -69,6 +69,8 @@ export default async function AgreementPage({
   const mine = a.signatures.find((s) => s.role === a.me);
   const other = a.signatures.find((s) => s.role !== a.me);
   const clauses = agreementClauses(a, locale);
+  // Arabic digits inside Arabic sentences, as the clauses already write them.
+  const arNum = (v: number) => Number(v).toLocaleString("ar-EG");
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString(locale === "en" ? "en-GB" : "ar-EG", {
       dateStyle: "long",
@@ -88,7 +90,7 @@ export default async function AgreementPage({
 
       <header className="mt-4 mb-5">
         <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-rose/10 px-3 py-1 text-xs font-bold text-rose">
-          {signed ? t("موقَّعٌ من الطرفين ومقفل", "Signed by both parties and sealed") : t(`مسوّدة — النسخة ${a.version}`, `Draft — version ${a.version}`)}
+          {signed ? t("موقَّعٌ من الطرفين ومقفل", "Signed by both parties and sealed") : t(`مسوّدة — النسخة ${arNum(a.version)}`, `Draft — version ${a.version}`)}
         </p>
         <h1 className="title-bar font-black leading-tight" style={{ fontSize: "var(--text-title)" }}>
           {lbl(AGREEMENT_TITLE[a.model])}
@@ -155,7 +157,7 @@ export default async function AgreementPage({
               <p className="font-black text-leaf">{t("شهدت سوداقري", "Witnessed by Sudagri")}</p>
               <p className="mt-1 text-xs leading-6 text-muted">
                 {t(
-                  `وقّع الطرفان النسخة ${a.version} من هذا العقد بحسابيهما، وأُقفل في ${fmt(a.signed_at)}.`,
+                  `وقّع الطرفان النسخة ${arNum(a.version)} من هذا العقد بحسابيهما، وأُقفل في ${fmt(a.signed_at)}.`,
                   `Both parties signed version ${a.version} of this agreement from their own accounts; sealed on ${fmt(a.signed_at)}.`,
                 )}
               </p>
@@ -281,7 +283,7 @@ export default async function AgreementPage({
                 <input type="date" name="end_date" required defaultValue={x.end_date ?? ""} className={field} />
               </label>
               <label className={label}>
-                {t(`المساحة المشمولة (فدان، حتى ${a.land.feddans})`, `Area covered (feddans, up to ${a.land.feddans})`)}
+                {t(`المساحة المشمولة (فدان، حتى ${arNum(a.land.feddans)})`, `Area covered (feddans, up to ${a.land.feddans})`)}
                 <input type="number" name="feddans" required min={0.1} step="0.1" max={a.land.feddans} defaultValue={x.feddans ?? a.land.feddans} className={field} />
               </label>
             </div>
