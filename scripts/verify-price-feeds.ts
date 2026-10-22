@@ -54,6 +54,8 @@ const bank = readBankOfKhartoum(fixture("iqraa24-45070.json"));
 eq(bank && { date: bank.date, buy: bank.buy, sell: bank.sell }, { date: "2026-10-21", buy: 4850, sell: 4886.38 },
   "the dollar row of the day's table, cash buying and selling");
 eq(readBankOfKhartoum({ ...fixture("bajnews-201602.json") }), null, "no table, no figure");
+eq(readBankOfKhartoum(fixture("iqraa24-43999.json")), null,
+  "a table with no buying and selling columns — buying 4200 above selling 3700 — gives nothing");
 
 console.log("\nThe parallel market — bajnews, 21 October 2026");
 const parallel = readParallelMarket(fixture("bajnews-201602.json"));
