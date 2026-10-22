@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { currentFx } from "@/lib/livePrices";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
-import { readFxReference } from "@/lib/fxRates";
 import { stateName } from "@/lib/nafir";
 import {
   CATEGORY_LABEL,
@@ -35,7 +35,7 @@ export default async function SupplierPage({
   const sp = await searchParams;
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const fx = readFxReference();
+  const fx = (await currentFx());
   const rate = fx?.bank.sell ?? null;
   const typed = locale === "en" ? ({ lang: "ar", dir: "auto" } as const) : {};
 

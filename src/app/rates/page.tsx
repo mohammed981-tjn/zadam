@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { currentFx } from "@/lib/livePrices";
 import FxConverter from "@/components/FxConverter";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import {
@@ -9,7 +10,6 @@ import {
   ageInDays,
   fetchCrossRates,
   poundsPer,
-  readFxReference,
   type FxCurrency,
   type QuotedRate,
 } from "@/lib/fxRates";
@@ -36,7 +36,7 @@ export default async function RatesPage() {
   const locale = await getLocale();
   const en = locale === "en";
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const ref = readFxReference();
+  const ref = (await currentFx());
   const cross = await fetchCrossRates();
   const day = (d: string) =>
     new Date(`${d}T12:00:00Z`).toLocaleDateString(en ? "en-GB" : "ar-SD-u-nu-latn", {

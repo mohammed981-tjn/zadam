@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { readFxReference } from "@/lib/fxRates";
+import { currentFx } from "@/lib/livePrices";
 import { tr } from "@/lib/i18n";
 import { planTotals, type Plan, type PlanItem } from "@/lib/inputPlans";
 import { CROPS } from "@/lib/agronomy";
@@ -24,7 +24,7 @@ export default async function MyProjectPage({ searchParams }: { searchParams: Pr
   const { supabase } = await signedIn();
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const fx = readFxReference();
+  const fx = (await currentFx());
   const { data } = await supabase
     .from("input_plans")
     .select("*, input_plan_items(*)")

@@ -29,12 +29,17 @@ export default async function SeasonsPage({
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
+  // Own seasons, and — since backlog 129 — the seasons of signed partnerships
+  // the caller invests in, which RLS now returns too. Kept apart: only the
+  // first builds this person's record.
   const { data } = await supabase
     .from("seasons")
     .select("*")
     .order("planting_date", { ascending: false });
 
-  const seasons = (data ?? []) as Season[];
+  const all = (data ?? []) as Season[];
+  const seasons = all.filter((s) => s.owner_id === user.id);
+  const partnerSeasons = all.filter((s) => s.owner_id !== user.id && s.partnership_id);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -67,6 +72,31 @@ export default async function SeasonsPage({
         <p className="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm">
           {errorMessage}
         </p>
+      )}
+
+      {partnerSeasons.length > 0 && (
+        <section className="mb-6 rounded-2xl border border-leaf/30 bg-leaf/5 p-4">
+          <h2 className="font-bold text-leaf">{t("مواسم شراكتك", "Your partnership seasons")}</h2>
+          <p className="mt-1 text-xs text-muted">
+            {t(
+              "مواسم يزرعها شركاؤك بعقدٍ وقّعتموه: تقرأ مراحلها وصورها ودفترها، ولا تكتب فيها.",
+              "Seasons your partners grow under an agreement you signed: you read their stages, photos and ledger, and write none of them.",
+            )}
+          </p>
+          <ul className="mt-2 flex flex-col gap-1 text-sm">
+            {partnerSeasons.map((s) => (
+              <li key={s.id}>
+                <Link href={`/seasons/${s.id}`} className="font-bold text-primary underline" {...arText}>
+                  {s.name}
+                </Link>
+                <span className="text-muted">
+                  {" "}
+                  · {cropName(s.crop_key, locale)} · {s.feddans} {t("فدان", "feddans")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Placed above the list on purpose: the choice is made while looking at

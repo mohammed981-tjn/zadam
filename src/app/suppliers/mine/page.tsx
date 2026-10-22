@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { currentFx } from "@/lib/livePrices";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
-import { readFxReference } from "@/lib/fxRates";
 import { SUDAN_STATES, stateName } from "@/lib/nafir";
 import {
   CATEGORIES,
@@ -60,7 +60,7 @@ export default async function MySupplierPage({
       products = (p ?? []) as SupplierProduct[];
     }
   }
-  const rate = readFxReference()?.bank.sell ?? null;
+  const rate = (await currentFx())?.bank.sell ?? null;
 
   return (
     <SupplyShell active="/suppliers/mine" ok={sp.ok} error={sp.error}>

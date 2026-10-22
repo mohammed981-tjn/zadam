@@ -12,9 +12,12 @@ const riskColor: Record<string, string> = {
 export default function ProjectCard({
   project,
   locale = "ar",
+  verifiedLand,
 }: {
   project: Project;
   locale?: Locale;
+  /** The project stands on a land the administrators verified (backlog 130), with that land's documents. */
+  verifiedLand?: { documents: number; required: number };
 }) {
   const en = locale === "en";
   const fundedPct = Math.min(
@@ -51,6 +54,14 @@ export default function ProjectCard({
       </div>
 
       <p className="text-sm text-muted">{project.location}</p>
+
+      {verifiedLand && (
+        <span className="-mt-1 w-fit rounded-full bg-leaf/10 px-2.5 py-1 text-xs font-bold text-leaf">
+          {en
+            ? `On verified land · ${verifiedLand.documents} of ${verifiedLand.required} documents on file`
+            : `على أرضٍ موثّقة · ${verifiedLand.documents} من ${verifiedLand.required} مستندات في الملفّ`}
+        </span>
+      )}
 
       {project.description && (
         <p className="line-clamp-2 text-sm text-foreground/80">

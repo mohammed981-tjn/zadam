@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { currentFx } from "@/lib/livePrices";
 import FeasibilityStudy from "@/components/FeasibilityStudy";
 import { loadCropMarkets } from "@/lib/marketData";
-import { readFxReference } from "@/lib/fxRates";
 import { fetchSudanLocust } from "@/lib/locust";
 import { createClient } from "@/lib/supabase/server";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
@@ -50,7 +50,7 @@ export default async function FeasibilityPage({ searchParams }: { searchParams: 
       }[])
     : null;
   const [markets, locust] = await Promise.all([loadCropMarkets(), fetchSudanLocust(myLands)]);
-  const fx = readFxReference();
+  const fx = (await currentFx());
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const en = locale === "en";

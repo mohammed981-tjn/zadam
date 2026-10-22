@@ -28,7 +28,12 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *      landed. It is still admin-gated by `requireAdmin` before it is reached,
  *      and it can only set three embedding columns on rows that already exist.
  *
- * A third caller is a decision, not a detail. Add it to this list.
+ *   3. The daily price run (backlog 131), from /api/health and from the
+ *      «حدّث الأسعار الآن» button on /admin/prices, which checks the caller is
+ *      an administrator first. A scheduled job has no visitor to act as; it
+ *      writes only rows in market_quotes and price_runs.
+ *
+ * A further caller is a decision, not a detail. Add it to this list.
  */
 
 export function createAdminClient() {

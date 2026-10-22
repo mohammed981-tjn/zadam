@@ -5,6 +5,8 @@ import { INVESTOR_MODEL_DETAIL, INVESTOR_MODEL_LABEL, INVESTOR_MODELS, type Land
 import { button, field, ghost } from "@/lib/ui";
 import { decideInvestorInterest, setInvestorConsent } from "@/app/invest/actions";
 import { openAgreement } from "@/app/invest/agreements/actions";
+import { decideInspection } from "@/app/invest/inspections/actions";
+import { CHECK_LABEL, INSPECTION_STATUS_LABEL, VERDICT_LABEL, type InspectionRow } from "@/lib/inspections";
 import type { Land } from "@/types/database";
 
 /**
@@ -18,10 +20,13 @@ import type { Land } from "@/types/database";
 export default function LandInvestorConsent({
   land,
   requests,
+  inspections = [],
   locale,
 }: {
   land: Land;
   requests: LandRequest[];
+  /** Inspection requests on this land (backlog 128). */
+  inspections?: InspectionRow[];
   locale: Locale;
 }) {
   if (land.open_to_investors === undefined) return null;
@@ -105,6 +110,48 @@ export default function LandInvestorConsent({
             <button className={`${button} self-start`}>{t("اعرض أرضي على المستثمرين", "Offer my land to investors")}</button>
           </form>
         </details>
+      )}
+
+      {inspections.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-2">
+          {inspections.map((i) => (
+            <li key={i.id} className="rounded-lg border border-leaf/30 bg-card px-3 py-2">
+              <p className="font-medium">
+                {t("طلب معاينةٍ من ", "Inspection request from ")}
+                <bdi>{i.investor_name ?? t("مستثمر", "an investor")}</bdi>
+                <span className="text-muted">
+                  {" — "}
+                  {i.verdict ? lbl(VERDICT_LABEL[i.verdict], locale) : lbl(INSPECTION_STATUS_LABEL[i.status], locale)}
+                </span>
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {t("يُتحقَّق من: ", "To check: ")}
+                {i.checks.map((c) => lbl(CHECK_LABEL[c], locale)).join(" · ")}
+              </p>
+              {i.status === "requested" ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <form action={decideInspection}>
+                    <input type="hidden" name="inspection_id" value={i.id} />
+                    <input type="hidden" name="accept" value="true" />
+                    <button className={button}>{t("أوافق على الزيارة", "I agree to the visit")}</button>
+                  </form>
+                  <form action={decideInspection}>
+                    <input type="hidden" name="inspection_id" value={i.id} />
+                    <input type="hidden" name="accept" value="false" />
+                    <button className={ghost}>{t("أعتذر", "Decline")}</button>
+                  </form>
+                  <Link href={`/invest/inspections/${i.id}`} className="self-center text-xs font-bold text-primary underline">
+                    {t("التفاصيل", "Details")}
+                  </Link>
+                </div>
+              ) : (
+                <Link href={`/invest/inspections/${i.id}`} className="mt-1 inline-block text-xs font-bold text-primary underline">
+                  {i.status === "reported" ? t("اقرأ التقرير وردّ عليه", "Read the report and reply") : t("التفاصيل", "Details")}
+                </Link>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
 
       {requests.length > 0 && (

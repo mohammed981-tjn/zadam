@@ -6,18 +6,12 @@ import PageHeader from "@/components/PageHeader";
 import ActionNotice from "@/components/ActionNotice";
 import InvestTabs from "@/components/invest/InvestTabs";
 import ProjectCard from "@/components/ProjectCard";
-import { cropName, stationName, waterSourceLabel } from "@/lib/farmLabelsEn";
-import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
-import { AREA_BAND_SHORT, lbl, type AreaBand } from "@/lib/partners";
-import {
-  INTEREST_STATUS_LABEL,
-  INVESTOR_MODEL_DETAIL,
-  INVESTOR_MODEL_LABEL,
-  INVESTOR_MODELS,
-  type OpenLand,
-} from "@/lib/investors";
-import { button, card, field, ghost, label } from "@/lib/ui";
-import { expressInvestorInterest } from "./actions";
+import LandOfferCard from "@/components/invest/LandOfferCard";
+import { lbl } from "@/lib/partners";
+import { INVESTOR_MODEL_DETAIL, INVESTOR_MODEL_LABEL, INVESTOR_MODELS } from "@/lib/investors";
+import { feeLine } from "@/lib/inspections";
+import { loadLandOffers, loadProjectLands } from "@/lib/landOffers";
+import { card } from "@/lib/ui";
 import type { Project } from "@/types/database";
 
 export async function generateMetadata() {
@@ -52,22 +46,20 @@ export default async function InvestPage({
   const sp = await searchParams;
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: landRows, error: landError }, { data: projectRows }] = await Promise.all([
-    supabase.rpc("investor_open_lands"),
+  const [offers, { data: projectRows }, projectLands] = await Promise.all([
+    loadLandOffers(supabase, Boolean(user)),
     supabase.from("projects").select("*").neq("status", "draft").order("created_at", { ascending: false }).limit(6),
+    loadProjectLands(supabase),
   ]);
-  if (landError) console.error("invest: open lands failed", landError);
-  const lands = (landRows ?? []) as OpenLand[];
+  const { lands, fee, stats } = offers;
+  const landError = offers.failed;
   const projects = (projectRows ?? []) as Project[];
-
-  const soil = (s: string | null) => (s ? (locale === "en" ? wrbShortEn(s) : wrbShort(s)) : "—");
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -131,118 +123,17 @@ export default async function InvestPage({
           </div>
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2">
-            {lands.map((l) => {
-              const band = l.area_band as AreaBand | null;
-              return (
-                <li key={l.land_id} className={`${card} flex flex-col`}>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h3 className="font-black" {...arText}>
-                      {[l.state, l.locality].filter(Boolean).join(" · ")}
-                    </h3>
-                    <span className="rounded-full bg-leaf/10 px-2.5 py-0.5 text-xs font-bold text-leaf">
-                      {t("أرض موثّقة", "Verified land")}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-muted">
-                    <bdi className="font-bold text-foreground">{Number(l.feddans).toLocaleString("en-US")}</bdi>{" "}
-                    {t("فدان", "feddans")}
-                    {band && AREA_BAND_SHORT[band] ? ` · ${lbl(AREA_BAND_SHORT[band], locale)}` : ""}
-                  </p>
-
-                  <ul className="mt-3 flex flex-wrap gap-1.5">
-                    {l.models.map((m) => (
-                      <li key={m} className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-                        {lbl(INVESTOR_MODEL_LABEL[m], locale)}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-                    <div>
-                      <dt className="text-xs text-muted">{t("مصدر المياه", "Water source")}</dt>
-                      <dd className="font-medium">{waterSourceLabel(l.water_source, locale)}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted">{t("المياه للفدان", "Water per feddan")}</dt>
-                      <dd className="font-medium">
-                        {l.water_per_feddan ? `${Math.round(Number(l.water_per_feddan)).toLocaleString("en-US")} ${t("م³", "m³")}` : "—"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted">{t("التربة", "Soil")}</dt>
-                      <dd className="font-medium">{soil(l.soil_class)}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted">{t("المنطقة المناخيّة", "Climate zone")}</dt>
-                      <dd className="font-medium">{stationName(l.station_key, locale)}</dd>
-                    </div>
-                    {l.crop_keys.length > 0 && (
-                      <div className="col-span-2">
-                        <dt className="text-xs text-muted">{t("المحاصيل التي يريدها", "Crops the owner wants")}</dt>
-                        <dd className="font-medium">{l.crop_keys.map((c) => cropName(c, locale)).join(" · ")}</dd>
-                      </div>
-                    )}
-                  </dl>
-
-                  {l.note && (
-                    <blockquote className="mt-3 rounded-xl bg-background px-3 py-2 text-sm leading-6 [overflow-wrap:anywhere]" {...arText}>
-                      «{l.note}»
-                    </blockquote>
-                  )}
-
-                  <div className="mt-auto pt-4">
-                    {l.mine ? (
-                      <p className="text-sm font-bold text-muted">{t("هذه أرضك.", "This is your land.")}</p>
-                    ) : l.interest_status ? (
-                      <Link href="/invest/mine" className={`${ghost} inline-block`}>
-                        {lbl(INTEREST_STATUS_LABEL[l.interest_status], locale)}
-                      </Link>
-                    ) : !user ? (
-                      <Link href="/login" className={`${button} inline-block`}>
-                        {t("سجّل الدخول لتطلب الشراكة", "Sign in to request a partnership")}
-                      </Link>
-                    ) : (
-                      <details className="group">
-                        <summary className={`${button} inline-block cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                          {t("اطلب الشراكة", "Request a partnership")}
-                        </summary>
-                        <form action={expressInvestorInterest} className="mt-3 flex flex-col gap-3">
-                          <input type="hidden" name="land_id" value={l.land_id} />
-                          <fieldset className="flex flex-col gap-1.5 text-sm">
-                            <legend className="mb-1 font-bold">{t("نموذج الشراكة", "Partnership model")}</legend>
-                            {l.models.map((m, i) => (
-                              <label key={m} className="flex items-center gap-2">
-                                <input type="radio" name="model" value={m} defaultChecked={i === 0} className="size-4" />
-                                {lbl(INVESTOR_MODEL_LABEL[m], locale)}
-                              </label>
-                            ))}
-                          </fieldset>
-                          <label className={label}>
-                            {t("رسالتك لصاحب الأرض", "Your message to the owner")}
-                            <textarea
-                              name="message"
-                              rows={3}
-                              minLength={10}
-                              maxLength={1000}
-                              required
-                              className={field}
-                              placeholder={t("من أنت، وماذا تقترح، ومتى تريد البدء.", "Who you are, what you propose, and when you want to start.")}
-                            />
-                          </label>
-                          <p className="text-xs leading-5 text-muted">
-                            {t(
-                              "يصل صاحبَ الأرض إشعار. اسمك يظهر له، وهاتفك وموقع الأرض لا يُكشفان إلا بعد قبوله.",
-                              "The owner is notified. They see your name; your phone and the land's location are shared only once they accept.",
-                            )}
-                          </p>
-                          <button className={`${button} self-start`}>{t("أرسل الطلب", "Send the request")}</button>
-                        </form>
-                      </details>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
+            {lands.map((l) => (
+              <LandOfferCard
+                key={l.land_id}
+                land={l}
+                signedIn={Boolean(user)}
+                fee={fee}
+                inspection={offers.openInspection.get(l.land_id)}
+                inspectionsOn={offers.inspectionsOn}
+                locale={locale}
+              />
+            ))}
           </ul>
         )}
       </section>
@@ -267,7 +158,7 @@ export default async function InvestPage({
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((p) => (
-              <ProjectCard key={p.id} project={p} locale={locale} />
+              <ProjectCard key={p.id} project={p} locale={locale} verifiedLand={projectLands.get(p.id)} />
             ))}
           </div>
         )}
@@ -282,7 +173,10 @@ export default async function InvestPage({
               t("تتصفّح الأراضي: الولاية والمساحة والتربة والماء، بلا اسمٍ ولا موقع.", "Browse the land: state, area, soil and water — no name, no location."),
               t("ترسل طلب شراكة بالنموذج الذي يقبله صاحب الأرض، فيصله إشعار.", "Send a request in a model the owner accepts; they are notified."),
               t("يقبل صاحب الأرض، فيرى كلٌّ منكما اسم الآخر وهاتفه، وترى موقع الأرض.", "The owner accepts; each of you sees the other's name and phone, and you see where the land is."),
-              t("تعاين الأرض بنفسك أو بشركةٍ شريكة، وتقرأ دراسة جدواها: الماء والتكلفة والمخاطر.", "Inspect the land yourself or through a partner company, and read its feasibility study: water, cost and risk."),
+              t(
+                "تعاين الأرض بنفسك، أو تطلب تقرير معاينةٍ مستقلّاً من سوداقري، وتقرأ دراسة جدواها: الماء والتكلفة والمخاطر.",
+                "Inspect the land yourself, or ask Sudagri for an independent inspection report, and read its feasibility study: water, cost and risk.",
+              ),
               t("تتّفقان كتابةً على النسبة أو الأجرة والمدّة، ثمّ تدفع مباشرةً مرحلةً بمرحلة بعد دليلها.", "Agree the share or rent and the term in writing, then pay directly, stage by stage, after each stage's evidence."),
             ].map((s, i) => (
               <li key={i} className="flex gap-3">
@@ -301,6 +195,18 @@ export default async function InvestPage({
               [t("أرضٌ موثّقة", "Verified land"), t("راجعت الإدارة مستنداتها قبل أن تُعرض.", "The administrators checked its documents before it was shown."), "/how-we-work"],
               [t("خصوصيّةٌ حتى القبول", "Privacy until acceptance"), t("لا اسمَ ولا هاتفَ ولا موقعَ قبل موافقة صاحب الأرض.", "No name, phone or location before the owner agrees."), null],
               [t("دراسة جدوى للأرض", "A feasibility study"), t("الماء والتكلفة والمخاطر بالأرقام قبل أن تقرّر.", "Water, cost and risk in figures before you decide."), "/tools/feasibility"],
+              [
+                t("تقرير معاينةٍ مستقلّ", "An independent inspection"),
+                `${t("مفتّشٌ ليس طرفاً يزور الأرض ويكتب تقريراً بصوره.", "An inspector who is party to nothing visits the land and writes a report with photos.")} ${feeLine(fee, locale)}${
+                  stats && stats.reported > 0
+                    ? t(
+                        ` كُتب ${stats.reported} تقريراً: ${stats.clear} سليمة، و${stats.conditional} بشروط، و${stats.not_recommended} لا يُنصح بها.`,
+                        ` ${stats.reported} written: ${stats.clear} sound, ${stats.conditional} with conditions, ${stats.not_recommended} not recommended.`,
+                      )
+                    : ""
+                }`,
+                null,
+              ],
               [t("شركات للإشراف والعمل", "Companies for supervision and work"), t("حرثٌ وريّ وحصاد وإشراف من شركاتٍ موثّقة.", "Ploughing, irrigation, harvest and supervision from verified companies."), "/partners"],
               [t("السوق والصادر", "The market and export"), t("أسعار المحاصيل اليوم، وملفّ الصادر للمشترين.", "Today's crop prices, and the export file for buyers."), "/market"],
               [t("المال لا يمرّ بنا", "The money does not pass through us"), t("تدفع مباشرةً، مرحلةً بمرحلة، بعد دليل المرحلة.", "You pay directly, stage by stage, after each stage's evidence."), null],

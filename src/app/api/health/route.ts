@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bearerMatches } from "@/lib/cronAuth";
+import { refreshPrices } from "@/lib/priceRefresh";
 
 /**
  * Daily health check, which also keeps the database from being paused.
@@ -37,6 +38,8 @@ import { bearerMatches } from "@/lib/cronAuth";
 // response would not touch the database at all, defeating the whole point.
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+// The price run (backlog 131) reads five news feeds, fifteen seconds each at most.
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   /*
@@ -85,6 +88,22 @@ export async function GET(req: NextRequest) {
       console.error("health: prune failed", pruneError);
     } else if (pruned) {
       console.log("health: pruned", pruned);
+    }
+
+    /*
+     * الأسعار تتحدّث وحدها (البند ١٣١).
+     *
+     * The daily job the platform already has, rather than a third: the plan's
+     * cron allowance is not ours to spend blindly, and this one already holds
+     * the service-role client the run writes with. Like the prune, a failed
+     * run is logged and never takes the health check down; its own record is
+     * in price_runs, which /admin/prices reads.
+     */
+    try {
+      const prices = await refreshPrices(supabase, "cron");
+      console.log("health: prices", prices);
+    } catch (e) {
+      console.error("health: price run failed", e);
     }
 
     const { data, error } = await supabase.rpc("run_system_check");

@@ -237,6 +237,36 @@ const SPECS: Spec[] = [
     row: (r) => ({ id: r.id, title: `${r.model} — v${r.version}`, meta: null, at: r.updated_at }),
   },
   {
+    // A figure the daily price run could not publish on its own (backlog 131).
+    key: "prices",
+    title: { ar: "أسعارٌ محجوزة للمراجعة", en: "Prices held for review" },
+    what: {
+      ar: "قرأتها المنصّة من مصدرها، لكنّها شذّت عن آخر سعرٍ أو جاءت من نصٍّ حرّ: انشرها أو ارفضها.",
+      en: "Read from their source, but off the last price or from free prose: publish or reject.",
+    },
+    href: "/admin/prices",
+    table: "market_quotes",
+    select: "id, kind, crop, market_date, created_at",
+    filter: (q) => q.eq("status", "held"),
+    order: "created_at",
+    row: (r) => ({ id: r.id, title: r.crop || r.kind, meta: r.market_date, at: r.created_at }),
+  },
+  {
+    // Owner agreed: the fee to record or an inspector to assign (backlog 128).
+    key: "inspections",
+    title: { ar: "معاينات تنتظر الأجر أو مفتّشاً", en: "Inspections waiting for the fee or an inspector" },
+    what: {
+      ar: "وافق صاحب الأرض: سجّل وصول الأجر إن كان، وأسندها إلى مفتّشٍ ليس طرفاً.",
+      en: "The owner agreed: record the fee if there is one, and assign an inspector who is party to nothing.",
+    },
+    href: "/admin/inspections",
+    table: "land_inspections",
+    select: "id, fee_status, created_at",
+    filter: (q) => q.eq("status", "accepted"),
+    order: "created_at",
+    row: (r) => ({ id: r.id, title: r.fee_status === "due" ? "بانتظار الأجر" : "بانتظار مفتّش", meta: null, at: r.created_at }),
+  },
+  {
     key: "investor_interests",
     title: { ar: "طلبات شراكة من مستثمرين", en: "Investor partnership requests" },
     what: {

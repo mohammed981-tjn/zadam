@@ -9,6 +9,7 @@ import LandDocuments from "@/components/LandDocuments";
 import FilmPlayer from "@/components/FilmPlayer";
 import LandPartnerConsent from "@/components/partners/LandPartnerConsent";
 import LandInvestorConsent from "@/components/invest/LandInvestorConsent";
+import type { InspectionRow } from "@/lib/inspections";
 import type { LandRequest } from "@/lib/investors";
 import LandWater from "@/components/LandWater";
 import { Suspense } from "react";
@@ -94,9 +95,15 @@ export default async function LandsPage({
 
   // طلباتُ المستثمرين على أراضيه (البند ١٢٤). قبل الهجرة يعود خطأ، فلا يُعرض شيء.
   let investorRequests: LandRequest[] = [];
+  // وطلباتُ المعاينة على أرضه (البند ١٢٨).
+  let inspections: InspectionRow[] = [];
   if (lands.some((l) => l.verification === "verified")) {
-    const { data: rRows } = await supabase.rpc("land_investor_requests");
+    const [{ data: rRows }, { data: iRows }] = await Promise.all([
+      supabase.rpc("land_investor_requests"),
+      supabase.rpc("land_inspection_list"),
+    ]);
     investorRequests = (rRows ?? []) as LandRequest[];
+    inspections = ((iRows ?? []) as InspectionRow[]).filter((i) => i.role === "owner");
   }
 
   return (
@@ -213,30 +220,6 @@ export default async function LandsPage({
                   ))}
                 </dl>
 
-                {/* After «وثّق وانشر» the card said «محقّقة» and nothing about
-                    where the land now shows or how an investor reaches it
-                    (backlog 123). Investors see projects, not lands, so the
-                    way to them is an opportunity. */}
-                {l.verification === "verified" && l.listed && (
-                  <div className="mt-4 rounded-xl bg-primary/5 p-3 text-sm ring-1 ring-primary/15">
-                    <p className="font-bold text-primary">{t("أرضك موثّقة ومنشورة", "Your land is verified and published")}</p>
-                    <p className="mt-1 text-xs leading-6 text-muted">
-                      {t(
-                        "تظهر الآن في صفحتك العامّة. وتصل إلى المستثمرين بطريقين: اعرضها عليهم من قسم «المستثمرون» أدناه فتظهر في «فرص الاستثمار» بلا اسمك ولا موقعها حتى توافق؛ أو ارفع فرصةً كاملةً بالمحصول والحصص تُفتح مملوءةً من بيانات أرضك، وتراجعها الإدارة قبل نشرها.",
-                        "It now shows on your public page, and reaches investors two ways: offer it to them in the «Investors» section below, and it appears in «Investment opportunities» without your name or its location until you agree; or post a full opportunity with a crop and shares, filled in from your land and reviewed before publication.",
-                      )}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <Link href={`/opportunities/new?land=${l.id}`} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90">
-                        {t("ارفع فرصة للمستثمرين", "Post an opportunity for investors")}
-                      </Link>
-                      <Link href={`/farmers/${l.owner_id}`} className="rounded-lg px-3 py-1.5 text-xs font-bold text-primary ring-1 ring-primary/30 hover:bg-primary/10">
-                        {t("صفحتي العامّة", "My public page")}
-                      </Link>
-                    </div>
-                  </div>
-                )}
-
                 {l.latitude !== null && l.longitude !== null ? (
                   <Suspense
                     fallback={
@@ -261,9 +244,51 @@ export default async function LandsPage({
                   existing={documents.filter((d) => d.land_id === l.id)}
                 />
 
+                {/* «اعرض أرضك» (backlogs 123, 129): one heading over the three
+                    ways a verified land reaches others — investors, partner
+                    companies, a project with shares — instead of three
+                    separate boxes scattered down the card. */}
+                {l.verification === "verified" && l.listed && (
+                  <div className="mt-4 rounded-xl bg-primary/5 p-3 text-sm ring-1 ring-primary/15">
+                    <p className="font-bold text-primary">{t("اعرض أرضك", "Offer your land")}</p>
+                    <ol className="mt-1 flex list-inside list-decimal flex-col gap-1 text-xs leading-6 text-muted">
+                      <li>
+                        {t(
+                          "للمستثمرين — من قسم «المستثمرون» أدناه: تظهر في المشاريع وفرص الاستثمار بلا اسمك ولا موقعها حتى توافق.",
+                          "To investors — in «Investors» below: it shows in projects and investment opportunities without your name or its location until you agree.",
+                        )}
+                      </li>
+                      <li>
+                        {t(
+                          "للشركات الشريكة — من قسمها أدناه: تعرض عليك الشركة المطابقة حرثاً أو ريّاً أو حصاداً أو إشرافاً.",
+                          "To partner companies — in their section below: a matching company offers you ploughing, irrigation, harvest or supervision.",
+                        )}
+                      </li>
+                      <li>
+                        {t(
+                          "مشروعٌ بالمحصول والحصص باسمك — تُفتح استمارته مملوءةً من أرضك، ويحمل بعد نشره شارة «على أرضٍ موثّقة».",
+                          "A project with a crop and shares under your name — its form opens filled in from your land, and once published it carries the «On verified land» badge.",
+                        )}
+                      </li>
+                    </ol>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Link href={`/opportunities/new?land=${l.id}`} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90">
+                        {t("اكتب مشروعاً على هذه الأرض", "Write a project on this land")}
+                      </Link>
+                      <Link href={`/seasons/new?land=${l.id}`} className="rounded-lg px-3 py-1.5 text-xs font-bold text-leaf ring-1 ring-leaf/30 hover:bg-leaf/10">
+                        {t("ابدأ موسماً على هذه الأرض", "Start a season on this land")}
+                      </Link>
+                      <Link href={`/farmers/${l.owner_id}`} className="rounded-lg px-3 py-1.5 text-xs font-bold text-primary ring-1 ring-primary/30 hover:bg-primary/10">
+                        {t("صفحتي العامّة", "My public page")}
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
                 <LandInvestorConsent
                   land={l}
                   requests={investorRequests.filter((r) => r.land_id === l.id)}
+                  inspections={inspections.filter((i) => i.land_id === l.id)}
                   locale={locale}
                 />
 
