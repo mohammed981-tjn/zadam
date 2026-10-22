@@ -13,6 +13,7 @@ import { feeLine } from "@/lib/inspections";
 import { loadLandOffers, loadProjectLands } from "@/lib/landOffers";
 import { card } from "@/lib/ui";
 import type { Project } from "@/types/database";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -54,12 +55,12 @@ export default async function InvestPage({
 
   const [offers, { data: projectRows }, projectLands] = await Promise.all([
     loadLandOffers(supabase, Boolean(user)),
-    supabase.from("projects").select("*").neq("status", "draft").order("created_at", { ascending: false }).limit(6),
+    supabase.from("projects").select(VISITOR_COLUMNS.projects).neq("status", "draft").order("created_at", { ascending: false }).limit(6),
     loadProjectLands(supabase),
   ]);
   const { lands, fee, stats } = offers;
   const landError = offers.failed;
-  const projects = (projectRows ?? []) as Project[];
+  const projects = (projectRows ?? []) as unknown as Project[];
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">

@@ -23,6 +23,7 @@ import PhotoField from "@/components/supply/PhotoField";
 import ProductRow from "@/components/supply/ProductRow";
 import { LicenceRequirements, OffersNotReference, VerifiedBadge } from "@/components/supply/Explainers";
 import { removeProduct, saveProduct, saveSupplier, setSupplierActive, setSupplierDocument } from "../actions";
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -47,10 +48,14 @@ export default async function MySupplierPage({
   let products: SupplierProduct[] = [];
   let notDeployed = false;
   if (user) {
-    const { data, error } = await supabase.from("suppliers").select("*").eq("owner_id", user.id).maybeSingle();
+    const { data, error } = await supabase.from("suppliers").select(MEMBER_COLUMNS.suppliers).eq("owner_id", user.id).maybeSingle();
     notDeployed = isNotDeployed(error);
-    supplier = data as Supplier | null;
+    supplier = data as unknown as Supplier | null;
     if (supplier) {
+      // The administrator's note is the owner's to read, not every member's (backlog 132).
+      const { data: noteRows } = await supabase.rpc("review_notes", { p_kind: "supplier" });
+      const note = ((noteRows ?? []) as { id: string; review_note: string }[]).find((r) => r.id === supplier!.id);
+      supplier = { ...supplier, review_note: note?.review_note ?? null };
       const { data: p } = await supabase
         .from("supplier_products")
         .select("*")

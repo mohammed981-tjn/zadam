@@ -1,10 +1,14 @@
 import { createProject } from "../../actions";
+import { requireAdmin } from "@/lib/adminGuard";
 
 export default async function NewProjectPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  // Every other admin page checks its reader; this one rendered the form for
+  // anyone (backlog 132). The action was always guarded by requireAdmin.
+  await requireAdmin();
   const { error } = await searchParams;
 
   return (

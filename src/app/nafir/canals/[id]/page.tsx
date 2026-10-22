@@ -19,6 +19,7 @@ import {
   type NafirCall,
 } from "@/lib/nafir";
 import { decide, leave, requestJoin, setMember, setTurns } from "../actions";
+import { columnsFor } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -55,13 +56,13 @@ export default async function CanalPage({
     supabase.rpc("canal_directory"),
     user ? supabase.from("canal_members").select("*").eq("canal_id", id) : Promise.resolve({ data: [] }),
     user ? supabase.from("canal_turns").select("*").eq("canal_id", id).order("weekday").order("starts") : Promise.resolve({ data: [] }),
-    supabase.from("nafir_calls").select("*").eq("canal_id", id).order("starts_on", { ascending: false }).limit(10),
+    supabase.from("nafir_calls").select(columnsFor("nafir_calls", Boolean(user))).eq("canal_id", id).order("starts_on", { ascending: false }).limit(10),
   ]);
   const canal = ((dir ?? []) as CanalSummary[]).find((c) => c.id === id);
   if (!canal) notFound();
   const members = (memberRows ?? []) as CanalMember[];
   const turns = (turnRows ?? []) as CanalTurn[];
-  const calls = (callRows ?? []) as NafirCall[];
+  const calls = (callRows ?? []) as unknown as NafirCall[];
   const me = user ? members.find((m) => m.user_id === user.id) : undefined;
   const isMember = me?.status === "member";
   const isSteward = isMember && me?.role === "steward";

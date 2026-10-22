@@ -16,6 +16,7 @@ import {
 import SupplyShell, { ComingSoon, card } from "@/components/supply/SupplyShell";
 import ProductRow from "@/components/supply/ProductRow";
 import { ContactButtons, CouncilWarning, OffersNotReference, StatesList, VerifiedBadge } from "@/components/supply/Explainers";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -41,7 +42,7 @@ export default async function SupplierPage({
 
   const supabase = await createClient();
   const { data, error } = UUID.test(id)
-    ? await supabase.from("suppliers").select("*").eq("id", id).maybeSingle()
+    ? await supabase.from("suppliers").select(VISITOR_COLUMNS.suppliers).eq("id", id).maybeSingle()
     : { data: null, error: null };
   const notDeployed = isNotDeployed(error);
   const s = data as Supplier | null;

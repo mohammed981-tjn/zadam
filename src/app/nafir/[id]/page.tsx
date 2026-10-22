@@ -17,6 +17,7 @@ import {
   type NafirJoin,
 } from "@/lib/nafir";
 import { closeCall, joinCall, leaveCall } from "../actions";
+import { columnsFor } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -44,12 +45,12 @@ export default async function CallPage({
   const { supabase, user, name } = await nafirViewer();
 
   const [{ data: callRow }, { data: joinRows }] = await Promise.all([
-    supabase.from("nafir_calls").select("*").eq("id", id).maybeSingle(),
-    supabase.from("nafir_joins").select("*").eq("call_id", id).order("joined_at"),
+    supabase.from("nafir_calls").select(columnsFor("nafir_calls", Boolean(user))).eq("id", id).maybeSingle(),
+    supabase.from("nafir_joins").select(columnsFor("nafir_joins", Boolean(user))).eq("call_id", id).order("joined_at"),
   ]);
-  const call = callRow as NafirCall | null;
+  const call = callRow as unknown as NafirCall | null;
   if (!call) notFound();
-  const joins = (joinRows ?? []) as NafirJoin[];
+  const joins = (joinRows ?? []) as unknown as NafirJoin[];
   const mine = user ? joins.find((j) => j.user_id === user.id) : undefined;
   const isHost = user?.id === call.organizer_id;
   const open = call.status === "open";
@@ -155,8 +156,8 @@ export default async function CallPage({
         <section className="mt-6">
           <h2 className="mb-2 font-bold">{t("مَن لبّى", "Who answered")}</h2>
           <ul className="flex flex-wrap gap-2">
-            {joins.map((j) => (
-              <li key={j.user_id} className="rounded-full border border-border bg-card px-3 py-1 text-sm" {...typed(locale)}>
+            {joins.map((j, i) => (
+              <li key={j.user_id ?? i} className="rounded-full border border-border bg-card px-3 py-1 text-sm" {...typed(locale)}>
                 {j.display_name}
                 {j.brings && <span className="text-muted"> — {j.brings}</span>}
               </li>

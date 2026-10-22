@@ -6,6 +6,7 @@ import { tr } from "@/lib/i18n";
 import { ageAr, ar, typed, type ShuraItem } from "@/lib/nafir";
 import { answerShura, askShura, toggleSupport } from "../actions";
 import FilmPlayer from "@/components/FilmPlayer";
+import { columnsFor } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -40,12 +41,12 @@ export default async function ShuraPage({
   const { supabase, user, name, isAdmin } = await nafirViewer();
 
   const [{ data: items }, { data: counts }, { data: mineRows }, leader] = await Promise.all([
-    supabase.from("shura_items").select("*").order("created_at", { ascending: true }).limit(200),
+    supabase.from("shura_items").select(columnsFor("shura_items", Boolean(user))).order("created_at", { ascending: true }).limit(200),
     supabase.rpc("shura_support_counts"),
     user ? supabase.from("shura_supports").select("item_id") : Promise.resolve({ data: [] }),
     user ? supabase.rpc("is_charter_leader") : Promise.resolve({ data: false }),
   ]);
-  const all = (items ?? []) as ShuraItem[];
+  const all = (items ?? []) as unknown as ShuraItem[];
   const support = new Map(((counts ?? []) as { item_id: string; supports: number }[]).map((c) => [c.item_id, Number(c.supports)]));
   const mine = new Set(((mineRows ?? []) as { item_id: string }[]).map((r) => r.item_id));
   const canAnswer = isAdmin || leader.data === true;

@@ -18,6 +18,7 @@ import {
   type FazaRequest,
 } from "@/lib/nafir";
 import { closeFaza, markKept, pledgeFaza } from "../../actions";
+import { columnsFor } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -45,12 +46,12 @@ export default async function FazaRequestPage({
   const { supabase, user, name } = await nafirViewer();
 
   const [{ data: reqRow }, { data: pledgeRows }] = await Promise.all([
-    supabase.from("faza_requests").select("*").eq("id", id).maybeSingle(),
-    supabase.from("faza_pledges").select("*").eq("request_id", id).order("created_at"),
+    supabase.from("faza_requests").select(columnsFor("faza_requests", Boolean(user))).eq("id", id).maybeSingle(),
+    supabase.from("faza_pledges").select(columnsFor("faza_pledges", Boolean(user))).eq("request_id", id).order("created_at"),
   ]);
-  const req = reqRow as FazaRequest | null;
+  const req = reqRow as unknown as FazaRequest | null;
   if (!req) notFound();
-  const pledges = (pledgeRows ?? []) as FazaPledge[];
+  const pledges = (pledgeRows ?? []) as unknown as FazaPledge[];
   const isOwner = user?.id === req.requester_id;
   const open = req.status === "open";
   const kept = pledges.filter((p) => p.kept_at).length;

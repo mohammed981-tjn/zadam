@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FEEDBACK_KIND_LABEL, type FeedbackKind } from "@/lib/feedback";
 import type { Feedback, FeedbackStatus } from "@/types/database";
 import { replyToFeedback, deleteFeedback } from "./actions";
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 
 export const metadata = { title: "ملاحظات الزوّار | سوداقري" };
 export const dynamic = "force-dynamic";
@@ -45,13 +46,18 @@ export default async function AdminFeedbackPage({
     .single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
-  const { data } = await supabase
-    .from("feedback")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(200);
+  const [{ data }, { data: contactRows }] = await Promise.all([
+    supabase
+      .from("feedback")
+      .select(MEMBER_COLUMNS.feedback)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    // How to reach the writer left the table's member columns (backlog 132).
+    supabase.rpc("feedback_contacts"),
+  ]);
 
-  const notes = (data ?? []) as Feedback[];
+  const contacts = new Map(((contactRows ?? []) as { id: string; contact: string }[]).map((r) => [r.id, r.contact]));
+  const notes = ((data ?? []) as unknown as Feedback[]).map((n) => ({ ...n, contact: contacts.get(n.id) ?? null }));
   const unanswered = notes.filter((n) => !n.admin_reply).length;
 
   const field =

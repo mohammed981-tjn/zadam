@@ -20,6 +20,7 @@ import SupplyShell, { ComingSoon, button, card, field } from "@/components/suppl
 import GpsField from "@/components/supply/GpsField";
 import { NoMoneyHeld } from "@/components/supply/Explainers";
 import { createGroupOrder } from "../actions";
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -66,12 +67,12 @@ export default async function GroupOrdersPage({
   if (user && !notDeployed) {
     const { data: s } = await supabase
       .from("suppliers")
-      .select("*")
+      .select(MEMBER_COLUMNS.suppliers)
       .not("verified_at", "is", null)
       .eq("active", true)
       .order("name")
       .limit(500);
-    suppliers = (s ?? []) as Supplier[];
+    suppliers = (s ?? []) as unknown as Supplier[];
     chosen = sp.supplier && UUID.test(sp.supplier) ? (suppliers.find((x) => x.id === sp.supplier) ?? null) : null;
     if (chosen) {
       const { data: p } = await supabase

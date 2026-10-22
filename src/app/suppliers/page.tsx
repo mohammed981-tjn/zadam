@@ -29,6 +29,7 @@ import {
   StatesList,
   VerifiedBadge,
 } from "@/components/supply/Explainers";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -63,7 +64,7 @@ export default async function SuppliersPage({
   const supabase = await createClient();
   const { data: sRows, error: sErr } = await supabase
     .from("suppliers")
-    .select("*")
+    .select(VISITOR_COLUMNS.suppliers)
     .not("verified_at", "is", null)
     .eq("active", true)
     .order("name")
@@ -71,7 +72,7 @@ export default async function SuppliersPage({
   const notDeployed = isNotDeployed(sErr);
   if (sErr && !notDeployed) console.error("suppliers: list failed", sErr);
 
-  const suppliers = (sRows ?? []) as Supplier[];
+  const suppliers = (sRows ?? []) as unknown as Supplier[];
   let products: SupplierProduct[] = [];
   if (suppliers.length > 0) {
     const { data: pRows, error: pErr } = await supabase

@@ -17,6 +17,7 @@ import {
 } from "@/lib/nafir";
 import { signCharter, verifyLeader, withdrawSignature } from "../actions";
 import FilmPlayer from "@/components/FilmPlayer";
+import { columnsFor } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -58,10 +59,10 @@ export default async function CharterPage({
   const { supabase, user, name, isAdmin } = await nafirViewer();
   const { data } = await supabase
     .from("charter_signatures")
-    .select("*")
+    .select(columnsFor("charter_signatures", Boolean(user)))
     .eq("charter_version", CHARTER_VERSION)
     .order("signed_at", { ascending: true });
-  const sigs = (data ?? []) as Signature[];
+  const sigs = (data ?? []) as unknown as Signature[];
   const leaders = sigs.filter((s) => s.role === "leader");
   const members = sigs.filter((s) => s.role === "member");
   const mine = user ? sigs.find((s) => s.user_id === user.id) : undefined;
@@ -195,8 +196,8 @@ export default async function CharterPage({
           <p className="text-sm text-muted">{t("لم يوقّع قائدٌ بعد. القدوة تبدأ بأوّلهم.", "No leader has signed yet. Leading by example starts with the first.")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {leaders.map((l) => (
-              <li key={l.user_id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3">
+            {leaders.map((l, i) => (
+              <li key={l.user_id ?? i} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3">
                 <div>
                   <bdi className="font-bold">{l.display_name}</bdi>
                   {l.state && <span className="text-sm text-muted"> · {stateName(l.state, locale)}</span>}
@@ -220,8 +221,8 @@ export default async function CharterPage({
         </h2>
         {pledges.length > 0 && (
           <ul className="flex flex-col gap-2">
-            {pledges.map((m) => (
-              <li key={m.user_id} className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
+            {pledges.map((m, i) => (
+              <li key={m.user_id ?? i} className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
                 <bdi {...typed(locale)}>«{m.pledge}»</bdi>{" "}
                 <span className="text-muted">
                   — <bdi>{m.display_name}</bdi>

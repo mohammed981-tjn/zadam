@@ -14,6 +14,7 @@ import {
   typed,
   type FazaRequest,
 } from "@/lib/nafir";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -38,7 +39,7 @@ export default async function FazaPage({
   const { supabase } = await nafirViewer();
   const { data } = await supabase
     .from("faza_requests")
-    .select("*")
+    .select(VISITOR_COLUMNS.faza_requests)
     .order("created_at", { ascending: false })
     .limit(40);
   const all = (data ?? []) as FazaRequest[];

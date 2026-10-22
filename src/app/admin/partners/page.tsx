@@ -15,6 +15,7 @@ import AgreementGroups from "@/components/partners/AgreementGroups";
 import { ComingSoon, button, card, field, ghost } from "@/components/supply/SupplyShell";
 import { StatesList, VerifiedBadge } from "@/components/supply/Explainers";
 import { activateAgreement, endAgreementAdmin, reviewPartner, setPartnerActiveAdmin } from "./actions";
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -43,13 +44,16 @@ export default async function AdminPartnersPage({
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
-  const [{ data: cRows, error: cErr }, { data: aRows }] = await Promise.all([
-    supabase.from("partner_companies").select("*").order("created_at"),
+  const [{ data: cRows, error: cErr }, { data: aRows }, { data: noteRows }] = await Promise.all([
+    supabase.from("partner_companies").select(MEMBER_COLUMNS.partner_companies).order("created_at"),
     supabase.from("partner_agreements").select("*").order("created_at", { ascending: false }).limit(300),
+    // The review note left the table's member columns (backlog 132); the administrators read it here.
+    supabase.rpc("review_notes", { p_kind: "partner_company" }),
   ]);
   const notDeployed = isNotDeployed(cErr);
   if (cErr && !notDeployed) console.error("admin/partners: list failed", cErr);
-  const companies = (cRows ?? []) as PartnerCompany[];
+  const notes = new Map(((noteRows ?? []) as { id: string; review_note: string }[]).map((r) => [r.id, r.review_note]));
+  const companies = ((cRows ?? []) as unknown as PartnerCompany[]).map((c) => ({ ...c, review_note: notes.get(c.id) ?? null }));
   const agreements = (aRows ?? []) as PartnerAgreement[];
   const nameOf = new Map(companies.map((c) => [c.id, c.name]));
 

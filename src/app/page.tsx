@@ -13,6 +13,7 @@ import { CROPS, STATIONS } from "@/lib/agronomy";
 import type { Project } from "@/types/database";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 
 /**
  * الصفحة الأولى — ما تملكه المنصّة، لا ما تعد به.
@@ -178,7 +179,7 @@ export default async function Home() {
   const [{ data: projects }, { count: kbCount }, { count: faoCount }, { data: kbLatest }, { data: openLands }] = await Promise.all([
     supabase
       .from("projects")
-      .select("*")
+      .select(VISITOR_COLUMNS.projects)
       .neq("status", "draft")
       .order("created_at", { ascending: false }),
     supabase.from("knowledge_entries").select("id", { count: "exact", head: true }),
@@ -414,7 +415,7 @@ export default async function Home() {
             </Link>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {(projects as Project[]).map((project) => (
+            {(projects as unknown as Project[]).map((project) => (
               <ProjectCard key={project.id} project={project} locale={locale} />
             ))}
           </div>

@@ -181,13 +181,16 @@ export default async function FeedbackPage() {
 
   const { data } = await supabase
     .from("feedback")
+    // A visitor does not read who wrote a note (backlog 132); a member needs it
+    // to find their own.
     .select(
-      "id, kind, body, status, admin_reply, ai_reply, ai_replied_at, display_name, page_path, published, author_id, created_at",
+      "id, kind, body, status, admin_reply, ai_reply, ai_replied_at, display_name, page_path, published, created_at" +
+        (user ? ", author_id" : ""),
     )
     .order("created_at", { ascending: false })
     .limit(100);
 
-  const notes = (data ?? []) as Feedback[];
+  const notes = (data ?? []) as unknown as Feedback[];
   const mine = user ? notes.filter((n) => n.author_id === user.id) : [];
   const board = notes.filter((n) => n.published);
 
