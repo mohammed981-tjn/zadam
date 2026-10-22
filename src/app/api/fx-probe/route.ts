@@ -40,5 +40,11 @@ export async function GET() {
     .filter((r) => /Khartoum|Dongola|Omdurman|Bahri/i.test(`${r[idx("market")]} ${r[idx("admin1")]} ${r[idx("admin2")] ?? ""}`))
     .filter((r) => (r[idx("date")] ?? "") >= "2025-06-01")
     .map((r) => Object.fromEntries(head.map((k, i) => [k, r[i]])));
-  return NextResponse.json({ columns: head, count: rows.length, rows });
+  // Where WFP collects each town's prices: the town and the locality (admin2) it sits in.
+  const places = new Map<string, string>();
+  for (const r of lines.slice(1).map(split)) {
+    if ((r[idx("date")] ?? "") < "2026-01-01") continue;
+    places.set(`${r[idx("market")]} | ${r[idx("admin1")]} | ${r[idx("admin2")]}`, r[idx("market_id")]);
+  }
+  return NextResponse.json({ columns: head, count: rows.length, places: [...places.keys()].sort(), rows });
 }
