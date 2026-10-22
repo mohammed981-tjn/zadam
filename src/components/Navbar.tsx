@@ -17,21 +17,41 @@ export default async function Navbar() {
   } = await supabase.auth.getUser();
 
   let role: string | null = null;
+  let fullName: string | null = null;
   let unread = 0;
   if (user) {
     // Row-level security scopes the count to this user's own inbox, so no
     // recipient filter is needed here — and adding one would imply the filter
     // is what keeps inboxes apart.
     const [{ data: profile }, { count }] = await Promise.all([
-      supabase.from("profiles").select("role").eq("id", user.id).single(),
+      supabase.from("profiles").select("role, full_name").eq("id", user.id).single(),
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
         .is("read_at", null),
     ]);
     role = profile?.role ?? null;
+    fullName = profile?.full_name ?? null;
     unread = count ?? 0;
   }
+
+  /*
+   * بأيّ حسابٍ أنت داخل (البند ١٣٩).
+   *
+   * The owner has more than one account — an email one and a phone one — and
+   * on 22 October he was signed in with the ordinary one and read the missing
+   * «الإدارة» section as the administration being broken. Nothing on the page
+   * said which account he was in. The menu now does, above «خروج», with the
+   * account's kind, so "I am in the wrong account" is something one can see.
+   */
+  const roleLabel =
+    role === "admin"
+      ? t("مدير", "Administrator")
+      : role === "investor"
+        ? t("مستثمر", "Investor")
+        : role === "farmer"
+          ? t("مزارع وصاحب أرض", "Farmer and landowner")
+          : null;
 
   // ما ينتظر قرار الإدارة (البند ١٢٤): المالكُ وجد الأرض في الإشعارات وحدها،
   // والإشعارُ يُقرأ فيختفي ولا يقول إن قُرّر في الأمر شيء. فالعدد هنا من
@@ -368,7 +388,20 @@ export default async function Navbar() {
           <LangToggle />
           <NavMenu
             groups={groups}
-            signOut={user ? <SignOutButton /> : undefined}
+            signOut={
+              user ? (
+                <>
+                  <p className="mb-2 text-xs text-muted">
+                    {t("أنت داخل بحساب", "Signed in as")}{" "}
+                    <span className="font-bold text-foreground">
+                      {fullName || t("بلا اسم", "no name")}
+                    </span>
+                    {roleLabel && <> — {roleLabel}</>}
+                  </p>
+                  <SignOutButton />
+                </>
+              ) : undefined
+            }
           />
         </div>
       </div>
