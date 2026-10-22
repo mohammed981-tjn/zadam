@@ -92,7 +92,7 @@ export default async function ProjectsPage() {
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="lands" className="title-bar text-lg font-black">
               {t("أراضٍ موثّقة تبحث عن شريك", "Verified land looking for a partner")}{" "}
-              <span className="text-muted">({offers.lands.length})</span>
+              {offers.lands.length > 0 && <span className="text-muted">({offers.lands.length})</span>}
             </h2>
             <Link href="/invest" className="text-sm font-bold text-primary underline">
               {t("كيف تعمل الشراكة", "How the partnership works")}

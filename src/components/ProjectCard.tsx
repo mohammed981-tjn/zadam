@@ -49,7 +49,7 @@ export default function ProjectCard({
         <span
           className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${riskColor[project.risk_level]}`}
         >
-          {en ? `${riskLabel(project.risk_level, locale)} risk` : `مخاطرة ${riskLabel(project.risk_level)}`}
+          {en ? `${riskLabel(project.risk_level, locale)} risk` : `خطر ${riskLabel(project.risk_level)}`}
         </span>
       </div>
 

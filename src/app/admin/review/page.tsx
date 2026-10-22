@@ -80,7 +80,7 @@ export default async function ReviewPage() {
                     <span className="text-sm text-muted">/100</span>
                   </p>
                   <p className="text-xs text-muted">
-                    مخاطرة {riskLabel(assessment.level)}
+                    خطر {riskLabel(assessment.level)}
                   </p>
                 </div>
               </div>

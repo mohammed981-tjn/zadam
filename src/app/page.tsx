@@ -14,6 +14,7 @@ import type { Project } from "@/types/database";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
+import { loadProjectLands } from "@/lib/landOffers";
 
 /**
  * الصفحة الأولى — ما تملكه المنصّة، لا ما تعد به.
@@ -176,7 +177,7 @@ export default async function Home() {
   );
   const supabase = await createClient();
 
-  const [{ data: projects }, { count: kbCount }, { count: faoCount }, { data: kbLatest }, { data: openLands }] = await Promise.all([
+  const [{ data: projects }, { count: kbCount }, { count: faoCount }, { data: kbLatest }, { data: openLands }, projectLands] = await Promise.all([
     supabase
       .from("projects")
       .select(VISITOR_COLUMNS.projects)
@@ -194,6 +195,8 @@ export default async function Home() {
       .limit(1),
     // أراضٍ موثّقة معروضة على المستثمرين (البند ١٢٩): فرصٌ أيضاً، وإن لم يُكتب مشروع.
     supabase.rpc("investor_open_lands"),
+    // وشارةُ «على أرضٍ موثّقة» هنا كما في «المشاريع» و«الفرص» (المالك، 22 أكتوبر).
+    loadProjectLands(supabase),
   ]);
   const openLandCount = ((openLands ?? []) as unknown[]).length;
   const kbLatestAt = (kbLatest?.[0] as { created_at?: string } | undefined)?.created_at;
@@ -416,7 +419,7 @@ export default async function Home() {
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {(projects as unknown as Project[]).map((project) => (
-              <ProjectCard key={project.id} project={project} locale={locale} />
+              <ProjectCard key={project.id} project={project} locale={locale} verifiedLand={projectLands.get(project.id)} />
             ))}
           </div>
         </section>

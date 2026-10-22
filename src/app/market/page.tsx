@@ -10,7 +10,7 @@ import Sparkline from "@/components/market/Sparkline";
 import { ageInDays } from "@/lib/fxRates";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
-import { WFP_PRICES_SOURCE, orderTowns, pctChange, readWfpPrices, wfpItem, wfpTown, wfpUnit, type WfpTown } from "@/lib/wfpPrices";
+import { WFP_PRICES_SOURCE, medianFor, orderTowns, pctChange, readWfpPrices, townMedians, unusual, wfpItem, wfpMarketPlace, wfpTown, wfpUnit, type WfpTown } from "@/lib/wfpPrices";
 import {
   BOURSE_QUIET_DAYS,
   CROP_NAME,
@@ -53,6 +53,7 @@ export default async function MarketPage() {
   const fews = await fetchFewsPrices();
   const wfp = readWfpMonthly();
   const wfpPrices = readWfpPrices();
+  const wfpMedians = wfpPrices ? townMedians(wfpPrices.towns) : new Map<string, number>();
   const usdRate = fx?.bank.sell ?? null;
   // The warehouse-receipt study, when it lands, is linked from here; until then the idea is stated without a dead link.
   const bourseStudy = existsSync(join(process.cwd(), "content/studies/bourse-ar.md"));
@@ -224,6 +225,9 @@ export default async function MarketPage() {
               <details key={town.market} open={i < 2} className="rounded-2xl border border-border bg-card">
                 <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">
                   {wfpTown(town.market, locale)}
+                  {wfpMarketPlace(town.market, locale) && (
+                    <span className="ms-1 font-normal text-muted">({wfpMarketPlace(town.market, locale)})</span>
+                  )}
                   <span className="ms-2 text-xs font-normal text-muted">
                     {town.latest < wfpPrices.latest
                       ? t(`آخر رقم: ${monthName(town.latest)}`, `Latest figure: ${monthName(town.latest)}`)
@@ -273,7 +277,21 @@ export default async function MarketPage() {
                   {wfpItem(it.commodity, locale)} <span className="text-muted">/ <span dir="ltr">{wfpUnit(it.unit, locale)}</span></span>
                   {it.month < town.latest && <span className="ms-1 text-xs text-muted">({monthName(it.month)})</span>}
                 </td>
-                <td className="px-3 py-2 font-bold" dir="ltr">{money(it.price)}</td>
+                <td className="px-3 py-2">
+                  <span className="font-bold" dir="ltr">{money(it.price)}</span>
+                  {(() => {
+                    const median = medianFor(wfpMedians, it);
+                    const far = unusual(it.price, median);
+                    if (!far || median === null) return null;
+                    return (
+                      <span className="mt-0.5 block text-xs font-medium text-accent">
+                        {far === "low"
+                          ? t(`أقلّ بكثير من وسط المدن (${money(median)}) — تحقّق منه`, `Far below the towns' median (${money(median)}) — check it`)
+                          : t(`أعلى بكثير من وسط المدن (${money(median)}) — تحقّق منه`, `Far above the towns' median (${money(median)}) — check it`)}
+                      </span>
+                    );
+                  })()}
+                </td>
                 <td className="px-3 py-2">{change(it.price, it.prevMonth)}</td>
                 <td className="px-3 py-2">{change(it.price, it.yearAgo)}</td>
               </tr>

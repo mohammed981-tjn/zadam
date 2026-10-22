@@ -29,14 +29,17 @@ const models = (fd: FormData) =>
 export async function expressInvestorInterest(fd: FormData) {
   const { supabase } = await signedIn();
   const { locale, t } = await translator();
+  // Asked from a project page (backlog 135): a refusal goes back there. Nowhere else.
+  const from = str(fd, "return_to");
+  const origin = /^\/projects\/[A-Za-z0-9_-]{1,80}$/.test(from) ? from : "/invest";
   const model = str(fd, "model");
   const message = str(fd, "message");
   if (!(INVESTOR_MODELS as readonly string[]).includes(model)) {
-    back("/invest", "error", t("اختر نموذج الشراكة.", "Choose a partnership model."));
+    back(origin, "error", t("اختر نموذج الشراكة.", "Choose a partnership model."));
   }
   if (message.length < 10) {
     back(
-      "/invest",
+      origin,
       "error",
       t(
         "اكتب لصاحب الأرض سطرين على الأقلّ: من أنت، وماذا تقترح.",
@@ -49,7 +52,7 @@ export async function expressInvestorInterest(fd: FormData) {
     p_model: model,
     p_message: message.slice(0, 1000),
   });
-  if (error) back("/invest", "error", explain(locale, error));
+  if (error) back(origin, "error", explain(locale, error));
   back(
     "/invest/mine",
     "ok",

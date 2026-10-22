@@ -30,6 +30,7 @@ export default function LandOfferCard({
   inspection,
   inspectionsOn,
   locale,
+  returnTo,
 }: {
   land: OpenLand;
   signedIn: boolean;
@@ -40,6 +41,8 @@ export default function LandOfferCard({
   /** False on a database the inspection migration has not reached. */
   inspectionsOn: boolean;
   locale: Locale;
+  /** A project page the card sits on, so a refused request returns there rather than to /invest. */
+  returnTo?: string;
 }) {
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
@@ -119,6 +122,7 @@ export default function LandOfferCard({
             </summary>
             <form action={expressInvestorInterest} className="mt-3 flex flex-col gap-3">
               <input type="hidden" name="land_id" value={l.land_id} />
+              {returnTo && <input type="hidden" name="return_to" value={returnTo} />}
               <fieldset className="flex flex-col gap-1.5 text-sm">
                 <legend className="mb-1 font-bold">{t("نموذج الشراكة", "Partnership model")}</legend>
                 {l.models.map((m, i) => (
