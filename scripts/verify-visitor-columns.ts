@@ -12,7 +12,7 @@
  * does.
  */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { MEMBER_COLUMNS, VISITOR_COLUMNS } from "../src/lib/visitorColumns";
 
@@ -77,6 +77,50 @@ for (const table of ["suppliers", "partner_companies"] as const) {
   check(!split(MEMBER_COLUMNS[table]).includes("review_note"), `a member does not read ${table}.review_note`, "it is in the list");
 }
 check(!split(MEMBER_COLUMNS.feedback).includes("contact"), "a member does not read feedback.contact", "it is in the list");
+
+/*
+ * The phone app reads as a visitor too, and it was missed: its النفير screen
+ * asked nafir_calls and faza_requests for `*`, which the grant refuses, so the
+ * screen failed for every reader from the day the migration was applied. Every
+ * `_get('table', {...})` in mobile/lib is held to the same lists here: the
+ * selected columns, the ordering column and every filtered column, since a
+ * visitor needs SELECT on a column to filter or sort by it as well.
+ */
+console.log("\nWhat the phone app asks for");
+const dartDir = join(__dirname, "../mobile/lib");
+const dartFiles = readdirSync(dartDir, { recursive: true })
+  .map(String)
+  .filter((f) => f.endsWith(".dart"));
+let appReads = 0;
+for (const file of dartFiles) {
+  const src = readFileSync(join(dartDir, file), "utf8");
+  // `static const _name = 'a,b' 'c,d';` — adjacent literals are one string.
+  const consts = new Map<string, string>();
+  for (const m of src.matchAll(/const\s+(_?[A-Za-z]\w*)\s*=\s*((?:'[^']*'\s*)+);/g)) {
+    consts.set(m[1], [...m[2].matchAll(/'([^']*)'/g)].map((x) => x[1]).join(""));
+  }
+  for (const m of src.matchAll(/_get\(\s*'([a-z_]+)'\s*,\s*\{([^}]*)\}/g)) {
+    const [, table, body] = m;
+    if (!(table in VISITOR_COLUMNS)) continue;
+    appReads++;
+    const entries = new Map<string, string>();
+    for (const e of body.matchAll(/'([a-z_]+)'\s*:\s*(?:'([^']*)'|(_?[A-Za-z]\w*))/g)) {
+      entries.set(e[1], e[2] ?? consts.get(e[3]) ?? `<unknown ${e[3]}>`);
+    }
+    const select = entries.get("select") ?? "*";
+    const used = select === "*" ? ["*"] : split(select);
+    const order = entries.get("order");
+    if (order) used.push(order.split(".")[0]);
+    for (const key of entries.keys()) {
+      if (!["select", "order", "limit", "offset", "or"].includes(key)) used.push(key);
+    }
+    const allowed = split(VISITOR_COLUMNS[table as keyof typeof VISITOR_COLUMNS]);
+    const refused = used.filter((c) => !allowed.includes(c));
+    check(refused.length === 0, `mobile/lib/${file}: ${table} (${[...new Set(used)].join(", ")})`,
+      `a visitor is not granted: ${refused.join(", ")}`);
+  }
+}
+check(appReads > 0, "the app's reads were found", "no _get(...) on a granted table — has the pattern changed?");
 
 console.log("");
 if (failed) {
