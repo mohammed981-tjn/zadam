@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { currentFx, currentMarketPrices } from "@/lib/livePrices";
 import { join } from "node:path";
 import Link from "next/link";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
@@ -6,7 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import MarketTabs from "@/components/market/MarketTabs";
 import PriceAlert from "@/components/market/PriceAlert";
 import Sparkline from "@/components/market/Sparkline";
-import { ageInDays, readFxReference } from "@/lib/fxRates";
+import { ageInDays } from "@/lib/fxRates";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import { WFP_PRICES_SOURCE, orderTowns, pctChange, readWfpPrices, wfpItem, wfpTown, wfpUnit, type WfpTown } from "@/lib/wfpPrices";
@@ -23,7 +24,6 @@ import {
   fewsUnit,
   latest,
   money,
-  readMarketPrices,
   readWfpMonthly,
   seriesKey,
   type PriceSeries,
@@ -48,8 +48,8 @@ export default async function MarketPage() {
   const locale = await getLocale();
   const en = locale === "en";
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const data = readMarketPrices();
-  const fx = readFxReference();
+  const data = (await currentMarketPrices());
+  const fx = (await currentFx());
   const fews = await fetchFewsPrices();
   const wfp = readWfpMonthly();
   const wfpPrices = readWfpPrices();

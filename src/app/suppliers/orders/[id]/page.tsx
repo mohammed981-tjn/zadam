@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { currentFx } from "@/lib/livePrices";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
-import { readFxReference } from "@/lib/fxRates";
 import { nafirViewer } from "@/lib/nafirViewer";
 import { stateName } from "@/lib/nafir";
 import {
@@ -48,7 +48,7 @@ export default async function GroupOrderPage({
   const typed = locale === "en" ? ({ lang: "ar", dir: "auto" } as const) : {};
   const { user, name } = await nafirViewer();
   const supabase = await createClient();
-  const rate = readFxReference()?.bank.sell ?? null;
+  const rate = (await currentFx())?.bank.sell ?? null;
 
   const { data, error } = UUID.test(id) ? await supabase.rpc("group_order_detail", { p_order: id }) : { data: null, error: null };
   const notDeployed = isNotDeployed(error);

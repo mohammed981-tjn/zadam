@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ageInDays } from "@/lib/fxRates";
 import type { Locale } from "@/lib/i18n";
-import { MARKET_STALE_DAYS, UNIT_NAME, cropName, latest, money, readMarketPrices } from "@/lib/marketPrices";
+import { MARKET_STALE_DAYS, UNIT_NAME, cropName, latest, money } from "@/lib/marketPrices";
+import { currentMarketPrices } from "@/lib/livePrices";
 
 /**
  * شريط السوق للصفحة الرئيسية: سعر السمسم والفتريتة في القضارف، بتاريخهما.
@@ -13,9 +14,9 @@ import { MARKET_STALE_DAYS, UNIT_NAME, cropName, latest, money, readMarketPrices
  * red since backlog 121) past three days, because a
  * price on a home page without its date reads as today's.
  */
-export default function MarketTicker({ locale = "ar" }: { locale?: Locale }) {
+export default async function MarketTicker({ locale = "ar" }: { locale?: Locale }) {
   const en = locale === "en";
-  const data = readMarketPrices();
+  const data = await currentMarketPrices();
   const picks = ["sesame", "feterita"]
     .map((crop) => data?.series.find((s) => s.market === "gedaref" && s.crop === crop))
     .filter((s) => s !== undefined);

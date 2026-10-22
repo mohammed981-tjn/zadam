@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { currentFx } from "@/lib/livePrices";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
-import { readFxReference } from "@/lib/fxRates";
 import { GOLD_SOURCE_URL, circularUsdPerGram, fetchGoldSpot, usdPerGram } from "@/lib/goldPrice";
 
 export async function generateMetadata() {
@@ -51,7 +51,7 @@ export default async function GoldPage() {
   );
   const card = "rounded-2xl border border-border bg-card p-5";
   const spot = await fetchGoldSpot();
-  const fx = readFxReference();
+  const fx = (await currentFx());
   const usd = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const sdg = (v: number) => Math.round(v).toLocaleString("en-US");
   const when = spot
