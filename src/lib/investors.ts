@@ -15,13 +15,16 @@ import type { Bi } from "@/lib/partners";
  * owner's decision of 20 October (backlog 115).
  */
 
-export const INVESTOR_MODELS = ["sharecrop", "lease", "finance"] as const;
+// «musaqah» (backlog 136): standing trees and palms, tended for a share of the
+// fruit — supabase/migrations/20261023010000_partnership_trust.sql.
+export const INVESTOR_MODELS = ["sharecrop", "lease", "finance", "musaqah"] as const;
 export type InvestorModel = (typeof INVESTOR_MODELS)[number];
 
 export const INVESTOR_MODEL_LABEL: Record<InvestorModel, Bi> = {
   sharecrop: { ar: "مشاركة بالمحصول", en: "Crop sharing" },
   lease: { ar: "إيجار الأرض", en: "Land lease" },
   finance: { ar: "تمويل المدخلات مقابل حصّة", en: "Input finance for a share" },
+  musaqah: { ar: "مساقاة البستان والنخيل", en: "Orchard tending (musaqah)" },
 };
 
 /** What each side brings and takes, said plainly — no percentages, they are agreed between the two. */
@@ -56,7 +59,38 @@ export const INVESTOR_MODEL_DETAIL: Record<InvestorModel, { investor: Bi; owner:
       en: "Farms their own land and gives the investor the agreed share of the harvest.",
     },
   },
+  musaqah: {
+    investor: {
+      ar: "يرعى الشجر والنخيل القائم بالسقي والتقليم والمكافحة والجني، بنفسه أو بشركةٍ شريكة، ويأخذ حصّةً متّفقاً عليها من الثمر.",
+      en: "Tends the standing trees and palms — watering, pruning, pest control, picking — directly or through a partner company, and takes an agreed share of the fruit.",
+    },
+    owner: {
+      ar: "يقدّم البستان بشجره وحقّه في الماء، ويأخذ بقيّة الثمر. وإن لم يُثمر الشجر لم يأخذ أحدٌ شيئاً.",
+      en: "Brings the orchard with its trees and water rights, and takes the rest of the fruit. If the trees bear nothing, neither takes anything.",
+    },
+  },
 };
+
+/**
+ * تنبيه المخاطرة (البند ١٣٦) — يُقَرّ به قبل أن يُرسل طلب الشراكة، ويُحفظ معه.
+ * The platforms that collapsed in Nigeria never said this; see
+ * docs/studies/partnership-models-ar.md.
+ */
+export const RISK_NOTICE: Bi = {
+  ar: "الزراعة ربحٌ وخسارة: قد يضعف المحصول أو يهلك أو ينخفض سعره، فتخسر بعض ما قدّمت أو كلّه. سوداقري لا تضمن ربحاً ولا عائداً، ولا تمسك مالك؛ المال بينك وبين شريكك مباشرةً.",
+  en: "Farming can lose as well as gain: the crop can fail, be destroyed or sell low, and you can lose part or all of what you put in. Sudagri guarantees no profit or return and holds none of your money; it passes between you and your partner directly.",
+};
+
+/** land_investor_profiles(): who the investor is, for the owner of the land asked about. */
+export interface InvestorProfile {
+  interest_id: string;
+  dial_code: string | null;
+  member_since: string | null;
+  requests_sent: number;
+  requests_accepted: number;
+  agreements_signed: number;
+  risk_acknowledged: boolean;
+}
 
 export type InterestStatus = "pending" | "accepted" | "declined" | "withdrawn";
 
@@ -117,4 +151,6 @@ export interface LandRequest {
   investor_phone: string | null;
   created_at: string;
   decided_at: string | null;
+  /** From land_investor_profiles(), joined on the page; absent before that migration. */
+  profile?: InvestorProfile;
 }

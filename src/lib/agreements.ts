@@ -26,6 +26,10 @@ export const AGREEMENT_ITEMS = [
   "harvest",
   "transport",
   "storage",
+  // An orchard's (musaqah, backlog 136): the standing trees are the owner's,
+  // and their pruning and pollination are work a sown field does not have.
+  "trees",
+  "pruning",
 ] as const;
 export type AgreementItem = (typeof AGREEMENT_ITEMS)[number];
 
@@ -42,6 +46,8 @@ export const ITEM_LABEL: Record<AgreementItem, { ar: string; en: string }> = {
   harvest: { ar: "الحصاد", en: "Harvest" },
   transport: { ar: "الترحيل", en: "Transport" },
   storage: { ar: "التخزين", en: "Storage" },
+  trees: { ar: "الشجر والنخيل القائم", en: "The standing trees and palms" },
+  pruning: { ar: "التقليم والتلقيح", en: "Pruning and pollination" },
 };
 
 export const LOSS_RULES = ["by_contribution", "investor_inputs", "custom"] as const;
@@ -127,6 +133,7 @@ export const AGREEMENT_TITLE: Record<InvestorModel, { ar: string; en: string }> 
   sharecrop: { ar: "عقد مزارعة (مشاركة بالمحصول)", en: "Crop-sharing agreement (muzara'a)" },
   lease: { ar: "عقد إيجار أرضٍ زراعيّة", en: "Farmland lease agreement" },
   finance: { ar: "عقد تمويل مدخلاتٍ زراعيّة مقابل حصّة", en: "Input-finance agreement for a share" },
+  musaqah: { ar: "عقد مساقاة (رعاية البستان بحصّةٍ من الثمر)", en: "Musaqah agreement (tending an orchard for a share of the fruit)" },
 };
 
 const n = (v: number | undefined, locale: Locale) =>
@@ -228,6 +235,26 @@ export function agreementClauses(a: AgreementView, locale: Locale): { title: str
         t(
           `ويُقسم المحصول بعد الحصاد: لصاحب الأرض ${n(x.owner_share, locale)}٪، وللمستثمر ${n(x.investor_share, locale)}٪ — نسبةٌ شائعة لا كمّيّة ثابتة.`,
           `After harvest the crop is split: ${n(x.owner_share, locale)}% to the landowner, ${n(x.investor_share, locale)}% to the investor — a proportion, never a fixed quantity.`,
+        ),
+      ],
+    });
+  }
+
+  if (a.model === "musaqah") {
+    clauses.push({
+      title: t("رعاية الشجر وقسمة الثمر", "Tending the trees and sharing the fruit"),
+      body: [
+        t(
+          "يرعى المستثمرُ الشجرَ والنخيل القائم في الأرض المذكورة بما تحتاجه: السقي والتقليم والتلقيح والمكافحة والجني، بنفسه أو بمن يستعين به، وما بقي من أعمال الرعاية فعلى من كُتب عليه أعلاه.",
+          "The investor tends the standing trees and palms on the land described with what they need — watering, pruning, pollination, pest control, picking — directly or through those he engages; any other care falls on whoever is named for it above.",
+        ),
+        t(
+          `ويُقسم الثمر بعد جنيه: لصاحب الأرض ${n(x.owner_share, locale)}٪، وللمستثمر ${n(x.investor_share, locale)}٪ — نسبةٌ شائعة ممّا يُثمره الشجر، لا كمّيّة ثابتة.`,
+          `The fruit is split after picking: ${n(x.owner_share, locale)}% to the landowner, ${n(x.investor_share, locale)}% to the investor — a proportion of what the trees bear, never a fixed quantity.`,
+        ),
+        t(
+          "وإن لم يُثمر الشجر فلا شيء لأحدهما على الآخر، والشجر لصاحبه على كلّ حال، لا يُقطع منه شيءٌ ولا يُغرس فيه جديدٌ إلّا بموافقته كتابةً (قانون المعاملات المدنيّة لسنة ١٩٨٤، المواد ٣٣٧–٣٤٧).",
+          "If the trees bear nothing, neither owes the other anything; the trees remain the owner's in every case, and none is cut nor new planted without his written consent (Civil Transactions Act 1984, articles 337–347).",
         ),
       ],
     });

@@ -3,7 +3,7 @@ import { tr, type Locale } from "@/lib/i18n";
 import { cropName, stationName, waterSourceLabel } from "@/lib/farmLabelsEn";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
 import { AREA_BAND_SHORT, lbl, type AreaBand } from "@/lib/partners";
-import { INTEREST_STATUS_LABEL, INVESTOR_MODEL_LABEL, type OpenLand } from "@/lib/investors";
+import { INTEREST_STATUS_LABEL, INVESTOR_MODEL_LABEL, RISK_NOTICE, type OpenLand } from "@/lib/investors";
 import {
   CHECK_DETAIL,
   CHECK_LABEL,
@@ -146,10 +146,19 @@ export default function LandOfferCard({
               </label>
               <p className="text-xs leading-5 text-muted">
                 {t(
-                  "يصل صاحبَ الأرض إشعار. اسمك يظهر له، وهاتفك وموقع الأرض لا يُكشفان إلا بعد قبوله.",
-                  "The owner is notified. They see your name; your phone and the land's location are shared only once they accept.",
+                  "يصل صاحبَ الأرض إشعار. يرى اسمك، والبلد الذي سجّلت منه رقمك، وعدد عقودك الموقّعة على سوداقري؛ وهاتفك وموقع الأرض لا يُكشفان إلا بعد قبوله.",
+                  "The owner is notified. They see your name, the country your number is from and how many agreements you have signed on Sudagri; your phone and the land's location are shared only once they accept.",
                 )}
               </p>
+              {/* البند ١٣٦: لا يُرسل الطلب قبل الإقرار بالمخاطرة، ويُحفظ الإقرار معه. */}
+              <div className="rounded-xl border border-accent/40 bg-accent/5 p-3 text-sm leading-6">
+                <p className="font-bold">{t("قبل أن ترسل", "Before you send")}</p>
+                <p className="mt-1">{lbl(RISK_NOTICE, locale)}</p>
+                <label className="mt-2 flex items-start gap-2 font-medium">
+                  <input type="checkbox" name="risk_ack" value="yes" required className="mt-1 size-4 shrink-0" />
+                  {t("قرأتُ هذا وفهمته.", "I have read and understood this.")}
+                </label>
+              </div>
               <button className={`${button} self-start`}>{t("أرسل الطلب", "Send the request")}</button>
             </form>
           </details>

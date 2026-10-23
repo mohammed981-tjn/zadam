@@ -60,7 +60,7 @@ export async function saveAgreement(fd: FormData) {
   const extra = str(fd, "extra").slice(0, 2000);
   if (extra) terms.extra = extra;
 
-  if (model === "sharecrop" || model === "finance") {
+  if (model === "sharecrop" || model === "finance" || model === "musaqah") {
     const ownerShare = numOrNull(fd, "owner_share");
     if (ownerShare === null || ownerShare < 1 || ownerShare > 99) {
       back(id, "error", t("اكتب حصّة صاحب الأرض نسبةً بين ١ و٩٩.", "Enter the landowner's share as a percentage between 1 and 99."));

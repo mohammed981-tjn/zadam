@@ -252,6 +252,66 @@ do $$ begin
 end $$;
 
 \echo ''
+\echo 'هـ) تنبيه المخاطرة، وتعريف المستثمر، والمساقاة (البند ١٣٦)'
+
+-- An orchard of the same owner, offered for musaqah only; the stranger's
+-- account carries a Saudi number, as the website writes it: digits, no plus.
+do $$ begin perform _act_as(null); end $$;
+update profiles set phone = '966512345678' where id = 'c3000000-0000-0000-0000-0000000000c3';
+insert into lands (id, owner_id, name, state, locality, village, latitude, longitude, feddans,
+                   station_key, water_source, verification, documents_required,
+                   open_to_investors, investor_models)
+values ('11000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-0000000000a1', 'بستان النخيل',
+        'الشمالية', 'دنقلا', 'لبب', 19.17, 30.48, 3, 'dongola', 'river_pump', 'verified', 3,
+        true, array['musaqah']);
+
+set role authenticated;
+do $$
+declare v jsonb;
+begin
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _refuses($q$select investor_express_interest('11000000-0000-0000-0000-000000000002', 'musaqah',
+                      'أرعى النخيل بنفسي ولي خبرة عشر سنوات في دنقلا', false)$q$,
+    'لا طلبَ شراكةٍ دون الإقرار بالمخاطرة');
+  insert into _ids values ('orchard', investor_express_interest('11000000-0000-0000-0000-000000000002', 'musaqah',
+                      'أرعى النخيل بنفسي ولي خبرة عشر سنوات في دنقلا', true));
+  perform _eq(_id('orchard') is not null, true, 'وبالإقرار يُرسل طلبُ مساقاةٍ على بستانٍ يقبلها');
+  perform _eq((select count(*)::int from land_investor_profiles()), 0, 'والمستثمرُ لا يقرأ تعريفات الطالبين');
+
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _eq((select risk_acknowledged from land_investor_profiles() where interest_id = _id('orchard')), true,
+    'صاحبُ البستان يرى أنّ الطالب أقرّ بالمخاطرة');
+  perform _eq((select dial_code from land_investor_profiles() where interest_id = _id('orchard')), '966',
+    'ويرى بلده من رقمه، لا رقمه');
+  perform _eq((select agreements_signed from land_investor_profiles() where interest_id = _id('interest')), 1,
+    'ويرى عقود المستثمرة الموقّعة');
+  perform _eq(pg_get_function_result('public.land_investor_profiles()'::regprocedure) ~* 'phone',
+    false, 'والتعريفُ لا يُرجع هاتفاً');
+
+  perform land_investor_decide(_id('orchard'), true);
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  insert into _ids values ('musaqah', partnership_agreement_open(_id('orchard')));
+  perform _refuses(format($q$select partnership_agreement_save(%L, %L::jsonb)$q$, _id('musaqah'),
+    '{"crop":"نخيل بركاوي","season":"موسم ٢٠٢٧","start_date":"2027-01-01","end_date":"2027-10-31","feddans":3,"owner_provides":["land","water"],"investor_provides":["pruning","harvest"],"owner_share":70,"investor_share":30,"loss_rule":"by_contribution"}'),
+    'في المساقاة الشجرُ من صاحب الأرض — وإلّا رُفض');
+  perform _eq(partnership_agreement_save(_id('musaqah'),
+    '{"crop":"نخيل بركاوي","season":"موسم ٢٠٢٧","start_date":"2027-01-01","end_date":"2027-10-31","feddans":3,"owner_provides":["land","water","trees"],"investor_provides":["pruning","irrigation","harvest"],"owner_share":70,"investor_share":30,"loss_rule":"by_contribution"}'::jsonb),
+    2, 'وعقدُ مساقاةٍ بالشجر من صاحبه وحصّتين من الثمر يُحفظ');
+  v := partnership_agreement_view(_id('musaqah'));
+  perform _eq(v->>'model', 'musaqah', 'والعقدُ عقدُ مساقاة');
+end $$;
+reset role;
+
+do $$ begin
+  perform _eq(has_function_privilege('anon', 'public.land_investor_profiles()', 'execute'), false,
+    'الزائرُ لا يقرأ تعريف المستثمرين');
+  perform _eq(has_function_privilege('anon', 'public.investor_express_interest(uuid, text, text, boolean)', 'execute'), false,
+    'ولا يرسل طلب شراكة');
+  perform _eq((select risk_ack_at is not null from investor_interests where id = _id('orchard')), true,
+    'ووقتُ الإقرار محفوظٌ مع الطلب');
+end $$;
+
+\echo ''
 \echo '=========================================================================='
 
 do $$

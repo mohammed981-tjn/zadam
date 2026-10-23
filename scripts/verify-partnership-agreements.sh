@@ -28,6 +28,7 @@ NOTIFY="$(pg_stage "$ROOT/scripts/notify-functions.fixture.sql" notify.sql)"
 INVESTORS="$(pg_stage "$ROOT/supabase/migrations/20261021210000_investor_partnerships.sql" investors.sql)"
 PRIVATE="$(pg_stage "$ROOT/supabase/migrations/20261021220000_land_rows_not_public.sql" land-private.sql)"
 AGREEMENTS="$(pg_stage "$ROOT/supabase/migrations/20261021230000_partnership_agreements.sql" agreements.sql)"
+TRUST="$(pg_stage "$ROOT/supabase/migrations/20261023010000_partnership_trust.sql" trust.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-partnership-agreements.sql" checks.sql)"
 
 # Supabase's own defaults, so that a revoke in a migration is what the checks meet.
@@ -48,6 +49,7 @@ echo "── أربع فئات";         pg_run "$BANDS" >/dev/null
 echo "── المستثمرون";        pg_run "$INVESTORS" >/dev/null
 echo "── صفُّ الأرض خاصّ";   pg_run "$PRIVATE" >/dev/null
 echo "── العقد";             pg_run "$AGREEMENTS" >/dev/null
+echo "── ما ينقص الشراكة";   pg_run "$TRUST" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"

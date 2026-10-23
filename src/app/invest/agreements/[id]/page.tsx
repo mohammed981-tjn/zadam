@@ -80,7 +80,16 @@ export default async function AgreementPage({
   const who = (role: "owner" | "investor") =>
     role === "owner" ? t("صاحب الأرض", "The landowner") : t("المستثمر", "The investor");
   const itemOwner = (i: (typeof AGREEMENT_ITEMS)[number]) =>
-    x.owner_provides?.includes(i) ? "owner" : x.investor_provides?.includes(i) ? "investor" : "none";
+    x.owner_provides?.includes(i)
+      ? "owner"
+      : x.investor_provides?.includes(i)
+        ? "investor"
+        : // In a musaqah the standing trees are what is let: the owner's from the start.
+          a.model === "musaqah" && i === "trees" && !x.owner_provides
+          ? "owner"
+          : "none";
+  // The orchard's two items belong to a musaqah; a sown field has neither.
+  const items = AGREEMENT_ITEMS.filter((i) => a.model === "musaqah" || (i !== "trees" && i !== "pruning"));
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -291,7 +300,7 @@ export default async function AgreementPage({
             <fieldset className="rounded-2xl bg-background p-3">
               <legend className="px-1 text-sm font-bold">{t("من يقدّم ماذا", "Who provides what")}</legend>
               <div className="mt-1 flex flex-col divide-y divide-border">
-                {AGREEMENT_ITEMS.map((i) => (
+                {items.map((i) => (
                   <div key={i} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                     <span className="font-medium">{lbl(ITEM_LABEL[i])}</span>
                     <span className="flex gap-3">
@@ -307,9 +316,11 @@ export default async function AgreementPage({
               </div>
             </fieldset>
 
-            {(a.model === "sharecrop" || a.model === "finance") && (
+            {(a.model === "sharecrop" || a.model === "finance" || a.model === "musaqah") && (
               <label className={label}>
-                {t("حصّة صاحب الأرض من المحصول (٪) — والباقي للمستثمر", "Landowner's share of the crop (%) — the rest is the investor's")}
+                {a.model === "musaqah"
+                  ? t("حصّة صاحب الأرض من الثمر (٪) — والباقي للمستثمر", "Landowner's share of the fruit (%) — the rest is the investor's")
+                  : t("حصّة صاحب الأرض من المحصول (٪) — والباقي للمستثمر", "Landowner's share of the crop (%) — the rest is the investor's")}
                 <input type="number" name="owner_share" required min={1} max={99} step="1" defaultValue={x.owner_share ?? ""} className={field} />
               </label>
             )}
