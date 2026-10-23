@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/Explain";
 import {
@@ -33,7 +34,7 @@ export default async function HerdsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(loginTo("/herds"));
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import ProviderForm from "@/components/ProviderForm";
 import { getLocale } from "@/lib/locale";
@@ -16,7 +17,7 @@ export default async function RegisterProviderPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(loginTo("/services/register"));
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 

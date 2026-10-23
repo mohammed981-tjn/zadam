@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import ExportOfferForm from "@/components/ExportOfferForm";
 import ExportOfferActions from "@/components/ExportOfferActions";
@@ -58,7 +59,7 @@ export default async function ExportOffersPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(loginTo("/export/offers"));
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 

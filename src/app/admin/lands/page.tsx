@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { verifyLand, rejectLand } from "@/app/lands/actions";
 import type { Land, LandDocument } from "@/types/database";
+import { nearLands } from "@/lib/landNeighbours";
 
 export const metadata = { title: "توثيق الأراضي | سوداقري" };
 
@@ -106,6 +107,7 @@ export default async function AdminLandsPage({
     const mine = docs.filter((d) => d.land_id === land.id);
     const kinds = [...new Set(mine.map((d) => d.kind))];
     const enough = land.documents_on_file >= land.documents_required;
+    const near = nearLands(land, lands);
 
     return (
       <li className={card}>
@@ -151,6 +153,28 @@ export default async function AdminLandsPage({
           <p className="mt-3 rounded-lg border border-danger/40 bg-danger/5 p-3 text-sm text-danger">
             رُدَّت سابقاً: {land.verification_note}
           </p>
+        )}
+
+        {/* أعادها صاحبُها إلى المراجعة بتغيير وقائعها بعد التوثيق (البند ١٤٢). */}
+        {land.verification === "submitted" && land.verification_note && (
+          <p className="mt-3 rounded-lg border border-accent/40 bg-accent/5 p-3 text-sm">
+            {land.verification_note}
+          </p>
+        )}
+
+        {/* والنزاعُ يُكشف قبل التوثيق: أرضٌ قريبة من أرضٍ باسمِ مالكٍ آخر. */}
+        {near.length > 0 && (
+          <div className="mt-3 rounded-lg border border-danger/40 bg-danger/5 p-3 text-sm">
+            <p className="font-bold text-danger">قريبةٌ من أرضٍ مسجّلة لمالكٍ آخر — تحقّق من الحيازة والحدود قبل التوثيق:</p>
+            <ul className="mt-1 space-y-0.5">
+              {near.slice(0, 5).map(({ land: other, metres }) => (
+                <li key={other.id}>
+                  «{other.name}» على نحو {Math.round(metres)} متر
+                  {other.verification === "verified" ? " (موثّقة)" : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {/*

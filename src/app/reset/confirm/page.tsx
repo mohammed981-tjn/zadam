@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { completePasswordReset } from "@/app/login/actions";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { MIN_PASSWORD } from "@/lib/authEntry";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -76,7 +77,7 @@ export default async function ResetConfirmPage({
             type="password"
             name="password"
             required
-            minLength={6}
+            minLength={MIN_PASSWORD}
             autoComplete="new-password"
             className={field}
           />
@@ -88,14 +89,14 @@ export default async function ResetConfirmPage({
             type="password"
             name="confirm"
             required
-            minLength={6}
+            minLength={MIN_PASSWORD}
             autoComplete="new-password"
             className={field}
           />
           <span className="text-xs text-muted">
             {t(
-              "٦ أحرف على الأقل. تُكتب مرتين لأن خطأً مطبعياً هنا يقفل الحساب على صاحبه.",
-              "At least 6 characters. Typed twice because a typo here locks the owner out of the account.",
+              `${MIN_PASSWORD} أحرف على الأقل. تُكتب مرتين لأن خطأً مطبعياً هنا يقفل الحساب على صاحبه.`,
+              `At least ${MIN_PASSWORD} characters. Typed twice because a typo here locks the owner out of the account.`,
             )}
           </span>
         </label>

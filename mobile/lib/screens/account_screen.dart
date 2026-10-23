@@ -156,6 +156,48 @@ class _Error extends StatelessWidget {
   }
 }
 
+/// «أظهر كلمة المرور» (البند ١٤٢): the owner asked for it on the site and in
+/// the app — a password typed blind on a phone keyboard is the commonest way
+/// to lock yourself out.
+class _PasswordField extends StatefulWidget {
+  const _PasswordField({
+    required this.controller,
+    required this.label,
+    required this.hints,
+    this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final List<String> hints;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  State<_PasswordField> createState() => _PasswordFieldState();
+}
+
+class _PasswordFieldState extends State<_PasswordField> {
+  bool _shown = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: widget.controller,
+      obscureText: !_shown,
+      autofillHints: widget.hints,
+      onSubmitted: widget.onSubmitted,
+      decoration: InputDecoration(
+        labelText: widget.label,
+        suffixIcon: IconButton(
+          tooltip: _shown ? 'أخفِ كلمة المرور' : 'أظهر كلمة المرور',
+          icon: Icon(_shown ? Icons.visibility_off : Icons.visibility),
+          onPressed: () => setState(() => _shown = !_shown),
+        ),
+      ),
+    );
+  }
+}
+
 class _SignInForm extends StatefulWidget {
   const _SignInForm();
 
@@ -217,11 +259,10 @@ class _SignInFormState extends State<_SignInForm> {
           else
             _PhoneField(dial: _dial, onDial: (v) => setState(() => _dial = v), controller: _phone),
           const SizedBox(height: 12),
-          TextField(
+          _PasswordField(
             controller: _password,
-            obscureText: true,
-            autofillHints: const [AutofillHints.password],
-            decoration: const InputDecoration(labelText: 'كلمة المرور'),
+            label: 'كلمة المرور',
+            hints: const [AutofillHints.password],
             onSubmitted: (_) => _busy ? null : _submit(),
           ),
           const SizedBox(height: 16),
@@ -322,11 +363,10 @@ class _SignUpFormState extends State<_SignUpForm> {
         const SizedBox(height: 12),
         _PhoneField(dial: _dial, onDial: (v) => setState(() => _dial = v), controller: _phone),
         const SizedBox(height: 12),
-        TextField(
+        _PasswordField(
           controller: _password,
-          obscureText: true,
-          autofillHints: const [AutofillHints.newPassword],
-          decoration: const InputDecoration(labelText: 'كلمة المرور (ستة أحرف على الأقل)'),
+          label: 'كلمة المرور (ثمانية أحرف على الأقل)',
+          hints: const [AutofillHints.newPassword],
         ),
         const SizedBox(height: 8),
         Text(

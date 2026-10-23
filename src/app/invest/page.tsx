@@ -243,7 +243,7 @@ export default async function InvestPage({
           )}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link href={user ? "/lands" : "/signup"} className="rounded-xl bg-white px-4 py-2 text-sm font-black text-[#ca2c72]">
+          <Link href={user ? "/lands" : "/signup?next=/lands"} className="rounded-xl bg-white px-4 py-2 text-sm font-black text-[#ca2c72]">
             {user ? t("أراضيّ", "My land") : t("سجّل مجّاناً", "Sign up free")}
           </Link>
           <Link href="/lands/new" className="rounded-xl px-4 py-2 text-sm font-bold text-white ring-1 ring-white/60">

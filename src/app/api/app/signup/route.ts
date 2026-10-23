@@ -5,6 +5,7 @@ import { phoneToEmail } from "@/lib/phoneIdentity";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { passwordSession } from "@/lib/supabase/bearer";
+import { MIN_PASSWORD } from "@/lib/authEntry";
 
 /**
  * إنشاء حسابٍ من التطبيق (البند ١٣٨).
@@ -45,8 +46,8 @@ export async function POST(req: Request) {
   const role = text("role") === "investor" ? "investor" : "farmer";
 
   if (!fullName) return NextResponse.json({ error: "اكتب اسمك." }, { status: 400 });
-  if (password.length < 6) {
-    return NextResponse.json({ error: "كلمة المرور يجب أن تكون ستة أحرف على الأقل." }, { status: 400 });
+  if (password.length < MIN_PASSWORD) {
+    return NextResponse.json({ error: `كلمة المرور يجب أن تكون ${MIN_PASSWORD} أحرف على الأقل.` }, { status: 400 });
   }
   const phone = toE164(text("dial_code"), text("phone"), "ar");
   if (!phone.ok) return NextResponse.json({ error: phone.message }, { status: 400 });
