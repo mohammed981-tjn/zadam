@@ -13,7 +13,12 @@ picture for a phone's feed, as the other films are.
 
 Nothing is drawn over the pictures: no captions or slogans. The words are the
 narrator's, and Arabic set by ffmpeg's text filter is not shaped, so it would
-come out as disconnected letters.
+come out as disconnected letters. The cards that explain the partnership
+(backlog 143) are clips of their own, drawn in a browser by cards.mjs, where
+Arabic is shaped.
+
+If the film has a music.wav (music.py), it plays under the narration, quieter
+whenever the narrator speaks, and comes up at the end.
 """
 
 import json
@@ -97,8 +102,21 @@ for i, s in enumerate(shots):
     inputs += ["-i", f"tts/fusha/{s['line']}.wav"]
     ms = int((starts[i] + LEAD) * 1000)
     filters.append(f"[{audio_base + i}:a]aresample=48000,adelay={ms}|{ms},apad=whole_dur={total:.3f}[a{i}]")
-filters.append("".join(f"[a{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,"
-               f"atrim=duration={total:.3f},afade=t=out:st={total - 1.2:.3f}:d=1.2[aout]")
+MUSIC = f"{film}/music.wav"
+if os.path.exists(MUSIC):
+    # The narration keys a compressor on the music, so the music steps back
+    # while a line is spoken and comes up between lines and at the end.
+    filters.append("".join(f"[a{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,asplit=2[nar][key]")
+    inputs += ["-stream_loop", "-1", "-i", MUSIC]
+    filters.append(
+        f"[{audio_base + n}:a]aresample=48000,atrim=duration={total:.3f},volume=0.32,"
+        f"afade=t=in:st=0:d=1.5[bed]")
+    filters.append("[bed][key]sidechaincompress=threshold=0.03:ratio=8:attack=30:release=500[ducked]")
+    filters.append(f"[nar][ducked]amix=inputs=2:normalize=0,"
+                   f"atrim=duration={total:.3f},afade=t=out:st={total - 2.5:.3f}:d=2.5[aout]")
+else:
+    filters.append("".join(f"[a{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,"
+                   f"atrim=duration={total:.3f},afade=t=out:st={total - 1.2:.3f}:d=1.2[aout]")
 
 wide = f"{out}/{name}-wide.mp4"
 subprocess.check_call(

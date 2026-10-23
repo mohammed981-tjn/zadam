@@ -46,11 +46,24 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python3 scripts/film/frames.py film/investors
 
+      # Once: a bed of music under the narration (backlog 143), from
+      # ACE-Step, which is Apache-2.0 — see scripts/film/music.py.
+      - name: Compose the music if the film has none
+        continue-on-error: true
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg fonts-dejavu-core >/dev/null
+          python3 scripts/film/music.py film/investors
+
       - name: Keep the clips and stills on the branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add film/investors/clips film/investors/frames 2>/dev/null || true
+          # One path at a time: a missing path would stop git add adding any.
+          for p in film/investors/clips film/investors/frames film/investors/music.wav; do
+            if [ -e "$p" ]; then git add "$p"; fi
+          done
           git diff --cached --quiet && exit 0
           git commit -m "Film: investors' clips $(ls film/investors/clips 2>/dev/null | tr '\n' ' ')· stills $(ls film/investors/frames | wc -l)"
           for n in 1 2 3 4 5 6 7 8 9 10; do
@@ -61,7 +74,7 @@ jobs:
 
       - name: Put the film together when every piece is there
         run: |
-          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg fonts-dejavu-core >/dev/null
+          command -v ffmpeg >/dev/null || { sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg fonts-dejavu-core >/dev/null; }
           python3 scripts/film/assemble.py film/investors out
 
       - name: Publish the film

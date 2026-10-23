@@ -32,9 +32,11 @@ film = sys.argv[1].rstrip("/")
 shots = json.load(open(f"{film}/shots.json", encoding="utf-8"))
 os.makedirs(f"{film}/clips", exist_ok=True)
 
+# A card (backlog 143) is drawn, not filmed: cards.mjs makes its clip.
 todo = [
     s for s in shots
-    if os.path.exists(f"{film}/frames/{s['frame']}") and not os.path.exists(f"{film}/clips/{s['id']}.mp4")
+    if not s.get("card")
+    and os.path.exists(f"{film}/frames/{s['frame']}") and not os.path.exists(f"{film}/clips/{s['id']}.mp4")
 ]
 print(f"{len(todo)} shot(s) to animate:", ", ".join(s["id"] for s in todo) or "none")
 if not todo:
