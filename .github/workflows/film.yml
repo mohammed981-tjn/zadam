@@ -48,8 +48,11 @@ jobs:
 
       # Once: a bed of music under the narration (backlog 143), from
       # ACE-Step, which is Apache-2.0 — see scripts/film/music.py.
+      # A queue on the Space can hold a call for a long time; the clips the
+      # steps above made are committed after this, so it must not hang.
       - name: Compose the music if the film has none
         continue-on-error: true
+        timeout-minutes: 12
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
