@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { openPartnershipConversation } from "@/app/messages/actions";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
@@ -131,6 +132,12 @@ export default async function AgreementPage({
             {t("رقم العقد:", "Reference:")} <bdi dir="ltr">{a.ref}</bdi>
           </p>
         )}
+        {/* صندوق الرسائل (البند ١٣٧): محادثة العقد هي محادثة طلبه. */}
+        <form action={openPartnershipConversation} className="mt-3">
+          <input type="hidden" name="agreement_id" value={a.id} />
+          <input type="hidden" name="from" value={`/invest/agreements/${a.id}`} />
+          <button className="text-sm font-bold text-primary underline">{t("💬 محادثة الشراكة", "💬 The partnership conversation")}</button>
+        </form>
       </header>
 
       <ActionNotice ok={sp.ok} error={sp.error} />

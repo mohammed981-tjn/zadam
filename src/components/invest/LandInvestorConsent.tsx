@@ -6,6 +6,7 @@ import { COUNTRIES } from "@/lib/phone";
 import { button, field, ghost } from "@/lib/ui";
 import { decideInvestorInterest, setInvestorConsent } from "@/app/invest/actions";
 import { openAgreement } from "@/app/invest/agreements/actions";
+import { openPartnershipConversation } from "@/app/messages/actions";
 import { decideInspection } from "@/app/invest/inspections/actions";
 import { CHECK_LABEL, INSPECTION_STATUS_LABEL, VERDICT_LABEL, type InspectionRow } from "@/lib/inspections";
 import type { Land } from "@/types/database";
@@ -168,6 +169,12 @@ export default function LandInvestorConsent({
               <p className="mt-1 whitespace-pre-line [overflow-wrap:anywhere]" {...arText}>
                 {r.message}
               </p>
+              {/* صندوق الرسائل (البند ١٣٧): محادثة الطلب، قبل القبول وبعده. */}
+              <form action={openPartnershipConversation} className="mt-2">
+                <input type="hidden" name="interest_id" value={r.interest_id} />
+                <input type="hidden" name="from" value="/lands" />
+                <button className={ghost}>{t("💬 راسل المستثمر", "💬 Message the investor")}</button>
+              </form>
               {r.status === "accepted" ? (
                 <div className="mt-1 text-xs text-muted">
                   {t("هاتفه:", "Phone:")}{" "}

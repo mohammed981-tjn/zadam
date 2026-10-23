@@ -1,0 +1,461 @@
+-- صندوق الرسائل، المرحلة الأولى (البند ١٣٧).
+--
+-- The owner, 22 October: «لماذا لا تبني صندوق بريد … الشريك والمستثمر وصاحب
+-- الأرض والمنصّة، نظام مراسلات». The research (docs/studies/messaging-ar.md,
+-- with Exa on 23 October) found that platforms like this one keep each
+-- conversation tied to the deal it is about, not a free chat; that it opens
+-- only once both sides have taken a step; and that contact details stay hidden
+-- until the right moment. He chose on 23 October that the administration reads
+-- every conversation; each thread says so at its top.
+--
+-- Two kinds of conversation in this phase:
+--
+-- - partnership: one per partnership request (investor_interests row). It is
+--   the same thread before acceptance and through the agreement, so the history
+--   of a deal is in one place. Its parties are the investor, the land's owner,
+--   and — once an agreement names one — the managing partner company's owner.
+--   Before the owner accepts, a phone number or a "WhatsApp me" is refused, as
+--   in the land's public note (lands_investor_note_no_phone): the number is
+--   revealed by acceptance, not by the chat. A declined or withdrawn request
+--   closes the thread to new messages; nothing in it is removed.
+-- - support: «راسل سوداقري», one per member, between that member and the
+--   administration.
+--
+-- Administrators read every thread and may write in any, as «سوداقري».
+--
+-- The tables are reached only through the functions below (security definer,
+-- each checking auth.uid()); row-level security is on with no policy, and no
+-- table privilege is left to anon or authenticated. Nothing is deleted: there
+-- is no function that removes a message, and the tables grant no delete.
+--
+-- The notifications CHECK is replaced under the same name to add 'message', as
+-- every migration that added a kind has done since 20260816200100.
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ١) الجداول
+-- ═══════════════════════════════════════════════════════════════════════════
+
+create table if not exists public.conversations (
+  id              uuid primary key default gen_random_uuid(),
+  kind            text not null check (kind in ('partnership','support')),
+  interest_id     uuid unique references public.investor_interests(id) on delete restrict,
+  member_id       uuid references auth.users(id) on delete cascade,
+  created_at      timestamptz not null default now(),
+  last_message_at timestamptz,
+  reported_at     timestamptz,
+  constraint conversations_subject_check check (
+    (kind = 'partnership' and interest_id is not null and member_id is null)
+    or (kind = 'support' and member_id is not null and interest_id is null))
+);
+
+create unique index if not exists conversations_one_support
+  on public.conversations (member_id) where kind = 'support';
+create index if not exists conversations_last_idx
+  on public.conversations (last_message_at desc nulls last);
+
+create table if not exists public.conversation_messages (
+  id              uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations(id) on delete restrict,
+  sender_id       uuid references auth.users(id) on delete set null,
+  sender_role     text not null check (sender_role in ('owner','investor','manager','member','platform')),
+  body            text not null check (length(btrim(body)) between 1 and 2000),
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists conversation_messages_thread_idx
+  on public.conversation_messages (conversation_id, created_at);
+
+create table if not exists public.conversation_reads (
+  conversation_id uuid not null references public.conversations(id) on delete cascade,
+  user_id         uuid not null references auth.users(id) on delete cascade,
+  last_read_at    timestamptz not null default now(),
+  primary key (conversation_id, user_id)
+);
+
+create table if not exists public.conversation_reports (
+  id              uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations(id) on delete restrict,
+  reporter_id     uuid references auth.users(id) on delete set null,
+  reason          text not null check (length(btrim(reason)) between 5 and 500),
+  created_at      timestamptz not null default now()
+);
+
+alter table public.conversations enable row level security;
+alter table public.conversation_messages enable row level security;
+alter table public.conversation_reads enable row level security;
+alter table public.conversation_reports enable row level security;
+
+revoke all on public.conversations, public.conversation_messages,
+              public.conversation_reads, public.conversation_reports
+  from public, anon, authenticated;
+
+-- ── الإشعارات: نوعٌ جديد ────────────────────────────────────────────────────
+
+alter table public.notifications drop constraint notifications_kind_check;
+alter table public.notifications add constraint notifications_kind_check
+  check (kind = any (array[
+    'land_submitted','land_verified','land_rejected',
+    'opportunity_submitted','opportunity_approved','opportunity_rejected',
+    'lead_received','feedback_received','feedback_replied',
+    'nafir_joined','faza_pledged','shura_answered',
+    'judiyya_update','canal_update',
+    'locust_near','animal_disease',
+    'stage_due',
+    'investor_interest','investor_decision',
+    'agreement_update','agreement_signed',
+    'inspection_update','inspection_report',
+    'message'
+  ]));
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ٢) من في المحادثة
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- The caller's place in a conversation: 'investor', 'owner', 'manager' or
+-- 'member' for a party, 'admin' for an administrator who is not a party, null
+-- for anyone else. A party who is also an administrator answers as the party.
+create or replace function public.conversation_role(p_conv uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+           when c.kind = 'support' and c.member_id = auth.uid() then 'member'
+           when c.kind = 'partnership' and i.investor_id = auth.uid() then 'investor'
+           when c.kind = 'partnership' and l.owner_id = auth.uid() then 'owner'
+           when c.kind = 'partnership' and pc.owner_id = auth.uid() then 'manager'
+           when is_admin() then 'admin'
+         end
+    from conversations c
+    left join investor_interests i on i.id = c.interest_id
+    left join lands l on l.id = i.land_id
+    left join partnership_agreements a on a.interest_id = i.id
+    left join partner_companies pc on pc.id = a.manager_company_id
+   where c.id = p_conv
+     and auth.uid() is not null;
+$$;
+
+-- Everyone in a conversation other than the caller, for the notification.
+create or replace function public.conversation_others(p_conv uuid)
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select distinct x from (
+    select c.member_id as x from conversations c where c.id = p_conv and c.kind = 'support'
+    union all
+    select i.investor_id from conversations c join investor_interests i on i.id = c.interest_id where c.id = p_conv
+    union all
+    select l.owner_id from conversations c join investor_interests i on i.id = c.interest_id
+      join lands l on l.id = i.land_id where c.id = p_conv
+    union all
+    select pc.owner_id from conversations c join partnership_agreements a on a.interest_id = c.interest_id
+      join partner_companies pc on pc.id = a.manager_company_id where c.id = p_conv
+  ) s
+  where x is not null and x is distinct from auth.uid();
+$$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ٣) فتح المحادثة
+-- ═══════════════════════════════════════════════════════════════════════════
+
+create or replace function public.conversation_for_interest(p_interest uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+  v_ok boolean;
+begin
+  if auth.uid() is null then raise exception 'سجّل الدخول أولاً.'; end if;
+
+  select (i.investor_id = auth.uid() or l.owner_id = auth.uid()
+          or exists (select 1 from partnership_agreements a join partner_companies pc on pc.id = a.manager_company_id
+                      where a.interest_id = i.id and pc.owner_id = auth.uid())
+          or is_admin())
+    into v_ok
+    from investor_interests i join lands l on l.id = i.land_id
+   where i.id = p_interest;
+  if not coalesce(v_ok, false) then raise exception 'لستَ طرفاً في هذا الطلب.'; end if;
+
+  select id into v_id from conversations where interest_id = p_interest;
+  if v_id is null then
+    insert into conversations (kind, interest_id) values ('partnership', p_interest)
+    on conflict (interest_id) do nothing
+    returning id into v_id;
+    if v_id is null then select id into v_id from conversations where interest_id = p_interest; end if;
+  end if;
+  return v_id;
+end;
+$$;
+
+create or replace function public.conversation_for_support()
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if auth.uid() is null then raise exception 'سجّل الدخول أولاً.'; end if;
+  select id into v_id from conversations where kind = 'support' and member_id = auth.uid();
+  if v_id is null then
+    insert into conversations (kind, member_id) values ('support', auth.uid())
+    on conflict do nothing
+    returning id into v_id;
+    if v_id is null then
+      select id into v_id from conversations where kind = 'support' and member_id = auth.uid();
+    end if;
+  end if;
+  return v_id;
+end;
+$$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ٤) الإرسال
+-- ═══════════════════════════════════════════════════════════════════════════
+
+create or replace function public.conversation_send(p_conv uuid, p_body text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_role text;
+  v_conv conversations;
+  v_status text;
+  v_body text := btrim(coalesce(p_body, ''));
+  v_plain text;
+  v_id uuid;
+  v_party uuid;
+  v_link text;
+begin
+  if auth.uid() is null then raise exception 'سجّل الدخول أولاً.'; end if;
+  v_role := conversation_role(p_conv);
+  if v_role is null then raise exception 'لستَ طرفاً في هذه المحادثة.'; end if;
+  if length(v_body) = 0 then raise exception 'اكتب رسالتك.'; end if;
+  if length(v_body) > 2000 then raise exception 'الرسالة أطول من ٢٠٠٠ حرف.'; end if;
+
+  select * into v_conv from conversations where id = p_conv for update;
+
+  if v_conv.kind = 'partnership' then
+    select status into v_status from investor_interests where id = v_conv.interest_id;
+    if v_status in ('declined','withdrawn')
+       and not exists (select 1 from partnership_agreements where interest_id = v_conv.interest_id) then
+      raise exception 'أُغلق هذا الطلب، فلا رسائل جديدة فيه. ما كُتب يبقى محفوظاً.';
+    end if;
+    -- Before acceptance the number is not the chat's to reveal.
+    if v_status = 'pending' and v_role <> 'admin' then
+      v_plain := translate(v_body, '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789');
+      if v_plain ~ '[0-9]([[:space:]().+-]*[0-9]){8,}'
+         or v_plain ~* '(واتس|وتساب|واتساب|whats ?app|تلغرام|تليجرام|تيليجرام|telegram|@)' then
+        raise exception 'لا يُكتب رقم هاتفٍ ولا وسيلة تواصلٍ أخرى قبل أن يقبل صاحب الأرض الطلب. بعد القبول يظهر الهاتف لكلٍّ منكما.';
+      end if;
+    end if;
+  end if;
+
+  insert into conversation_messages (conversation_id, sender_id, sender_role, body)
+  values (p_conv, auth.uid(), case v_role when 'admin' then 'platform' else v_role end, v_body)
+  returning id into v_id;
+
+  update conversations set last_message_at = now() where id = p_conv;
+  insert into conversation_reads (conversation_id, user_id, last_read_at) values (p_conv, auth.uid(), now())
+  on conflict (conversation_id, user_id) do update set last_read_at = excluded.last_read_at;
+
+  -- One unread notice per conversation is enough: a second message while the
+  -- first notice is still unread does not ring the bell again.
+  v_link := '/messages/' || p_conv;
+  for v_party in select * from conversation_others(p_conv) loop
+    if not exists (select 1 from notifications n
+                    where n.recipient_id = v_party and n.kind = 'message'
+                      and n.link = v_link and n.read_at is null) then
+      perform notify_user(v_party, 'message',
+        case v_conv.kind when 'support' then 'ردّت عليك إدارة سوداقري' else 'رسالةٌ جديدة في طلب الشراكة' end,
+        left(v_body, 140), v_link);
+    end if;
+  end loop;
+
+  if v_conv.kind = 'support' and v_role = 'member' then
+    perform notify_admins('message', 'رسالةٌ إلى سوداقري', left(v_body, 140), v_link);
+  end if;
+
+  return v_id;
+end;
+$$;
+
+create or replace function public.conversation_mark_read(p_conv uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if conversation_role(p_conv) is null then raise exception 'لستَ طرفاً في هذه المحادثة.'; end if;
+  insert into conversation_reads (conversation_id, user_id, last_read_at) values (p_conv, auth.uid(), now())
+  on conflict (conversation_id, user_id) do update set last_read_at = excluded.last_read_at;
+  update notifications set read_at = now()
+   where recipient_id = auth.uid() and kind = 'message'
+     and link = '/messages/' || p_conv and read_at is null;
+end;
+$$;
+
+create or replace function public.conversation_report(p_conv uuid, p_reason text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_role text := conversation_role(p_conv);
+begin
+  if v_role is null or v_role = 'admin' then raise exception 'لستَ طرفاً في هذه المحادثة.'; end if;
+  if length(btrim(coalesce(p_reason, ''))) not between 5 and 500 then
+    raise exception 'اكتب سبب البلاغ في سطرٍ أو أكثر.';
+  end if;
+  insert into conversation_reports (conversation_id, reporter_id, reason) values (p_conv, auth.uid(), btrim(p_reason));
+  update conversations set reported_at = now() where id = p_conv;
+  perform notify_admins('message', 'بلاغٌ عن محادثة', left(btrim(p_reason), 140), '/messages/' || p_conv);
+end;
+$$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ٥) القراءة
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- The title each side sees. Before acceptance the investor does not learn the
+-- land's name or the owner's (investor_open_lands hides both); the owner sees
+-- the investor's name, as on /lands.
+create or replace function public.conversation_title(p_conv uuid, p_role text)
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+           when c.kind = 'support' and p_role = 'member' then 'إدارة سوداقري'
+           when c.kind = 'support' then 'رسالة من ' || coalesce(nullif(pm.full_name, ''), 'عضو')
+           when p_role = 'investor' and i.status = 'pending' then 'طلب شراكة على أرضٍ في ' || coalesce(l.state, 'السودان')
+           when p_role = 'investor' then 'شراكة في «' || coalesce(l.name, 'الأرض') || '»'
+           when p_role = 'owner' then 'طلب ' || coalesce(nullif(pi.full_name, ''), 'مستثمر') || ' على «' || coalesce(l.name, 'أرضك') || '»'
+           else 'شراكة في «' || coalesce(l.name, 'أرض') || '»'
+         end
+    from conversations c
+    left join profiles pm on pm.id = c.member_id
+    left join investor_interests i on i.id = c.interest_id
+    left join lands l on l.id = i.land_id
+    left join profiles pi on pi.id = i.investor_id
+   where c.id = p_conv;
+$$;
+
+create or replace function public.my_conversations()
+returns table (
+  id uuid, kind text, my_role text, title text, last_message_at timestamptz,
+  last_body text, unread integer, open boolean, reported boolean)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with mine as (
+    select c.*, conversation_role(c.id) as r
+      from conversations c
+     where auth.uid() is not null
+  )
+  select m.id, m.kind, m.r, conversation_title(m.id, m.r), m.last_message_at,
+         (select left(x.body, 120) from conversation_messages x
+           where x.conversation_id = m.id order by x.created_at desc limit 1),
+         (select count(*)::int from conversation_messages x
+           where x.conversation_id = m.id
+             and x.sender_id is distinct from auth.uid()
+             and x.created_at > coalesce((select rd.last_read_at from conversation_reads rd
+                                           where rd.conversation_id = m.id and rd.user_id = auth.uid()),
+                                         '-infinity'::timestamptz)),
+         case when m.kind = 'support' then true
+              else exists (select 1 from investor_interests i where i.id = m.interest_id and i.status in ('pending','accepted'))
+                   or exists (select 1 from partnership_agreements a where a.interest_id = m.interest_id) end,
+         m.reported_at is not null
+    from mine m
+   where m.r is not null
+     -- An administrator's list is every thread that has a message in it.
+     and (m.r <> 'admin' or m.last_message_at is not null)
+   order by (m.reported_at is not null and m.r = 'admin') desc, m.last_message_at desc nulls last
+   limit 300;
+$$;
+
+create or replace function public.conversation_view(p_conv uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_role text := conversation_role(p_conv);
+  v_conv conversations;
+  v_interest investor_interests;
+  v_agreement uuid;
+begin
+  if v_role is null then raise exception 'لستَ طرفاً في هذه المحادثة.'; end if;
+  select * into v_conv from conversations where id = p_conv;
+  if v_conv.interest_id is not null then
+    select * into v_interest from investor_interests where id = v_conv.interest_id;
+    select id into v_agreement from partnership_agreements where interest_id = v_conv.interest_id;
+  end if;
+  return jsonb_build_object(
+    'id', v_conv.id,
+    'kind', v_conv.kind,
+    'me', v_role,
+    'title', conversation_title(p_conv, v_role),
+    'status', v_interest.status,
+    'request', case when v_interest.id is not null then jsonb_build_object(
+                 'message', v_interest.message, 'model', v_interest.model, 'created_at', v_interest.created_at) end,
+    'agreement_id', v_agreement,
+    'open', case when v_conv.kind = 'support' then true
+                 else v_interest.status in ('pending','accepted') or v_agreement is not null end,
+    'reported', v_conv.reported_at is not null,
+    'reports', case when v_role = 'admin' then coalesce((
+                 select jsonb_agg(jsonb_build_object('reason', r.reason, 'created_at', r.created_at) order by r.created_at)
+                   from conversation_reports r where r.conversation_id = p_conv), '[]'::jsonb) end,
+    'messages', coalesce((
+       select jsonb_agg(jsonb_build_object(
+                'id', x.id, 'role', x.sender_role, 'mine', x.sender_id = auth.uid(),
+                'body', x.body, 'created_at', x.created_at) order by x.created_at)
+         from (select * from conversation_messages
+                where conversation_id = p_conv
+                order by created_at desc limit 300) x), '[]'::jsonb)
+  );
+end;
+$$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- الصلاحيات
+-- ═══════════════════════════════════════════════════════════════════════════
+
+revoke execute on function public.conversation_role(uuid) from public, anon;
+revoke execute on function public.conversation_others(uuid) from public, anon, authenticated;
+revoke execute on function public.conversation_for_interest(uuid) from public, anon;
+revoke execute on function public.conversation_for_support() from public, anon;
+revoke execute on function public.conversation_send(uuid, text) from public, anon;
+revoke execute on function public.conversation_mark_read(uuid) from public, anon;
+revoke execute on function public.conversation_report(uuid, text) from public, anon;
+revoke execute on function public.conversation_title(uuid, text) from public, anon, authenticated;
+revoke execute on function public.my_conversations() from public, anon;
+revoke execute on function public.conversation_view(uuid) from public, anon;
+
+grant execute on function public.conversation_role(uuid) to authenticated;
+grant execute on function public.conversation_for_interest(uuid) to authenticated;
+grant execute on function public.conversation_for_support() to authenticated;
+grant execute on function public.conversation_send(uuid, text) to authenticated;
+grant execute on function public.conversation_mark_read(uuid) to authenticated;
+grant execute on function public.conversation_report(uuid, text) to authenticated;
+grant execute on function public.my_conversations() to authenticated;
+grant execute on function public.conversation_view(uuid) to authenticated;

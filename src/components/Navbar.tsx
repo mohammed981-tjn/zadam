@@ -200,6 +200,7 @@ export default async function Navbar() {
       ...(user
         ? [
             { href: "/invest/mine", label: t("طلباتي: الشراكة والمعاينة", "My requests: partnership and inspection") },
+            { href: "/messages", label: t("الرسائل وراسل سوداقري", "Messages, and write to Sudagri") },
             { href: "/dashboard", label: t("محفظتي", "My portfolio") },
             { href: "/plan", label: t("خطط استثمارك", "Plan your investment") },
           ]
