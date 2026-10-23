@@ -11,6 +11,9 @@ import { INVESTOR_MODEL_LABEL } from "@/lib/investors";
 import { lbl } from "@/lib/partners";
 import { PARTY_LABEL, READ_NOTICE, SENDER_LABEL, type ConversationView } from "@/lib/messages";
 import MessageAttachment from "@/components/MessageAttachment";
+import { OFFER_UNIT_NAME, offerCropName, type OfferUnit } from "@/lib/marketOffers";
+import { money } from "@/lib/marketCrops";
+import { stateName } from "@/lib/nafir";
 import { reportConversation, resolveReport, sendMessage } from "../actions";
 
 export async function generateMetadata() {
@@ -78,6 +81,11 @@ export default async function ConversationPage({
               " ولا يُكتب رقم هاتفٍ ولا وسيلة تواصلٍ أخرى قبل أن يقبل صاحب الأرض الطلب؛ بعد القبول يظهر الهاتف لكلٍّ منكما.",
               " No phone number or other contact may be written before the landowner accepts; after acceptance each of you sees the other's phone.",
             )}
+          {c.kind === "market" &&
+            t(
+              " والمنصّة لا تمسك مالاً ولا تضمن التسليم: افحص البضاعة بنفسك، وادفع عند الاستلام.",
+              " The platform holds no money and guarantees no delivery: inspect the goods yourself and pay on delivery.",
+            )}
         </p>
         {c.agreement_id && c.me !== "member" && (
           <Link href={`/invest/agreements/${c.agreement_id}`} className="mt-2 inline-block text-sm font-bold text-primary underline">
@@ -133,6 +141,31 @@ export default async function ConversationPage({
       )}
 
       <ol className="flex flex-col gap-3">
+        {c.offer && (
+          <li className={`${card} border-primary/30`}>
+            <p className="text-xs font-bold text-muted">
+              {c.offer.kind === "sell" ? t("عرض بيع في السوق", "An offer to sell, on the market") : t("طلب شراء في السوق", "A wish to buy, on the market")}
+              {" · "}
+              {timeAgo(c.offer.created_at, locale)}
+              {c.offer.status === "ended" && ` · ${t("انتهى العرض", "the offer has ended")}`}
+            </p>
+            <p className="mt-1 font-bold">
+              <bdi>{offerCropName(c.offer.crop, locale)}</bdi> · <span dir="ltr">{money(c.offer.quantity)}</span>{" "}
+              {lbl(OFFER_UNIT_NAME[c.offer.unit as OfferUnit] ?? { ar: c.offer.unit, en: c.offer.unit }, locale)}
+              {" — "}
+              {stateName(c.offer.state, locale)}، <bdi>{c.offer.locality}</bdi>
+            </p>
+            {c.offer.grade && <p className="mt-1 text-sm text-muted" dir="auto">{c.offer.grade}</p>}
+            {(c.offer.price_sdg || c.offer.price_usd) && (
+              <p className="mt-1 text-sm">
+                {c.offer.price_sdg && <span dir="ltr">{money(c.offer.price_sdg)} {t("جنيه", "SDG")}</span>}
+                {c.offer.price_sdg && c.offer.price_usd && " · "}
+                {c.offer.price_usd && <span dir="ltr">${money(c.offer.price_usd, 2)}</span>}
+              </p>
+            )}
+            {c.offer.notes && <p className="mt-1 text-sm text-muted" dir="auto">{c.offer.notes}</p>}
+          </li>
+        )}
         {c.request && (
           <li className={`${card} border-primary/30`}>
             <p className="text-xs font-bold text-muted">

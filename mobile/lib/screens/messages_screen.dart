@@ -60,7 +60,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
                 Text(
-                  'كلّ محادثةٍ مربوطةٌ بطلب شراكةٍ أو بعقده، أو بإدارة سوداقري. '
+                  'كلّ محادثةٍ مربوطةٌ بطلب شراكةٍ أو بعقده، أو بعرضٍ في السوق، أو بإدارة سوداقري. '
                   'وتقرأ الإدارة المحادثات، ولا يُحذف منها شيء.',
                   style: TextStyle(color: mutedOn(context), height: 1.7, fontSize: 13),
                 ),
@@ -76,7 +76,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 24),
                     child: Text(
-                      'لا محادثات بعد. تبدأ المحادثة من طلب الشراكة في الموقع.',
+                      'لا محادثات بعد. تبدأ المحادثة من طلب الشراكة، أو من «راسل صاحب العرض» في عروض السوق على الموقع.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: mutedOn(context)),
                     ),
@@ -84,7 +84,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 for (final r in rows)
                   Card(
                     child: ListTile(
-                      leading: Text(r.kind == 'support' ? '🏛️' : '🤝', style: const TextStyle(fontSize: 22)),
+                      leading: Text(
+                          switch (r.kind) { 'support' => '🏛️', 'market' => '🌾', _ => '🤝' },
+                          style: const TextStyle(fontSize: 22)),
                       title: Text(r.title,
                           style: TextStyle(fontWeight: r.unread > 0 ? FontWeight.w800 : FontWeight.w600)),
                       subtitle: Text(
@@ -217,7 +219,8 @@ class _Thread extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('طلب الشراكة', style: TextStyle(fontSize: 12, color: mutedOn(context), fontWeight: FontWeight.w700)),
+                        Text(v.kind == 'market' ? 'العرض في السوق' : 'طلب الشراكة',
+                            style: TextStyle(fontSize: 12, color: mutedOn(context), fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Text(v.request!),
                       ]),

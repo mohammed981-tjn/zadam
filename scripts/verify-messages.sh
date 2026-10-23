@@ -5,7 +5,8 @@
 #
 #   ./scripts/verify-messages.sh
 #
-# Backlog 137, phase 1 (docs/studies/messaging-ar.md). Every read and write is
+# Backlog 137 and 144 (docs/studies/messaging-ar.md): partnership threads,
+# «راسل سوداقري», and the market board's threads. Every read and write is
 # a security-definer function that checks auth.uid(); only a real Postgres
 # shows that a stranger is refused and a party is not.
 
@@ -30,6 +31,7 @@ AGREEMENTS="$(pg_stage "$ROOT/supabase/migrations/20261021230000_partnership_agr
 TRUST="$(pg_stage "$ROOT/supabase/migrations/20261023010000_partnership_trust.sql" trust.sql)"
 MANAGED="$(pg_stage "$ROOT/supabase/migrations/20261023020000_partnership_managed.sql" managed.sql)"
 ENTRY="$(pg_stage "$ROOT/supabase/migrations/20261023030000_entry_and_land_facts.sql" entry.sql)"
+OFFERS="$(pg_stage "$ROOT/supabase/migrations/20261012120000_market_offers.sql" offers.sql)"
 MESSAGES="$(pg_stage "$ROOT/supabase/migrations/20261023040000_messages.sql" messages.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-messages.sql" checks.sql)"
 
@@ -59,6 +61,7 @@ echo "── العقد";             pg_run "$AGREEMENTS" >/dev/null
 echo "── ما ينقص الشراكة";   pg_run "$TRUST" >/dev/null
 echo "── الشراكة الثلاثيّة";  pg_run "$MANAGED" >/dev/null
 echo "── الدفعة صفر";        pg_run "$ENTRY" >/dev/null
+echo "── عروض السوق";        pg_run "$OFFERS" >/dev/null
 echo "── الرسائل";           pg_run "$MESSAGES" >/dev/null
 
 echo "── الحرّاس"

@@ -1,14 +1,15 @@
 /**
- * صندوق الرسائل (البند ١٣٧): the shapes the database functions return
+ * صندوق الرسائل (البندان ١٣٧ و١٤٤): the shapes the database functions return
  * (supabase/migrations/20261023040000_messages.sql) and the words around them.
  */
 
-export type ConversationRole = "investor" | "owner" | "manager" | "member" | "admin";
-export type SenderRole = "investor" | "owner" | "manager" | "member" | "platform";
+export type ConversationKind = "partnership" | "support" | "market";
+export type ConversationRole = "investor" | "owner" | "manager" | "member" | "buyer" | "seller" | "admin";
+export type SenderRole = "investor" | "owner" | "manager" | "member" | "buyer" | "seller" | "platform";
 
 export interface ConversationRow {
   id: string;
-  kind: "partnership" | "support";
+  kind: ConversationKind;
   my_role: ConversationRole;
   title: string;
   last_message_at: string | null;
@@ -30,19 +31,37 @@ export interface ConversationMessage {
 }
 
 export interface ConversationParty {
-  role: "investor" | "owner" | "manager" | "member";
+  role: "investor" | "owner" | "manager" | "member" | "buyer" | "seller";
   name: string;
   phone: string | null;
 }
 
+/** The market board's offer a market thread is about (market_offers). */
+export interface ConversationOffer {
+  id: string;
+  kind: "sell" | "buy";
+  crop: string;
+  quantity: number;
+  unit: string;
+  grade: string | null;
+  state: string;
+  locality: string;
+  price_sdg: number | null;
+  price_usd: number | null;
+  notes: string | null;
+  status: "open" | "ended";
+  created_at: string;
+}
+
 export interface ConversationView {
   id: string;
-  kind: "partnership" | "support";
+  kind: ConversationKind;
   me: ConversationRole;
   title: string;
   status: "pending" | "accepted" | "declined" | "withdrawn" | null;
   request: { message: string; model: string; created_at: string } | null;
   agreement_id: string | null;
+  offer: ConversationOffer | null;
   open: boolean;
   reported: boolean;
   needs_reply: boolean;
@@ -60,6 +79,8 @@ export const SENDER_LABEL: Record<SenderRole, { ar: string; en: string }> = {
   owner: { ar: "صاحب الأرض", en: "Landowner" },
   manager: { ar: "الشركة المديرة", en: "Managing company" },
   member: { ar: "العضو", en: "Member" },
+  buyer: { ar: "المشتري", en: "Buyer" },
+  seller: { ar: "البائع", en: "Seller" },
   platform: { ar: "سوداقري", en: "Sudagri" },
 };
 
@@ -68,7 +89,12 @@ export const PARTY_LABEL: Record<ConversationParty["role"], { ar: string; en: st
   owner: { ar: "صاحب الأرض", en: "Landowner" },
   manager: { ar: "صاحب الشركة المديرة", en: "Owner of the managing company" },
   member: { ar: "العضو", en: "Member" },
+  buyer: { ar: "المشتري", en: "Buyer" },
+  seller: { ar: "البائع", en: "Seller" },
 };
+
+/** The icon each kind of thread carries in the lists. */
+export const KIND_ICON: Record<ConversationKind, string> = { partnership: "🤝", support: "🏛️", market: "🌾" };
 
 /** The owner's choice, 23 October: the administration reads every conversation. */
 export const READ_NOTICE = {

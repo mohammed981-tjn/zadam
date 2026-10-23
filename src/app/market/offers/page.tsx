@@ -17,6 +17,8 @@ import { createClient } from "@/lib/supabase/server";
 import OfferNotice from "@/components/market/OfferNotice";
 import { closeOffer } from "./actions";
 import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
+import { openMarketConversation } from "@/app/messages/actions";
+import { loginTo } from "@/lib/authEntry";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -78,6 +80,8 @@ export default async function OffersPage({
         ).data ?? []) as MarketOffer[])
       : [];
 
+  // The visitor's columns leave out who posted an offer; one's own are known from «عروضي».
+  const mineIds = new Set(mine.map((o) => o.id));
   const day = (iso: string) =>
     new Date(iso).toLocaleDateString(en ? "en-GB" : "ar-SD-u-nu-latn", { day: "numeric", month: "short" });
   const field = "rounded-lg border border-border bg-background px-3 py-2 text-sm";
@@ -178,6 +182,20 @@ export default async function OffersPage({
                       {t("واتساب", "WhatsApp")}
                     </a>
                   )}
+                  {/* البند ١٤٤: المصدّر والتاجر يراسلان صاحب العرض في المنصّة، والإدارة تتابع. */}
+                  {!mineIds.has(o.id) &&
+                    (user ? (
+                      <form action={openMarketConversation}>
+                        <input type="hidden" name="offer_id" value={o.id} />
+                        <button className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 font-bold text-primary hover:bg-primary/15">
+                          {t("💬 راسل صاحب العرض", "💬 Message the poster")}
+                        </button>
+                      </form>
+                    ) : (
+                      <Link href={loginTo("/market/offers")} className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 font-bold text-primary">
+                        {t("💬 راسل صاحب العرض", "💬 Message the poster")}
+                      </Link>
+                    ))}
                   <span className="text-xs text-muted">
                     {t("نُشر", "Posted")} {day(o.created_at)} · {t("ينتهي", "Expires")} {day(o.expires_at)}
                   </span>

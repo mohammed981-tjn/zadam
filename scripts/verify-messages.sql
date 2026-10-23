@@ -348,6 +348,91 @@ do $$ begin
 end $$;
 
 \echo ''
+\echo 'ح) السوق: المصدّر يراسل المزارع على عرضه'
+
+-- م (صاحب الأرض) يعرض سمسماً للبيع؛ س تسأل عنه بصفتها مصدّرة.
+delete from notifications;
+set role authenticated;
+do $$ begin
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  insert into _ids values ('offer', market_offer_create('sell', 'سمسم أبيض', 120, 'qintar', 'نظيف ٩٨٪',
+    'القضارف', 'القلابات', 52000, null, '249911111111', true, null, 30));
+  perform _refuses($q$select conversation_for_market(_id('offer'))$q$, 'صاحب العرض لا يفتح محادثةً مع نفسه');
+
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  insert into _ids values ('market', conversation_for_market(_id('offer')));
+  perform _eq(conversation_for_market(_id('offer')), _id('market'), 'محادثةٌ واحدة لكلّ عرضٍ وسائل');
+  perform _eq(conversation_role(_id('market')), 'buyer', 'السائل عن عرض بيعٍ مشترٍ');
+  perform conversation_send(_id('market'), 'أنا مصدّرة. أريد الكمّية كلّها للتصدير إلى السعوديّة، ورقمي 0500 000 000.');
+  perform _pass('والرقم مسموحٌ في السوق، فرقم العرض منشورٌ أصلاً');
+  perform _eq((select title from my_conversations() where id = _id('market')), 'عرض بيع سمسم أبيض في القضارف',
+    'وعنوانها عند المصدّرة العرضُ نفسه');
+  perform _eq((conversation_view(_id('market'))->'offer'->>'crop'), 'سمسم أبيض', 'والعرض في رأس المحادثة');
+
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _refuses($q$select conversation_view(_id('market'))$q$, 'والغريب لا يقرؤها');
+
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _eq(conversation_role(_id('market')), 'seller', 'وصاحب العرض بائع');
+  perform _eq((select title ~ 'سلمى' and title ~ 'سمسم' from my_conversations() where id = _id('market')), true,
+    'ويرى من سأل وعن أيّ عرض');
+  perform _eq((select unread from my_conversations() where id = _id('market')), 1, 'ورسالتها عنده غير مقروءة');
+  perform conversation_send(_id('market'), 'الكمّية جاهزة في القلابات، والمعاينة متى شئتِ.');
+end $$;
+reset role;
+
+do $$ begin
+  perform _eq((select count(*)::int from notifications
+                where recipient_id = 'a1000000-0000-0000-0000-0000000000a1' and kind = 'message'
+                  and title = 'رسالةٌ عن عرض «سمسم أبيض» في السوق'), 1,
+    'ويصل صاحبَ العرض إشعارٌ باسم المحصول');
+  perform _eq((select count(*)::int from notifications
+                where recipient_id = 'b2000000-0000-0000-0000-0000000000b2' and kind = 'message'
+                  and link = '/messages/' || _id('market')), 1,
+    'وردُّه يصل المصدّرة');
+end $$;
+
+set role authenticated;
+do $$ begin
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  perform _eq(conversation_role(_id('market')), 'admin', 'والمدير يتابعها');
+  perform _eq((select count(*)::int from jsonb_array_elements(conversation_view(_id('market'))->'parties') e
+                where (e->>'role', e->>'name') in (('buyer','سلمى أحمد علي'), ('seller','الحاج عثمان محمد'))), 2,
+    'ويرى البائع والمشترية بأسمائهما');
+  perform _eq((select title ~ '^السوق' from my_conversations() where id = _id('market')), true, 'وفي قائمته «السوق»');
+
+  -- طلبُ شراء: من يردّ عليه بائع.
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  insert into _ids values ('wish', market_offer_create('buy', 'كركدي', 40, 'sack', null,
+    'شمال كردفان', 'الأبيّض', null, 900, '966500000000', true, 'للتصدير', 30));
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  insert into _ids values ('market2', conversation_for_market(_id('wish')));
+  perform _eq(conversation_role(_id('market2')), 'seller', 'ومن يردّ على طلب شراءٍ بائع');
+end $$;
+reset role;
+
+-- عرضٌ انتهى منذ أربعين يوماً: لا محادثة جديدة، ولا رسائل في القديمة.
+update market_offers set status = 'closed', closed_at = now() - interval '40 days', expires_at = now() - interval '35 days'
+ where id = (select id from _ids where k = 'offer');
+set role authenticated;
+do $$ begin
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  perform _refuses($q$select conversation_send(_id('market'), 'هل ما زالت الكمّية؟')$q$,
+    'بعد ثلاثين يوماً من انتهاء العرض لا رسائل جديدة');
+  perform _eq((select open from my_conversations() where id = _id('market')), false, 'والقائمة تقول إنّها مغلقة');
+  perform _eq((select jsonb_array_length(conversation_view(_id('market'))->'messages')), 2, 'وما كُتب فيها باقٍ');
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _refuses($q$select conversation_for_market(_id('offer'))$q$, 'ولا تُفتح محادثةٌ على عرضٍ انتهى');
+end $$;
+reset role;
+
+do $$ begin
+  perform _eq(has_function_privilege('anon', 'public.conversation_for_market(uuid)', 'execute'), false, 'والزائر لا يفتح محادثة سوق');
+  perform _eq(has_function_privilege('authenticated', 'public.market_conversation_open(uuid)', 'execute'), false,
+    'ودالّة «مفتوحة؟» داخليّة');
+end $$;
+
+\echo ''
 \echo '=========================================================================='
 
 do $$
@@ -355,5 +440,5 @@ declare f integer;
 begin
   select fails into f from _score;
   if f > 0 then raise exception 'فشل % فحصاً.', f; end if;
-  raise notice 'ALL CHECKS PASSED — المحادثة لأطرافها والإدارة، ولا رقم قبل القبول، ولا يُحذف شيء';
+  raise notice 'ALL CHECKS PASSED — المحادثة لأطرافها والإدارة، ولا رقم قبل القبول، والسوق لأطراف العرض، ولا يُحذف شيء';
 end $$;

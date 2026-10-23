@@ -6,7 +6,7 @@ import { explain, signedIn, str, translator } from "@/lib/supplyActions";
 import { evidenceFileExists } from "@/lib/evidenceFile";
 
 /*
- * صندوق الرسائل (البند ١٣٧). Every step is a database function that checks
+ * صندوق الرسائل (البندان ١٣٧ و١٤٤). Every step is a database function that checks
  * the caller's place in the conversation (supabase/migrations/
  * 20261023040000_messages.sql); these only carry the form there and back.
  */
@@ -36,6 +36,18 @@ export async function openPartnershipConversation(fd: FormData) {
 
   const { data, error } = await supabase.rpc("conversation_for_interest", { p_interest: interest });
   if (error || !data) backTo(from, "error", explain(locale, error));
+  redirect(`/messages/${data}`);
+}
+
+/**
+ * «راسل صاحب العرض» on the market board: the asker's one conversation with
+ * whoever posted the offer (البند ١٤٤ — «المصدّرون يراسلون المزارع»).
+ */
+export async function openMarketConversation(fd: FormData) {
+  const { supabase } = await signedIn();
+  const { locale } = await translator();
+  const { data, error } = await supabase.rpc("conversation_for_market", { p_offer: str(fd, "offer_id") });
+  if (error || !data) backTo("/market/offers", "error", explain(locale, error));
   redirect(`/messages/${data}`);
 }
 

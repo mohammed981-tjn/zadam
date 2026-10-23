@@ -101,4 +101,21 @@ void main() {
       throwsA(isA<ApiException>().having((e) => e.message, 'message', contains('قبل أن يقبل'))),
     );
   });
+
+  test('a market thread shows the offer it is about, and the buyer and seller by part', () {
+    final v = ConversationView.fromJson({
+      'id': 'm1',
+      'kind': 'market',
+      'me': 'buyer',
+      'title': 'عرض بيع سمسم أبيض في القضارف',
+      'open': true,
+      'offer': {'kind': 'sell', 'crop': 'سمسم أبيض', 'quantity': 120, 'unit': 'qintar', 'state': 'القضارف', 'locality': 'القلابات'},
+      'messages': [
+        {'id': 'x1', 'role': 'seller', 'mine': false, 'body': 'الكمّية جاهزة', 'created_at': '2026-10-23T12:00:00Z'},
+      ],
+    });
+    expect(v.request, 'عرض بيع: سمسم أبيض · 120 قنطار — القضارف، القلابات');
+    expect(v.pending, isFalse);
+    expect(senderLabels[v.messages.single.role], 'البائع');
+  });
 }

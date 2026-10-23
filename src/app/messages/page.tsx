@@ -8,7 +8,7 @@ import { timeAgo } from "@/lib/timeAgo";
 import PageHeader from "@/components/PageHeader";
 import ActionNotice from "@/components/ActionNotice";
 import { button, card } from "@/lib/ui";
-import { READ_NOTICE, type ConversationRow } from "@/lib/messages";
+import { KIND_ICON, READ_NOTICE, type ConversationRow } from "@/lib/messages";
 import { openSupportConversation } from "./actions";
 
 export async function generateMetadata() {
@@ -17,8 +17,8 @@ export async function generateMetadata() {
 }
 
 /**
- * صندوق الرسائل (البند ١٣٧): every conversation the reader is part of — one per
- * partnership request, and «راسل سوداقري». An administrator sees every thread
+ * صندوق الرسائل (البندان ١٣٧ و١٤٤): every conversation the reader is part of —
+ * one per partnership request, one per market offer and asker, and «راسل سوداقري». An administrator sees every thread
  * that has a message in it, reported ones first (the owner's choice, 23
  * October).
  */
@@ -46,8 +46,8 @@ export default async function MessagesPage({
     <div className="mx-auto max-w-3xl px-4 py-8">
       <PageHeader icon="message" eyebrow={t("الرسائل", "Messages")} title={t("رسائلك", "Your messages")}>
         {t(
-          "كلّ محادثةٍ هنا مربوطةٌ بطلب شراكةٍ أو بعقده، أو بإدارة سوداقري. ",
-          "Every conversation here is tied to a partnership request or its agreement, or to Sudagri's administration. ",
+          "كلّ محادثةٍ هنا مربوطةٌ بطلب شراكةٍ أو بعقده، أو بعرضٍ في السوق، أو بإدارة سوداقري. ",
+          "Every conversation here is tied to a partnership request or its agreement, to an offer on the market, or to Sudagri's administration. ",
         )}
         {t(READ_NOTICE.ar, READ_NOTICE.en)}
       </PageHeader>
@@ -63,8 +63,8 @@ export default async function MessagesPage({
       {rows.length === 0 ? (
         <p className={`${card} text-sm text-muted`}>
           {t(
-            "لا محادثات بعد. تبدأ المحادثة من طلب الشراكة: في «أراضيّ» إن كنتَ صاحب أرض، وفي «طلباتي» إن كنتَ مستثمراً.",
-            "No conversations yet. A conversation starts from a partnership request: in «My land» if you own land, in «My requests» if you invest.",
+            "لا محادثات بعد. تبدأ المحادثة من طلب الشراكة: في «أراضيّ» إن كنتَ صاحب أرض، وفي «طلباتي» إن كنتَ مستثمراً؛ أو من «راسل صاحب العرض» في عروض البيع والشراء.",
+            "No conversations yet. A conversation starts from a partnership request: in «My land» if you own land, in «My requests» if you invest; or from «Message the poster» on the buy and sell offers.",
           )}
         </p>
       ) : (
@@ -76,7 +76,7 @@ export default async function MessagesPage({
                 className={`${card} flex items-start gap-3 transition hover:border-rose ${r.unread > 0 ? "border-primary/40" : ""}`}
               >
                 <span aria-hidden="true" className="text-xl leading-none">
-                  {r.kind === "support" ? "🏛️" : "🤝"}
+                  {KIND_ICON[r.kind]}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-baseline justify-between gap-2">

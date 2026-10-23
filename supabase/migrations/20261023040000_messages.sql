@@ -44,7 +44,15 @@
 --   reported threads in the review list (a read-only policy for admins on
 --   conversations), the parties' names inside every thread, and closing a
 --   report once it has been looked at, which tells the reporter;
--- - the unread count beside the bell.
+-- - the unread count beside the bell;
+-- - and a third kind, market: «وأيضاً المصدّرون يراسلون المنصّة والمزارع»
+--   (the owner, 22 October). An exporter or trader writes to whoever posted a
+--   crop for sale — or a wish to buy — on the market board (market_offers),
+--   one thread per offer and asker, and the administration follows it as it
+--   follows the rest. The offer's phone number is public already, so a number
+--   in the thread is not refused here; the thread keeps the record. It opens
+--   only on an offer that is open, and takes new messages for thirty days
+--   after the offer ends, long enough to finish a deal begun on it.
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- ١) الجداول
@@ -52,21 +60,27 @@
 
 create table if not exists public.conversations (
   id              uuid primary key default gen_random_uuid(),
-  kind            text not null check (kind in ('partnership','support')),
+  kind            text not null check (kind in ('partnership','support','market')),
   interest_id     uuid unique references public.investor_interests(id) on delete restrict,
+  -- support: the member writing to the administration; market: whoever asked
+  -- about the offer.
   member_id       uuid references auth.users(id) on delete cascade,
+  market_offer_id uuid references public.market_offers(id) on delete restrict,
   created_at      timestamptz not null default now(),
   last_message_at timestamptz,
   reported_at     timestamptz,
   -- A support thread whose last word is the member's: waiting for the administration.
   needs_reply     boolean not null default false,
   constraint conversations_subject_check check (
-    (kind = 'partnership' and interest_id is not null and member_id is null)
-    or (kind = 'support' and member_id is not null and interest_id is null))
+    (kind = 'partnership' and interest_id is not null and member_id is null and market_offer_id is null)
+    or (kind = 'support' and member_id is not null and interest_id is null and market_offer_id is null)
+    or (kind = 'market' and market_offer_id is not null and member_id is not null and interest_id is null))
 );
 
 create unique index if not exists conversations_one_support
   on public.conversations (member_id) where kind = 'support';
+create unique index if not exists conversations_one_market
+  on public.conversations (market_offer_id, member_id) where kind = 'market';
 create index if not exists conversations_last_idx
   on public.conversations (last_message_at desc nulls last);
 
@@ -74,7 +88,7 @@ create table if not exists public.conversation_messages (
   id              uuid primary key default gen_random_uuid(),
   conversation_id uuid not null references public.conversations(id) on delete restrict,
   sender_id       uuid references auth.users(id) on delete set null,
-  sender_role     text not null check (sender_role in ('owner','investor','manager','member','platform')),
+  sender_role     text not null check (sender_role in ('owner','investor','manager','member','buyer','seller','platform')),
   body            text not null default '' check (length(body) <= 2000),
   -- In the sender's own folder of the evidence bucket: <sender id>/messages/<file>.
   attachment_path text check (attachment_path is null
@@ -142,8 +156,11 @@ alter table public.notifications add constraint notifications_kind_check
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- The caller's place in a conversation: 'investor', 'owner', 'manager' or
--- 'member' for a party, 'admin' for an administrator who is not a party, null
--- for anyone else. A party who is also an administrator answers as the party.
+-- 'member' for a party, 'buyer' or 'seller' on a market offer (the one who
+-- posted a sale is the seller, and whoever asks about it the buyer; the other
+-- way round for a wish to buy), 'admin' for an administrator who is not a
+-- party, null for anyone else. A party who is also an administrator answers as
+-- the party.
 create or replace function public.conversation_role(p_conv uuid)
 returns text
 language sql
@@ -156,9 +173,12 @@ as $$
            when c.kind = 'partnership' and i.investor_id = auth.uid() then 'investor'
            when c.kind = 'partnership' and l.owner_id = auth.uid() then 'owner'
            when c.kind = 'partnership' and pc.owner_id = auth.uid() then 'manager'
+           when c.kind = 'market' and c.member_id = auth.uid() then case mo.kind when 'sell' then 'buyer' else 'seller' end
+           when c.kind = 'market' and mo.created_by = auth.uid() then case mo.kind when 'sell' then 'seller' else 'buyer' end
            when is_admin() then 'admin'
          end
     from conversations c
+    left join market_offers mo on mo.id = c.market_offer_id
     left join investor_interests i on i.id = c.interest_id
     left join lands l on l.id = i.land_id
     left join partnership_agreements a on a.interest_id = i.id
@@ -176,7 +196,9 @@ security definer
 set search_path = public
 as $$
   select distinct x from (
-    select c.member_id as x from conversations c where c.id = p_conv and c.kind = 'support'
+    select c.member_id as x from conversations c where c.id = p_conv and c.kind in ('support','market')
+    union all
+    select mo.created_by from conversations c join market_offers mo on mo.id = c.market_offer_id where c.id = p_conv
     union all
     select i.investor_id from conversations c join investor_interests i on i.id = c.interest_id where c.id = p_conv
     union all
@@ -248,6 +270,62 @@ begin
 end;
 $$;
 
+-- Whether a market thread still takes messages: while its offer is open, and
+-- for thirty days after it closes or expires.
+create or replace function public.market_conversation_open(p_offer uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((
+    select case when o.status = 'closed' then least(coalesce(o.closed_at, o.expires_at), o.expires_at)
+                else o.expires_at end > now() - interval '30 days'
+      from market_offers o where o.id = p_offer), false);
+$$;
+
+-- «راسل صاحب العرض»: from the market board, one thread per offer and asker.
+-- The offer must be open; the one who posted it does not open a thread with
+-- himself; and twenty new threads a day is a busy trader — more is a flood.
+create or replace function public.conversation_for_market(p_offer uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+  v_offer market_offers;
+begin
+  if auth.uid() is null then raise exception 'سجّل الدخول أولاً.'; end if;
+  select id into v_id from conversations
+   where kind = 'market' and market_offer_id = p_offer and member_id = auth.uid();
+  if v_id is not null then return v_id; end if;
+
+  select * into v_offer from market_offers where id = p_offer;
+  if v_offer.id is null or v_offer.status <> 'open' or v_offer.expires_at <= now() then
+    raise exception 'هذا العرض لم يعد مفتوحاً.';
+  end if;
+  if v_offer.created_by = auth.uid() then
+    raise exception 'هذا عرضك؛ تصلك فيه رسائل من يسألون عنه.';
+  end if;
+  if (select count(*) from conversations
+       where kind = 'market' and member_id = auth.uid() and created_at > now() - interval '1 day') >= 20 then
+    raise exception 'فتحتَ عشرين محادثةً في السوق اليوم. عُد غداً.';
+  end if;
+
+  insert into conversations (kind, market_offer_id, member_id) values ('market', p_offer, auth.uid())
+  on conflict do nothing
+  returning id into v_id;
+  if v_id is null then
+    select id into v_id from conversations
+     where kind = 'market' and market_offer_id = p_offer and member_id = auth.uid();
+  end if;
+  return v_id;
+end;
+$$;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- ٤) الإرسال
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -285,6 +363,10 @@ begin
 
   select * into v_conv from conversations where id = p_conv for update;
 
+  if v_conv.kind = 'market' and not market_conversation_open(v_conv.market_offer_id) then
+    raise exception 'انتهى هذا العرض منذ أكثر من ثلاثين يوماً، فلا رسائل جديدة فيه. ما كُتب يبقى محفوظاً.';
+  end if;
+
   if v_conv.kind = 'partnership' then
     select status into v_status from investor_interests where id = v_conv.interest_id;
     if v_status in ('declined','withdrawn')
@@ -321,7 +403,9 @@ begin
                     where n.recipient_id = v_party and n.kind = 'message'
                       and n.link = v_link and n.read_at is null) then
       perform notify_user(v_party, 'message',
-        case v_conv.kind when 'support' then 'ردّت عليك إدارة سوداقري' else 'رسالةٌ جديدة في طلب الشراكة' end,
+        case v_conv.kind when 'support' then 'ردّت عليك إدارة سوداقري'
+                         when 'market' then 'رسالةٌ عن عرض «' || (select crop from market_offers where id = v_conv.market_offer_id) || '» في السوق'
+                         else 'رسالةٌ جديدة في طلب الشراكة' end,
         coalesce(nullif(left(v_body, 140), ''), case p_attachment_kind when 'photo' then 'صورة' else 'مستند' end), v_link);
     end if;
   end loop;
@@ -411,7 +495,7 @@ as $$
     from conversations c
    where auth.uid() is not null
      and c.last_message_at is not null
-     and conversation_role(c.id) in ('investor','owner','manager','member');
+     and conversation_role(c.id) in ('investor','owner','manager','member','buyer','seller');
 $$;
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -420,7 +504,8 @@ $$;
 
 -- The title each side sees. Before acceptance the investor does not learn the
 -- land's name or the owner's (investor_open_lands hides both); the owner sees
--- the investor's name, as on /lands.
+-- the investor's name, as on /lands. On the market, the asker sees the offer,
+-- and the one who posted it sees who asked.
 create or replace function public.conversation_title(p_conv uuid, p_role text)
 returns text
 language sql
@@ -431,6 +516,12 @@ as $$
   select case
            when c.kind = 'support' and p_role = 'member' then 'إدارة سوداقري'
            when c.kind = 'support' then 'رسالة من ' || coalesce(nullif(pm.full_name, ''), 'عضو')
+           when c.kind = 'market' and c.member_id = auth.uid() then
+             (case mo.kind when 'sell' then 'عرض بيع ' else 'طلب شراء ' end) || mo.crop || ' في ' || mo.state
+           when c.kind = 'market' and mo.created_by = auth.uid() then
+             'سؤال ' || coalesce(nullif(pm.full_name, ''), 'تاجر') || ' عن عرضك: ' || mo.crop
+           when c.kind = 'market' then
+             'السوق: ' || mo.crop || ' — ' || coalesce(nullif(pm.full_name, ''), 'عضو')
            when p_role = 'investor' and i.status = 'pending' then 'طلب شراكة على أرضٍ في ' || coalesce(l.state, 'السودان')
            when p_role = 'investor' then 'شراكة في «' || coalesce(l.name, 'الأرض') || '»'
            when p_role = 'owner' then 'طلب ' || coalesce(nullif(pi.full_name, ''), 'مستثمر') || ' على «' || coalesce(l.name, 'أرضك') || '»'
@@ -438,6 +529,7 @@ as $$
          end
     from conversations c
     left join profiles pm on pm.id = c.member_id
+    left join market_offers mo on mo.id = c.market_offer_id
     left join investor_interests i on i.id = c.interest_id
     left join lands l on l.id = i.land_id
     left join profiles pi on pi.id = i.investor_id
@@ -470,6 +562,7 @@ as $$
                                            where rd.conversation_id = m.id and rd.user_id = auth.uid()),
                                          '-infinity'::timestamptz)),
          case when m.kind = 'support' then true
+              when m.kind = 'market' then market_conversation_open(m.market_offer_id)
               else exists (select 1 from investor_interests i where i.id = m.interest_id and i.status in ('pending','accepted'))
                    or exists (select 1 from partnership_agreements a where a.interest_id = m.interest_id) end,
          m.reported_at is not null,
@@ -496,9 +589,13 @@ declare
   v_conv conversations;
   v_interest investor_interests;
   v_agreement uuid;
+  v_offer market_offers;
 begin
   if v_role is null then raise exception 'لستَ طرفاً في هذه المحادثة.'; end if;
   select * into v_conv from conversations where id = p_conv;
+  if v_conv.market_offer_id is not null then
+    select * into v_offer from market_offers where id = v_conv.market_offer_id;
+  end if;
   if v_conv.interest_id is not null then
     select * into v_interest from investor_interests where id = v_conv.interest_id;
     select id into v_agreement from partnership_agreements where interest_id = v_conv.interest_id;
@@ -512,7 +609,15 @@ begin
     'request', case when v_interest.id is not null then jsonb_build_object(
                  'message', v_interest.message, 'model', v_interest.model, 'created_at', v_interest.created_at) end,
     'agreement_id', v_agreement,
+    -- The market offer the thread is about, as the board shows it.
+    'offer', case when v_offer.id is not null then jsonb_build_object(
+               'id', v_offer.id, 'kind', v_offer.kind, 'crop', v_offer.crop, 'quantity', v_offer.quantity,
+               'unit', v_offer.unit, 'grade', v_offer.grade, 'state', v_offer.state, 'locality', v_offer.locality,
+               'price_sdg', v_offer.price_sdg, 'price_usd', v_offer.price_usd, 'notes', v_offer.notes,
+               'status', case when v_offer.status = 'open' and v_offer.expires_at > now() then 'open' else 'ended' end,
+               'created_at', v_offer.created_at) end,
     'open', case when v_conv.kind = 'support' then true
+                 when v_conv.kind = 'market' then market_conversation_open(v_conv.market_offer_id)
                  else v_interest.status in ('pending','accepted') or v_agreement is not null end,
     'reported', v_conv.reported_at is not null,
     'needs_reply', v_conv.needs_reply,
@@ -527,6 +632,10 @@ begin
     'parties', case when v_role = 'admin' then (
                  select jsonb_agg(jsonb_build_object('role', x.role, 'name', coalesce(nullif(p.full_name, ''), '—'), 'phone', p.phone))
                    from (select 'member' as role, v_conv.member_id as uid where v_conv.kind = 'support'
+                         union all select case v_offer.kind when 'sell' then 'buyer' else 'seller' end, v_conv.member_id
+                                    where v_conv.kind = 'market'
+                         union all select case v_offer.kind when 'sell' then 'seller' else 'buyer' end, v_offer.created_by
+                                    where v_conv.kind = 'market'
                          union all select 'investor', v_interest.investor_id where v_interest.id is not null
                          union all select 'owner', (select owner_id from lands where id = v_interest.land_id) where v_interest.id is not null
                          union all select 'manager', (select pc.owner_id from partnership_agreements a
@@ -606,6 +715,8 @@ revoke execute on function public.conversation_role(uuid) from public, anon;
 revoke execute on function public.conversation_others(uuid) from public, anon, authenticated;
 revoke execute on function public.conversation_for_interest(uuid) from public, anon;
 revoke execute on function public.conversation_for_support() from public, anon;
+revoke execute on function public.conversation_for_market(uuid) from public, anon;
+revoke execute on function public.market_conversation_open(uuid) from public, anon, authenticated;
 revoke execute on function public.conversation_send(uuid, text, text, text) from public, anon;
 revoke execute on function public.conversation_resolve_report(uuid) from public, anon;
 revoke execute on function public.my_unread_message_count() from public, anon;
@@ -618,6 +729,7 @@ revoke execute on function public.conversation_view(uuid) from public, anon;
 grant execute on function public.conversation_role(uuid) to authenticated;
 grant execute on function public.conversation_for_interest(uuid) to authenticated;
 grant execute on function public.conversation_for_support() to authenticated;
+grant execute on function public.conversation_for_market(uuid) to authenticated;
 grant execute on function public.conversation_send(uuid, text, text, text) to authenticated;
 grant execute on function public.conversation_resolve_report(uuid) to authenticated;
 grant execute on function public.my_unread_message_count() to authenticated;

@@ -296,8 +296,27 @@ const senderLabels = <String, String>{
   'owner': 'صاحب الأرض',
   'manager': 'الشركة المديرة',
   'member': 'العضو',
+  'buyer': 'المشتري',
+  'seller': 'البائع',
   'platform': 'سوداقري',
 };
+
+const _offerUnits = <String, String>{
+  'qintar': 'قنطار',
+  'ardeb': 'أردب',
+  'sack': 'جوال',
+  'ton': 'طن',
+  'kg': 'كيلوغرام',
+};
+
+/// The market offer a market thread is about, in one line, as the board shows it.
+String? offerLine(Map? o) {
+  if (o == null) return null;
+  final q = o['quantity'];
+  final qty = q is num ? (q == q.roundToDouble() ? q.toInt().toString() : q.toString()) : '$q';
+  return '${o['kind'] == 'sell' ? 'عرض بيع' : 'طلب شراء'}: ${o['crop']} · $qty ${_offerUnits[o['unit']] ?? o['unit']}'
+      ' — ${o['state']}، ${o['locality']}';
+}
 
 class ConversationMessage {
   const ConversationMessage({
@@ -352,7 +371,8 @@ class ConversationView {
   final String title;
   final bool open;
   final String? status;
-  /// The investor's first message, from the partnership request itself.
+  /// The investor's first message, from the partnership request itself, or
+  /// the market offer a market thread is about.
   final String? request;
   final DateTime? othersReadAt;
   final List<ConversationMessage> messages;
@@ -376,7 +396,7 @@ class ConversationView {
       title: j['title'] as String? ?? '',
       open: j['open'] as bool? ?? true,
       status: j['status'] as String?,
-      request: (j['request'] as Map?)?['message'] as String?,
+      request: (j['request'] as Map?)?['message'] as String? ?? offerLine(j['offer'] as Map?),
       othersReadAt: DateTime.tryParse(j['others_read_at'] as String? ?? ''),
       messages: [
         for (final m in (j['messages'] as List? ?? const []))
