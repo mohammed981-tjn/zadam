@@ -7,7 +7,9 @@ name: Narration
 # files are committed back to the branch that asked for them, never to main.
 # HF_TOKEN, if the repository has one, raises the allowance. The lines spell the
 # name the way the voice says it right, «سوداكْري» — the owner chose it from six
-# spellings in tts/probe (4 October) — not as it is written.
+# spellings in tts/probe (4 October) — not as it is written. A line the owner
+# has corrected letter by letter (23 October: the shadda of «تُوَثِّقُ», the
+# silent qaf of «عَقْدٌ») is written with every vowel and "diac": false.
 on:
   push:
     branches: [claude/project-review-analysis-dt7lsy]
@@ -59,11 +61,14 @@ jobs:
           from gradio_client import Client
           tok = os.environ.get("HF_TOKEN") or None
           c = Client("NightPrince/Fasih-TTS", token=tok) if tok else Client("NightPrince/Fasih-TTS")
-          lines = {l["id"]: l["text"] for l in json.load(open("tts/lines.json", encoding="utf-8"))}
+          lines = {l["id"]: l for l in json.load(open("tts/lines.json", encoding="utf-8"))}
           for i in os.environ["IDS"].split(","):
               for attempt in range(2):
                   try:
-                      r = c.predict(text=lines[i], auto_diacritize=True, temperature=0.5, api_name="/predict")
+                      # A line written with every vowel says "diac": false, so the
+                      # Space speaks the marks as written instead of guessing its own.
+                      r = c.predict(text=lines[i]["text"], auto_diacritize=lines[i].get("diac", True),
+                                    temperature=0.5, api_name="/predict")
                       shutil.copy(r, f"out/{i}.wav"); print("spoke", i); break
                   except Exception as e:
                       print("failed", i, str(e)[:200]); time.sleep(20)
