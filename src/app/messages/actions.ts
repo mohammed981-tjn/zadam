@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { explain, signedIn, str, translator } from "@/lib/supplyActions";
+import { evidenceFileExists } from "@/lib/evidenceFile";
 
 /*
  * صندوق الرسائل (البند ١٣٧). Every step is a database function that checks
@@ -68,4 +69,44 @@ export async function reportConversation(fd: FormData) {
     "ok",
     t("وصل بلاغك إلى الإدارة، وستراجع المحادثة.", "Your report has reached the administration, which will review the conversation."),
   );
+}
+
+/**
+ * A photo or a document, once the upload widget has put it in the sender's own
+ * folder (evidence bucket, <user id>/messages/). The file must be there, and
+ * the database checks again that the path is the sender's.
+ */
+export async function attachToConversation(args: {
+  conversationId: string;
+  storagePath: string;
+  caption: string;
+  kind: string;
+}): Promise<{ ok: boolean; message?: string }> {
+  const { supabase, user } = await signedIn();
+  const { locale, t } = await translator();
+  if (!args.storagePath.startsWith(`${user.id}/messages/`)) {
+    return { ok: false, message: t("الملفّ في غير مكانه. ارفعه من جديد.", "The file is in the wrong place. Upload it again.") };
+  }
+  if (!(await evidenceFileExists(supabase, args.storagePath))) {
+    return { ok: false, message: t("لم نجد الملفّ المرفوع. ارفعه من جديد.", "We could not find the uploaded file. Upload it again.") };
+  }
+  const { error } = await supabase.rpc("conversation_send", {
+    p_conv: args.conversationId,
+    p_body: args.caption ?? "",
+    p_attachment_path: args.storagePath,
+    p_attachment_kind: args.kind === "photo" ? "photo" : "document",
+  });
+  if (error) return { ok: false, message: explain(locale, error) };
+  revalidatePath(`/messages/${args.conversationId}`);
+  return { ok: true };
+}
+
+/** The administration has looked at a reported thread: it leaves the review list. */
+export async function resolveReport(fd: FormData) {
+  const { supabase } = await signedIn();
+  const { locale, t } = await translator();
+  const id = str(fd, "conversation_id");
+  const { error } = await supabase.rpc("conversation_resolve_report", { p_conv: id });
+  if (error) backTo(`/messages/${id}`, "error", explain(locale, error));
+  backTo(`/messages/${id}`, "ok", t("أُغلق البلاغ، وأُبلغ صاحبه بأنّ الإدارة راجعته.", "The report is closed, and its author told it was reviewed."));
 }

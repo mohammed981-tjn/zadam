@@ -45,6 +45,12 @@ for (const path of ["/api/app/signin", "/api/app/signup", "/api/app/me", "/api/a
   check(existsSync(join(root, "src/app", path.slice(1), "route.ts")), `src/app${path}/route.ts exists`, "missing");
 }
 
+// صندوق الرسائل (البند ١٤٤): the list, and one conversation by its id.
+check(dart.includes("'/api/app/messages'"), "the app calls /api/app/messages", "not in mobile/lib/account.dart");
+check(existsSync(join(root, "src/app/api/app/messages/route.ts")), "src/app/api/app/messages/route.ts exists", "missing");
+check(dart.includes("'/api/app/messages/$id'"), "the app calls /api/app/messages/<id>", "not in mobile/lib/account.dart");
+check(existsSync(join(root, "src/app/api/app/messages/[id]/route.ts")), "src/app/api/app/messages/[id]/route.ts exists", "missing");
+
 console.log("");
 if (failed) {
   console.log(`${failed} FAILED`);

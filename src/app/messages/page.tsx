@@ -100,6 +100,9 @@ export default async function MessagesPage({
                     {r.reported && r.my_role === "admin" && (
                       <span className="rounded-full bg-danger/10 px-2 py-0.5 font-bold text-danger">{t("مبلَّغٌ عنها", "Reported")}</span>
                     )}
+                    {r.needs_reply && r.my_role === "admin" && (
+                      <span className="rounded-full bg-accent/10 px-2 py-0.5 font-bold text-accent">{t("تنتظر ردّك", "Awaiting your reply")}</span>
+                    )}
                   </span>
                 </span>
               </Link>

@@ -16,6 +16,7 @@ export interface ConversationRow {
   unread: number;
   open: boolean;
   reported: boolean;
+  needs_reply: boolean;
 }
 
 export interface ConversationMessage {
@@ -23,7 +24,15 @@ export interface ConversationMessage {
   role: SenderRole;
   mine: boolean;
   body: string;
+  attachment_path: string | null;
+  attachment_kind: "photo" | "document" | null;
   created_at: string;
+}
+
+export interface ConversationParty {
+  role: "investor" | "owner" | "manager" | "member";
+  name: string;
+  phone: string | null;
 }
 
 export interface ConversationView {
@@ -36,6 +45,11 @@ export interface ConversationView {
   agreement_id: string | null;
   open: boolean;
   reported: boolean;
+  needs_reply: boolean;
+  /** When someone on the other side last opened the thread — «قُرئت». */
+  others_read_at: string | null;
+  /** For the administration only: who is in the thread. */
+  parties: ConversationParty[] | null;
   reports: { reason: string; created_at: string }[] | null;
   messages: ConversationMessage[];
 }
@@ -47,6 +61,13 @@ export const SENDER_LABEL: Record<SenderRole, { ar: string; en: string }> = {
   manager: { ar: "الشركة المديرة", en: "Managing company" },
   member: { ar: "العضو", en: "Member" },
   platform: { ar: "سوداقري", en: "Sudagri" },
+};
+
+export const PARTY_LABEL: Record<ConversationParty["role"], { ar: string; en: string }> = {
+  investor: { ar: "المستثمر", en: "Investor" },
+  owner: { ar: "صاحب الأرض", en: "Landowner" },
+  manager: { ar: "صاحب الشركة المديرة", en: "Owner of the managing company" },
+  member: { ar: "العضو", en: "Member" },
 };
 
 /** The owner's choice, 23 October: the administration reads every conversation. */

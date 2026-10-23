@@ -248,6 +248,144 @@ class Account {
 }
 
 /// The signed-in session, kept on the phone; null when signed out.
+/// One line of «الرسائل»: what /api/app/messages returns per conversation.
+class ConversationRow {
+  const ConversationRow({
+    required this.id,
+    required this.kind,
+    required this.myRole,
+    required this.title,
+    required this.lastBody,
+    required this.unread,
+    required this.open,
+    required this.reported,
+    required this.needsReply,
+    this.lastAt,
+  });
+
+  final String id;
+  final String kind;
+  final String myRole;
+  final String title;
+  final String lastBody;
+  final int unread;
+  final bool open;
+  final bool reported;
+  final bool needsReply;
+  final DateTime? lastAt;
+
+  bool get isAdmin => myRole == 'admin';
+
+  factory ConversationRow.fromJson(Map<String, dynamic> j) => ConversationRow(
+        id: j['id'] as String,
+        kind: j['kind'] as String? ?? 'partnership',
+        myRole: j['my_role'] as String? ?? '',
+        title: j['title'] as String? ?? '',
+        lastBody: j['last_body'] as String? ?? '',
+        unread: (j['unread'] as num?)?.toInt() ?? 0,
+        open: j['open'] as bool? ?? true,
+        reported: j['reported'] as bool? ?? false,
+        needsReply: j['needs_reply'] as bool? ?? false,
+        lastAt: DateTime.tryParse(j['last_message_at'] as String? ?? ''),
+      );
+}
+
+/// Who wrote a message, by the part they play — never their name, as on the website.
+const senderLabels = <String, String>{
+  'investor': 'المستثمر',
+  'owner': 'صاحب الأرض',
+  'manager': 'الشركة المديرة',
+  'member': 'العضو',
+  'platform': 'سوداقري',
+};
+
+class ConversationMessage {
+  const ConversationMessage({
+    required this.id,
+    required this.role,
+    required this.mine,
+    required this.body,
+    required this.at,
+    this.attachmentKind,
+    this.fileUrl,
+  });
+
+  final String id;
+  final String role;
+  final bool mine;
+  final String body;
+  final DateTime at;
+  final String? attachmentKind;
+  /// A ten-minute link the server made for a photo or a document.
+  final String? fileUrl;
+
+  factory ConversationMessage.fromJson(Map<String, dynamic> j, Map<String, dynamic> files) {
+    final path = j['attachment_path'] as String?;
+    return ConversationMessage(
+      id: j['id'] as String,
+      role: j['role'] as String? ?? '',
+      mine: j['mine'] as bool? ?? false,
+      body: j['body'] as String? ?? '',
+      at: DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
+      attachmentKind: j['attachment_kind'] as String?,
+      fileUrl: path == null ? null : files[path] as String?,
+    );
+  }
+}
+
+class ConversationView {
+  const ConversationView({
+    required this.id,
+    required this.kind,
+    required this.me,
+    required this.title,
+    required this.open,
+    required this.messages,
+    this.status,
+    this.request,
+    this.othersReadAt,
+  });
+
+  final String id;
+  final String kind;
+  final String me;
+  final String title;
+  final bool open;
+  final String? status;
+  /// The investor's first message, from the partnership request itself.
+  final String? request;
+  final DateTime? othersReadAt;
+  final List<ConversationMessage> messages;
+
+  bool get pending => kind == 'partnership' && status == 'pending';
+
+  /// «قُرئت» belongs under this message: the reader's last, opened since by the other side.
+  String? get seenMessageId {
+    final mine = messages.where((m) => m.mine).toList();
+    if (mine.isEmpty || othersReadAt == null) return null;
+    final last = mine.last;
+    return othersReadAt!.isBefore(last.at) ? null : last.id;
+  }
+
+  factory ConversationView.fromJson(Map<String, dynamic> j) {
+    final files = (j['files'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
+    return ConversationView(
+      id: j['id'] as String,
+      kind: j['kind'] as String? ?? 'partnership',
+      me: j['me'] as String? ?? '',
+      title: j['title'] as String? ?? '',
+      open: j['open'] as bool? ?? true,
+      status: j['status'] as String?,
+      request: (j['request'] as Map?)?['message'] as String?,
+      othersReadAt: DateTime.tryParse(j['others_read_at'] as String? ?? ''),
+      messages: [
+        for (final m in (j['messages'] as List? ?? const []))
+          ConversationMessage.fromJson(m as Map<String, dynamic>, files),
+      ],
+    );
+  }
+}
+
 class AccountController extends ValueNotifier<Session?> {
   AccountController({
     http.Client? client,
@@ -393,16 +531,19 @@ class AccountController extends ValueNotifier<Session?> {
     return s;
   }
 
-  Future<http.Response> _authed(String method, String path) async {
+  Future<http.Response> _authed(String method, String path, {Map<String, dynamic>? body}) async {
     for (var attempt = 0; attempt < 2; attempt++) {
       final s = await fresh(force: attempt > 0);
       if (s == null) throw ApiException('ادخل إلى حسابك.');
       final uri = Uri.parse('$_site$path');
-      final headers = {'authorization': 'Bearer ${s.accessToken}'};
+      final headers = {
+        'authorization': 'Bearer ${s.accessToken}',
+        if (body != null) 'content-type': 'application/json',
+      };
       late final http.Response res;
       try {
         res = await (method == 'POST'
-                ? _client.post(uri, headers: headers)
+                ? _client.post(uri, headers: headers, body: body == null ? null : jsonEncode(body))
                 : _client.get(uri, headers: headers))
             .timeout(_timeout);
       } catch (_) {
@@ -428,6 +569,46 @@ class AccountController extends ValueNotifier<Session?> {
     final res = await _authed('POST', '/api/app/notifications/read');
     if (res.statusCode != 200) {
       throw ApiException(_json(res)['error'] as String? ?? 'تعذّر تعليمها مقروءة.');
+    }
+  }
+
+  // ── صندوق الرسائل (البند ١٤٤) ────────────────────────────────────────────
+
+  Future<List<ConversationRow>> conversations() async {
+    final res = await _authed('GET', '/api/app/messages');
+    final body = _json(res);
+    if (res.statusCode != 200) {
+      throw ApiException(body['error'] as String? ?? 'تعذّر تحميل الرسائل (${res.statusCode}).');
+    }
+    return [
+      for (final r in (body['conversations'] as List? ?? const []))
+        ConversationRow.fromJson(r as Map<String, dynamic>),
+    ];
+  }
+
+  /// «راسل سوداقري»: the member's one conversation with the administration.
+  Future<String> openSupport() async {
+    final res = await _authed('POST', '/api/app/messages', body: const {});
+    final body = _json(res);
+    if (res.statusCode != 200 || body['id'] == null) {
+      throw ApiException(body['error'] as String? ?? 'تعذّر فتح المحادثة.');
+    }
+    return body['id'] as String;
+  }
+
+  Future<ConversationView> conversation(String id) async {
+    final res = await _authed('GET', '/api/app/messages/$id');
+    final body = _json(res);
+    if (res.statusCode != 200) {
+      throw ApiException(body['error'] as String? ?? 'تعذّر فتح المحادثة.');
+    }
+    return ConversationView.fromJson(body);
+  }
+
+  Future<void> sendMessage(String id, String text) async {
+    final res = await _authed('POST', '/api/app/messages/$id', body: {'body': text});
+    if (res.statusCode != 200) {
+      throw ApiException(_json(res)['error'] as String? ?? 'لم تُرسل الرسالة. أعد المحاولة.');
     }
   }
 

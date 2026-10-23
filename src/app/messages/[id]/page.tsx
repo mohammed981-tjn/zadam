@@ -9,8 +9,9 @@ import ActionNotice from "@/components/ActionNotice";
 import { button, card, field, ghost } from "@/lib/ui";
 import { INVESTOR_MODEL_LABEL } from "@/lib/investors";
 import { lbl } from "@/lib/partners";
-import { READ_NOTICE, SENDER_LABEL, type ConversationView } from "@/lib/messages";
-import { reportConversation, sendMessage } from "../actions";
+import { PARTY_LABEL, READ_NOTICE, SENDER_LABEL, type ConversationView } from "@/lib/messages";
+import MessageAttachment from "@/components/MessageAttachment";
+import { reportConversation, resolveReport, sendMessage } from "../actions";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -46,6 +47,19 @@ export default async function ConversationPage({
   await supabase.rpc("conversation_mark_read", { p_conv: id });
 
   const pending = c.kind === "partnership" && c.status === "pending";
+  const admin = c.me === "admin";
+
+  // Ten-minute links to the files sent here; the bucket's policies
+  // (evidence_read_message_files) decide who may open them.
+  const paths = c.messages.map((m) => m.attachment_path).filter((p): p is string => !!p);
+  const signed = new Map<string, string>();
+  if (paths.length > 0) {
+    const { data: urls } = await supabase.storage.from("evidence").createSignedUrls(paths, 600);
+    for (const u of urls ?? []) if (u.path && u.signedUrl) signed.set(u.path, u.signedUrl);
+  }
+  // «قُرئت» under the last message the reader sent, once the other side has opened the thread since.
+  const lastMine = [...c.messages].reverse().find((m) => m.mine);
+  const seen = !!(lastMine && c.others_read_at && c.others_read_at >= lastMine.created_at);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -73,6 +87,37 @@ export default async function ConversationPage({
       </header>
 
       <ActionNotice ok={sp.ok} error={sp.error} />
+
+      {/* المدير يتابع: من في المحادثة، وهل تنتظر ردّه، والبلاغ المفتوح. */}
+      {admin && (
+        <section className="mb-4 rounded-lg border border-border bg-card p-3 text-sm">
+          <p className="font-bold">{t("أطراف المحادثة", "Who is in this conversation")}</p>
+          <ul className="mt-1 space-y-0.5">
+            {(c.parties ?? []).map((p, i) => (
+              <li key={i}>
+                {t(PARTY_LABEL[p.role].ar, PARTY_LABEL[p.role].en)}: <bdi>{p.name}</bdi>
+                {p.phone && (
+                  <>
+                    {" · "}
+                    <a href={`tel:+${p.phone}`} className="text-primary underline">
+                      <bdi dir="ltr">+{p.phone}</bdi>
+                    </a>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+          {c.needs_reply && (
+            <p className="mt-2 font-bold text-accent">{t("تنتظر ردّ الإدارة.", "Waiting for the administration's reply.")}</p>
+          )}
+          {c.reported && (
+            <form action={resolveReport} className="mt-2">
+              <input type="hidden" name="conversation_id" value={c.id} />
+              <button className={ghost}>{t("راجعتُ البلاغ — أغلقه", "I have reviewed the report — close it")}</button>
+            </form>
+          )}
+        </section>
+      )}
 
       {c.reports && c.reports.length > 0 && (
         <div className="mb-4 rounded-lg border border-danger/40 bg-danger/5 p-3 text-sm">
@@ -116,9 +161,38 @@ export default async function ConversationPage({
               {" · "}
               {timeAgo(m.created_at, locale)}
             </p>
-            <p className="mt-1 whitespace-pre-line [overflow-wrap:anywhere]" dir="auto">
-              {m.body}
-            </p>
+            {m.body && (
+              <p className="mt-1 whitespace-pre-line [overflow-wrap:anywhere]" dir="auto">
+                {m.body}
+              </p>
+            )}
+            {m.attachment_path &&
+              (signed.get(m.attachment_path) ? (
+                m.attachment_kind === "photo" ? (
+                  <a href={signed.get(m.attachment_path)} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- a signed, expiring link */}
+                    <img
+                      src={signed.get(m.attachment_path)}
+                      alt={t("صورة في المحادثة", "Photo in the conversation")}
+                      className="max-h-72 rounded-lg border border-border object-contain"
+                    />
+                  </a>
+                ) : (
+                  <a
+                    href={signed.get(m.attachment_path)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block font-bold text-primary underline"
+                  >
+                    {t("📄 افتح المستند", "📄 Open the document")}
+                  </a>
+                )
+              ) : (
+                <p className="mt-2 text-xs text-muted">{t("ملفّ مرفق لم يُفتح الآن.", "An attached file that could not be opened now.")}</p>
+              ))}
+            {m.mine && m.id === lastMine?.id && seen && (
+              <p className="mt-1 text-xs font-bold text-leaf">{t("✓✓ قُرئت", "✓✓ Read")}</p>
+            )}
           </li>
         ))}
       </ol>
@@ -128,7 +202,7 @@ export default async function ConversationPage({
         <form action={sendMessage} className="mt-5 flex flex-col gap-2">
           <input type="hidden" name="conversation_id" value={c.id} />
           <label className="flex flex-col gap-1 text-sm">
-            {c.me === "admin" ? t("ردّ باسم سوداقري", "Reply as Sudagri") : t("رسالتك", "Your message")}
+            {admin ? t("ردّ باسم سوداقري", "Reply as Sudagri") : t("رسالتك", "Your message")}
             <textarea name="body" required maxLength={2000} rows={3} className={field} dir="auto" />
           </label>
           <button className={`${button} self-start`}>{t("أرسل", "Send")}</button>
@@ -140,6 +214,12 @@ export default async function ConversationPage({
             "This request is closed, so no new messages. What was written stays on record.",
           )}
         </p>
+      )}
+
+      {c.open && (
+        <div className="mt-3">
+          <MessageAttachment conversationId={c.id} />
+        </div>
       )}
 
       {c.me !== "admin" && (

@@ -19,20 +19,25 @@ export default async function Navbar() {
   let role: string | null = null;
   let fullName: string | null = null;
   let unread = 0;
+  let unreadMessages = 0;
   if (user) {
     // Row-level security scopes the count to this user's own inbox, so no
     // recipient filter is needed here — and adding one would imply the filter
     // is what keeps inboxes apart.
-    const [{ data: profile }, { count }] = await Promise.all([
+    const [{ data: profile }, { count }, { data: messageCount }] = await Promise.all([
       supabase.from("profiles").select("role, full_name").eq("id", user.id).single(),
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
         .is("read_at", null),
+      // صندوق الرسائل (البند ١٤٤): the unread messages in the threads one is a
+      // party to. Before the migration is applied this errors and reads as 0.
+      supabase.rpc("my_unread_message_count"),
     ]);
     role = profile?.role ?? null;
     fullName = profile?.full_name ?? null;
     unread = count ?? 0;
+    unreadMessages = typeof messageCount === "number" ? messageCount : 0;
   }
 
   /*
@@ -342,6 +347,24 @@ export default async function Navbar() {
               className="whitespace-nowrap rounded-xl bg-primary px-2.5 py-2 text-xs font-black text-primary-foreground shadow-card transition hover:opacity-90"
             >
               {t("للمراجعة", "Review")} {pending > 99 ? "99+" : pending}
+            </Link>
+          )}
+          {user && (
+            <Link
+              href="/messages"
+              aria-label={
+                unreadMessages > 0
+                  ? t(`الرسائل، ${unreadMessages} غير مقروءة`, `Messages, ${unreadMessages} unread`)
+                  : t("الرسائل", "Messages")
+              }
+              className="relative rounded-xl border border-border bg-card px-2.5 py-2 text-sm transition hover:border-rose"
+            >
+              💬
+              {unreadMessages > 0 && (
+                <span className="absolute -end-1.5 -top-1.5 min-w-5 rounded-full bg-danger px-1 text-center text-[0.65rem] font-bold leading-5 text-white">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
             </Link>
           )}
           {user && (

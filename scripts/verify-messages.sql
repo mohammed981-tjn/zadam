@@ -289,6 +289,65 @@ do $$ begin
 end $$;
 
 \echo ''
+\echo 'ز) المرفقات، و«قُرئت»، ومتابعة المدير'
+
+set role authenticated;
+do $$ begin
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  perform conversation_send(_id('conv'), '', 'b2000000-0000-0000-0000-0000000000b2/messages/receipt.jpg', 'photo');
+  perform _pass('صورةٌ بلا نصٍّ تُرسل من مجلّد صاحبها');
+  perform _eq((select (conversation_view(_id('conv'))->'messages'->-1->>'attachment_kind')), 'photo', 'وتظهر في المحادثة صورةً');
+  perform _refuses($q$select conversation_send(_id('conv'), 'ملفّ غيري', 'a1000000-0000-0000-0000-0000000000a1/messages/x.pdf', 'document')$q$,
+    'ولا يُرفق أحدٌ ملفّاً من مجلّد غيره');
+  perform _refuses($q$select conversation_send(_id('conv'), 'x', 'b2000000-0000-0000-0000-0000000000b2/messages/../a.pdf', 'document')$q$,
+    'ولا مساراً فيه «..»');
+  perform _refuses($q$select conversation_send(_id('conv'), '', null, null)$q$, 'ولا رسالةٌ فارغة بلا ملفّ');
+  perform _eq((select last_body from my_conversations() where id = _id('conv')), '📷 صورة', 'والقائمة تقول «صورة» للرسالة المصوّرة');
+
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _eq(my_unread_message_count() > 0, true, 'وعدّاد غير المقروء عند صاحب الأرض');
+  perform conversation_mark_read(_id('conv'));
+  -- He also has the declined lease request's thread, still unread.
+  perform _eq(my_unread_message_count(), 1, 'وبعد قراءة محادثةٍ يبقى غير المقروء في الأخرى');
+  perform conversation_mark_read(_id('conv2'));
+  perform _eq(my_unread_message_count(), 0, 'ويصير صفراً بعد قراءتهما');
+
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  perform _eq((conversation_view(_id('conv'))->>'others_read_at') is not null, true, 'والمستثمرة ترى متى قرأ الطرف الآخر');
+  perform _eq(jsonb_typeof(conversation_view(_id('conv'))->'parties'), 'null', 'ولا ترى قائمة الأطراف بأسمائهم');
+  perform _eq((select count(*)::int from conversations), 0, 'وجدول المحادثات لا يُقرأ لغير المدير');
+
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  perform _eq((select count(*)::int from jsonb_array_elements(conversation_view(_id('conv'))->'parties') e
+                where e->>'name' in ('سلمى أحمد علي','الحاج عثمان محمد','شركة الجزيرة للخدمات')), 3,
+    'والمدير يرى الأطراف الثلاثة بأسمائهم');
+  perform _eq((select count(*)::int from conversations where reported_at is not null), 1,
+    'ويرى في قائمة المراجعة المحادثة المبلَّغ عنها');
+  perform _eq((select count(*)::int from conversations where needs_reply), 0,
+    'ورسالة العضو التي ردّ عليها لم تعد تنتظر');
+
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  perform _refuses($q$select conversation_resolve_report(_id('conv'))$q$, 'وغير المدير لا يُغلق بلاغاً');
+  perform conversation_send(_id('support'), 'وسؤالٌ آخر: كيف أضيف أرضاً ثانية؟');
+
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  perform _eq((select count(*)::int from conversations where needs_reply), 1, 'ورسالة العضو الجديدة تنتظر ردّ الإدارة');
+  perform conversation_resolve_report(_id('conv'));
+  perform _eq((select count(*)::int from conversations where reported_at is not null), 0, 'والمدير يُغلق البلاغ بعد مراجعته');
+  perform _eq((select jsonb_array_length(conversation_view(_id('conv'))->'reports')), 1, 'ويبقى البلاغ في السجلّ');
+end $$;
+reset role;
+
+do $$ begin
+  perform _eq((select count(*)::int from notifications
+                where recipient_id = 'b2000000-0000-0000-0000-0000000000b2' and title = 'راجعت الإدارة بلاغك'), 1,
+    'ويصل المبلِّغةَ أنّ الإدارة راجعت بلاغها');
+  perform _refuses($q$insert into conversation_messages (conversation_id, sender_role, body, attachment_path, attachment_kind)
+                     values ((select id from _ids where k = 'conv'), 'owner', '', 'x/messages/a.jpg', 'photo')$q$,
+    'والجدول نفسه يرفض مساراً ليس لمجلّد مستخدم');
+end $$;
+
+\echo ''
 \echo '=========================================================================='
 
 do $$
