@@ -18,13 +18,21 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'account.dart';
+import 'screens/account_screen.dart';
 import 'screens/assistant_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/knowledge_screen.dart';
 import 'screens/water_screen.dart';
 import 'theme.dart';
 
-void main() => runApp(const SudagriApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Read the saved session without holding up the first frame; «حسابي» shows
+  // a spinner until it is in.
+  accountController.load();
+  runApp(const SudagriApp());
+}
 
 class SudagriApp extends StatelessWidget {
   const SudagriApp({super.key});
@@ -69,6 +77,8 @@ class _HomeShellState extends State<HomeShell> {
     const WaterScreen(),
     const AssistantScreen(),
     const KnowledgeScreen(),
+    // Backlog 138: the app opened as a visitor for everyone, the owner too.
+    const AccountScreen(),
   ];
 
   @override
@@ -98,6 +108,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.menu_book_outlined),
             selectedIcon: Icon(Icons.menu_book),
             label: 'المعرفة',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'حسابي',
           ),
         ],
       ),
