@@ -10,6 +10,9 @@ name: Narration
 # spellings in tts/probe (4 October) — not as it is written. A line the owner
 # has corrected letter by letter (23 October: the shadda of «تُوَثِّقُ», the
 # silent qaf of «عَقْدٌ») is written with every vowel and "diac": false.
+# And the name is «سُودَاكْرِي», vowelled, without tanween, in every line that
+# says it: the owner chose it from six spellings on 23 October (tts/fusha/g5)
+# and asked that it be used across the platform.
 on:
   push:
     branches: [claude/project-review-analysis-dt7lsy]
