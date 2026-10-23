@@ -113,6 +113,11 @@ class _PhoneField extends StatelessWidget {
               initialValue: dial,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'المفتاح'),
+              // The open list names the country; the closed field has room
+              // for the code alone, and a name cut to «ال…» says nothing.
+              selectedItemBuilder: (context) => [
+                for (final (code, _) in dialCodes) Text('+$code'),
+              ],
               items: [
                 for (final (code, name) in dialCodes)
                   DropdownMenuItem(value: code, child: Text('+$code $name', overflow: TextOverflow.ellipsis)),

@@ -86,6 +86,15 @@ ThemeData _build({required bool dark}) {
         textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
       ),
     ),
+    // Material's default selected segment is a lavender from no palette of
+    // ours; the selected segment takes the primary green as the tabs do.
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        selectedBackgroundColor: primary.withValues(alpha: 0.15),
+        selectedForegroundColor: primary,
+        side: BorderSide(color: border),
+      ),
+    ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: card,
       indicatorColor: primary.withValues(alpha: 0.15),
