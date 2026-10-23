@@ -27,6 +27,15 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      # The run starts from the branch as it is now, not as it was when the
+      # push that queued it happened: runs wait for one another (concurrency),
+      # and on 23 October one that started from an older commit animated 08
+      # and 09 again — a day's allowance spent on clips another run had
+      # already kept — then could not save them over the first.
+      - name: Start from the branch as it is now
+        run: |
+          git fetch -q --depth=1 origin "${GITHUB_REF_NAME}"
+          git reset -q --hard FETCH_HEAD
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -63,14 +72,25 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # One path at a time: a missing path would stop git add adding any.
-          for p in film/investors/clips film/investors/frames film/investors/music.wav; do
-            if [ -e "$p" ]; then git add "$p"; fi
-          done
-          git diff --cached --quiet && exit 0
-          git commit -m "Film: investors' clips $(ls film/investors/clips 2>/dev/null | tr '\n' ' ')· stills $(ls film/investors/frames | wc -l)"
+          # Only what this run made: new files. The generators never change a
+          # file that is there, so nothing else can be ours.
+          made=$(mktemp -d)
+          git ls-files --others --exclude-standard film/investors/clips film/investors/frames film/investors/music.wav \
+            > "$made/list" 2>/dev/null || true
+          [ -s "$made/list" ] || exit 0
+          while read -r f; do mkdir -p "$made/$(dirname "$f")"; cp "$f" "$made/$f"; done < "$made/list"
           for n in 1 2 3 4 5 6 7 8 9 10; do
-            git pull --rebase -q origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            git fetch -q --depth=1 origin "${GITHUB_REF_NAME}"
+            git reset -q --hard FETCH_HEAD
+            git clean -qfd film/investors
+            added=0
+            # A file another run kept meanwhile is theirs; ours is not saved over it.
+            while read -r f; do
+              if [ ! -e "$f" ]; then mkdir -p "$(dirname "$f")"; cp "$made/$f" "$f"; git add "$f"; added=1; fi
+            done < "$made/list"
+            [ "$added" = 1 ] || exit 0
+            git commit -q -m "Film: investors' clips $(ls film/investors/clips 2>/dev/null | tr '\n' ' ')· stills $(ls film/investors/frames | wc -l)"
+            git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0
             sleep $((RANDOM % 10 + 3))
           done
           exit 1
