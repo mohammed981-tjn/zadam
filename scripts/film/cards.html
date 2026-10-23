@@ -52,6 +52,14 @@
   .tile b { font-size: 36px; font-weight: 900; }
   .tile span { font-size: 25px; font-weight: 500; color: var(--soft); }
   .plus { text-align: center; font-size: 46px; font-weight: 900; color: var(--soft); }
+  /* The managing company is the partner one may add, not one that must be there (the owner, 23 October). */
+  .tile.maybe { position: relative; border: 2px dashed rgba(244, 114, 182, 0.7); background: rgba(244, 114, 182, 0.06); }
+  .plus.maybe { color: var(--rose); }
+  .opt {
+    position: absolute; top: -18px; inset-inline-start: 50%; transform: translateX(50%);
+    font-style: normal; font-size: 21px; font-weight: 900; white-space: nowrap;
+    color: #2a0a18; background: var(--rose); padding: 4px 16px 6px; border-radius: 999px;
+  }
   #links { position: absolute; inset: 0; width: 1280px; height: 720px; }
   #links path { fill: none; stroke: rgba(212, 167, 44, 0.55); stroke-width: 2; stroke-dasharray: 6 7; }
   #a .band {
@@ -87,6 +95,12 @@
   .model b { display: block; font-size: 34px; font-weight: 900; }
   .model span { display: block; margin-top: 4px; font-size: 22px; font-weight: 500; color: var(--soft); }
   .model.wide { grid-column: 1 / -1; border-color: rgba(244, 114, 182, 0.65); background: rgba(244, 114, 182, 0.10); }
+  .model { position: relative; }
+  .model .who2 {
+    position: absolute; top: 12px; inset-inline-end: 16px; white-space: nowrap; font-style: normal;
+    font-size: 19px; font-weight: 700; color: var(--soft); border: 1.5px solid var(--line); border-radius: 999px; padding: 3px 12px 5px;
+  }
+  .model.wide .who2 { color: var(--rose); border-color: rgba(244, 114, 182, 0.6); }
 
   /* ── Card B: the call ── */
   #b .wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; }
@@ -110,7 +124,7 @@
     </svg>
     <div class="head">
       <p class="eyebrow" data-cue="0">فكرةُ سوداقري</p>
-      <h1 data-cue="0">شراكةٌ واحدة… وثلاثةُ شركاء</h1>
+      <h1 data-cue="0">شريكان… وثالثٌ إن شئتم</h1>
     </div>
     <div class="row">
       <div class="tile" data-cue="1">
@@ -130,8 +144,9 @@
         <b>المستثمر</b>
         <span>المال</span>
       </div>
-      <div class="plus" data-cue="3">+</div>
-      <div class="tile" data-cue="3">
+      <div class="plus maybe" data-cue="3">+</div>
+      <div class="tile maybe" data-cue="3">
+        <em class="opt">إن شئتم</em>
         <div class="badge" style="background: var(--rose)">
           <!-- tractor (Lucide, ISC) -->
           <svg viewBox="0 0 24 24"><path d="m10 11 11 .9a1 1 0 0 1 .8 1.1l-.665 4.158a1 1 0 0 1-.988.842H20"/><path d="M16 18h-5"/><path d="M18 5a1 1 0 0 0-1 1v5.573"/><path d="M3 4h8.129a1 1 0 0 1 .99.863L13 11.246"/><path d="M4 11V4"/><path d="M7 15h.01"/><path d="M8 10.1V4"/><circle cx="18" cy="18" r="2"/><circle cx="7" cy="15" r="5"/></svg>
@@ -142,7 +157,7 @@
     </div>
     <div class="band" data-cue="4">
       <div class="disc"><img id="logo" alt=""></div>
-      <p class="who">سوداقري تجمعُهم</p>
+      <p class="who">سوداقري تجمعُكم</p>
       <div class="chips">
         <p class="chip" data-cue="5"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>توثّق الأرض</p>
         <p class="chip" data-cue="6"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>تكتب العقد وتشهد عليه</p>
@@ -154,11 +169,11 @@
   <section class="card" id="m">
     <h1 data-cue="0" data-delay="-0.25">تختارون الشراكة التي تناسبكم</h1>
     <div class="grid">
-      <div class="model" data-cue="0"><p class="n" style="background: var(--leaf)">١</p><p><b>مشاركةٌ بالمحصول</b><span>يموّل المستثمر، ويأخذ حصّةً من المحصول</span></p></div>
-      <div class="model" data-cue="1"><p class="n" style="background: var(--gold)">٢</p><p><b>إيجارُ الأرض</b><span>أجرةٌ متّفقٌ عليها لصاحب الأرض</span></p></div>
-      <div class="model" data-cue="2"><p class="n" style="background: var(--leaf)">٣</p><p><b>تمويلُ المدخلات</b><span>بذورٌ وسمادٌ ووقود، مقابل حصّة</span></p></div>
-      <div class="model" data-cue="3"><p class="n" style="background: var(--gold)">٤</p><p><b>المساقاة</b><span>رعاية البستان والنخيل، بحصّةٍ من الثمر</span></p></div>
-      <div class="model wide" data-cue="4"><p class="n" style="background: var(--rose)">٥</p><p><b>شراكةٌ ثلاثيّة</b><span>أرضٌ ومالٌ وإدارة: تُديرها شركةٌ شريكةٌ موثّقة، بنصيبٍ من صافي الربح</span></p></div>
+      <div class="model" data-cue="0"><p class="n" style="background: var(--leaf)">١</p><p><b>مشاركةٌ بالمحصول</b><span>يموّل المستثمر، ويأخذ حصّةً من المحصول</span></p><i class="who2">شريكان</i></div>
+      <div class="model" data-cue="1"><p class="n" style="background: var(--gold)">٢</p><p><b>إيجارُ الأرض</b><span>أجرةٌ متّفقٌ عليها لصاحب الأرض</span></p><i class="who2">شريكان</i></div>
+      <div class="model" data-cue="2"><p class="n" style="background: var(--leaf)">٣</p><p><b>تمويلُ المدخلات</b><span>بذورٌ وسمادٌ ووقود، مقابل حصّة</span></p><i class="who2">شريكان</i></div>
+      <div class="model" data-cue="3"><p class="n" style="background: var(--gold)">٤</p><p><b>المساقاة</b><span>رعاية البستان والنخيل، بحصّةٍ من الثمر</span></p><i class="who2">شريكان</i></div>
+      <div class="model wide" data-cue="4"><p class="n" style="background: var(--rose)">٥</p><p><b>شراكةٌ ثلاثيّة</b><span>أرضٌ ومالٌ وإدارة: تُديرها شركةٌ شريكةٌ موثوقة، بنصيبٍ من صافي الربح</span></p><i class="who2">ثلاثة شركاء</i></div>
     </div>
   </section>
 

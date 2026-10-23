@@ -36,7 +36,10 @@ const LEAD = 0.35, BREATH = 0.8; // as in assemble.py: a line starts LEAD into i
 
 // Which phrase of the line brings in each cue of the card (cards.html data-cue).
 const CARDS = {
-  "card-a": { section: "a", cues: [0, 1, 2, 3, 4, 5, 6] },
+  // «فكرة سوداقري بسيطة: صاحب الأرض بأرضه، والمستثمر بماله… وإن شئتما، شركةٌ
+  // زراعيّة تدير الموسم. والمنصّة تجمعكم، وتوثّق، وتشهد.» — the company comes in
+  // at «وإن شئتما», the band at «والمنصّة تجمعكم».
+  "card-a": { section: "a", cues: [0, 1, 2, 3, 5, 6, 7] },
   "card-models": { section: "m", cues: [0, 1, 2, 3, 4] },
   "card-b": { section: "b", cues: [0, 1, 2] },
 };
