@@ -312,6 +312,93 @@ do $$ begin
 end $$;
 
 \echo ''
+\echo 'و) الشراكة الثلاثيّة: أرضٌ ومالٌ وشركةٌ تدير (البند ١٣٦)'
+
+-- ش: صاحب شركةٍ شريكةٍ موثّقة. والمستثمرة سلمى تملك شركةً أيضاً، فلا تُسمّى مديرةً لعقدها.
+do $$ begin perform _act_as(null); end $$;
+insert into auth.users (id) values ('d4000000-0000-0000-0000-0000000000d4') on conflict (id) do nothing;
+insert into profiles (id, full_name, role) values ('d4000000-0000-0000-0000-0000000000d4', 'شركة الجزيرة للخدمات', 'investor')
+on conflict (id) do update set full_name = excluded.full_name;
+insert into partner_companies (id, owner_id, name, kinds, states, contact_name, phone, verified_at, active) values
+  ('cc000000-0000-0000-0000-0000000000c1', 'd4000000-0000-0000-0000-0000000000d4', 'شركة الجزيرة للخدمات',
+   array['supervision','mechanization'], array['الخرطوم'], 'عمر الطيب', '0912000000', now(), true),
+  ('cc000000-0000-0000-0000-0000000000c2', 'b2000000-0000-0000-0000-0000000000b2', 'شركة سلمى',
+   array['supervision'], array['الخرطوم'], 'سلمى أحمد', '0922000000', now(), true),
+  ('cc000000-0000-0000-0000-0000000000c3', 'c3000000-0000-0000-0000-0000000000c3', 'شركة لم تُوثَّق',
+   array['supervision'], array['الخرطوم'], 'غريب الدار', '0933000000', null, true);
+insert into lands (id, owner_id, name, state, locality, village, latitude, longitude, feddans,
+                   station_key, water_source, verification, documents_required,
+                   open_to_investors, investor_models)
+values ('11000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-0000000000a1', 'مشروع الشريك',
+        'الخرطوم', 'البقعة', 'ود البشير', 15.61, 32.51, 10, 'khartoum', 'river_pump', 'verified', 3,
+        true, array['managed']);
+
+set role authenticated;
+do $$
+declare v jsonb; ref text; base jsonb;
+begin
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  insert into _ids values ('managed_interest', investor_express_interest('11000000-0000-0000-0000-000000000003', 'managed',
+    'أموّل الموسم وتديره شركةٌ موثّقة، وأنا في الخارج', true));
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform land_investor_decide(_id('managed_interest'), true);
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  insert into _ids values ('managed', partnership_agreement_open(_id('managed_interest')));
+
+  base := '{"crop":"ذرة","season":"الصيفي ٢٠٢٧","start_date":"2027-06-01","end_date":"2027-11-30","feddans":10,"owner_provides":["land","water"],"investor_provides":["seed","fertiliser","fuel"],"owner_share":40,"investor_share":60,"loss_rule":"by_contribution"}'::jsonb;
+  perform _refuses(format($q$select partnership_agreement_save(%L, %L::jsonb)$q$, _id('managed'),
+    base || '{"manager_share":20}'), 'لا عقدَ ثلاثيّاً بلا شركةٍ مديرة');
+  perform _refuses(format($q$select partnership_agreement_save(%L, %L::jsonb)$q$, _id('managed'),
+    base || '{"manager_company":"cc000000-0000-0000-0000-0000000000c1","manager_share":60}'),
+    'وحصّة الإدارة لا تتجاوز ٥٠٪ من صافي الربح');
+  perform _refuses(format($q$select partnership_agreement_save(%L, %L::jsonb)$q$, _id('managed'),
+    base || '{"manager_company":"cc000000-0000-0000-0000-0000000000c3","manager_share":20}'),
+    'ولا تُسمّى شركةٌ لم تُوثَّق');
+  perform _refuses(format($q$select partnership_agreement_save(%L, %L::jsonb)$q$, _id('managed'),
+    base || '{"manager_company":"cc000000-0000-0000-0000-0000000000c2","manager_share":20}'),
+    'ولا شركةٌ يملكها أحد الطرفين');
+  perform _eq(partnership_agreement_save(_id('managed'),
+    base || '{"manager_company":"cc000000-0000-0000-0000-0000000000c1","manager_share":20}'), 2,
+    'وبشركةٍ موثّقةٍ مستقلّة وحصّة ٢٠٪ يُحفظ');
+
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _eq((select count(*)::int from partnership_agreements where id = _id('managed')), 0, 'الغريبُ لا يرى العقد الثلاثيّ');
+
+  perform _act_as('d4000000-0000-0000-0000-0000000000d4');
+  perform _eq((select count(*)::int from partnership_agreements where id = _id('managed')), 1, 'والشركةُ المسمّاة تقرأ عقدها');
+  perform _eq((select count(*)::int from partnership_agreements where id = _id('agreement')), 0, 'ولا تقرأ عقداً لم تُسمَّ فيه');
+  v := partnership_agreement_view(_id('managed'));
+  perform _eq(v->>'me', 'manager', 'وتراه بصفتها الشركةَ المديرة');
+  perform _refuses(format($q$select partnership_agreement_save(%L, %L::jsonb)$q$, _id('managed'),
+    base || '{"manager_company":"cc000000-0000-0000-0000-0000000000c1","manager_share":45}'),
+    'ولا تعدّل البنود — يكتبها صاحب الأرض والمستثمر');
+
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  v := partnership_agreement_view(_id('managed'));
+  perform _eq(partnership_agreement_sign(_id('managed'), (v->>'version')::int, v->>'terms_hash',
+                                         'الحاج عثمان محمد', 'M 10 10 L 40 60 L 80 20 L 120 70', 'test'),
+    null::text, 'يوقّع صاحب الأرض');
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  perform _eq(partnership_agreement_sign(_id('managed'), (v->>'version')::int, v->>'terms_hash',
+                                         'سلمى أحمد علي', 'M 5 50 L 60 10 L 90 80 L 140 30', 'test'),
+    null::text, 'ثمّ المستثمرة — ولا يُقفل العقد الثلاثيّ بتوقيعين');
+  perform _act_as('d4000000-0000-0000-0000-0000000000d4');
+  ref := partnership_agreement_sign(_id('managed'), (v->>'version')::int, v->>'terms_hash',
+                                    'عمر الطيب عن شركة الجزيرة', 'M 2 2 L 50 70 L 100 10 L 150 60', 'test');
+  perform _eq(ref like 'SDQ-%', true, 'وتوقيعُ الشركة الثالث يُقفله برقم — ' || coalesce(ref, 'null'));
+  v := partnership_agreement_view(_id('managed'));
+  perform _eq(v->>'status', 'signed', 'والعقدُ الثلاثيّ موقَّع');
+  perform _eq(jsonb_array_length(v->'signatures'), 3, 'بثلاثة تواقيع على النسخة نفسها');
+end $$;
+reset role;
+
+do $$ begin
+  perform _eq((select count(*)::int from notifications
+                where kind = 'agreement_signed' and recipient_id = 'd4000000-0000-0000-0000-0000000000d4'), 1,
+    'وإشعارُ الإقفال يصل الشركة أيضاً');
+end $$;
+
+\echo ''
 \echo '=========================================================================='
 
 do $$

@@ -48,6 +48,7 @@ export default async function MyPartnerPage({
 
   let company: PartnerCompany | null = null;
   let agreements: PartnerAgreement[] = [];
+  let managing: { id: string; ref: string | null; status: "draft" | "signed"; version: number; updated_at: string }[] = [];
   let notDeployed = false;
   if (user) {
     const { data, error } = await supabase.from("partner_companies").select(MEMBER_COLUMNS.partner_companies).eq("owner_id", user.id).maybeSingle();
@@ -65,6 +66,15 @@ export default async function MyPartnerPage({
         .eq("company_id", company.id)
         .order("created_at", { ascending: false });
       agreements = (a ?? []) as PartnerAgreement[];
+      // Partnerships this company was named to manage (backlog 136). The
+      // policy lets a company read only the agreements that name it; before
+      // that migration the column is unknown and the list stays empty.
+      const { data: m } = await supabase
+        .from("partnership_agreements")
+        .select("id, ref, status, version, updated_at")
+        .eq("manager_company_id", company.id)
+        .order("updated_at", { ascending: false });
+      managing = (m ?? []) as typeof managing;
     }
   }
 
@@ -185,6 +195,37 @@ export default async function MyPartnerPage({
                 <summary className="cursor-pointer font-medium text-primary">{t("اكتب اتّفاقاً جديداً", "Write a new agreement")}</summary>
                 <AgreementForm locale={locale} />
               </details>
+            </section>
+          )}
+
+          {managing.length > 0 && (
+            <section className={`${card} mt-6`}>
+              <h2 className="font-bold">{t("شراكاتٌ تديرها شركتك", "Partnerships your company manages")}</h2>
+              <p className="mt-1 text-sm leading-7 text-muted">
+                {t(
+                  "سمّاك صاحب أرضٍ ومستثمر لإدارة الزراعة بحصّةٍ من صافي الربح. اقرأ العقد، ووقّعه إن قبلت؛ ولا يُقفل إلا بتوقيع الأطراف الثلاثة.",
+                  "A landowner and an investor named you to manage the farming for a share of the net profit. Read the agreement and sign it if you accept; it seals only when all three have signed.",
+                )}
+              </p>
+              <ul className="mt-3 flex flex-col gap-2">
+                {managing.map((m) => (
+                  <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+                    <span>
+                      {m.status === "signed" ? (
+                        <>
+                          {t("موقَّع — رقم ", "Signed — ")}
+                          <bdi dir="ltr">{m.ref}</bdi>
+                        </>
+                      ) : (
+                        t(`مسوّدة — النسخة ${m.version}`, `Draft — version ${m.version}`)
+                      )}
+                    </span>
+                    <Link href={`/invest/agreements/${m.id}`} className="font-bold text-primary underline">
+                      {m.status === "signed" ? t("اقرأ العقد", "Read the agreement") : t("اقرأ ووقّع", "Read and sign")}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 

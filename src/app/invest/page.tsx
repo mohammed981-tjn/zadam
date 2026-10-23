@@ -79,7 +79,7 @@ export default async function InvestPage({
         <h2 id="models" className="title-bar mb-4 text-lg font-black">
           {t("كيف يستفيد المستثمر من صاحب الأرض", "How an investor and a landowner work together")}
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {INVESTOR_MODELS.map((m) => (
             <article key={m} className={card}>
               <h3 className="font-black text-primary">{lbl(INVESTOR_MODEL_LABEL[m], locale)}</h3>

@@ -17,7 +17,9 @@ import type { Bi } from "@/lib/partners";
 
 // «musaqah» (backlog 136): standing trees and palms, tended for a share of the
 // fruit — supabase/migrations/20261023010000_partnership_trust.sql.
-export const INVESTOR_MODELS = ["sharecrop", "lease", "finance", "musaqah"] as const;
+// «managed» (backlog 136): land, capital and a verified partner company that
+// manages for a share of the net profit — 20261023020000_partnership_managed.sql.
+export const INVESTOR_MODELS = ["sharecrop", "lease", "finance", "musaqah", "managed"] as const;
 export type InvestorModel = (typeof INVESTOR_MODELS)[number];
 
 export const INVESTOR_MODEL_LABEL: Record<InvestorModel, Bi> = {
@@ -25,6 +27,7 @@ export const INVESTOR_MODEL_LABEL: Record<InvestorModel, Bi> = {
   lease: { ar: "إيجار الأرض", en: "Land lease" },
   finance: { ar: "تمويل المدخلات مقابل حصّة", en: "Input finance for a share" },
   musaqah: { ar: "مساقاة البستان والنخيل", en: "Orchard tending (musaqah)" },
+  managed: { ar: "شراكة ثلاثيّة: أرضٌ ومالٌ وإدارة", en: "Three-party: land, capital and management" },
 };
 
 /** What each side brings and takes, said plainly — no percentages, they are agreed between the two. */
@@ -67,6 +70,16 @@ export const INVESTOR_MODEL_DETAIL: Record<InvestorModel, { investor: Bi; owner:
     owner: {
       ar: "يقدّم البستان بشجره وحقّه في الماء، ويأخذ بقيّة الثمر. وإن لم يُثمر الشجر لم يأخذ أحدٌ شيئاً.",
       en: "Brings the orchard with its trees and water rights, and takes the rest of the fruit. If the trees bear nothing, neither takes anything.",
+    },
+  },
+  managed: {
+    investor: {
+      ar: "يموّل الموسم، وتديره شركةٌ شريكة موثّقة تسجّل كلّ مرحلةٍ ومصروفها — فلا يحتاج أن يزرع بنفسه ولا أن يكون في السودان.",
+      en: "Finances the season, which a verified partner company manages and records stage by stage — no need to farm in person, or to be in Sudan.",
+    },
+    owner: {
+      ar: "يقدّم الأرض والماء. تُستردّ التكاليف الموثّقة أوّلاً، ثمّ تأخذ الشركة نسبتها من صافي الربح، ويُقسم الباقي بينه وبين المستثمر.",
+      en: "Brings the land and the water. The recorded costs are repaid first, the company takes its share of the net profit, and the rest is split between him and the investor.",
     },
   },
 };
