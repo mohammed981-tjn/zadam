@@ -60,7 +60,21 @@ export async function saveAgreement(fd: FormData) {
   const extra = str(fd, "extra").slice(0, 2000);
   if (extra) terms.extra = extra;
 
-  if (model === "sharecrop" || model === "finance") {
+  if (model === "managed") {
+    // The company is chosen from the verified list; the database checks it
+    // again (verified, active, owned by neither party) before saving.
+    const company = str(fd, "manager_company");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(company)) {
+      back(id, "error", t("اختر الشركة الشريكة التي تدير الزراعة.", "Choose the partner company that will manage the farming."));
+    }
+    const managerShare = numOrNull(fd, "manager_share");
+    if (managerShare === null || managerShare < 1 || managerShare > 50) {
+      back(id, "error", t("حصّة الشركة المديرة نسبةٌ من صافي الربح بين ١ و٥٠.", "The managing company's share is a percentage of net profit between 1 and 50."));
+    }
+    terms.manager_company = company;
+    terms.manager_share = managerShare;
+  }
+  if (model === "sharecrop" || model === "finance" || model === "musaqah" || model === "managed") {
     const ownerShare = numOrNull(fd, "owner_share");
     if (ownerShare === null || ownerShare < 1 || ownerShare > 99) {
       back(id, "error", t("اكتب حصّة صاحب الأرض نسبةً بين ١ و٩٩.", "Enter the landowner's share as a percentage between 1 and 99."));

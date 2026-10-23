@@ -1,0 +1,81 @@
+name: Film
+
+# The investors' film (backlog 140), a few shots a day. The owner chose, on
+# 23 October, moving shots for every scene, knowing the free Hugging Face
+# allowance covers only a shot or two a day. Each run animates the stills that
+# have no clip yet (scripts/film/animate.py) until the allowance refuses,
+# commits the clips back to the branch that asked, and, once every shot and
+# every line of narration is there, puts the film together and publishes it as
+# a release file — the account's artifact storage is full, as mobile.yml
+# explains, and a release file does not count against it.
+#
+# A run is asked for by a push that touches the film, or by hand. Never on
+# main: the clips are committed to the branch that triggered the run.
+on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: ["film/**", "scripts/film/**", ".github/workflows/film.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: film-${{ github.ref }}
+
+jobs:
+  film:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Animate the stills that have no clip yet
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install -q gradio_client pillow
+          python3 scripts/film/animate.py film/investors
+
+      # After the animation, so that a still made now is looked at before it
+      # costs a clip; the next run moves it.
+      - name: Make the stills that are missing
+        continue-on-error: true
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python3 scripts/film/frames.py film/investors
+
+      - name: Keep the clips and stills on the branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add film/investors/clips film/investors/frames 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "Film: investors' clips $(ls film/investors/clips 2>/dev/null | tr '\n' ' ')· stills $(ls film/investors/frames | wc -l)"
+          for n in 1 2 3 4 5 6 7 8 9 10; do
+            git pull --rebase -q origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((RANDOM % 10 + 3))
+          done
+          exit 1
+
+      - name: Put the film together when every piece is there
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg fonts-dejavu-core >/dev/null
+          python3 scripts/film/assemble.py film/investors out
+
+      - name: Publish the film
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls out/*.mp4 >/dev/null 2>&1 || { echo "### Film: not ready yet" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
+          notes="فيلم «شارِكْ في أرض السودان» للمستثمرين — البناء رقم ${{ github.run_number }} من ${GITHUB_SHA::7}. investors-wide.mp4 للموقع ويوتيوب، وinvestors-portrait.mp4 للهاتف."
+          if gh release view film-investors >/dev/null 2>&1; then
+            gh release edit film-investors --notes "$notes"
+          else
+            gh release create film-investors --title "فيلم المستثمرين" --notes "$notes" --prerelease --target "$GITHUB_SHA"
+          fi
+          gh release upload film-investors out/investors-wide.mp4 out/investors-portrait.mp4 --clobber
+          echo "### Film: https://github.com/${{ github.repository }}/releases/download/film-investors/investors-wide.mp4" >> "$GITHUB_STEP_SUMMARY"

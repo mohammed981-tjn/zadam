@@ -15,6 +15,8 @@ import {
   RENT_SCHEDULE_LABEL,
   RENT_SCHEDULES,
   agreementClauses,
+  signerRoles,
+  type AgreementSignature,
   type AgreementView,
 } from "@/lib/agreements";
 import { button, card, field, label } from "@/lib/ui";
@@ -67,7 +69,16 @@ export default async function AgreementPage({
     : { data: null };
   const seasons = (seasonRows ?? []) as { id: string; name: string; status: string }[];
   const mine = a.signatures.find((s) => s.role === a.me);
-  const other = a.signatures.find((s) => s.role !== a.me);
+  // Two parties, or three when a partner company manages (backlog 136).
+  const roles = signerRoles(a.model);
+  const waiting = roles.filter((r) => !a.signatures.some((s) => s.role === r));
+  const managed = a.model === "managed";
+  // The verified, active partner companies a three-party agreement can name.
+  const { data: companyRows } =
+    managed && !signed && (a.me === "owner" || a.me === "investor")
+      ? await supabase.from("partner_companies").select("id, name, states").not("verified_at", "is", null).eq("active", true).order("name")
+      : { data: null };
+  const companies = (companyRows ?? []) as { id: string; name: string; states: string[] }[];
   const clauses = agreementClauses(a, locale);
   // Arabic digits inside Arabic sentences, as the clauses already write them.
   const arNum = (v: number) => Number(v).toLocaleString("ar-EG");
@@ -77,20 +88,40 @@ export default async function AgreementPage({
       timeStyle: "short",
       timeZone: "Africa/Khartoum",
     });
-  const who = (role: "owner" | "investor") =>
-    role === "owner" ? t("صاحب الأرض", "The landowner") : t("المستثمر", "The investor");
+  const who = (role: AgreementSignature["role"]) =>
+    role === "owner"
+      ? t("صاحب الأرض", "The landowner")
+      : role === "investor"
+        ? t("المستثمر", "The investor")
+        : t("الشركة المديرة", "The managing company");
   const itemOwner = (i: (typeof AGREEMENT_ITEMS)[number]) =>
-    x.owner_provides?.includes(i) ? "owner" : x.investor_provides?.includes(i) ? "investor" : "none";
+    x.owner_provides?.includes(i)
+      ? "owner"
+      : x.investor_provides?.includes(i)
+        ? "investor"
+        : // In a musaqah the standing trees are what is let: the owner's from the start.
+          a.model === "musaqah" && i === "trees" && !x.owner_provides
+          ? "owner"
+          : "none";
+  // The orchard's two items belong to a musaqah; a sown field has neither.
+  const items = AGREEMENT_ITEMS.filter((i) => a.model === "musaqah" || (i !== "trees" && i !== "pruning"));
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <Link href={a.me === "owner" ? "/lands" : "/invest/mine"} className="text-sm font-bold text-primary underline">
-        {a.me === "owner" ? t("← أراضيّ", "← My land") : t("← طلباتي", "← My requests")}
+      <Link
+        href={a.me === "owner" ? "/lands" : a.me === "manager" ? "/partners/mine" : "/invest/mine"}
+        className="text-sm font-bold text-primary underline"
+      >
+        {a.me === "owner" ? t("← أراضيّ", "← My land") : a.me === "manager" ? t("← شركتي", "← My company") : t("← طلباتي", "← My requests")}
       </Link>
 
       <header className="mt-4 mb-5">
         <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-rose/10 px-3 py-1 text-xs font-bold text-rose">
-          {signed ? t("موقَّعٌ من الطرفين ومقفل", "Signed by both parties and sealed") : t(`مسوّدة — النسخة ${arNum(a.version)}`, `Draft — version ${a.version}`)}
+          {signed
+            ? managed
+              ? t("موقَّعٌ من الأطراف الثلاثة ومقفل", "Signed by all three parties and sealed")
+              : t("موقَّعٌ من الطرفين ومقفل", "Signed by both parties and sealed")
+            : t(`مسوّدة — النسخة ${arNum(a.version)}`, `Draft — version ${a.version}`)}
         </p>
         <h1 className="title-bar font-black leading-tight" style={{ fontSize: "var(--text-title)" }}>
           {lbl(AGREEMENT_TITLE[a.model])}
@@ -129,8 +160,8 @@ export default async function AgreementPage({
           </ol>
 
           {/* ── التواقيع ── */}
-          <div className="mt-6 grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
-            {(["owner", "investor"] as const).map((role) => {
+          <div className={`mt-6 grid gap-4 border-t border-border pt-5 ${managed ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+            {roles.map((role) => {
               const s = a.signatures.find((g) => g.role === role);
               return (
                 <div key={role} className="rounded-2xl bg-background p-4">
@@ -156,10 +187,15 @@ export default async function AgreementPage({
             <div className="mt-5 rounded-2xl border-2 border-leaf/40 bg-leaf/5 p-4 text-center">
               <p className="font-black text-leaf">{t("شهدت سوداقري", "Witnessed by Sudagri")}</p>
               <p className="mt-1 text-xs leading-6 text-muted">
-                {t(
-                  `وقّع الطرفان النسخة ${arNum(a.version)} من هذا العقد بحسابيهما، وأُقفل في ${fmt(a.signed_at)}.`,
-                  `Both parties signed version ${a.version} of this agreement from their own accounts; sealed on ${fmt(a.signed_at)}.`,
-                )}
+                {managed
+                  ? t(
+                      `وقّع الأطراف الثلاثة النسخة ${arNum(a.version)} من هذا العقد بحساباتهم، وأُقفل في ${fmt(a.signed_at)}.`,
+                      `All three parties signed version ${a.version} of this agreement from their own accounts; sealed on ${fmt(a.signed_at)}.`,
+                    )
+                  : t(
+                      `وقّع الطرفان النسخة ${arNum(a.version)} من هذا العقد بحسابيهما، وأُقفل في ${fmt(a.signed_at)}.`,
+                      `Both parties signed version ${a.version} of this agreement from their own accounts; sealed on ${fmt(a.signed_at)}.`,
+                    )}
               </p>
               <p className="mt-1 text-[11px] text-muted">
                 {t("بصمة العقد:", "Fingerprint:")}{" "}
@@ -178,7 +214,7 @@ export default async function AgreementPage({
       </NoCopy>
 
       {/* ── من العقد إلى الموسم (البند ١٢٩) ─────────────────────────────── */}
-      {signed && a.me !== "admin" && (
+      {signed && (a.me === "owner" || a.me === "investor") && (
         <section className={`${card} mt-6 text-sm`}>
           <h2 className="font-black">{t("الموسم", "The season")}</h2>
           {seasons.length > 0 ? (
@@ -222,9 +258,11 @@ export default async function AgreementPage({
           {mine ? (
             <p className="text-sm">
               <span className="font-bold text-leaf">{t("✓ وقّعتَ هذه النسخة.", "✓ You have signed this version.")}</span>{" "}
-              {other
-                ? null
-                : t("بقي توقيع الطرف الآخر، ووصله إشعار.", "The other party's signature remains; they have been notified.")}
+              {waiting.length > 0 &&
+                t(
+                  `بقي توقيع: ${waiting.map((r) => who(r)).join("، ")} — ووصله إشعار.`,
+                  `Still to sign: ${waiting.map((r) => who(r)).join(", ")} — notified.`,
+                )}
             </p>
           ) : (
             <form action={signAgreement} className="flex flex-col gap-4">
@@ -251,7 +289,8 @@ export default async function AgreementPage({
       )}
 
       {/* ── تعديل البنود ───────────────────────────────────────────────── */}
-      {!signed && a.me !== "admin" && (
+      {/* The terms are written by the landowner and the investor; a managing company reads and signs them. */}
+      {!signed && (a.me === "owner" || a.me === "investor") && (
         <details className={`${card} mt-6`} open={a.version === 1}>
           <summary className="cursor-pointer font-black text-primary">
             {a.version === 1 ? t("اكتبا بنود العقد", "Write the terms") : t("عدّل البنود", "Edit the terms")}
@@ -291,7 +330,7 @@ export default async function AgreementPage({
             <fieldset className="rounded-2xl bg-background p-3">
               <legend className="px-1 text-sm font-bold">{t("من يقدّم ماذا", "Who provides what")}</legend>
               <div className="mt-1 flex flex-col divide-y divide-border">
-                {AGREEMENT_ITEMS.map((i) => (
+                {items.map((i) => (
                   <div key={i} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                     <span className="font-medium">{lbl(ITEM_LABEL[i])}</span>
                     <span className="flex gap-3">
@@ -307,9 +346,39 @@ export default async function AgreementPage({
               </div>
             </fieldset>
 
-            {(a.model === "sharecrop" || a.model === "finance") && (
+            {managed && (
+              <>
+                <label className={label}>
+                  {t("الشركة الشريكة التي تدير الزراعة", "The partner company that will manage the farming")}
+                  <select name="manager_company" required defaultValue={x.manager_company ?? ""} className={field}>
+                    <option value="" disabled>
+                      {t("اختر شركةً موثّقة", "Choose a verified company")}
+                    </option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} — {c.states.join("، ")}
+                      </option>
+                    ))}
+                  </select>
+                  {companies.length === 0 && (
+                    <span className="text-xs text-muted">
+                      {t("لا شركة شريكة موثّقة بعد. تجدها في «الشركات الزراعيّة الشريكة» حين توثَّق.", "No verified partner company yet; they appear under partner companies once verified.")}
+                    </span>
+                  )}
+                </label>
+                <label className={label}>
+                  {t("حصّة الشركة المديرة من صافي الربح (٪، حتى ٥٠)", "The managing company's share of the net profit (%, up to 50)")}
+                  <input type="number" name="manager_share" required min={1} max={50} step="1" defaultValue={x.manager_share ?? ""} className={field} />
+                </label>
+              </>
+            )}
+            {(a.model === "sharecrop" || a.model === "finance" || a.model === "musaqah" || managed) && (
               <label className={label}>
-                {t("حصّة صاحب الأرض من المحصول (٪) — والباقي للمستثمر", "Landowner's share of the crop (%) — the rest is the investor's")}
+                {a.model === "musaqah"
+                  ? t("حصّة صاحب الأرض من الثمر (٪) — والباقي للمستثمر", "Landowner's share of the fruit (%) — the rest is the investor's")
+                  : managed
+                    ? t("حصّة صاحب الأرض ممّا يبقى من صافي الربح بعد حصّة الشركة (٪) — والباقي للمستثمر", "Landowner's share of what remains of the net profit after the company's (%) — the rest is the investor's")
+                    : t("حصّة صاحب الأرض من المحصول (٪) — والباقي للمستثمر", "Landowner's share of the crop (%) — the rest is the investor's")}
                 <input type="number" name="owner_share" required min={1} max={99} step="1" defaultValue={x.owner_share ?? ""} className={field} />
               </label>
             )}

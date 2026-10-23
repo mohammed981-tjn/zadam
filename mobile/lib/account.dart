@@ -1,0 +1,453 @@
+/// حسابي في التطبيق: الدخول، وإنشاء الحساب، والجلسة على الهاتف (البند ١٣٨).
+///
+/// The owner found the app opening as a visitor for him, the administrator, and
+/// chose full sign-in inside the app, and then: «إذا أراد الاستثمار أو تسجيل
+/// الأرض… يسجّل مثله ومثل الويب». So it is the website's account, not a second
+/// one: the same number and password open both.
+///
+/// Signing in and signing up go through the website's routes (/api/app/signin
+/// and /api/app/signup). Those read the number with the website's own rule
+/// (src/lib/phone.ts) and fold it into the website's own internal address, so
+/// there is one definition of a Sudanese number, not two that can drift. The
+/// session they return is kept on the phone and refreshed with the auth server
+/// directly, as any Supabase client refreshes; every read after that goes
+/// through /api/app/me with the access token, and row-level security applies
+/// exactly as it does on the website.
+///
+/// The session is kept in the app's private preferences. That is the app's own
+/// sandbox, readable by no other app; the refresh token in it is revoked by
+/// «خروج», which signs it out on the server as well as on the phone.
+library;
+
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'api.dart';
+
+/// The country codes the website's phone field offers, in its order
+/// (src/lib/phone.ts, COUNTRIES). scripts/verify-app-account.ts holds the two
+/// lists to each other.
+const dialCodes = <(String, String)>[
+  ('249', 'السودان'),
+  ('20', 'مصر'),
+  ('966', 'السعودية'),
+  ('971', 'الإمارات'),
+  ('974', 'قطر'),
+  ('965', 'الكويت'),
+  ('90', 'تركيا'),
+  ('44', 'بريطانيا'),
+  ('1', 'أمريكا وكندا'),
+];
+
+/// The account's kind as the website's menu names it (src/components/Navbar.tsx).
+String roleLabel(String? role) => switch (role) {
+      'admin' => 'مدير',
+      'investor' => 'مستثمر',
+      'farmer' => 'مزارع وصاحب أرض',
+      _ => '',
+    };
+
+class Session {
+  const Session({
+    required this.accessToken,
+    required this.refreshToken,
+    required this.expiresAt,
+  });
+
+  final String accessToken;
+  final String refreshToken;
+  final DateTime expiresAt;
+
+  /// A minute's margin, so a request does not leave with a token that expires
+  /// on its way.
+  bool get isStale =>
+      DateTime.now().toUtc().isAfter(expiresAt.subtract(const Duration(minutes: 1)));
+
+  /// Reads both the website route's reply and the auth server's: the second
+  /// may give `expires_in` without `expires_at`.
+  factory Session.fromJson(Map<String, dynamic> j) {
+    final at = j['expires_at'] as num?;
+    final inSeconds = (j['expires_in'] as num?)?.toInt() ?? 3600;
+    return Session(
+      accessToken: j['access_token'] as String,
+      refreshToken: j['refresh_token'] as String,
+      expiresAt: at != null
+          ? DateTime.fromMillisecondsSinceEpoch(at.toInt() * 1000, isUtc: true)
+          : DateTime.now().toUtc().add(Duration(seconds: inSeconds)),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'access_token': accessToken,
+        'refresh_token': refreshToken,
+        'expires_at': expiresAt.millisecondsSinceEpoch ~/ 1000,
+      };
+}
+
+class AppNotice {
+  const AppNotice({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.read,
+    required this.at,
+    this.link,
+  });
+
+  final String id;
+  final String title;
+  final String body;
+  final String? link;
+  final bool read;
+  final DateTime at;
+
+  factory AppNotice.fromJson(Map<String, dynamic> j) => AppNotice(
+        id: j['id'] as String,
+        title: j['title'] as String? ?? '',
+        body: j['body'] as String? ?? '',
+        link: j['link'] as String?,
+        read: j['read'] as bool? ?? true,
+        at: DateTime.tryParse(j['at'] as String? ?? '') ?? DateTime.now(),
+      );
+}
+
+class MyLand {
+  const MyLand({
+    required this.id,
+    required this.name,
+    required this.state,
+    required this.verification,
+    this.locality,
+    this.feddans,
+    this.verificationNote,
+    this.listed = false,
+    this.openToInvestors = false,
+    this.openToPartners = false,
+  });
+
+  final String id;
+  final String name;
+  final String state;
+  final String? locality;
+  final num? feddans;
+  final String verification;
+  final String? verificationNote;
+  final bool listed;
+  final bool openToInvestors;
+  final bool openToPartners;
+
+  /// The website's labels for the same states (src/app/lands/page.tsx).
+  String get statusLabel => switch (verification) {
+        'verified' => 'محقّقة',
+        'submitted' => 'قيد المراجعة',
+        'rejected' => 'مرفوضة',
+        _ => 'غير محقّقة',
+      };
+
+  factory MyLand.fromJson(Map<String, dynamic> j) => MyLand(
+        id: j['id'] as String,
+        name: j['name'] as String? ?? '',
+        state: j['state'] as String? ?? '',
+        locality: j['locality'] as String?,
+        feddans: j['feddans'] as num?,
+        verification: j['verification'] as String? ?? 'unverified',
+        verificationNote: j['verification_note'] as String?,
+        listed: j['listed'] as bool? ?? false,
+        openToInvestors: j['open_to_investors'] as bool? ?? false,
+        openToPartners: j['open_to_partners'] as bool? ?? false,
+      );
+}
+
+class ReviewItem {
+  const ReviewItem({required this.title, this.meta});
+  final String title;
+  final String? meta;
+
+  factory ReviewItem.fromJson(Map<String, dynamic> j) =>
+      ReviewItem(title: j['title'] as String? ?? '', meta: j['meta'] as String?);
+}
+
+/// One queue of the administrator's review list (src/lib/adminQueue.ts).
+class ReviewSection {
+  const ReviewSection({
+    required this.key,
+    required this.title,
+    required this.what,
+    required this.href,
+    required this.count,
+    required this.items,
+    this.info = false,
+  });
+
+  final String key;
+  final String title;
+  final String what;
+  final String href;
+  final int count;
+  final bool info;
+  final List<ReviewItem> items;
+
+  factory ReviewSection.fromJson(Map<String, dynamic> j) => ReviewSection(
+        key: j['key'] as String? ?? '',
+        title: j['title'] as String? ?? '',
+        what: j['what'] as String? ?? '',
+        href: j['href'] as String? ?? '/admin/inbox',
+        count: (j['count'] as num?)?.toInt() ?? 0,
+        info: j['info'] as bool? ?? false,
+        items: ((j['items'] as List<dynamic>?) ?? const [])
+            .map((e) => ReviewItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+/// What /api/app/me returns: who is signed in and what is theirs.
+class Account {
+  const Account({
+    required this.name,
+    required this.role,
+    required this.unread,
+    required this.notifications,
+    required this.lands,
+    this.reviewTotal,
+    this.review = const [],
+  });
+
+  final String name;
+  final String? role;
+  final int unread;
+  final List<AppNotice> notifications;
+  final List<MyLand> lands;
+
+  /// Null for everyone but an administrator.
+  final int? reviewTotal;
+  final List<ReviewSection> review;
+
+  bool get isAdmin => role == 'admin';
+
+  factory Account.fromJson(Map<String, dynamic> j) {
+    final review = j['review'] as Map<String, dynamic>?;
+    return Account(
+      name: j['name'] as String? ?? '',
+      role: j['role'] as String?,
+      unread: (j['unread'] as num?)?.toInt() ?? 0,
+      notifications: ((j['notifications'] as List<dynamic>?) ?? const [])
+          .map((e) => AppNotice.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      lands: ((j['lands'] as List<dynamic>?) ?? const [])
+          .map((e) => MyLand.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      reviewTotal: (review?['total'] as num?)?.toInt(),
+      review: ((review?['sections'] as List<dynamic>?) ?? const [])
+          .map((e) => ReviewSection.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+/// The signed-in session, kept on the phone; null when signed out.
+class AccountController extends ValueNotifier<Session?> {
+  AccountController({
+    http.Client? client,
+    String? siteUrl,
+    String? supabaseUrl,
+    String? anonKey,
+  })  : _client = client ?? http.Client(),
+        _site = siteUrl ?? ApiConfig.siteUrl,
+        _supabase = supabaseUrl ?? ApiConfig.supabaseUrl,
+        _anon = anonKey ?? ApiConfig.supabaseAnonKey,
+        super(null);
+
+  static const _key = 'sudagri.session';
+  static const _timeout = Duration(seconds: 30);
+
+  final http.Client _client;
+  final String _site;
+  final String _supabase;
+  final String _anon;
+
+  /// False until the saved session has been read, so the screen does not
+  /// flash the sign-in form at someone who is signed in.
+  bool loaded = false;
+
+  Future<void> load() async {
+    try {
+      final raw = (await SharedPreferences.getInstance()).getString(_key);
+      if (raw != null) value = Session.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      // An unreadable saved session is a signed-out phone, not a crash.
+      value = null;
+    }
+    loaded = true;
+    notifyListeners();
+  }
+
+  Future<void> _keep(Session? s) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (s == null) {
+      await prefs.remove(_key);
+    } else {
+      await prefs.setString(_key, jsonEncode(s.toJson()));
+    }
+    value = s;
+  }
+
+  Future<http.Response> _post(String path, Map<String, dynamic> body) async {
+    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    try {
+      return await _client
+          .post(Uri.parse('$_site$path'),
+              headers: {'content-type': 'application/json'}, body: jsonEncode(body))
+          .timeout(_timeout);
+    } catch (_) {
+      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+    }
+  }
+
+  static Map<String, dynamic> _json(http.Response res) {
+    try {
+      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  /// [method] is 'phone' (with [dialCode] and [phone]) or 'email'.
+  Future<void> signIn({
+    required String method,
+    required String password,
+    String dialCode = '249',
+    String phone = '',
+    String email = '',
+  }) async {
+    final res = await _post('/api/app/signin', {
+      'method': method,
+      'dial_code': dialCode,
+      'phone': phone,
+      'email': email,
+      'password': password,
+    });
+    final body = _json(res);
+    if (res.statusCode != 200) {
+      throw ApiException(body['error'] as String? ?? 'تعذّر الدخول (${res.statusCode}).');
+    }
+    await _keep(Session.fromJson(body));
+  }
+
+  /// Creates the account and signs in with it. When the account was created
+  /// but the sign-in that follows was not, throws with a message saying so —
+  /// the person signs in from the form, and nothing is lost.
+  Future<void> signUp({
+    required String fullName,
+    required String role,
+    required String dialCode,
+    required String phone,
+    required String password,
+  }) async {
+    final res = await _post('/api/app/signup', {
+      'full_name': fullName,
+      'role': role,
+      'dial_code': dialCode,
+      'phone': phone,
+      'password': password,
+    });
+    final body = _json(res);
+    if (res.statusCode != 201) {
+      throw ApiException(body['error'] as String? ?? 'تعذّر إنشاء الحساب (${res.statusCode}).');
+    }
+    await _keep(Session.fromJson(body));
+  }
+
+  /// A session good for the next request: refreshed with the auth server when
+  /// stale (or when [force]d after a refusal). A refresh token the server
+  /// refuses means the session is over — signed out elsewhere, or revoked — and
+  /// the phone is signed out with it.
+  Future<Session?> fresh({bool force = false}) async {
+    final s = value;
+    if (s == null) return null;
+    if (!force && !s.isStale) return s;
+    late final http.Response res;
+    try {
+      res = await _client
+          .post(
+            Uri.parse('$_supabase/auth/v1/token?grant_type=refresh_token'),
+            headers: {'apikey': _anon, 'content-type': 'application/json'},
+            body: jsonEncode({'refresh_token': s.refreshToken}),
+          )
+          .timeout(_timeout);
+    } catch (_) {
+      // No network: try with what we have rather than sign the person out.
+      return s;
+    }
+    if (res.statusCode == 200) {
+      final next = Session.fromJson(_json(res));
+      await _keep(next);
+      return next;
+    }
+    if (res.statusCode == 400 || res.statusCode == 401) {
+      await _keep(null);
+      return null;
+    }
+    return s;
+  }
+
+  Future<http.Response> _authed(String method, String path) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final s = await fresh(force: attempt > 0);
+      if (s == null) throw ApiException('ادخل إلى حسابك.');
+      final uri = Uri.parse('$_site$path');
+      final headers = {'authorization': 'Bearer ${s.accessToken}'};
+      late final http.Response res;
+      try {
+        res = await (method == 'POST'
+                ? _client.post(uri, headers: headers)
+                : _client.get(uri, headers: headers))
+            .timeout(_timeout);
+      } catch (_) {
+        throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      }
+      if (res.statusCode != 401) return res;
+    }
+    await _keep(null);
+    throw ApiException('انتهت جلستك. ادخل من جديد.');
+  }
+
+  Future<Account> me() async {
+    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    final res = await _authed('GET', '/api/app/me');
+    final body = _json(res);
+    if (res.statusCode != 200) {
+      throw ApiException(body['error'] as String? ?? 'تعذّر تحميل حسابك (${res.statusCode}).');
+    }
+    return Account.fromJson(body);
+  }
+
+  Future<void> markAllRead() async {
+    final res = await _authed('POST', '/api/app/notifications/read');
+    if (res.statusCode != 200) {
+      throw ApiException(_json(res)['error'] as String? ?? 'تعذّر تعليمها مقروءة.');
+    }
+  }
+
+  /// Signs out on the server too, so the refresh token kept on this phone
+  /// stops working even if it was copied; then forgets it here.
+  Future<void> signOut() async {
+    final s = value;
+    if (s != null && _supabase.isNotEmpty) {
+      try {
+        await _client
+            .post(Uri.parse('$_supabase/auth/v1/logout'),
+                headers: {'apikey': _anon, 'authorization': 'Bearer ${s.accessToken}'})
+            .timeout(_timeout);
+      } catch (_) {
+        // Offline: the phone forgets the session regardless.
+      }
+    }
+    await _keep(null);
+  }
+}
+
+/// The app's one account controller.
+final accountController = AccountController();

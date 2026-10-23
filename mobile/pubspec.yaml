@@ -39,6 +39,13 @@ dependencies:
   # auth, realtime and storage machinery this build has no use for yet.
   http: ^1.2.0
 
+  # «حسابي» (backlog 138): the session is kept in the app's private
+  # preferences, and the pages still done on the website — registering land,
+  # asking for a partnership, deciding a review item — open in the browser.
+  # Both are the Flutter team's own plugins.
+  shared_preferences: ^2.5.0
+  url_launcher: ^6.3.0
+
   # The films screen: the platform's own films, played in the app (and, on
   # Android, protected from screenshots and recording while open).
   video_player: ^2.9.5

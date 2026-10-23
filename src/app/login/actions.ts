@@ -184,6 +184,30 @@ export async function signup(formData: FormData) {
       );
     }
 
+    /*
+     * لم يُنشأ حساب: البريدُ مسجّلٌ من قبل (البند ١٣٩).
+     *
+     * For an address that already has an account, signUp answers the way it
+     * answers a new one — a user and no session — so that the reply does not
+     * say who is registered. The tell is an empty `identities`. Without this
+     * check the visitor was told «تم إنشاء الحساب… ستصلك رسالة تفعيل», and no
+     * message ever came, because nothing was created. That happened to the
+     * owner on 22 October with his own admin address; a minute later he made
+     * a second, ordinary account with his number and could no longer find the
+     * administration. The phone path already says «هذا الرقم مسجّل بالفعل», so
+     * saying the same of an email reveals nothing the platform did not.
+     */
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      redirect(
+        `/login?method=email&error=${encodeURIComponent(
+          t(
+            "هذا البريد مسجّل من قبل، فلم يُنشأ حسابٌ جديد. ادخل به — وإن نسيت كلمة المرور فاضغط «نسيت كلمة المرور».",
+            "This email already has an account, so no new one was created. Sign in with it — or use «Forgot password» if you need to.",
+          ),
+        )}`,
+      );
+    }
+
     if (!data.session) {
       redirect(
         `/login?method=email&message=${encodeURIComponent(

@@ -26,6 +26,10 @@ export const AGREEMENT_ITEMS = [
   "harvest",
   "transport",
   "storage",
+  // An orchard's (musaqah, backlog 136): the standing trees are the owner's,
+  // and their pruning and pollination are work a sown field does not have.
+  "trees",
+  "pruning",
 ] as const;
 export type AgreementItem = (typeof AGREEMENT_ITEMS)[number];
 
@@ -42,6 +46,8 @@ export const ITEM_LABEL: Record<AgreementItem, { ar: string; en: string }> = {
   harvest: { ar: "الحصاد", en: "Harvest" },
   transport: { ar: "الترحيل", en: "Transport" },
   storage: { ar: "التخزين", en: "Storage" },
+  trees: { ar: "الشجر والنخيل القائم", en: "The standing trees and palms" },
+  pruning: { ar: "التقليم والتلقيح", en: "Pruning and pollination" },
 };
 
 export const LOSS_RULES = ["by_contribution", "investor_inputs", "custom"] as const;
@@ -85,10 +91,13 @@ export interface AgreementTerms {
   loss_rule?: LossRule;
   loss_text?: string;
   extra?: string;
+  /** A three-party agreement (backlog 136): the partner company managing, and its share of the net profit. */
+  manager_company?: string;
+  manager_share?: number;
 }
 
 export interface AgreementSignature {
-  role: "owner" | "investor";
+  role: "owner" | "investor" | "manager";
   full_name: string;
   signature: string;
   signed_at: string;
@@ -107,9 +116,11 @@ export interface AgreementView {
   signed_at: string | null;
   updated_at: string;
   created_at: string;
-  me: "owner" | "investor" | "admin";
+  me: "owner" | "investor" | "manager" | "admin";
   owner_name: string | null;
   investor_name: string | null;
+  /** The managing partner company's name, in a three-party agreement. */
+  manager_name?: string | null;
   land: {
     name: string;
     state: string;
@@ -127,7 +138,13 @@ export const AGREEMENT_TITLE: Record<InvestorModel, { ar: string; en: string }> 
   sharecrop: { ar: "عقد مزارعة (مشاركة بالمحصول)", en: "Crop-sharing agreement (muzara'a)" },
   lease: { ar: "عقد إيجار أرضٍ زراعيّة", en: "Farmland lease agreement" },
   finance: { ar: "عقد تمويل مدخلاتٍ زراعيّة مقابل حصّة", en: "Input-finance agreement for a share" },
+  musaqah: { ar: "عقد مساقاة (رعاية البستان بحصّةٍ من الثمر)", en: "Musaqah agreement (tending an orchard for a share of the fruit)" },
+  managed: { ar: "عقد شراكة ثلاثيّة: أرضٌ ومالٌ وإدارة", en: "Three-party partnership: land, capital and management" },
 };
+
+/** The roles that must sign before an agreement seals: three when a company manages. */
+export const signerRoles = (model: InvestorModel): AgreementSignature["role"][] =>
+  model === "managed" ? ["owner", "investor", "manager"] : ["owner", "investor"];
 
 const n = (v: number | undefined, locale: Locale) =>
   v === undefined || v === null ? "—" : Number(v).toLocaleString(locale === "en" ? "en-US" : "ar-EG");
@@ -152,6 +169,9 @@ export function agreementClauses(a: AgreementView, locale: Locale): { title: str
       body: [
         `${t("الطرف الأول، صاحب الأرض:", "First party, the landowner:")} ${a.owner_name ?? "—"}`,
         `${t("الطرف الثاني، المستثمر:", "Second party, the investor:")} ${a.investor_name ?? "—"}`,
+        ...(a.model === "managed"
+          ? [`${t("الطرف الثالث، الشركة المديرة:", "Third party, the managing company:")} ${a.manager_name ?? "—"}`]
+          : []),
       ],
     },
     {
@@ -233,6 +253,46 @@ export function agreementClauses(a: AgreementView, locale: Locale): { title: str
     });
   }
 
+  if (a.model === "musaqah") {
+    clauses.push({
+      title: t("رعاية الشجر وقسمة الثمر", "Tending the trees and sharing the fruit"),
+      body: [
+        t(
+          "يرعى المستثمرُ الشجرَ والنخيل القائم في الأرض المذكورة بما تحتاجه: السقي والتقليم والتلقيح والمكافحة والجني، بنفسه أو بمن يستعين به، وما بقي من أعمال الرعاية فعلى من كُتب عليه أعلاه.",
+          "The investor tends the standing trees and palms on the land described with what they need — watering, pruning, pollination, pest control, picking — directly or through those he engages; any other care falls on whoever is named for it above.",
+        ),
+        t(
+          `ويُقسم الثمر بعد جنيه: لصاحب الأرض ${n(x.owner_share, locale)}٪، وللمستثمر ${n(x.investor_share, locale)}٪ — نسبةٌ شائعة ممّا يُثمره الشجر، لا كمّيّة ثابتة.`,
+          `The fruit is split after picking: ${n(x.owner_share, locale)}% to the landowner, ${n(x.investor_share, locale)}% to the investor — a proportion of what the trees bear, never a fixed quantity.`,
+        ),
+        t(
+          "وإن لم يُثمر الشجر فلا شيء لأحدهما على الآخر، والشجر لصاحبه على كلّ حال، لا يُقطع منه شيءٌ ولا يُغرس فيه جديدٌ إلّا بموافقته كتابةً (قانون المعاملات المدنيّة لسنة ١٩٨٤، المواد ٣٣٧–٣٤٧).",
+          "If the trees bear nothing, neither owes the other anything; the trees remain the owner's in every case, and none is cut nor new planted without his written consent (Civil Transactions Act 1984, articles 337–347).",
+        ),
+      ],
+    });
+  }
+
+  if (a.model === "managed") {
+    clauses.push({
+      title: t("الإدارة وقسمة الربح", "Management and sharing the profit"),
+      body: [
+        t(
+          "تدير الشركة المديرة الزراعة من التجهيز إلى الحصاد والتعبئة، وتسجّل كلّ مرحلةٍ ومصروفها في سوداقري بصورته وفاتورته، فيراها الطرفان.",
+          "The managing company runs the farming from preparation to harvest and packing, and records every stage and its spending in Sudagri with its photo and invoice, for both other parties to see.",
+        ),
+        t(
+          `يُباع المحصول أو يُقيَّم بسعر السوق يوم الحصاد، وتُستردّ منه أوّلاً التكاليف الموثّقة في دفتر الموسم لمن دفعها، ثمّ يُقسم صافي الربح: للشركة المديرة ${n(x.manager_share, locale)}٪ مقابل الإدارة، والباقي بين صاحب الأرض (${n(x.owner_share, locale)}٪) والمستثمر (${n(x.investor_share, locale)}٪).`,
+          `The crop is sold, or valued at the market price on harvest day; the costs recorded in the season's ledger are repaid first to whoever paid them, then the net profit is split: ${n(x.manager_share, locale)}% to the managing company for its management, and the rest between the landowner (${n(x.owner_share, locale)}%) and the investor (${n(x.investor_share, locale)}%).`,
+        ),
+        t(
+          "وإن لم يكن ربحٌ فلا شيء للشركة من الربح، ويُحمَل ما خسره الموسم على صاحب الأرض والمستثمر بحكم الخسارة أدناه. ولا تضمن الشركة ربحاً، ولا تضمن خسارةً إلّا بتعدٍّ أو تقصير.",
+          "If there is no profit the company takes nothing from it, and the season's loss falls on the landowner and the investor under the loss rule below. The company guarantees no profit, and answers for a loss only through misconduct or negligence.",
+        ),
+      ],
+    });
+  }
+
   clauses.push({
     title: t("إن خسر الموسم", "If the season loses"),
     body: [
@@ -301,14 +361,24 @@ export function agreementClauses(a: AgreementView, locale: Locale): { title: str
         "يُحفظ هذا العقد في سوداقري، ويطّلع عليه الطرفان من هذه الصفحة متى شاءا. وإن احتاج أحدهما نسخةً لجهةٍ رسميّة طلبها من سوداقري فتُصدرها مختومة.",
         "This agreement is kept in Sudagri, and both parties can read it on this page at any time. If either needs a copy for an official body, Sudagri issues a stamped one on request.",
       ),
-      t(
-        "وتشهد سوداقري بأنّ الطرفين وقّعا هذه النسخة بحسابيهما في الوقت المذكور، وبصمتها مكتوبةٌ أسفلها: أيّ تغييرٍ في حرفٍ منها يغيّر البصمة.",
-        "Sudagri witnesses that both parties signed this version from their own accounts at the time shown; its fingerprint is printed below — changing a single letter changes it.",
-      ),
-      t(
-        "رسم كتابة العقد وتوثيقه يدفعه الطرفان مناصفة — وهو مجّانيٌّ في فترة التجربة.",
-        "The fee for drafting and documenting the agreement is shared equally by both parties — free during the trial period.",
-      ),
+      a.model === "managed"
+        ? t(
+            "وتشهد سوداقري بأنّ الأطراف الثلاثة وقّعوا هذه النسخة بحساباتهم في الوقت المذكور، وبصمتها مكتوبةٌ أسفلها: أيّ تغييرٍ في حرفٍ منها يغيّر البصمة.",
+            "Sudagri witnesses that all three parties signed this version from their own accounts at the time shown; its fingerprint is printed below — changing a single letter changes it.",
+          )
+        : t(
+            "وتشهد سوداقري بأنّ الطرفين وقّعا هذه النسخة بحسابيهما في الوقت المذكور، وبصمتها مكتوبةٌ أسفلها: أيّ تغييرٍ في حرفٍ منها يغيّر البصمة.",
+            "Sudagri witnesses that both parties signed this version from their own accounts at the time shown; its fingerprint is printed below — changing a single letter changes it.",
+          ),
+      a.model === "managed"
+        ? t(
+            "رسم كتابة العقد وتوثيقه يدفعه الأطراف بالتساوي — وهو مجّانيٌّ في فترة التجربة.",
+            "The fee for drafting and documenting the agreement is shared equally by the parties — free during the trial period.",
+          )
+        : t(
+            "رسم كتابة العقد وتوثيقه يدفعه الطرفان مناصفة — وهو مجّانيٌّ في فترة التجربة.",
+            "The fee for drafting and documenting the agreement is shared equally by both parties — free during the trial period.",
+          ),
     ],
   });
   return clauses;

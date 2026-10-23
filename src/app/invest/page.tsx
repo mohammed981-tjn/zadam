@@ -8,7 +8,7 @@ import InvestTabs from "@/components/invest/InvestTabs";
 import ProjectCard from "@/components/ProjectCard";
 import LandOfferCard from "@/components/invest/LandOfferCard";
 import { lbl } from "@/lib/partners";
-import { INVESTOR_MODEL_DETAIL, INVESTOR_MODEL_LABEL, INVESTOR_MODELS } from "@/lib/investors";
+import { INVESTOR_MODEL_DETAIL, INVESTOR_MODEL_LABEL, INVESTOR_MODELS, RISK_NOTICE } from "@/lib/investors";
 import { feeLine } from "@/lib/inspections";
 import { loadLandOffers, loadProjectLands } from "@/lib/landOffers";
 import { card } from "@/lib/ui";
@@ -74,12 +74,12 @@ export default async function InvestPage({
       <InvestTabs active="/invest" locale={locale} />
       <ActionNotice ok={sp.ok} error={sp.error} />
 
-      {/* ── ثلاث طرق للشراكة ───────────────────────────────────────────── */}
+      {/* ── طرق الشراكة ───────────────────────────────────────────── */}
       <section aria-labelledby="models" className="mb-10">
         <h2 id="models" className="title-bar mb-4 text-lg font-black">
           {t("كيف يستفيد المستثمر من صاحب الأرض", "How an investor and a landowner work together")}
         </h2>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {INVESTOR_MODELS.map((m) => (
             <article key={m} className={card}>
               <h3 className="font-black text-primary">{lbl(INVESTOR_MODEL_LABEL[m], locale)}</h3>
@@ -99,6 +99,11 @@ export default async function InvestPage({
             "النسبة والأجرة والمدّة يتّفق عليها الطرفان كتابةً — سوداقري لا تحدّدها ولا تضمنها.",
             "The share, the rent and the term are agreed in writing between the two — Sudagri neither sets nor guarantees them.",
           )}
+        </p>
+        {/* البند ١٣٦: ما لم تقله المنصّات التي انهارت. */}
+        <p className="mt-3 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm leading-7">
+          <span className="font-bold">{t("قبل أن تبدأ: ", "Before you start: ")}</span>
+          {lbl(RISK_NOTICE, locale)}
         </p>
       </section>
 

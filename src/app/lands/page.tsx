@@ -10,7 +10,7 @@ import FilmPlayer from "@/components/FilmPlayer";
 import LandPartnerConsent from "@/components/partners/LandPartnerConsent";
 import LandInvestorConsent from "@/components/invest/LandInvestorConsent";
 import type { InspectionRow } from "@/lib/inspections";
-import type { LandRequest } from "@/lib/investors";
+import type { InvestorProfile, LandRequest } from "@/lib/investors";
 import LandWater from "@/components/LandWater";
 import { Suspense } from "react";
 import type { PartnerCompany, PartnerInterest } from "@/lib/partners";
@@ -98,11 +98,14 @@ export default async function LandsPage({
   // وطلباتُ المعاينة على أرضه (البند ١٢٨).
   let inspections: InspectionRow[] = [];
   if (lands.some((l) => l.verification === "verified")) {
-    const [{ data: rRows }, { data: iRows }] = await Promise.all([
+    const [{ data: rRows }, { data: iRows }, { data: pRows }] = await Promise.all([
       supabase.rpc("land_investor_requests"),
       supabase.rpc("land_inspection_list"),
+      // من الذي يطلب (البند ١٣٦). قبل هجرته يعود خطأ، فيبقى الطلب كما كان.
+      supabase.rpc("land_investor_profiles"),
     ]);
-    investorRequests = (rRows ?? []) as LandRequest[];
+    const profiles = new Map(((pRows ?? []) as InvestorProfile[]).map((p) => [p.interest_id, p]));
+    investorRequests = ((rRows ?? []) as LandRequest[]).map((r) => ({ ...r, profile: profiles.get(r.interest_id) }));
     inspections = ((iRows ?? []) as InspectionRow[]).filter((i) => i.role === "owner");
   }
 

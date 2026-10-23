@@ -15,13 +15,19 @@ import type { Bi } from "@/lib/partners";
  * owner's decision of 20 October (backlog 115).
  */
 
-export const INVESTOR_MODELS = ["sharecrop", "lease", "finance"] as const;
+// «musaqah» (backlog 136): standing trees and palms, tended for a share of the
+// fruit — supabase/migrations/20261023010000_partnership_trust.sql.
+// «managed» (backlog 136): land, capital and a verified partner company that
+// manages for a share of the net profit — 20261023020000_partnership_managed.sql.
+export const INVESTOR_MODELS = ["sharecrop", "lease", "finance", "musaqah", "managed"] as const;
 export type InvestorModel = (typeof INVESTOR_MODELS)[number];
 
 export const INVESTOR_MODEL_LABEL: Record<InvestorModel, Bi> = {
   sharecrop: { ar: "مشاركة بالمحصول", en: "Crop sharing" },
   lease: { ar: "إيجار الأرض", en: "Land lease" },
   finance: { ar: "تمويل المدخلات مقابل حصّة", en: "Input finance for a share" },
+  musaqah: { ar: "مساقاة البستان والنخيل", en: "Orchard tending (musaqah)" },
+  managed: { ar: "شراكة ثلاثيّة: أرضٌ ومالٌ وإدارة", en: "Three-party: land, capital and management" },
 };
 
 /** What each side brings and takes, said plainly — no percentages, they are agreed between the two. */
@@ -56,7 +62,48 @@ export const INVESTOR_MODEL_DETAIL: Record<InvestorModel, { investor: Bi; owner:
       en: "Farms their own land and gives the investor the agreed share of the harvest.",
     },
   },
+  musaqah: {
+    investor: {
+      ar: "يرعى الشجر والنخيل القائم بالسقي والتقليم والمكافحة والجني، بنفسه أو بشركةٍ شريكة، ويأخذ حصّةً متّفقاً عليها من الثمر.",
+      en: "Tends the standing trees and palms — watering, pruning, pest control, picking — directly or through a partner company, and takes an agreed share of the fruit.",
+    },
+    owner: {
+      ar: "يقدّم البستان بشجره وحقّه في الماء، ويأخذ بقيّة الثمر. وإن لم يُثمر الشجر لم يأخذ أحدٌ شيئاً.",
+      en: "Brings the orchard with its trees and water rights, and takes the rest of the fruit. If the trees bear nothing, neither takes anything.",
+    },
+  },
+  managed: {
+    investor: {
+      ar: "يموّل الموسم، وتديره شركةٌ شريكة موثّقة تسجّل كلّ مرحلةٍ ومصروفها — فلا يحتاج أن يزرع بنفسه ولا أن يكون في السودان.",
+      en: "Finances the season, which a verified partner company manages and records stage by stage — no need to farm in person, or to be in Sudan.",
+    },
+    owner: {
+      ar: "يقدّم الأرض والماء. تُستردّ التكاليف الموثّقة أوّلاً، ثمّ تأخذ الشركة نسبتها من صافي الربح، ويُقسم الباقي بينه وبين المستثمر.",
+      en: "Brings the land and the water. The recorded costs are repaid first, the company takes its share of the net profit, and the rest is split between him and the investor.",
+    },
+  },
 };
+
+/**
+ * تنبيه المخاطرة (البند ١٣٦) — يُقَرّ به قبل أن يُرسل طلب الشراكة، ويُحفظ معه.
+ * The platforms that collapsed in Nigeria never said this; see
+ * docs/studies/partnership-models-ar.md.
+ */
+export const RISK_NOTICE: Bi = {
+  ar: "الزراعة ربحٌ وخسارة: قد يضعف المحصول أو يهلك أو ينخفض سعره، فتخسر بعض ما قدّمت أو كلّه. سوداقري لا تضمن ربحاً ولا عائداً، ولا تمسك مالك؛ المال بينك وبين شريكك مباشرةً.",
+  en: "Farming can lose as well as gain: the crop can fail, be destroyed or sell low, and you can lose part or all of what you put in. Sudagri guarantees no profit or return and holds none of your money; it passes between you and your partner directly.",
+};
+
+/** land_investor_profiles(): who the investor is, for the owner of the land asked about. */
+export interface InvestorProfile {
+  interest_id: string;
+  dial_code: string | null;
+  member_since: string | null;
+  requests_sent: number;
+  requests_accepted: number;
+  agreements_signed: number;
+  risk_acknowledged: boolean;
+}
 
 export type InterestStatus = "pending" | "accepted" | "declined" | "withdrawn";
 
@@ -117,4 +164,6 @@ export interface LandRequest {
   investor_phone: string | null;
   created_at: string;
   decided_at: string | null;
+  /** From land_investor_profiles(), joined on the page; absent before that migration. */
+  profile?: InvestorProfile;
 }

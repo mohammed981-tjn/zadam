@@ -47,10 +47,22 @@ export async function expressInvestorInterest(fd: FormData) {
       ),
     );
   }
+  // البند ١٣٦: الإقرار بالمخاطرة شرطٌ، والقاعدة تتحقّق منه وتحفظ وقته.
+  if (str(fd, "risk_ack") !== "yes") {
+    back(
+      origin,
+      "error",
+      t(
+        "اقرأ تنبيه المخاطرة وأقرّ به قبل أن ترسل الطلب.",
+        "Read the risk notice and confirm it before sending the request.",
+      ),
+    );
+  }
   const { error } = await supabase.rpc("investor_express_interest", {
     p_land: str(fd, "land_id"),
     p_model: model,
     p_message: message.slice(0, 1000),
+    p_risk_ack: true,
   });
   if (error) back(origin, "error", explain(locale, error));
   back(

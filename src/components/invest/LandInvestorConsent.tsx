@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { tr, type Locale } from "@/lib/i18n";
 import { lbl } from "@/lib/partners";
-import { INVESTOR_MODEL_DETAIL, INVESTOR_MODEL_LABEL, INVESTOR_MODELS, type LandRequest } from "@/lib/investors";
+import { INVESTOR_MODEL_DETAIL, INVESTOR_MODEL_LABEL, INVESTOR_MODELS, type InvestorProfile, type LandRequest } from "@/lib/investors";
+import { COUNTRIES } from "@/lib/phone";
 import { button, field, ghost } from "@/lib/ui";
 import { decideInvestorInterest, setInvestorConsent } from "@/app/invest/actions";
 import { openAgreement } from "@/app/invest/agreements/actions";
@@ -163,6 +164,7 @@ export default function LandInvestorConsent({
                 <bdi>{r.investor_name ?? t("مستثمر", "an investor")}</bdi>
                 <span className="text-muted"> — {lbl(INVESTOR_MODEL_LABEL[r.model], locale)}</span>
               </p>
+              {r.profile && <InvestorRecord p={r.profile} locale={locale} />}
               <p className="mt-1 whitespace-pre-line [overflow-wrap:anywhere]" {...arText}>
                 {r.message}
               </p>
@@ -204,4 +206,24 @@ export default function LandInvestorConsent({
       )}
     </section>
   );
+}
+
+/**
+ * من يطلب الشراكة (البند ١٣٦): البلد الذي سُجّل منه رقمه، ومنذ متى هو في
+ * سوداقري، وما فعله فيها — ليعرف صاحب الأرض من أمامه قبل أن يقبل.
+ */
+function InvestorRecord({ p, locale }: { p: InvestorProfile; locale: Locale }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const country = p.dial_code ? COUNTRIES.find((c) => c.dial === p.dial_code) : undefined;
+  const since = p.member_since
+    ? new Date(p.member_since).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG", { month: "long", year: "numeric" })
+    : null;
+  const parts = [
+    country ? t(`من ${country.name}`, `from ${country.nameEn}`) : t("سجّل بالبريد", "signed up by email"),
+    since && t(`في سوداقري منذ ${since}`, `on Sudagri since ${since}`),
+    t(`طلبات شراكة: ${p.requests_sent}، قُبل منها ${p.requests_accepted}`, `partnership requests: ${p.requests_sent}, ${p.requests_accepted} accepted`),
+    t(`عقود موقّعة: ${p.agreements_signed}`, `signed agreements: ${p.agreements_signed}`),
+    p.risk_acknowledged && t("أقرّ بتنبيه المخاطرة", "acknowledged the risk notice"),
+  ].filter(Boolean);
+  return <p className="mt-1 text-xs leading-5 text-muted">{parts.join(" · ")}</p>;
 }

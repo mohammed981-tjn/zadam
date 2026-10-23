@@ -301,24 +301,39 @@ class SudagriApi {
     }
   }
 
+  /// The columns NafirCall and FazaRequest read, by name.
+  ///
+  /// A visitor holds SELECT on named columns of these tables, not on the
+  /// tables (backlog 132, supabase/migrations/20261022050000_visitor_columns.sql):
+  /// the organiser's account id is withheld. So `select=*` is refused outright
+  /// for every reader of this screen — the app has no sign-in — and it was,
+  /// from the day that migration was applied until these lists replaced it.
+  /// scripts/verify-visitor-columns.ts holds every select in this file to the
+  /// grant.
+  static const _nafirCallColumns =
+      'id,display_name,kind,title,description,state,locality,starts_on,needed,'
+      'hosting,bring_tools,outcome,attended';
+  static const _fazaColumns =
+      'id,display_name,cause,title,description,state,locality,needs';
+
   /// Everything the النفير screen shows, in parallel reads. Every table here
   /// is world-readable by policy; nothing needs a session.
   Future<NafirBoard> nafirBoard() async {
     final results = await Future.wait([
       _get('nafir_calls', {
-        'select': '*',
+        'select': _nafirCallColumns,
         'status': 'eq.open',
         'order': 'starts_on.asc',
         'limit': '30',
       }),
       _get('nafir_calls', {
-        'select': '*',
+        'select': _nafirCallColumns,
         'status': 'eq.done',
         'order': 'closed_at.desc',
         'limit': '10',
       }),
       _get('faza_requests', {
-        'select': '*',
+        'select': _fazaColumns,
         'status': 'eq.open',
         'order': 'created_at.desc',
         'limit': '20',
