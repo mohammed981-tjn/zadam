@@ -19,7 +19,8 @@ come out as disconnected letters. The cards that explain the partnership
 Arabic is shaped.
 
 If the film has a music.wav (music.py), it plays under the narration, quieter
-whenever the narrator speaks, and comes up at the end.
+whenever the narrator speaks, and comes up at the end. A limiter keeps the
+peaks under clipping: the narrator's lines reach full scale on their own.
 """
 
 import json
@@ -122,10 +123,10 @@ if os.path.exists(MUSIC):
         f"[{audio_base + n}:a]aresample=48000,atrim=duration={total:.3f},volume=0.32,"
         f"afade=t=in:st=0:d=1.5[bed]")
     filters.append("[bed][key]sidechaincompress=threshold=0.03:ratio=8:attack=30:release=500[ducked]")
-    filters.append(f"[nar][ducked]amix=inputs=2:normalize=0,"
+    filters.append(f"[nar][ducked]amix=inputs=2:normalize=0,alimiter=limit=0.89:level=false,"
                    f"atrim=duration={total:.3f},afade=t=out:st={total - 2.5:.3f}:d=2.5[aout]")
 else:
-    filters.append("".join(f"[a{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,"
+    filters.append("".join(f"[a{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,alimiter=limit=0.89:level=false,"
                    f"atrim=duration={total:.3f},afade=t=out:st={total - 1.2:.3f}:d=1.2[aout]")
 
 wide = f"{out}/{name}-wide.mp4"
