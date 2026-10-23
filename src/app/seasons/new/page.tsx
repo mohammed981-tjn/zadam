@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import SeasonForm, { type SeasonFromAgreement, type SeasonLandOption } from "@/components/SeasonForm";
 import type { AgreementView } from "@/lib/agreements";
@@ -21,7 +22,7 @@ export default async function NewSeasonPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(loginTo("/seasons/new"));
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);

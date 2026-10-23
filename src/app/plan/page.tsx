@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import PlanForm from "@/components/PlanForm";
 import { getLocale } from "@/lib/locale";
@@ -10,7 +11,7 @@ export default async function PlanPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect(loginTo("/plan"));
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);

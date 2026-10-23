@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import { markAllRead } from "./actions";
 import PushToggle from "@/components/PushToggle";
@@ -84,7 +85,7 @@ export default async function NotificationsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(loginTo("/notifications"));
 
   // Scoped to the caller by row-level security, not by a filter written here.
   const { data, error } = await supabase

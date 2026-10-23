@@ -9,6 +9,8 @@ import { toE164 } from "@/lib/phone";
 import { phoneToEmail } from "@/lib/phoneIdentity";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
+import { MIN_PASSWORD, readIdentifier, safeNext } from "@/lib/authEntry";
+import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 
 /*
  * Phone is the primary identifier, email the fallback.
@@ -143,13 +145,13 @@ export async function signup(formData: FormData) {
 
   const supabase = await createClient();
 
-  if (password.length < 6) {
+  if (password.length < MIN_PASSWORD) {
     const target = method === "email" ? "/signup?method=email" : "/signup";
     redirect(
       `${target}${target.includes("?") ? "&" : "?"}error=${encodeURIComponent(
         t(
-          "كلمة المرور يجب أن تكون ستة أحرف على الأقل.",
-          "The password must be at least six characters.",
+          `كلمة المرور يجب أن تكون ${MIN_PASSWORD} أحرف على الأقل.`,
+          `The password must be at least ${MIN_PASSWORD} characters.`,
         ),
       )}`,
     );
@@ -308,6 +310,203 @@ export async function signup(formData: FormData) {
   redirect(await homeAfterAuth());
 }
 
+/**
+ * What the one sign-in screen shows after a press (backlog 142).
+ *
+ * `new` opens the name and role on the same screen: there is no account for
+ * this number or email, and the next press creates it with the same password.
+ */
+export type EntryState = {
+  kind: "idle" | "error" | "new" | "sent";
+  message?: string;
+};
+
+/**
+ * دخولٌ وتسجيلٌ في شاشةٍ واحدة (البند ١٤٢).
+ *
+ * The owner found the old pair confusing: a sign-in page that asked first
+ * whether by phone or by email, a separate signup page that asked again, and
+ * no way to know which one you needed until one of them failed. Here:
+ *
+ *  1. The visitor types a number or an email, and a password, and presses.
+ *  2. If that signs in, they are where they were going.
+ *  3. If it does not, the server asks whether that address has an account at
+ *     all. None: the name and role appear, and the same password makes it. One:
+ *     the password is wrong, and «نسيت كلمة المرور» is right there.
+ *
+ * Throttled per connecting address with the app's sign-in (five a minute), and
+ * closed when the limiter cannot be asked: this is where passwords are guessed.
+ * Telling a visitor that a number has no account says no more than the old
+ * signup form did («هذا الرقم مسجّل بالفعل»).
+ */
+export async function enter(_prev: EntryState, formData: FormData): Promise<EntryState> {
+  const { locale, t } = await translator();
+  const creating = str(formData, "intent") === "new";
+  // A message that is not about which of the two to do keeps the screen as it was.
+  const stay = creating ? "new" : "error";
+
+  const verdict = await checkRateLimit("web-auth", clientAddress(await headers()));
+  if (!verdict.allowed) {
+    return {
+      kind: stay,
+      message: t(
+        "محاولاتٌ كثيرة في وقتٍ قصير. انتظر دقيقةً ثمّ أعد المحاولة.",
+        "Too many attempts in a short time. Wait a minute and try again.",
+      ),
+    };
+  }
+
+  const who = readIdentifier(str(formData, "ident"), str(formData, "dial_code"), locale);
+  if (!who.ok) return { kind: stay, message: who.message };
+
+  const password = String(formData.get("password") ?? "");
+  if (!password) return { kind: stay, message: t("اكتب كلمة المرور.", "Enter your password.") };
+
+  const next = safeNext(str(formData, "next"));
+  const supabase = await createClient();
+
+  if (!creating) {
+    const { error } = await supabase.auth.signInWithPassword({ email: who.address, password });
+    if (!error) redirect(next ?? (await homeAfterAuth()));
+
+    if (error.message !== "Invalid login credentials") {
+      return { kind: "error", message: translateAuthError(error.message, who.kind, locale) };
+    }
+
+    const admin = createAdminClient();
+    const { data: exists, error: lookupError } = admin
+      ? await admin.rpc("auth_account_exists", { p_email: who.address })
+      : { data: null, error: null };
+    if (lookupError) console.error("enter: account lookup failed", lookupError.message);
+
+    if (exists === false) {
+      return {
+        kind: "new",
+        message:
+          who.kind === "phone"
+            ? t(
+                "لا حساب بهذا الرقم بعد. اكتب اسمك واختر صفتك، ثمّ اضغط «أنشئ حسابي» بكلمة المرور نفسها.",
+                "There is no account with this number yet. Write your name and choose what you do, then press «Create my account» with the same password.",
+              )
+            : t(
+                "لا حساب بهذا البريد بعد. اكتب اسمك واختر صفتك، ثمّ اضغط «أنشئ حسابي». وستصلك رسالة تفعيل على بريدك.",
+                "There is no account with this email yet. Write your name and choose what you do, then press «Create my account». A confirmation message will reach your inbox.",
+              ),
+      };
+    }
+    if (exists === true) {
+      return {
+        kind: "error",
+        message: t(
+          "كلمة المرور غير صحيحة. أعد كتابتها، أو اضغط «نسيت كلمة المرور».",
+          "The password is not right. Type it again, or press «Forgot your password».",
+        ),
+      };
+    }
+    // The lookup could not be made: say what is known, and leave the way open.
+    return {
+      kind: "error",
+      message: t(
+        "الرقم أو البريد أو كلمة المرور غير صحيحة. وإن لم يكن لك حساب فاضغط «ليس لي حساب».",
+        "The number, email or password is not right. If you have no account, press «I have no account».",
+      ),
+    };
+  }
+
+  // ── A new account ──────────────────────────────────────────────────────────
+  const fullName = str(formData, "full_name");
+  if (fullName.length < 2 || fullName.length > 80) {
+    return { kind: "new", message: t("اكتب اسمك الكامل.", "Write your full name.") };
+  }
+  if (password.length < MIN_PASSWORD) {
+    return {
+      kind: "new",
+      message: t(
+        `كلمة المرور للحساب الجديد ${MIN_PASSWORD} أحرف على الأقلّ.`,
+        `A new account's password is at least ${MIN_PASSWORD} characters.`,
+      ),
+    };
+  }
+  // The same narrowing as signup() above, and again in handle_new_user.
+  const chosenRole = str(formData, "role") === "investor" ? "investor" : "farmer";
+
+  if (who.kind === "email") {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    const { data, error } = await supabase.auth.signUp({
+      email: who.address,
+      password,
+      options: {
+        data: { full_name: fullName, role: chosenRole },
+        ...(host ? { emailRedirectTo: `${proto}://${host}/auth/callback` } : {}),
+      },
+    });
+    if (error) return { kind: "new", message: translateAuthError(error.message, "email", locale) };
+    // An address that already has an account answers like a new one, with no
+    // identities (see signup() above).
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      return {
+        kind: "error",
+        message: t(
+          "هذا البريد مسجّل من قبل. ادخل به — وإن نسيت كلمة المرور فاضغط «نسيت كلمة المرور».",
+          "This email already has an account. Sign in with it — or press «Forgot your password».",
+        ),
+      };
+    }
+    if (!data.session) {
+      return {
+        kind: "sent",
+        message: t(
+          "أُنشئ حسابك. افتح رسالة التفعيل التي وصلت بريدك (تأتي باسم خدمة الاستضافة Supabase) واضغط الرابط، ثمّ ادخل.",
+          "Your account has been created. Open the confirmation message in your inbox (it comes from our hosting provider, Supabase), click the link, then sign in.",
+        ),
+      };
+    }
+    redirect(next ?? (await homeAfterAuth()));
+  }
+
+  const admin = createAdminClient();
+  if (!admin) {
+    console.error("enter: phone registration unavailable — SUPABASE_SERVICE_ROLE_KEY is not set for this deployment.");
+    return {
+      kind: "new",
+      message: t(
+        "التسجيل برقم الجوال غير متاح على هذه النسخة من الموقع. اكتب بريدك بدل الرقم — الحساب واحد في الحالتين.",
+        "Signing up with a mobile number is not available on this version of the site. Type your email instead — it is the same account either way.",
+      ),
+    };
+  }
+
+  const { error: createError } = await admin.auth.admin.createUser({
+    email: who.address,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: fullName, phone: who.e164, role: chosenRole },
+  });
+  if (createError) {
+    const taken = /already (been )?registered/i.test(createError.message);
+    return {
+      kind: taken ? "error" : "new",
+      message: taken
+        ? t(
+            "هذا الرقم له حساب. ادخل بكلمة مروره — وإن نسيتها فاضغط «نسيت كلمة المرور».",
+            "This number already has an account. Sign in with its password — or press «Forgot your password».",
+          )
+        : translateAuthError(createError.message, "phone", locale),
+    };
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email: who.address, password });
+  if (signInError) {
+    return {
+      kind: "sent",
+      message: t("أُنشئ حسابك. ادخل برقمك وكلمة مرورك.", "Your account was created. Sign in with your number and password."),
+    };
+  }
+  redirect(next ?? (await homeAfterAuth()));
+}
+
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -453,9 +652,9 @@ export async function completePasswordReset(formData: FormData) {
   const password = str(formData, "password");
   const confirm = str(formData, "confirm");
 
-  if (password.length < 6) {
+  if (password.length < MIN_PASSWORD) {
     redirect(
-      `/reset/confirm?error=${encodeURIComponent(t("كلمة المرور يجب أن تكون ٦ أحرف على الأقل.", "The password must be at least 6 characters."))}`,
+      `/reset/confirm?error=${encodeURIComponent(t(`كلمة المرور يجب أن تكون ${MIN_PASSWORD} أحرف على الأقل.`, `The password must be at least ${MIN_PASSWORD} characters.`))}`,
     );
   }
   if (password !== confirm) {

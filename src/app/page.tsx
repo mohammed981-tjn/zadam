@@ -60,7 +60,7 @@ const BOARD: (BoardTile & { en: Pick<BoardTile, "alt" | "title" | "note"> })[] =
     title: "سجّل أرضك ووثّق موسمك",
     note: "أرضٌ موثّقة وموسمٌ بأدلّته — يحتاج حساباً.",
     en: { alt: "A farmer standing by a sorghum field next to an earth irrigation canal", title: "Register your land and record your season", note: "Verified land and a season with its evidence — needs an account." },
-    href: "/signup",
+    href: "/lands/new",
   },
   {
     photo: PHOTOS.grainSoil,
@@ -112,7 +112,7 @@ const BOARD: (BoardTile & { en: Pick<BoardTile, "alt" | "title" | "note"> })[] =
     title: "الإنتاج الحيواني",
     note: "علفُ القطيع وميزانيّتُه مرحلةً مرحلة — يحتاج حساباً.",
     en: { alt: "A herd of humped cattle walking along a canal in the dust", title: "Livestock production", note: "Feed and budget for the herd, stage by stage — needs an account." },
-    href: "/signup",
+    href: "/herds",
   },
   {
     photo: PHOTOS.exportStore,
@@ -281,7 +281,7 @@ export default async function Home() {
               farmer's door, an outline for the study. */}
           <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
             <Link
-              href="/signup"
+              href="/lands/new"
               className="rounded-2xl bg-white px-6 py-3.5 text-center font-extrabold text-[#ca2c72] shadow-float transition hover:bg-white/95 active:scale-[0.98]"
             >
               {t("سجّل أرضك ووثّق موسمك", "Register your land and record your season")}

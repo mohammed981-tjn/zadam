@@ -152,7 +152,7 @@ export default async function RainPage({
             {layer.key === "lands" && landCount === 0 && (
               <p className="mt-3 rounded-xl border border-border bg-background p-3 text-sm">
                 {t("لا أرضَ موثّقة معروضة بعد.", "No verified land is listed yet.")}{" "}
-                <Link href="/signup" className="font-medium text-primary underline">{t("سجّل أرضك", "Register your land")}</Link>{" "}
+                <Link href="/lands/new" className="font-medium text-primary underline">{t("سجّل أرضك", "Register your land")}</Link>{" "}
                 {t("فتظهر هنا حين تُوثَّق ويعرضها صاحبها.", "and it will appear here once it is verified and its owner lists it.")}
               </p>
             )}

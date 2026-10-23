@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import OpportunityForm from "@/components/OpportunityForm";
 import { getLocale } from "@/lib/locale";
@@ -23,7 +24,7 @@ export default async function NewOpportunityPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect(loginTo("/opportunities/new"));
 
   // «ارفع فرصة للمستثمرين» on a verified land opens this page with ?land=
   // (backlog 123), and the form starts from that land.
