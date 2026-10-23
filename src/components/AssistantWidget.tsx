@@ -95,6 +95,14 @@ export default function AssistantWidget() {
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const [open, setOpen] = useState(false);
+  /**
+   * The button steps aside while someone is filling in a form elsewhere on the
+   * page, and on the sign-in screen altogether (the review of 23 October: it
+   * sat over the button that creates the account). The keyboard is up then,
+   * and the form's own button is the one thing that should be pressed.
+   */
+  const [typing, setTyping] = useState(false);
+  const formPage = /^\/(login|signup|reset)(\/|$)/.test(pathname ?? "");
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [loading, setLoading] = useState(false);
@@ -268,6 +276,19 @@ export default function AssistantWidget() {
     if (result.ok) setShowLeadForm(false);
   }
 
+  useEffect(() => {
+    const field = (el: EventTarget | null) =>
+      el instanceof HTMLElement && !el.closest("[data-assistant]") && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+    const onIn = (e: FocusEvent) => setTyping(field(e.target));
+    const onOut = () => setTyping(false);
+    document.addEventListener("focusin", onIn);
+    document.addEventListener("focusout", onOut);
+    return () => {
+      document.removeEventListener("focusin", onIn);
+      document.removeEventListener("focusout", onOut);
+    };
+  }, []);
+
   return (
     /*
      * The panel and the launcher are deliberately separate fixed elements.
@@ -291,6 +312,7 @@ export default function AssistantWidget() {
     <>
       {open && (
         <div
+          data-assistant
           className="fixed inset-x-4 z-[99] print:hidden flex h-[28rem] max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl sm:right-auto sm:left-4 sm:w-80"
           style={{ bottom: "calc(1.25rem + max(var(--nav-bottom, 0px), env(safe-area-inset-bottom)))" }}
         >
@@ -498,7 +520,7 @@ export default function AssistantWidget() {
       {/* A labelled pill rather than a bare icon — a lone circle reads as
           decoration and visitors were not finding the assistant at all.
           Draggable, because no fixed corner is free on every page. */}
-      {!open && (
+      {!open && !typing && !formPage && (
         <div
           ref={dragRef}
           suppressHydrationWarning

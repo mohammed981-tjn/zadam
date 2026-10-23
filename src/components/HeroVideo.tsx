@@ -34,8 +34,15 @@ import { SUDAGRI_LOGO } from "@/lib/brand";
  * leans aside again towards the deck; the next one plays when the visitor
  * moves to it. So nothing streams that nobody asked for after the first.
  *
- * The frame claims drags (`touch-action: none` on the frame only); the page
- * scrolls from everywhere else.
+ * The frame claims sideways drags only (`touch-action: pan-y`): a finger moving
+ * up or down over it scrolls the page, as everywhere else. Until 23 October it
+ * claimed every drag, and on a phone, where the 4:5 frame is most of the
+ * screen, the page could not be scrolled past it (the review of that day, UX-2).
+ *
+ * On a phone the first film does not start by itself either (the same review,
+ * UX-1, in the fix plan the owner took on): it waits on its poster for «▶»,
+ * because a film is megabytes on a metered connection. A wider screen starts
+ * it as before (the owner, 2 October).
  *
  * Each film comes in two cuts, chosen by the frame's shape: 4:5 below `sm`
  * (vertical cut), 16:9 from `sm` up. Muted to start, as autoplay requires;
@@ -155,7 +162,7 @@ export default function HeroVideo() {
         setIdle(true);
         return;
       }
-      if (frugal()) {
+      if (frugal() || isNarrow()) {
         setIdle(true);
         return;
       }
@@ -241,11 +248,9 @@ export default function HeroVideo() {
     const r = e.currentTarget.getBoundingClientRect();
     drag.current = { x: e.clientX, y: e.clientY, w: r.width, h: r.height, on: false };
   };
-  /** How far along the drag is, −1…1, positive towards the next film. */
+  /** How far along the drag is, −1…1, positive towards the next film. Sideways only: up and down scroll the page. */
   const along = (d: NonNullable<typeof drag.current>, e: PointerEvent<HTMLElement>) => {
-    const dx = e.clientX - d.x;
-    const dy = e.clientY - d.y;
-    const f = Math.abs(dx) > Math.abs(dy) ? (-dx * dir) / d.w : dy / d.h;
+    const f = (-(e.clientX - d.x) * dir) / d.w;
     return Math.max(-1, Math.min(1, f));
   };
   const onPointerMove = (e: PointerEvent<HTMLElement>) => {
@@ -253,6 +258,11 @@ export default function HeroVideo() {
     if (!d) return;
     if (!d.on) {
       if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8) return;
+      // Mostly up or down: the page is scrolling, not the films.
+      if (Math.abs(e.clientY - d.y) > Math.abs(e.clientX - d.x)) {
+        drag.current = null;
+        return;
+      }
       d.on = true;
       e.currentTarget.setPointerCapture(e.pointerId);
       setEasing("none");
@@ -308,8 +318,13 @@ export default function HeroVideo() {
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          className={`relative select-none overflow-hidden rounded-[1.75rem] bg-card shadow-float ring-[3px] ring-primary ${deck ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
+          onPointerCancel={() => {
+            // The browser took the gesture (a scroll): put the frame back, change nothing.
+            drag.current = null;
+            setEasing("transform 520ms cubic-bezier(.3,1.6,.5,1)");
+            setPose(REST);
+          }}
+          className={`relative select-none overflow-hidden rounded-[1.75rem] bg-card shadow-float ring-[3px] ring-primary ${deck ? "cursor-grab touch-pan-y active:cursor-grabbing" : ""}`}
           style={{
             transform: `translate(${pose.x * dir}%, ${pose.y}%) rotateY(${pose.ry * dir}deg) scale(${pose.s})`,
             transformOrigin: dir === 1 ? "0% 50%" : "100% 50%",

@@ -23,6 +23,8 @@ import { MENU_STATE_EVENT, TOGGLE_MENU_EVENT } from "@/lib/events";
  *
  * Four places people come back to, and the fifth opens the full menu — the
  * same one the header opens on a wider screen, where this bar is not shown.
+ * The fourth was «النفير» until 23 October; it is «احسب» now, and the nafir
+ * is in the menu.
  */
 export default function BottomNav({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
@@ -42,7 +44,10 @@ export default function BottomNav({ signedIn }: { signedIn: boolean }) {
     signedIn
       ? { href: "/lands", icon: "wheat", label: t("مزرعتي", "My farm"), match: ["/lands", "/seasons", "/herds", "/my-project"] }
       : { href: "/signup", icon: "wheat", label: t("مزرعتك", "Your farm"), match: ["/signup", "/login"] },
-    { href: "/nafir", icon: "people", label: t("النفير", "Nafir"), match: ["/nafir"] },
+    // «احسب» in place of «النفير» (the owner, 23 October, from the review of
+    // the same day): the calculators are what a farmer comes back to; the
+    // nafir stays one tap away in the menu.
+    { href: "/tools", icon: "calculator", label: t("احسب", "Calculate"), match: ["/tools", "/rates"] },
   ];
 
   const pill = (on: boolean) =>
