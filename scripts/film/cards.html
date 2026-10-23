@@ -70,6 +70,24 @@
   }
   .chip svg { width: 22px; height: 22px; fill: none; stroke: #1b8043; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 
+  /* ── The models card: the ways to partner, as the narrator names them ── */
+  #m h1 { position: absolute; top: 58px; inset-inline: 0; text-align: center; font-size: 54px; font-weight: 900; }
+  #m .grid {
+    position: absolute; top: 176px; inset-inline: 90px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px 22px;
+  }
+  .model {
+    height: 132px; border-radius: 24px; border: 1.5px solid var(--line); background: rgba(247, 245, 239, 0.05);
+    display: flex; align-items: center; gap: 20px; padding-inline: 26px;
+  }
+  .model .n {
+    width: 62px; height: 62px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    font-size: 32px; font-weight: 900; color: var(--ground);
+  }
+  .model b { display: block; font-size: 34px; font-weight: 900; }
+  .model span { display: block; margin-top: 4px; font-size: 22px; font-weight: 500; color: var(--soft); }
+  .model.wide { grid-column: 1 / -1; border-color: rgba(244, 114, 182, 0.65); background: rgba(244, 114, 182, 0.10); }
+
   /* ── Card B: the call ── */
   #b .wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; }
   #b .name { font-size: 34px; font-weight: 700; color: var(--gold); }
@@ -130,6 +148,17 @@
         <p class="chip" data-cue="6"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>تكتب العقد وتشهد عليه</p>
         <p class="chip" data-cue="6" data-delay="0.45"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>تتابع الموسم</p>
       </div>
+    </div>
+  </section>
+
+  <section class="card" id="m">
+    <h1 data-cue="0" data-delay="-0.25">تختارون الشراكة التي تناسبكم</h1>
+    <div class="grid">
+      <div class="model" data-cue="0"><p class="n" style="background: var(--leaf)">١</p><p><b>مشاركةٌ بالمحصول</b><span>يموّل المستثمر الموسم، ويأخذ حصّةً من المحصول</span></p></div>
+      <div class="model" data-cue="1"><p class="n" style="background: var(--gold)">٢</p><p><b>إيجارُ الأرض</b><span>أجرةٌ متّفقٌ عليها لصاحب الأرض</span></p></div>
+      <div class="model" data-cue="2"><p class="n" style="background: var(--leaf)">٣</p><p><b>تمويلُ المدخلات</b><span>بذورٌ وسمادٌ ووقود، مقابل حصّةٍ من المحصول</span></p></div>
+      <div class="model" data-cue="3"><p class="n" style="background: var(--gold)">٤</p><p><b>المساقاة</b><span>رعاية البستان والنخيل، بحصّةٍ من الثمر</span></p></div>
+      <div class="model wide" data-cue="4"><p class="n" style="background: var(--rose)">٥</p><p><b>شراكةٌ ثلاثيّة</b><span>أرضٌ ومالٌ وإدارة: تُديرها شركةٌ شريكةٌ موثّقة، بنصيبٍ من صافي الربح</span></p></div>
     </div>
   </section>
 

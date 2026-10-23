@@ -3,7 +3,8 @@
     python3 scripts/film/assemble.py film/investors out/
 
 Each shot lasts as long as its clip, or as long as its line plus a breath if
-the line is longer, holding the clip's last frame for the difference. Shots
+the line is longer: the clip is slowed to fill it, up to SLOW times, and its
+last frame is held for whatever is left. Shots
 cross-fade into one another and into the closing card (the logo on the dark
 ground of the app's splash, then the site's address). Each line starts a
 moment after its shot does.
@@ -52,16 +53,25 @@ if missing:
     print("not ready — missing:", ", ".join(missing))
     sys.exit(0)
 
+# A filmed clip is five seconds and a line of the second version is often
+# seven or eight (backlog 143). Rather than hold the last frame that long, the
+# clip is slowed to fill the line — up to SLOW times, its frames blended into
+# one another so it does not stutter — and only what is left is held. A card
+# is drawn to its line's length already (cards.mjs).
+SLOW = 1.8
+
 inputs, filters, lengths = [], [], []
 for i, s in enumerate(shots):
     clip, line = f"{film}/clips/{s['id']}.mp4", f"tts/fusha/{s['line']}.wav"
     c, l = duration(clip), duration(line)
     d = max(c, LEAD + l + BREATH)
+    f = 1.0 if s.get("card") else min(d / c, SLOW)
+    slow = f"setpts=PTS*{f:.4f},minterpolate=fps={FPS}:mi_mode=blend," if f > 1.02 else ""
     lengths.append(d)
     inputs += ["-i", clip]
     filters.append(
-        f"[{i}:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},"
-        f"setsar=1,format=yuv420p,tpad=stop_mode=clone:stop_duration={max(0.0, d - c):.3f},"
+        f"[{i}:v]{slow}scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},"
+        f"setsar=1,format=yuv420p,tpad=stop_mode=clone:stop_duration={max(0.0, d - c * f):.3f},"
         f"trim=duration={d:.3f},setpts=PTS-STARTPTS[v{i}]")
 
 n = len(shots)
