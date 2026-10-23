@@ -1,0 +1,3 @@
+# Names the drift guard (scripts/db-drift.py) does not expect in production,
+# one a line, each with its reason. Empty: everything a migration creates
+# should be there.
