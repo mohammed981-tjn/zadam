@@ -84,6 +84,9 @@ export default async function AdminPage() {
           <Link href="/admin/leads" className="text-sm text-primary underline">
             العملاء المحتملون
           </Link>
+          <Link href="/admin/users" className="text-sm text-primary underline">
+            المسجَّلون
+          </Link>
           <Link
             href="/admin/feedback"
             className="text-sm text-primary underline"
