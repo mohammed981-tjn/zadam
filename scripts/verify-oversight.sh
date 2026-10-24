@@ -19,6 +19,7 @@ QUOTES="$(pg_stage "$ROOT/supabase/migrations/20261022040000_market_quotes.sql" 
 LEDGER="$(pg_stage "$ROOT/supabase/migrations/20261024110000_ledger_engine.sql" ledger.sql)"
 FARM="$(pg_stage "$ROOT/supabase/migrations/20261024120000_farm_book.sql" farm.sql)"
 OVERSIGHT="$(pg_stage "$ROOT/supabase/migrations/20261024130000_oversight.sql" oversight.sql)"
+LOOKUP="$(pg_stage "$ROOT/supabase/migrations/20261024170000_oversight_lookup.sql" lookup.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-oversight.sql" checks.sql)"
 
 # Supabase's own defaults, so that a revoke in a migration is what the checks meet.
@@ -46,6 +47,7 @@ echo "── الأسعار";      pg_run_quiet "$QUOTES"
 echo "── المحرّك";      pg_run_quiet "$LEDGER"
 echo "── دفتر المزرعة"; pg_run_quiet "$FARM"
 echo "── الإشراف";      pg_run "$OVERSIGHT" >/dev/null
+echo "── البحث عن دفتر"; pg_run_quiet "$LOOKUP"
 
 echo "── الفحوص"
 pg_run "$CHECKS"

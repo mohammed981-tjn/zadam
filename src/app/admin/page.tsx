@@ -90,6 +90,9 @@ export default async function AdminPage() {
           <Link href="/admin/users" className="text-sm text-primary underline">
             المسجَّلون
           </Link>
+          <Link href="/admin/oversight" className="text-sm text-primary underline">
+            الرقابة الماليّة
+          </Link>
           <Link
             href="/admin/feedback"
             className="text-sm text-primary underline"

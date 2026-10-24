@@ -421,6 +421,35 @@ begin
 end $$;
 reset role;
 
+\echo ''
+\echo '=========================================================================='
+\echo 'ح) البحث عن دفترٍ لفحصه: رقمه وحده، للمدير وحده'
+\echo '=========================================================================='
+set role authenticated;
+do $$
+declare u2 uuid := (select id from _ids where name = 'U2');
+begin
+  perform _act_as('ee000000-0000-0000-0000-0000000000ee');
+  perform _refuses($q$select oversight_find_book('a0000000-0000-0000-0000-000000000002', 'farm')$q$, 'للإدارة وحدها', 'غير المدير لا يبحث');
+  perform _act_as(null);
+  perform _refuses($q$select oversight_find_book('a0000000-0000-0000-0000-000000000002', 'farm')$q$, 'للإدارة وحدها', 'ومن غير دخول');
+  perform _act_as('ad000000-0000-0000-0000-0000000000ad');
+  perform _eq(oversight_find_book('a0000000-0000-0000-0000-000000000002', 'farm'), u2, 'المدير يأخذ رقم دفتر مزارعٍ بعينه');
+  perform _eq(oversight_find_book('a0000000-0000-0000-0000-000000000002', 'investor'), null::uuid, 'ولا دفتر مستثمر لمن ليس له');
+  perform _eq(oversight_find_book('c0000000-0000-0000-0000-000000000001', 'investor'), (select id from _ids where name = 'INV1'), 'ودفتر المستثمر');
+  perform _eq(oversight_find_book(gen_random_uuid(), 'farm'), null::uuid, 'وشخصٌ لا دفتر له: لا شيء');
+  perform _refuses($q$select oversight_find_book('a0000000-0000-0000-0000-000000000002', 'platform')$q$, 'نوع دفترٍ غير معروف', 'ودفتر المنصّة ليس مما يُفحص');
+  perform _eq((select count(*)::int from ledger_books where id = u2), 0, 'والرقم لا يفتح الدفتر: القراءة بعد الفحص وحده');
+  perform _eq(ledger_inspect_open(oversight_find_book('a0000000-0000-0000-0000-000000000003', 'farm'), 'فحصٌ بالرقم الذي وجده المدير')  is not null, true, 'ويفتح به فحصاً بسببه');
+end $$;
+reset role;
+do $$
+begin
+  perform _eq(has_function_privilege('anon', 'oversight_find_book(uuid,text)', 'execute')
+              or has_function_privilege('service_role', 'oversight_find_book(uuid,text)', 'execute'), false, 'لا زائر ولا مفتاح خدمة');
+  perform _eq(has_function_privilege('authenticated', 'oversight_find_book(uuid,text)', 'execute'), true, 'والمسجَّل يُسأل داخل الدالّة');
+end $$;
+
 do $$
 declare n integer;
 begin
