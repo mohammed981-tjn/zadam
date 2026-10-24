@@ -16,7 +16,9 @@ import {
   holdReason,
   marketDay,
   parseAmount,
+  readBank,
   readBankOfKhartoum,
+  readBankOfKhartoumSentence,
   readGedarefProse,
   readObeidList,
   readParallelMarket,
@@ -56,6 +58,24 @@ eq(bank && { date: bank.date, buy: bank.buy, sell: bank.sell }, { date: "2026-10
 eq(readBankOfKhartoum({ ...fixture("bajnews-201602.json") }), null, "no table, no figure");
 eq(readBankOfKhartoum(fixture("iqraa24-43999.json")), null,
   "a table with no buying and selling columns — buying 4200 above selling 3700 — gives nothing");
+
+console.log("\nBank of Khartoum — bajnews's sentence, 21 October 2026 (backlog 176)");
+const bankSentence = readBankOfKhartoumSentence(fixture("bajnews-201602.json"));
+eq(bankSentence && { date: bankSentence.date, buy: bankSentence.buy, sell: bankSentence.sell }, { date: "2026-10-21", buy: 4850, sell: 4886 },
+  "the sentence that names the bank and gives buying and selling");
+const withSentence = (line: string): WpPost => ({
+  ...fixture("bajnews-201602.json"),
+  content: { rendered: `<p>${line}</p>` },
+});
+eq(readBankOfKhartoumSentence(withSentence("تراجعت قيمة الجنيه في بنك النيل ليُسجل سعر شراء الدولار 6,400 جنيهًا، مقابل 6,448 جنيهًا للبيع.")), null,
+  "another bank's sentence is not the Bank of Khartoum's");
+eq(readBankOfKhartoumSentence(withSentence("وبلغ سعر شراء الدولار الأمريكي 9,500 جنيه، بينما وصل سعر البيع إلى 10,105 جنيهات.")), null,
+  "the parallel market's sentence names no bank, so gives nothing");
+eq(readBankOfKhartoumSentence(withSentence("بنك الخرطوم: سعر البيع 4,886 جنيهًا")), null,
+  "a selling price alone is not enough");
+eq(readBankOfKhartoumSentence(fixture("iqraa24-43999.json")), null, "the aggregator's 4200-over-3700 snippet gives nothing");
+eq(readBank(fixture("iqraa24-45070.json"))?.sell, 4886.38, "an article with the bank's table is still read from the table");
+eq(readBank(fixture("bajnews-201602.json"))?.sell, 4886, "an article with only the sentence is read from the sentence");
 
 console.log("\nThe parallel market — bajnews, 21 October 2026");
 const parallel = readParallelMarket(fixture("bajnews-201602.json"));
