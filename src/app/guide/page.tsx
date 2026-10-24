@@ -11,7 +11,7 @@ import { STAGE_TEMPLATES, LEDGER_LABEL, type StageKey } from "@/lib/season";
 import { assessProject, WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
 import { computeTrust } from "@/lib/trust";
 import { RISK_WEIGHTS, type RiskProfile } from "@/lib/portfolio";
-import { INVESTMENT_LIVE } from "@/lib/config";
+import { investmentLive } from "@/lib/platformFlags";
 import FilmPlayer from "@/components/FilmPlayer";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
@@ -425,6 +425,7 @@ export default async function GuidePage() {
   const MINER = t("للمعدّن", "Miners");
 
   const supabase = await createClient();
+  const INVESTMENT_LIVE = await investmentLive(supabase);
 
   // Read at request time so the status section is true when it is read, not
   // when it was written.

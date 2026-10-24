@@ -909,7 +909,8 @@ export type ConfirmInvestmentOutcome =
   | "confirmed"
   | "not_found"
   | "not_pending"
-  | "over_allocated";
+  | "over_allocated"
+  | "not_open";
 
 /**
  * One attempt on the money path, recorded whether it succeeded or not.
