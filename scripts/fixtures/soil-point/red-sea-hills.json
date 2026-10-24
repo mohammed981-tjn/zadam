@@ -1,0 +1,24 @@
+{
+ "type": "Point",
+ "coordinates": [
+  36.9,
+  19.6
+ ],
+ "query_time_s": 2.832716464996338,
+ "wrb_class_name": "Leptosols",
+ "wrb_class_value": 16,
+ "wrb_class_probability": [
+  [
+   "Leptosols",
+   36
+  ],
+  [
+   "Regosols",
+   16
+  ],
+  [
+   "Arenosols",
+   10
+  ]
+ ]
+}

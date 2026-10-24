@@ -46,7 +46,7 @@ ok(eq("-15.5, 32", -15.5, 32), "والسالب");
 ok(parseCoordinates("بلا أرقام") === null && parseCoordinates("") === null && parseCoordinates("15.6") === null, "ولا رقمَين: لا شيء");
 
 console.log("\nالرسالة:");
-const t = (ar: string, _en: string) => ar;
+const t = (ar: string) => ar;
 ok(locationMessage("swapped", t).includes("عكستَ"), "رسالة العكس تقول ما حدث");
 ok(locationMessage("outside_sudan", t).includes("خارج السودان"), "ورسالة الخارج");
 

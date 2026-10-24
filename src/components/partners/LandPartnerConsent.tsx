@@ -1,7 +1,6 @@
 import { tr, type Locale } from "@/lib/i18n";
 import { cropName } from "@/lib/farmLabelsEn";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
-import { soilAt } from "@/lib/rainMap";
 import {
   AREA_BAND_SHORT,
   PARTNER_CROP_KEYS,
@@ -38,10 +37,10 @@ export default function LandPartnerConsent({
   locale: Locale;
 }) {
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const soil = land.soil_class ?? soilAt(land.longitude, land.latitude);
+  const soil = land.soil_class ?? null;
   const band = areaBand(land.feddans);
   const group = [
-    soil ? (locale === "en" ? wrbShortEn(soil) : wrbShort(soil)) : t("التربة تُعرف من الإحداثيّات", "soil is read from the coordinates"),
+    soil ? (locale === "en" ? wrbShortEn(soil) : wrbShort(soil)) : t("التربة تُقرأ من موقع أرضك عند الفتح", "soil is read from your land's location when you open it"),
     band ? lbl(AREA_BAND_SHORT[band], locale) : null,
   ]
     .filter(Boolean)

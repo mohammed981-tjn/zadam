@@ -6,7 +6,7 @@ import { SUDAN_STATES } from "@/lib/nafir";
 import { normalizePhone } from "@/lib/supplyChain";
 import { explain, signedIn, str, translator } from "@/lib/supplyActions";
 import { SERVICE_BY_KEY } from "@/lib/services";
-import { soilAt } from "@/lib/rainMap";
+import { recordSoilEstimate } from "@/lib/landSoil";
 import {
   AREA_BANDS,
   PARTNER_CROP_KEYS,
@@ -176,12 +176,14 @@ export async function setLandConsent(fd: FormData) {
   const open = str(fd, "open") === "true";
   const { data: land } = await supabase
     .from("lands")
-    .select("latitude, longitude, crop_keys")
+    .select("latitude, longitude, crop_keys, soil_class")
     .eq("id", landId)
     .eq("owner_id", user.id)
     .maybeSingle();
   if (!land) back("/lands", "error", t("ليست لك هذه الأرض.", "This land is not yours."));
-  const soil = soilAt(land.longitude, land.latitude);
+  // The soil at the land's own point, not the 160 km map cell's (backlog 180). A failed read keeps what is stored.
+  const estimate = open ? await recordSoilEstimate(supabase, landId, land.longitude, land.latitude) : null;
+  const soil = estimate?.wrb ?? (land.soil_class as string | null) ?? null;
   // Closing to companies keeps the crops: investors read the same list on
   // /invest, and the close form sends none (backlog 129).
   const { error } = await supabase.rpc("land_set_partner_consent", {

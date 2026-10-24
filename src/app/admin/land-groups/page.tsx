@@ -6,7 +6,6 @@ import { tr } from "@/lib/i18n";
 import { stateName } from "@/lib/nafir";
 import { cropName, waterSourceLabel } from "@/lib/farmLabelsEn";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
-import { soilAt } from "@/lib/rainMap";
 import { num } from "@/lib/supplyChain";
 import { AREA_BANDS, AREA_BAND_LABEL, AREA_BAND_SHORT, areaBand, lbl, type AreaBand } from "@/lib/partners";
 import { card } from "@/components/supply/SupplyShell";
@@ -24,11 +23,14 @@ export async function generateMetadata() {
  * already on file: state, area band, soil class, water source and crops. No
  * one types a group.
  *
- * The soil class is the one stored when the owner opened the land to partners;
- * until then it is read here from the national soil map at the land's own
- * coordinates. So the index works on a database the partner migration has not
- * reached yet — `select("*")` returns whatever columns exist, and the new ones
- * are optional on Land.
+ * The soil class is the one stored when the owner saved the land's place or
+ * opened it to partners or investors (a satellite reading at the land's own
+ * point, backlog 180); a land with none is grouped as «soil unknown», exactly
+ * as the database matches it — it was once filled in here from the 160 km map
+ * cell, which put lands in groups the matching never saw them in. So the index
+ * works on a database the partner migration has not reached yet —
+ * `select("*")` returns whatever columns exist, and the new ones are optional
+ * on Land.
  *
  * Inside each group is the supervisor's follow-up list — the «قروب» in the
  * study: each land, its locality and its owner's phone. Administrators only;
@@ -58,7 +60,7 @@ export default async function LandGroupsPage() {
 
   const rows: Row[] = ((data ?? []) as Land[]).map((l) => ({
     ...l,
-    soil: l.soil_class ?? soilAt(l.longitude, l.latitude),
+    soil: l.soil_class ?? null,
     band: areaBand(l.feddans),
   }));
 

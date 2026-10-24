@@ -10,6 +10,8 @@ import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { locationMessage, locationProblem, parseCoordinates } from "@/lib/landLocation";
 import { testProblem } from "@/lib/landTests";
+import { recordSoilEstimate } from "@/lib/landSoil";
+import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -169,13 +171,25 @@ export async function setLandLocation(
     return { ok: false, message: t("الأرض غير موجودة أو ليست لك.", "That land does not exist or is not yours.") };
   }
 
+  // The soil at the land's own point (backlog 180). A failed read changes nothing and says nothing.
+  const soil = await recordSoilEstimate(supabase, landId, lng, lat);
+  const soilName = soil ? (locale === "en" ? wrbShortEn(soil.wrb) : wrbShort(soil.wrb)) : null;
+
   revalidatePath("/lands");
   return {
     ok: true,
-    message: t(
-      "حُفظ الموقع. وإن كانت أرضك موثّقة فتغيير موقعها يعيدها إلى مراجعة الإدارة قبل أن تُعرض من جديد.",
-      "The location is saved. If your land was verified, changing its place sends it back to the administrators before it is shown again.",
-    ),
+    message:
+      t(
+        "حُفظ الموقع. وإن كانت أرضك موثّقة فتغيير موقعها يعيدها إلى مراجعة الإدارة قبل أن تُعرض من جديد.",
+        "The location is saved. If your land was verified, changing its place sends it back to the administrators before it is shown again.",
+      ) +
+      (soilName
+        ? " " +
+          t(
+            `قرأنا تربة موقعك من الأقمار: ${soilName} (احتمال ${soil!.probability}٪). هذا تقدير لا فحص، ويبقى فحص الماء والتربة عندك هو الأصل.`,
+            `We read the soil at your location from satellites: ${soilName} (${soil!.probability}% probability). It is an estimate, not a test; your own water and soil test is what counts.`,
+          )
+        : ""),
   };
 }
 

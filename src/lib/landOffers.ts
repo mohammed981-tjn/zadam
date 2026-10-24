@@ -28,8 +28,9 @@ export async function loadLandOffers(supabase: SupabaseClient, signedIn: boolean
     signedIn ? supabase.rpc("land_inspection_list") : Promise.resolve({ data: null }),
   ]);
   if (error) console.error("land offers: read failed", error);
+  const lands = await withSoilEstimates(supabase, (landRows ?? []) as OpenLand[]);
   return {
-    lands: (landRows ?? []) as OpenLand[],
+    lands,
     failed: Boolean(error),
     fee: (feeRow as { amount_sdg: number | null } | null)?.amount_sdg ?? null,
     inspectionsOn: statRows !== null,
@@ -51,4 +52,19 @@ export async function loadProjectLands(supabase: SupabaseClient) {
       { documents: r.documents_on_file, required: r.documents_required },
     ]),
   );
+}
+
+/**
+ * Adds each land's soil source and probability (backlog 180). A database the migration has not reached,
+ * or any failure, leaves the lands as they were: the class then reads as an estimate for the area.
+ */
+async function withSoilEstimates(supabase: SupabaseClient, lands: OpenLand[]): Promise<OpenLand[]> {
+  if (lands.length === 0) return lands;
+  const { data, error } = await supabase.rpc("land_soil_estimates", { p_ids: lands.map((l) => l.land_id) });
+  if (error || !Array.isArray(data)) return lands;
+  const byId = new Map((data as { land_id: string; soil_class: string | null; soil_source: string | null; soil_pct: number | null }[]).map((r) => [r.land_id, r]));
+  return lands.map((l) => {
+    const e = byId.get(l.land_id);
+    return e ? { ...l, soil_class: e.soil_class ?? l.soil_class, soil_source: e.soil_source, soil_pct: e.soil_pct } : l;
+  });
 }
