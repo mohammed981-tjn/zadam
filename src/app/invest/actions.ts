@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { explain, signedIn, str, translator } from "@/lib/supplyActions";
-import { soilAt } from "@/lib/rainMap";
+import { recordSoilEstimate } from "@/lib/landSoil";
 import { INVESTOR_MODELS } from "@/lib/investors";
 
 /**
@@ -104,18 +104,20 @@ export async function setInvestorConsent(fd: FormData) {
   }
   const { data: land } = await supabase
     .from("lands")
-    .select("latitude, longitude")
+    .select("latitude, longitude, soil_class")
     .eq("id", landId)
     .eq("owner_id", user.id)
     .maybeSingle();
   if (!land) back(origin, "error", t("ليست لك هذه الأرض.", "This land is not yours."));
+  // The soil at the land's own point, not the 160 km map cell's (backlog 180). A failed read keeps what is stored.
+  const estimate = open ? await recordSoilEstimate(supabase, landId, land.longitude, land.latitude) : null;
   const note = str(fd, "note").slice(0, 500);
   const { error } = await supabase.rpc("land_set_investor_consent", {
     p_land: landId,
     p_open: open,
     p_models: chosen,
     p_note: note.length >= 10 ? note : null,
-    p_soil_class: soilAt(land.longitude, land.latitude),
+    p_soil_class: estimate?.wrb ?? land.soil_class ?? null,
   });
   if (error) back(origin, "error", explain(locale, error));
   if (origin !== "/lands") revalidatePath(origin);

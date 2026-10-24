@@ -2,6 +2,7 @@ import Link from "next/link";
 import { tr, type Locale } from "@/lib/i18n";
 import { cropName, stationName, waterSourceLabel } from "@/lib/farmLabelsEn";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
+import { soilEstimateWords } from "@/lib/soilPoint";
 import { AREA_BAND_SHORT, lbl, type AreaBand } from "@/lib/partners";
 import { INTEREST_STATUS_LABEL, INVESTOR_MODEL_LABEL, RISK_NOTICE, type OpenLand } from "@/lib/investors";
 import {
@@ -49,6 +50,7 @@ export default function LandOfferCard({
   const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
   const band = l.area_band as AreaBand | null;
   const soil = (s: string | null) => (s ? (locale === "en" ? wrbShortEn(s) : wrbShort(s)) : "—");
+  const soilWords = soilEstimateWords(l.soil_source, l.soil_pct, t);
 
   return (
     <li id={`land-${l.land_id}`} className={`${card} flex scroll-mt-24 flex-col`}>
@@ -84,8 +86,11 @@ export default function LandOfferCard({
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-muted">{t("التربة (تقدير للمنطقة)", "Soil (regional estimate)")}</dt>
-          <dd className="font-medium">{soil(l.soil_class)}</dd>
+          <dt className="text-xs text-muted">{soilWords.label}</dt>
+          <dd className="font-medium">
+            {soil(l.soil_class)}
+            {l.soil_class && soilWords.confidence && <span className="block text-xs font-normal text-muted">{soilWords.confidence}</span>}
+          </dd>
         </div>
         <div>
           <dt className="text-xs text-muted">{t("المنطقة المناخيّة", "Climate zone")}</dt>

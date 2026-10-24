@@ -1,0 +1,22 @@
+name: Probe soil sources
+
+# Prints what the point-level soil services answer (backlog 180). The development container
+# cannot reach them; a runner can. Read-only: nothing is committed or written.
+# By hand only (Actions → Run workflow). First run: 24 October 2026 — SoilGrids' point service
+# answers without a key in 3–6 s; the iSDAsoil API (30 m) wants a key.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/probe-soil-sources.mjs

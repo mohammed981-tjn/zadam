@@ -1,0 +1,24 @@
+{
+ "type": "Point",
+ "coordinates": [
+  33.5,
+  14.4
+ ],
+ "query_time_s": 4.2237229347229,
+ "wrb_class_name": "Vertisols",
+ "wrb_class_value": 29,
+ "wrb_class_probability": [
+  [
+   "Vertisols",
+   74
+  ],
+  [
+   "Cambisols",
+   17
+  ],
+  [
+   "Luvisols",
+   9
+  ]
+ ]
+}

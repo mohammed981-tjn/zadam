@@ -122,6 +122,9 @@ export interface OpenLand {
   feddans: number;
   area_band: string | null;
   soil_class: string | null;
+  /** From land_soil_estimates() (backlog 180): `point` when the class is a satellite reading at the land's own point. */
+  soil_source?: string | null;
+  soil_pct?: number | null;
   water_source: string;
   water_per_feddan: number | null;
   station_key: string;

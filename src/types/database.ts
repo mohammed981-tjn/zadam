@@ -114,6 +114,9 @@ export interface Land {
    * that reads lands must keep working there.
    */
   soil_class?: string | null;
+  /** From 20261024100000_land_soil_estimate.sql: `point` when the class is a satellite reading at the land's own point. */
+  soil_source?: string | null;
+  soil_pct?: number | null;
   crop_keys?: string[];
   open_to_partners?: boolean;
   /** From 20261021210000_investor_partnerships.sql (backlog 124), optional for the same reason. */
