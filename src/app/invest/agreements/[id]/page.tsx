@@ -7,6 +7,7 @@ import { tr } from "@/lib/i18n";
 import ActionNotice from "@/components/ActionNotice";
 import NoCopy from "@/components/invest/NoCopy";
 import SignaturePad from "@/components/invest/SignaturePad";
+import HarvestSplitCalculator from "@/components/invest/HarvestSplitCalculator";
 import {
   AGREEMENT_ITEMS,
   AGREEMENT_TITLE,
@@ -219,6 +220,21 @@ export default async function AgreementPage({
           )}
         </article>
       </NoCopy>
+
+      {/* ── قسمة الحصاد: حاسبة بنصّ العقد (البند ١٨٨) ───────────────────── */}
+      <section className={`${card} mt-6`}>
+        <details>
+          <summary className="cursor-pointer font-black">{t("كيف يُقسم الحصاد؟ (حاسبة)", "How will the harvest be split? (calculator)")}</summary>
+          <HarvestSplitCalculator
+            model={a.model}
+            ownerShare={x.owner_share}
+            investorShare={x.investor_share}
+            managerShare={x.manager_share}
+            rentHint={a.model === "lease" && x.rent_amount ? `${Number(x.rent_amount).toLocaleString("en-US")} ${x.currency ?? ""}` : undefined}
+            names={{ owner: a.owner_name ?? "", investor: a.investor_name ?? "", manager: a.manager_name ?? "" }}
+          />
+        </details>
+      </section>
 
       {/* ── من العقد إلى الموسم (البند ١٢٩) ─────────────────────────────── */}
       {signed && (a.me === "owner" || a.me === "investor") && (
