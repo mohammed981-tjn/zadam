@@ -233,6 +233,28 @@ export const CROP_ALIASES: Record<string, string[]> = {
    * The plural and the tree carry no such collision.
    */
   dates: ["تمور", "نخيل", "نخل", "بلح"],
+  /*
+   * البند ١٥٦ (٢٤ أكتوبر): سبعة عشر محصولاً أُضيفت بعد نقل أرقامها من مصادرها. وما بدأ بـ«=» لا
+   * يُقبل إلا كلمةً كاملة (مع ال/ب/ل/و/ف قبلها): «خيار» داخل «خيارات»، و«ارز» و«جزر» قد تقع في
+   * كلامٍ لا يخصّ المحصول، فيُجاب السائل عن محصولٍ لم يسأل عنه.
+   */
+  faba_bean: ["فول مصري", "فول المصري"],
+  potato: ["بطاطس"],
+  sunflower: ["عباد الشمس", "دوار الشمس"],
+  safflower: ["قرطم", "عصفر"],
+  barley: ["شعير"],
+  rice: ["=ارز"],
+  cowpea: ["لوبيا"],
+  watermelon: ["بطيخ"],
+  sweet_melon: ["شمام", "قاليا"],
+  cucumber: ["=خيار"],
+  eggplant: ["باذنجان"],
+  sweet_pepper: ["فلفل حلو", "فلفل الحلو", "فلفل رومي"],
+  cabbage: ["كرنب", "ملفوف", "كرمب"],
+  carrot: ["=جزر"],
+  zucchini: ["كوسه", "كوسا"],
+  sweet_potato: ["بطاطا", "بامبي"],
+  citrus: ["موالح", "حمضيات", "قريب فروت", "جريب فروت"],
 };
 
 /**
@@ -307,10 +329,37 @@ export const DEFAULT_PLANTING_MONTH: Record<string, number> = {
    * reason anyone could have explained.
    */
   dates: 0, // يناير — بداية دورة سنوية، لا موعد غرس
+  // البند ١٥٦: شهر الزراعة المنشور لكلّ محصولٍ أُضيف (landCrops.ts SOWING)، والموالح معمّرةٌ كالنخيل.
+  faba_bean: 10, // نوفمبر
+  potato: 10,
+  sunflower: 10,
+  safflower: 10,
+  barley: 10,
+  rice: 6, // يوليو
+  cowpea: 5, // يونيو، مطريّ
+  watermelon: 0, // يناير، العروة الصيفيّة
+  sweet_melon: 9, // أكتوبر
+  cucumber: 9,
+  eggplant: 7, // أغسطس، المشتل
+  sweet_pepper: 7,
+  cabbage: 8, // سبتمبر، المشتل
+  carrot: 10,
+  zucchini: 9,
+  sweet_potato: 6, // يوليو، العروة الخريفيّة
+  citrus: 0, // معمَّر: بداية دورة سنوية لا موعد غرس
 };
 
-/** Substring match on the normalised question — aliases are multi-word. */
-function findByAlias<T extends { key: string }>(
+/**
+ * The word as a whole, optionally behind the particles Arabic glues to the front of a noun
+ * (و/ف، ثمّ لل أو ب/ك/ل مع ال): «الخيار» و«بالخيار» تطابقان، و«خيارات» لا.
+ */
+export function containsWord(haystack: string, word: string): boolean {
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^\\u0621-\\u064A])(?:[وف])?(?:لل|[بكل]?(?:ال)?)${escaped}(?![\\u0621-\\u064A])`).test(haystack);
+}
+
+/** Substring match on the normalised question — aliases are multi-word; a «=» alias is a whole word. */
+export function findByAlias<T extends { key: string }>(
   haystack: string,
   items: T[],
   aliases: Record<string, string[]>,
@@ -320,9 +369,11 @@ function findByAlias<T extends { key: string }>(
 
   for (const item of items) {
     for (const alias of aliases[item.key] ?? []) {
-      const needle = normalizeArabic(alias);
+      const whole = alias.startsWith("=");
+      const needle = normalizeArabic(whole ? alias.slice(1) : alias);
       // Longest alias wins, so "ذره شاميه" beats the "ذره" inside it.
-      if (haystack.includes(needle) && needle.length > bestLength) {
+      const hit = whole ? containsWord(haystack, needle) : haystack.includes(needle);
+      if (hit && needle.length > bestLength) {
         best = item;
         bestLength = needle.length;
       }

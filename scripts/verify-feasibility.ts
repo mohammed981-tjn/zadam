@@ -207,9 +207,16 @@ ok(
   mapped.every((k) => CROPS.some((c) => c.key === k)),
   "every mapped crop key exists in the crop table",
 );
+// The 17 crops added on 24 October (backlog 156) have no FAOSTAT item mapped yet: the yield and
+// price files are fetched per item by faostat-refresh.yml, so a mapping without its data would
+// point at nothing. Until that is done (backlog 178) they show no benchmark, as alfalfa does.
+const ADDED_24_OCT = [
+  "faba_bean", "potato", "sunflower", "safflower", "barley", "rice", "cowpea", "watermelon", "sweet_melon",
+  "cucumber", "eggplant", "sweet_pepper", "cabbage", "carrot", "zucchini", "sweet_potato", "citrus",
+];
 ok(
-  CROPS.filter((c) => !mapped.includes(c.key)).every((c) => c.key === "alfalfa"),
-  "alfalfa is the only crop without a FAOSTAT item, as documented",
+  CROPS.filter((c) => !mapped.includes(c.key)).every((c) => c.key === "alfalfa" || ADDED_24_OCT.includes(c.key)),
+  "alfalfa and the crops added on 24 October are the only crops without a FAOSTAT item, as documented",
 );
 
 console.log("\n" + (fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`));

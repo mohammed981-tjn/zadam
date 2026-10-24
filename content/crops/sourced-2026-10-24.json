@@ -1,0 +1,1057 @@
+{
+ "generated": "2026-10-24",
+ "status": "Integrated on 24 October 2026 (backlog 156): src/lib/agronomy.ts CROPS, landCrops.ts SOWING/SALT, localAnswer.ts aliases and planting months. scripts/verify-new-crops.ts keeps the code equal to this file.",
+ "method": {
+  "rule": "Every figure is read off a cited published table or text. A crop with any of growing days, water need (Kc), salt tolerance or a Sudanese sowing month unsourced is excluded.",
+  "fao56": "FAO Irrigation and Drainage Paper 56, Chapter 6, Tables 11 and 12: https://www.fao.org/4/x0490e/x0490e0b.htm",
+  "fao29": "FAO Irrigation and Drainage Paper 29 Rev.1 (Ayers & Westcot 1985), Tables 4 and 5: https://www.fao.org/4/t0234e/T0234E03.htm",
+  "reading_caveat": "fao.org was blocked from this container's shell. Table rows were read from the web-conversion of the FAO page (which drops merged/blank cells and the whole Kc_ini column of Table 12) and from the PDF edition of the same paper (a copy hosted at cse.iitb.ac.in), which keeps the row structure. Kc_mid and Kc_end were checked in both; Kc_ini and the merged Table 11 rows rest on the PDF text.",
+  "range_rule": "Where Table 12 prints a range: footnote's own rule if there is one (cowpea Kc_end dry = 0.35; sunflower and safflower Kc_mid irrigated = 1.15); otherwise the midpoint (rice Kc_end 0.75), as the repo did for cotton and sorghum.",
+  "kc_ini_rule": "Table 12's own value for the crop, else its group header's value.",
+  "month0": "0 = January. First month of the published sowing window for the season the FAO row best matches.",
+  "extension_portal_caveat": "Where the source is senassudan.com (a Sudan agricultural extension portal), the page does not name its publisher; marked in each crop's flags.",
+  "salt_rule": "ece is FAO-29 Table 4's ECe for 100% yield where the table has the crop; null where only Table 5 gives a class."
+ },
+ "included": [
+  {
+   "key": "faba_bean",
+   "name_ar": "فول مصري",
+   "name_en": "Faba bean (broad bean)",
+   "stages": [
+    20,
+    30,
+    35,
+    15
+   ],
+   "stage_sum": 100,
+   "table11_printed_total": 100,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.5,
+   "kc_mid": 1.15,
+   "kc_end": 0.3,
+   "fao56": {
+    "table11_row": "Faba bean, broad bean | 20 | 30 | 35 | 15 | 100 | Mar/Apr | Mediterranean",
+    "table11_row_as_printed": "Faba bean, broad bean | 20 | 30 | 35 | 15 | 100 | Mar/Apr | Mediterranean (rows continue: 15/25/35/15=90 May Europe; 90 dry/45/40/60=235 Nov Europe; 90 green/45/40/0=175 Nov Europe)",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Fababean (broad bean) - Dry/Seed | Kc ini 0.5 | Kc mid 1.15 (note 2) | Kc end 0.30 | h 0.8 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 10,
+    "window_ar": "نوفمبر (الأول من نوفمبر أمثل موعد في الجزيرة؛ النصف الأول من نوفمبر على النيل)",
+    "source_url": "https://www.actahort.org/books/143/143_22.htm",
+    "quote": "The first of November was found to be the optimum planting time in the Gezira area.",
+    "source_kind": "peer-reviewed (Acta Horticulturae 143, Hassan, Gezira and Sennar Research Stations)",
+    "corroboration": [
+     {
+      "url": "https://pdfs.semanticscholar.org/1589/0185b7885d9b262194d51b0d46e74d18aa8f.pdf",
+      "quote": "Sowing was manually done on the first half of November in the River Nile locations and on the first week of December at Wad Medani location."
+     }
+    ]
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": 1.5,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Broadbean (Vicia faba): ECe 1.5 for 100% yield",
+    "table5_class": "Moderately Sensitive (Fibre, Seed and Sugar Crops)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.actahort.org/books/143/143_22.htm",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Table 11 row choice: the 'Nov, Europe' rows carry a 90-day initial stage from a cold winter, which does not fit Sudan; 'Mar/Apr, Mediterranean' (no frost) was used. Total 100 days.",
+    "Kc_mid 1.15 carries Table 12 note 2 (higher Kc if grown on stalks 1.5-2 m); the plain value is used.",
+    "Salt: FAO-29 Table 4 gives ECe for 100% yield 1.5 dS/m for broadbean; Table 5 class MS."
+   ]
+  },
+  {
+   "key": "potato",
+   "name_ar": "بطاطس",
+   "name_en": "Potato",
+   "stages": [
+    25,
+    30,
+    45,
+    30
+   ],
+   "stage_sum": 130,
+   "table11_printed_total": 130,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.5,
+   "kc_mid": 1.15,
+   "kc_end": 0.75,
+   "fao56": {
+    "table11_row": "Potato | 25 | 30 | 45 | 30 | 130 | Nov | (Semi)Arid Climate  [the Nov half of the Jan/Nov pair]",
+    "table11_row_as_printed": "Potato | 25 | 30 | 30/45 | 30 | 115/130 | Jan/Nov | (Semi)Arid Climate",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Potato | Kc ini blank -> group 'd. Roots and Tubers' 0.5 | Kc mid 1.15 | Kc end 0.75 (note 4: ~0.40 for long-season vine-kill) | h 0.6 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 10,
+    "window_ar": "منتصف نوفمبر (الأسبوع الثاني)؛ التأخير بعد ١٤ نوفمبر يخفض المحصول",
+    "source_url": "https://doi.org/10.1017/s0021859600077042",
+    "quote": "Planting in the second week of November resulted in less insect damage and a significantly greater total yield compared with crops planted 3 weeks later.",
+    "source_kind": "peer-reviewed (J. Agric. Sci., Ali 1993, Shambat, Khartoum North)",
+    "corroboration": [
+     {
+      "url": "https://ishs.org/ishs-article/158_17/",
+      "quote": "Yield and tuber size decreased as planting was delayed after the 14 November with all tested cultivars"
+     }
+    ]
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": 1.7,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Potato (Solanum tuberosum): ECe 1.7 for 100% yield",
+    "table5_class": "Moderately Sensitive (Vegetable Crops)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://doi.org/10.1017/s0021859600077042",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Table 11 prints mid '30/45' and total '115/130' for 'Jan/Nov'. The Nov half was taken as mid 45 / total 130 because 25+30+45+30 = 130 matches the printed total (Jan: 25+30+30+30 = 115). The table does not state the pairing in words.",
+    "Kc_end 0.75 is the printed value; note 4 says about 0.40 for long-season potatoes with vine kill."
+   ]
+  },
+  {
+   "key": "sunflower",
+   "name_ar": "عبّاد الشمس",
+   "name_en": "Sunflower",
+   "stages": [
+    25,
+    35,
+    45,
+    25
+   ],
+   "stage_sum": 130,
+   "table11_printed_total": 130,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.35,
+   "kc_mid": 1.15,
+   "kc_end": 0.35,
+   "fao56": {
+    "table11_row": "Sunflower | 25 | 35 | 45 | 25 | 130 | April/May | Medit.; California",
+    "table11_row_as_printed": "Sunflower | 25 | 35 | 45 | 25 | 130 | April/May | Medit.; California",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Sunflower | Kc ini blank -> group 'h. Oil Crops' 0.35 | Kc mid 1.0-1.15 (note 9) | Kc end 0.35 | h 2.0 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 10,
+    "window_ar": "الأسبوع الثالث من نوفمبر – الأسبوع الأول من ديسمبر (العروة الشتوية بمدني)",
+    "source_url": "https://www.jaeid.it/index.php/jaeid/article/download/11096/9587/26021",
+    "quote": "The crop was sown in the third week of November and in the first week of December for seasons 2012 and 2013 respectively.",
+    "source_kind": "peer-reviewed (J. Agric. Eng. & Int. Dev., Gezira Research Station Farm, Wad Medani)"
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": null,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Not in Table 4 (no ECe figure)",
+    "table5_class": "Moderately Sensitive (Sunflower, Helianthus annuus)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.jaeid.it/index.php/jaeid/article/download/11096/9587/26021",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Kc_mid is printed as a range 1.0-1.15; note 9 says the lower values are for rainfed crops with less dense stands. 1.15 (irrigated end of the range) was taken. Choose 1.0 for rainfed.",
+    "The same Gezira paper says sunflower can be grown as a summer or winter crop under rainfed and irrigated conditions; a July rainfed sowing is not sourced here, so only the winter irrigated month is given.",
+    "Salt: class only; FAO-29 Table 4 has no sunflower row, so ece is null."
+   ]
+  },
+  {
+   "key": "safflower",
+   "name_ar": "قُرطم",
+   "name_en": "Safflower",
+   "stages": [
+    35,
+    55,
+    60,
+    40
+   ],
+   "stage_sum": 190,
+   "table11_printed_total": 190,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.35,
+   "kc_mid": 1.15,
+   "kc_end": 0.25,
+   "fao56": {
+    "table11_row": "Safflower | 35 | 55 | 60 | 40 | 190 | Oct/Nov | Arid Region",
+    "table11_row_as_printed": "Safflower | 35 | 55 | 60 | 40 | 190 | Oct/Nov | Arid Region (other rows: 20/35/45/25=125 April California; 25/35/55/30=145 Mar High Latitudes)",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Safflower | Kc ini blank -> group 'h. Oil Crops' 0.35 | Kc mid 1.0-1.15 (note 9) | Kc end 0.25 | h 0.8 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 10,
+    "window_ar": "١٣ نوفمبر (أنسب موعد) إلى ٢٨ نوفمبر",
+    "source_url": "https://www.tropentag.de/2012/abstracts/links/Khalil_eL39ynm2.pdf",
+    "quote": "It can be concluded that for safflower under this condition the most suitable sowing date was 13th November with an irrigation every 14 days.",
+    "source_kind": "conference paper (Tropentag 2012; Sudan University of Science and Technology, Khartoum)"
+   },
+   "salt": {
+    "cls": "MT",
+    "ece": null,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Not in Table 4 (no ECe figure)",
+    "table5_class": "Moderately Tolerant (Safflower, Carthamus tinctorius)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.tropentag.de/2012/abstracts/links/Khalil_eL39ynm2.pdf",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Kc_mid range 1.0-1.15: 1.15 taken for irrigated stands (note 9). Choose 1.0 for rainfed.",
+    "Salt: class only; FAO-29 Table 4 has no safflower row, so ece is null."
+   ]
+  },
+  {
+   "key": "barley",
+   "name_ar": "شعير",
+   "name_en": "Barley",
+   "stages": [
+    15,
+    25,
+    50,
+    30
+   ],
+   "stage_sum": 120,
+   "table11_printed_total": 120,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.3,
+   "kc_mid": 1.15,
+   "kc_end": 0.25,
+   "fao56": {
+    "table11_row": "Barley/Oats/Wheat | 15 | 25 | 50 | 30 | 120 | November | Central India",
+    "table11_row_as_printed": "Barley/Oats/Wheat | 15 | 25 | 50 | 30 | 120 | November | Central India (several more rows for the group)",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Barley | Kc ini blank -> group 'i. Cereals' 0.3 | Kc mid 1.15 | Kc end 0.25 | h 1 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 10,
+    "window_ar": "١١ نوفمبر (الحديبة)؛ نهاية نوفمبر – أول أسبوع من ديسمبر (الحديبة والجزيرة)",
+    "source_url": "https://onlinejournals.uofk.edu/uofkjas/en/article/download/1963/1765/1837",
+    "quote": "The sowing date in the three seasons was on 11 th Nov.",
+    "source_kind": "peer-reviewed (U. of Khartoum J. Agric. Sci.; ARC Hudeiba Research Station, River Nile State)",
+    "corroboration": [
+     {
+      "url": "https://juniperpublishers.com/artoaj/pdf/ARTOAJ.MS.ID.556108.pdf",
+      "quote": "The sowing date was in the first week of Dec. in Hudeiba karu soil and Gezira Research station in both seasons and in 30 Nov. in the Hudeiba high terrace soil."
+     }
+    ]
+   },
+   "salt": {
+    "cls": "T",
+    "ece": 8.0,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Barley (Hordeum vulgare): ECe 8.0 for 100% yield",
+    "table5_class": "Tolerant (Fibre, Seed and Sugar Crops)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://onlinejournals.uofk.edu/uofkjas/en/article/download/1963/1765/1837",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Both Sudanese sowing-date sources found are FORAGE barley trials; no grain-barley sowing sentence was found. The month is the same winter window as Sudanese wheat.",
+    "Table 11 has one combined 'Barley/Oats/Wheat' block; the 'November, Central India' row was used as the warm-winter match."
+   ]
+  },
+  {
+   "key": "rice",
+   "name_ar": "أرز",
+   "name_en": "Rice",
+   "stages": [
+    30,
+    30,
+    80,
+    40
+   ],
+   "stage_sum": 180,
+   "table11_printed_total": 180,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 1.05,
+   "kc_mid": 1.2,
+   "kc_end": 0.75,
+   "fao56": {
+    "table11_row": "Rice | 30 | 30 | 80 | 40 | 180 | May | Tropics",
+    "table11_row_as_printed": "Rice | 30 30 | 30 30 | 60 80 | 30 40 | 150 180 | Dec; May May | Tropics; Mediterranean Tropics",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Rice | Kc ini 1.05 | Kc mid 1.20 | Kc end 0.90-0.60 | h 1 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 6,
+    "window_ar": "من أول يوليو إلى منتصفه (أمثل موعد للتسطير المباشر)",
+    "source_url": "https://innspub.net/influence-of-different-sowing-dates-on-growth-and-yield-of-direct-seeded-rice-oryza-sativa-l-in-semi-arid-zone-sudan/",
+    "quote": "It could be concluded that the period from the first of July to the mid of it can be considered as the optimum sowing date for direct seeding of the upland rice (variety Nerica.4) at Sudan and under White Nile State condition",
+    "source_kind": "peer-reviewed (Int. J. Agron. Agric. Res. 6(6), ARC White Nile Research Station, Kosti)",
+    "corroboration": [
+     {
+      "url": "https://icrea.agr.nagoya-u.ac.jp/jpn/journal/Vol15_48-53_07-FieldReport-Elhassan.pdf",
+      "quote": "Under aerobic (upland) conditions in the Gezira state and other rice growing areas ... The planting time was first to mid-July."
+     },
+     {
+      "url": "https://doi.org/10.5281/zenodo.7246866",
+      "quote": "Cultivars planted on 1 June produced the highest grain yield (ARC Wad Medani, irrigated direct-seeded rice, 1977)."
+     }
+    ]
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": 3.0,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Rice (paddy) (Oryza sativa): ECe 3.0 for 100% yield",
+    "table5_class": "Moderately Sensitive (Rice, paddy)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://innspub.net/influence-of-different-sowing-dates-on-growth-and-yield-of-direct-seeded-rice-oryza-sativa-l-in-semi-arid-zone-sudan/",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Kc_end is printed as a range 0.90-0.60 with no footnote; the midpoint 0.75 was taken, the same convention the repo used for cotton and sorghum ranges. Pick 0.90 or 0.60 if you prefer an end of the range.",
+    "Table 11 row: the unambiguous 'May, Tropics' row (180 days) was used. The first rice row prints 'Dec; May' against 'Tropics; Mediterranean' so its region pairing is ambiguous. 180 days is longer than typical Sudanese upland varieties, but no Sudanese stage lengths were sourced to replace it.",
+    "Kc_ini 1.05 is the Table 12 paddy value (water standing on the field); Table 14 adjustments were not applied, as instructed.",
+    "Sowing: the 1977 ARC Gezira note gives 1 June for irrigated direct-seeded rice; the 2015 White Nile paper and the Gezira field report give July. July was chosen (two sources, newer); alternate month0 = 5."
+   ]
+  },
+  {
+   "key": "cowpea",
+   "name_ar": "لوبيا",
+   "name_en": "Cowpea",
+   "stages": [
+    20,
+    30,
+    30,
+    20
+   ],
+   "stage_sum": 100,
+   "table11_printed_total": 110,
+   "stage_sum_matches_printed_total": false,
+   "kc_ini": 0.4,
+   "kc_mid": 1.05,
+   "kc_end": 0.35,
+   "fao56": {
+    "table11_row": "Green gram, cowpeas | 20 | 30 | 30 | 20 | 110 | March | Mediterranean",
+    "table11_row_as_printed": "Green gram, cowpeas | 20 | 30 | 30 | 20 | 110 | March | Mediterranean",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Green Gram and Cowpeas | Kc ini blank -> group 'e. Legumes' 0.4 | Kc mid 1.05 | Kc end 0.60-0.35 (note 6: first value harvested fresh, second harvested dry) | h 0.4 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 5,
+    "window_ar": "يونيو – يوليو (مطري)؛ نوفمبر – ديسمبر (مروي)؛ فبراير – مارس (موسم الجفاف)",
+    "source_url": "https://www.rvo.nl/sites/default/files/2025-06/Beyond_wheat_imports_Sudans_local_climate-resilient_crops_as_the_staple_foods_of_tomorrow.pdf",
+    "quote": "Table 3, Cowpea, Planting (month): Rainfed: June-July; Irrigated: November-December; Dry Season: February-March",
+    "source_kind": "Netherlands Enterprise Agency (RVO) 2025 report, Table 3, expert interviews",
+    "corroboration": [
+     {
+      "url": "http://article.sapub.org/10.5923.j.als.20120201.01.html",
+      "quote": "Sowing was on 25 th of July, 2007 and 2008. (North Kordofan, rainfed trial)"
+     }
+    ]
+   },
+   "salt": {
+    "cls": "MT",
+    "ece": 4.9,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Cowpea (Vigna unguiculata): ECe 4.9 for 100% yield",
+    "table5_class": "Moderately Tolerant (Cowpea; the forage cowpea is MS)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.rvo.nl/sites/default/files/2025-06/Beyond_wheat_imports_Sudans_local_climate-resilient_crops_as_the_staple_foods_of_tomorrow.pdf",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "FAO's OWN ROW DOES NOT ADD UP: the four printed stages 20+30+30+20 sum to 100, but the printed Total is 110. The stage lengths were kept exactly as printed (the app uses the four stages, not the total). Which stage the missing 10 days belong to is not stated, so none was added. A 100-day crop is shorter than FAO's own total; treat the water figure as the lower bound.",
+    "Kc_end range 0.60-0.35: footnote 6 says first value fresh, second dry. 0.35 (dry grain) taken, since Sudanese cowpea is grown mainly for dry grain; use 0.60 for green pods.",
+    "Sowing month is the rainfed window (June-July), a table in a policy report from expert interviews. The Darfur trial sowed 23 July / 22 Aug / 27 Aug."
+   ]
+  },
+  {
+   "key": "watermelon",
+   "name_ar": "بطيخ",
+   "name_en": "Watermelon",
+   "stages": [
+    10,
+    20,
+    20,
+    30
+   ],
+   "stage_sum": 80,
+   "table11_printed_total": 80,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.4,
+   "kc_mid": 1.0,
+   "kc_end": 0.75,
+   "fao56": {
+    "table11_row": "Water melons | 10 | 20 | 20 | 30 | 80 | Mat/Aug | Near East (desert)  [printed 'Mat/Aug', evidently a typo for May/Aug]",
+    "table11_row_as_printed": "Water melons | 20 10 | 30 20 | 30 20 | 30 30 | 110 80 | April Mat/Aug | Italy Near East (desert)",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Watermelon | Kc ini 0.4 | Kc mid 1.00 | Kc end 0.75 | h 0.4 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 0,
+    "window_ar": "العروة الصيفية: يناير – فبراير؛ العروة الخريفية: يونيو – يوليو",
+    "source_url": "https://senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D9%81%D8%A7%D9%83%D9%87%D8%A9/70-%D8%A7%D9%84%D8%A8%D8%B7%D9%8A%D8%AE",
+    "quote": "في العروة الصيفية تزرع في يناير – فبراير في العروة الخريفية تزرع في يونيو – يوليو",
+    "source_kind": "Sudan extension bulletin (senassudan.com)",
+    "corroboration": [
+     {
+      "url": "http://kenanaonline.com/users/sobaproject999/posts/942708",
+      "quote": "الصيفية : يناير – فبراير الخريفية : يوليو – اغسطس (Soba West project extension, Khartoum State)"
+     }
+    ]
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": null,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Not in Table 4 (no ECe figure)",
+    "table5_class": "Moderately Sensitive (Watermelon, Citrullus lanatus)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D9%81%D8%A7%D9%83%D9%87%D8%A9/70-%D8%A7%D9%84%D8%A8%D8%B7%D9%8A%D8%AE",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Sowing source is an extension bulletin on senassudan.com (Sudan agricultural extension portal; the page does not name its publisher). Treat as extension-level, not peer-reviewed.",
+    "Table 11 prints the planting month as 'Mat/Aug' (a typo in FAO's table); quoted as printed.",
+    "Two seasons are published (Jan-Feb and Jun-Jul/Aug). January, the first month of the first window, is given; alternate month0 = 5.",
+    "Salt: class only (FAO-29 Table 4 has no watermelon row), ece null."
+   ]
+  },
+  {
+   "key": "sweet_melon",
+   "name_ar": "شمّام",
+   "name_en": "Sweet melon (muskmelon, Galia type)",
+   "stages": [
+    30,
+    45,
+    65,
+    20
+   ],
+   "stage_sum": 160,
+   "table11_printed_total": 160,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.5,
+   "kc_mid": 1.05,
+   "kc_end": 0.75,
+   "fao56": {
+    "table11_row": "Sweet melons | 30 | 45 | 65 | 20 | 160 | Dec/Jan | Arid Region",
+    "table11_row_as_printed": "Sweet melons | 25 | 35 | 40 | 20 | 120 | May | Mediterranean; 30/30/50/30=140 March Calif.; 15/40/65/15=135 Aug Calif. Desert; 30/45/65/20=160 Dec/Jan Arid Region",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Sweet Melons | Kc ini blank -> group 'c. Vegetables - Cucumber Family' 0.5 | Kc mid 1.05 | Kc end 0.75 | h 0.4 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 9,
+    "window_ar": "أكتوبر، وتمتد حتى نوفمبر (شمام القاليا)",
+    "source_url": "http://kenanaonline.com/users/ershadkhartoum/posts/672773",
+    "quote": "يعتبر شهر اكتوبر الوقت المناسب لزراعة محصول شمام القاليا ويمكن ان تمتد حتى نوفمبر",
+    "source_kind": "Khartoum State technology-transfer and extension sector bulletin (published on kenanaonline.com)"
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": null,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Not in Table 4 (no ECe figure)",
+    "table5_class": "Moderately Sensitive (Muskmelon, Cucumis melo)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "http://kenanaonline.com/users/ershadkhartoum/posts/672773",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "The Sudanese source is about the Galia melon type specifically; Table 11/12 'Sweet melons' was matched to it.",
+    "Table 11 'Dec/Jan, Arid Region' is the only arid row; Sudan sowing is October, one to two months earlier.",
+    "Salt: class only, ece null."
+   ]
+  },
+  {
+   "key": "cucumber",
+   "name_ar": "خيار",
+   "name_en": "Cucumber",
+   "stages": [
+    25,
+    35,
+    50,
+    20
+   ],
+   "stage_sum": 130,
+   "table11_printed_total": 130,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.6,
+   "kc_mid": 1.0,
+   "kc_end": 0.75,
+   "fao56": {
+    "table11_row": "Cucumber | 25 | 35 | 50 | 20 | 130 | Nov; Feb | Arid Region",
+    "table11_row_as_printed": "Cucumber | 20 25 | 30 35 | 40 50 | 15 20 | 105 130 | June/Aug Nov; Feb | Arid Region Arid Region",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Cucumber - Fresh Market | Kc ini 0.6 | Kc mid 1.00 (note 2) | Kc end 0.75 | h 0.3 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 9,
+    "window_ar": "أكتوبر – نوفمبر (العروة الشتوية، بذور مباشرة في الحقل)",
+    "source_url": "https://www.senassudan.com/index.php/2017-05-25-13-37-40/2017-05-25-11-19-20",
+    "quote": "تزرع البذور مباشرة فى الحقل وانسب عروة لزراعته هي العروة الشتوية ... وتبدأ العروة الشتوية في العادة في اكتوبر – نوفمبر.",
+    "source_kind": "Sudan extension bulletin (senassudan.com)"
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": 2.5,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Cucumber (Cucumis sativus): ECe 2.5 for 100% yield",
+    "table5_class": "Moderately Sensitive (Vegetable Crops)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.senassudan.com/index.php/2017-05-25-13-37-40/2017-05-25-11-19-20",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Sowing source is an extension bulletin on senassudan.com (Sudan agricultural extension portal; the page does not name its publisher). Treat as extension-level, not peer-reviewed.",
+    "Table 12 gives two cucumber rows; 'Fresh Market' (0.6/1.00/0.75) was used, not 'Machine harvest' (0.5/1.00/0.90)."
+   ]
+  },
+  {
+   "key": "eggplant",
+   "name_ar": "باذنجان",
+   "name_en": "Eggplant",
+   "stages": [
+    30,
+    40,
+    40,
+    20
+   ],
+   "stage_sum": 130,
+   "table11_printed_total": 130,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.6,
+   "kc_mid": 1.05,
+   "kc_end": 0.9,
+   "fao56": {
+    "table11_row": "Egg plant | 30 | 40 | 40 | 20 | 130 | October | Arid Region",
+    "table11_row_as_printed": "Egg plant | 30 30 | 40 45 | 40 40 | 20 25 | 130\\140 | October May/June | Arid Region Mediterranean",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Egg Plant | Kc ini blank -> group 'b. Vegetables - Solanum Family' 0.6 | Kc mid 1.05 | Kc end 0.90 | h 0.8 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 7,
+    "window_ar": "١٨ أغسطس (الزراعة في المشتل، أفضل من ٨ أكتوبر)",
+    "source_url": "https://www.actahort.org/books/49/49_21.htm",
+    "quote": "Sowing dates of 18 August and 8 October were compared at Shambat for 5 cultivars of sweet pepper. ... In corresponding experiments on eggplant the first planting increased total yield by 11 1/2 tons per feddan.",
+    "source_kind": "peer-reviewed (Acta Horticulturae 49, Abdel-Al 1975, Shambat; title: optimum sowing date for eggplant and sweet pepper grown in the Sudan for export)"
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": null,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Not in Table 4 (no ECe figure)",
+    "table5_class": "Moderately Sensitive (Eggplant, Solanum melongena)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.actahort.org/books/49/49_21.htm",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Nursery sowing date, not field transplanting. FAO-56 Table 11 counts its stage lengths from the planting date it prints; the field start of the water-demand cycle is about 4-6 weeks after the nursery month and that offset is NOT given by the cited source, so it is not asserted here.",
+    "Only two dates (18 Aug, 8 Oct) were compared, in one 1975 export-crop trial; the 'optimum' is the better of the two, not a fitted optimum.",
+    "FAO Table 11 row is 'October, Arid Region', two months after this sowing date.",
+    "Salt: class only, ece null."
+   ]
+  },
+  {
+   "key": "sweet_pepper",
+   "name_ar": "فلفل حلو",
+   "name_en": "Sweet pepper (bell)",
+   "stages": [
+    30,
+    40,
+    110,
+    30
+   ],
+   "stage_sum": 210,
+   "table11_printed_total": 210,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.6,
+   "kc_mid": 1.05,
+   "kc_end": 0.9,
+   "fao56": {
+    "table11_row": "Sweet peppers (bell) | 30 | 40 | 110 | 30 | 210 | October | Arid Region",
+    "table11_row_as_printed": "Sweet peppers (bell) | 25/30 30 | 35 40 | 40 110 | 20 30 | 125 210 | April/June October | Europe and Medit. Arid Region",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Sweet Peppers (bell) | Kc ini blank -> group 'b. Vegetables - Solanum Family' 0.6 | Kc mid 1.05 (note 2) | Kc end 0.90 | h 0.7 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 7,
+    "window_ar": "١٨ أغسطس (الزراعة في المشتل، أفضل من ٨ أكتوبر)",
+    "source_url": "https://www.actahort.org/books/49/49_21.htm",
+    "quote": "Sowing dates of 18 August and 8 October were compared at Shambat for 5 cultivars of sweet pepper. The first planting increased early yield by 1/2 ton per feddan and total yield by 4 1/2 tons per feddan.",
+    "source_kind": "peer-reviewed (Acta Horticulturae 49, Abdel-Al 1975, Shambat)"
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": 1.5,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Pepper (Capsicum annuum): ECe 1.5 for 100% yield",
+    "table5_class": "Moderately Sensitive (Pepper)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.actahort.org/books/49/49_21.htm",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Nursery sowing date, not field transplanting. FAO-56 Table 11 counts its stage lengths from the planting date it prints; the field start of the water-demand cycle is about 4-6 weeks after the nursery month and that offset is NOT given by the cited source, so it is not asserted here.",
+    "Only two dates compared in one 1975 export-crop trial.",
+    "FAO Table 11 'October, Arid Region' is a 210-day crop."
+   ]
+  },
+  {
+   "key": "cabbage",
+   "name_ar": "كرمب (ملفوف)",
+   "name_en": "Cabbage",
+   "stages": [
+    40,
+    60,
+    50,
+    15
+   ],
+   "stage_sum": 165,
+   "table11_printed_total": 165,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.7,
+   "kc_mid": 1.05,
+   "kc_end": 0.95,
+   "fao56": {
+    "table11_row": "Cabbage | 40 | 60 | 50 | 15 | 165 | Sept | Calif. Desert, USA",
+    "table11_row_as_printed": "Cabbage | 40 | 60 | 50 | 15 | 165 | Sept | Calif. Desert, USA",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Cabbage | Kc ini blank -> group 'a. Small Vegetables' 0.7 | Kc mid 1.05 | Kc end 0.95 | h 0.4 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 8,
+    "window_ar": "المشتل: سبتمبر – أكتوبر، والنقل للحقل بعد ٤٥ يوماً",
+    "source_url": "https://www.senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D8%AE%D8%B6%D8%B1/67-%D8%A7%D9%84%D9%83%D8%B1%D9%85%D8%A8",
+    "quote": "تتم زراعة المشتل في الفترة من سبتمبر إلى أكتوبر وتنقل الشتول للحقل المستديم في عمر ستة اسابيع",
+    "source_kind": "Sudan extension bulletin (senassudan.com; names varieties trialled at the Agricultural Research Corporation)"
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": 1.8,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Cabbage (Brassica oleracea capitata): ECe 1.8 for 100% yield",
+    "table5_class": "Moderately Sensitive (Cabbage)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D8%AE%D8%B6%D8%B1/67-%D8%A7%D9%84%D9%83%D8%B1%D9%85%D8%A8",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Sowing source is an extension bulletin on senassudan.com (Sudan agricultural extension portal; the page does not name its publisher). Treat as extension-level, not peer-reviewed.",
+    "Nursery sowing date, not field transplanting. FAO-56 Table 11 counts its stage lengths from the planting date it prints; the field start of the water-demand cycle is about 4-6 weeks after the nursery month and that offset is NOT given by the cited source, so it is not asserted here.",
+    "Table 11 has only one cabbage row, and its region is 'Calif. Desert, USA' (irrigated desert); no tropical or Sudanese row exists."
+   ]
+  },
+  {
+   "key": "carrot",
+   "name_ar": "جزر",
+   "name_en": "Carrot",
+   "stages": [
+    20,
+    30,
+    30,
+    20
+   ],
+   "stage_sum": 100,
+   "table11_printed_total": 100,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.7,
+   "kc_mid": 1.05,
+   "kc_end": 0.95,
+   "fao56": {
+    "table11_row": "Carrots | 20 | 30 | 30 | 20 | 100 | Oct/Jan | Arid climate",
+    "table11_row_as_printed": "Carrots | 20 | 30 | 50/30 | 20 | 100 | Oct/Jan | Arid climate",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Carrots | Kc ini blank -> group 'a. Small Vegetables' 0.7 | Kc mid 1.05 | Kc end 0.95 | h 0.3 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 10,
+    "window_ar": "١٢ – ١٣ نوفمبر (تجارب موسمين بمحطة الحديبة)",
+    "source_url": "https://doi.org/10.9734/jaeri/2025/v26i4692",
+    "quote": "The experiment was conducted over two growing seasons: 2019-2020 and 2020-2021, with sowing dates on 13 November 2019 and 12 November 2020, respectively.",
+    "source_kind": "peer-reviewed (J. Agric. Ecol. Res. Int. 26(4), ARC Hudaiba Research Station, River Nile State)"
+   },
+   "salt": {
+    "cls": "S",
+    "ece": 1.0,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Carrot (Daucus carota): ECe 1.0 for 100% yield",
+    "table5_class": "Sensitive (Carrot)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://doi.org/10.9734/jaeri/2025/v26i4692",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Table 11 prints the mid-season cell as '50/30' with total 100. Only 30 makes the stages sum to the printed 100 (20+30+30+20), so 30 was used. The table does not explain the '50'. The other two carrot rows (Mediterranean 150 d; Calif. Desert 200 d) are unambiguous but far longer than Sudanese carrots.",
+    "Sowing is one trial station over two seasons; it states what was done, not an optimum."
+   ]
+  },
+  {
+   "key": "zucchini",
+   "name_ar": "كوسة",
+   "name_en": "Zucchini (summer squash)",
+   "stages": [
+    25,
+    35,
+    25,
+    15
+   ],
+   "stage_sum": 100,
+   "table11_printed_total": 100,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.5,
+   "kc_mid": 0.95,
+   "kc_end": 0.75,
+   "fao56": {
+    "table11_row": "Squash, Zucchini | 25 | 35 | 25 | 15 | 100 | Apr; Dec. | Medit.; Arid Reg.",
+    "table11_row_as_printed": "Squash, Zucchini | 25 20 | 35 30 | 25 25 | 15 15 | 100 90 | Apr; Dec. May/June | Medit.; Arid Reg. Medit.; Europe",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Squash, Zucchini | Kc ini blank -> group 'c. Vegetables - Cucumber Family' 0.5 | Kc mid 0.95 | Kc end 0.75 | h 0.3 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 9,
+    "window_ar": "أكتوبر حتى أواخر نوفمبر (العروة الشتوية)",
+    "source_url": "https://www.senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D8%AE%D8%B6%D8%B1/783-%D9%82%D8%B1%D8%B9-%D8%A7%D9%84%D9%83%D9%88%D8%B3%D8%A7",
+    "quote": "تعتبر العروة الشتوية مناسبة لزراعة الكوسا في السودان خلال الفترة من اكتوبر وحتى اواخر نوفمبر",
+    "source_kind": "Sudan extension bulletin (senassudan.com)"
+   },
+   "salt": {
+    "cls": "MT",
+    "ece": 4.7,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Squash, zucchini (Cucurbita pepo melopepo): ECe 4.7 for 100% yield",
+    "table5_class": "Moderately Tolerant (Squash, zucchini)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D8%AE%D8%B6%D8%B1/783-%D9%82%D8%B1%D8%B9-%D8%A7%D9%84%D9%83%D9%88%D8%B3%D8%A7",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Sowing source is an extension bulletin on senassudan.com (Sudan agricultural extension portal; the page does not name its publisher). Treat as extension-level, not peer-reviewed.",
+    "Table 11 pairs 'Apr; Dec.' with 'Medit.; Arid Reg.' in the same 100-day row, so the Dec / Arid Region reading is by position."
+   ]
+  },
+  {
+   "key": "sweet_potato",
+   "name_ar": "بطاطا (بامبي)",
+   "name_en": "Sweet potato",
+   "stages": [
+    15,
+    30,
+    50,
+    30
+   ],
+   "stage_sum": 125,
+   "table11_printed_total": 125,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.5,
+   "kc_mid": 1.15,
+   "kc_end": 0.65,
+   "fao56": {
+    "table11_row": "Sweet potato | 15 | 30 | 50 | 30 | 125 | Rainy seas. | Tropical regions",
+    "table11_row_as_printed": "Sweet potato | 20 | 30 | 60 | 40 | 150 | April | Mediterranean; 15 | 30 | 50 | 30 | 125 | Rainy seas. | Tropical regions",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Sweet Potato | Kc ini blank -> group 'd. Roots and Tubers' 0.5 | Kc mid 1.15 | Kc end 0.65 | h 0.4 m",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 6,
+    "window_ar": "العروة الخريفية يوليو؛ الشتوية أكتوبر؛ الصيفية فبراير",
+    "source_url": "https://www.senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D8%AE%D8%B6%D8%B1/60-%D8%A7%D9%84%D8%A8%D8%A7%D9%85%D8%A8%D9%8A",
+    "quote": "مواعيد الزراعة:- في العروة الخريفية يوليو، العروة الشتوية إكتوبر ، العروة الصيفية فبراير.",
+    "source_kind": "Sudan extension bulletin (senassudan.com)"
+   },
+   "salt": {
+    "cls": "MS",
+    "ece": 1.5,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Sweet potato (Ipomoea batatas): ECe 1.5 for 100% yield",
+    "table5_class": "Moderately Sensitive (Sweet potato)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D8%AE%D8%B6%D8%B1/60-%D8%A7%D9%84%D8%A8%D8%A7%D9%85%D8%A8%D9%8A",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Sowing source is an extension bulletin on senassudan.com (Sudan agricultural extension portal; the page does not name its publisher). Treat as extension-level, not peer-reviewed.",
+    "Three seasons are published (Jul, Oct, Feb). July was given because it matches the FAO row 'Rainy season, Tropical regions'; alternate month0 = 9 (Oct) or 1 (Feb).",
+    "In Sudan 'بطاطا' and 'بامبي' mean sweet potato and 'بطاطس' means potato."
+   ]
+  },
+  {
+   "key": "citrus",
+   "name_ar": "موالح (قريب فروت)",
+   "name_en": "Citrus (grapefruit used for Sudan sowing and salt)",
+   "stages": [
+    60,
+    90,
+    120,
+    95
+   ],
+   "stage_sum": 365,
+   "table11_printed_total": 365,
+   "stage_sum_matches_printed_total": true,
+   "kc_ini": 0.7,
+   "kc_mid": 0.65,
+   "kc_end": 0.7,
+   "fao56": {
+    "table11_row": "Citrus | 60 | 90 | 120 | 95 | 365 | Jan | Mediterranean",
+    "table11_row_as_printed": "Citrus | 60 | 90 | 120 | 95 | 365 | Jan | Mediterranean",
+    "table11_url": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "table12_row": "Citrus, no ground cover - 70% canopy | Kc ini 0.70 | Kc mid 0.65 | Kc end 0.70 | h 4 m  (other rows: 50% canopy 0.65/0.60/0.65; 20% canopy 0.50/0.45/0.55; with active ground cover 0.75/0.70/0.75, 0.80/0.80/0.80, 0.85/0.85/0.85)",
+    "table12_url": "https://www.fao.org/4/x0490e/x0490e0b.htm"
+   },
+   "sowing": {
+    "month0": 5,
+    "window_ar": "غرس القريب فروت: يونيو/يوليو أو نوفمبر/ديسمبر",
+    "source_url": "https://www.senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D9%81%D8%A7%D9%83%D9%87%D8%A9",
+    "quote": "طريقة الزراعه ومواعيد الغرس ... يزرع في يونيو/يوليو او نوفمبر/ ديسمبر (page: القريب فروت)",
+    "source_kind": "Sudan extension bulletin (senassudan.com), grapefruit"
+   },
+   "salt": {
+    "cls": "S",
+    "ece": 1.8,
+    "source_url": "https://www.fao.org/4/t0234e/T0234E03.htm",
+    "table4_row": "Grapefruit (Citrus paradisi): ECe 1.8 for 100% yield (orange 1.7)",
+    "table5_class": "Sensitive (Grapefruit, Orange, Lemon, Lime, Tangerine, Pummelo all listed Sensitive)"
+   },
+   "sources": {
+    "growing_days": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "water_need_kc": "https://www.fao.org/4/x0490e/x0490e0b.htm",
+    "sowing_months": "https://www.senassudan.com/index.php/%D8%A7%D9%84%D8%A8%D8%B3%D8%A7%D8%AA%D9%8A%D9%86/%D8%A7%D9%84%D9%81%D8%A7%D9%83%D9%87%D8%A9",
+    "salt_tolerance": "https://www.fao.org/4/t0234e/T0234E03.htm"
+   },
+   "unsourced": [],
+   "flags": [
+    "Table 11 / Table 12 rows were read from the PDF edition of FAO-56 (copy at cse.iitb.ac.in) and cross-checked against the FAO HTML page for Kc_mid/Kc_end; fao.org itself was not reachable from this container, and the HTML conversion I could read drops the Kc_ini column and some Table 11 cells.",
+    "Sowing source is an extension bulletin on senassudan.com (Sudan agricultural extension portal; the page does not name its publisher). Treat as extension-level, not peer-reviewed.",
+    "PERENNIAL. month0 is the orchard planting month for grapefruit in the source, not the start of a seasonal cycle. Table 11 itself starts its 365-day citrus cycle in January. Over a full 365-day cycle the annual total does not depend on the start month, but the monthly split does.",
+    "The Sudanese source covers grapefruit only; the other citrus (orange, lemon, mandarin) have no sowing sentence in the sources found. FAO-29 lists all of them as Sensitive, so the class holds across citrus; the ece figure is grapefruit's.",
+    "Kc row chosen: no ground cover, 70% canopy (mature orchard). Table 12 notes 21-22: increase by 0.1-0.2 in humid/sub-humid climates; not applied for arid Sudan.",
+    "Like date palm in the repo, the stage split is Table 11's own, but the cycle is annual, not planting-to-harvest."
+   ]
+  }
+ ],
+ "excluded": [
+  {
+   "key": "chickpea",
+   "name_en": "Chickpea",
+   "name_ar": "حمّص",
+   "reason": "No FAO-56 Table 11 row (Table 11 legumes list beans, faba bean, cowpea, groundnut, lentil, peas, soybeans only), so there are no stage lengths. Table 12 has Kc (0.4/1.00/0.35) but a crop needs both. Chickpea is also absent from FAO-29 Tables 4 and 5.",
+   "unsourced": [
+    "growing_days",
+    "salt_tolerance",
+    "sowing_months"
+   ]
+  },
+  {
+   "key": "lentil",
+   "name_en": "Lentil",
+   "name_ar": "عدس",
+   "reason": "FAO-56 is complete (Table 11 'Oct/Nov, Arid Region' 25/35/70/40 = 170 d; Table 12 0.4/1.10/0.30), but no source with a lentil sowing month in Sudan was found (the Sudanese lentil papers found describe weed control and yield without stating the month), and lentil is not in FAO-29 Tables 4 and 5.",
+   "unsourced": [
+    "sowing_months",
+    "salt_tolerance"
+   ]
+  },
+  {
+   "key": "garlic",
+   "name_en": "Garlic",
+   "name_ar": "ثوم",
+   "reason": "FAO-56 Table 12 has garlic (Kc mid 1.00, end 0.70) but Table 11 has no garlic row, so no stage lengths. Also not in FAO-29 Tables 4 and 5. No Sudan sowing source gathered.",
+   "unsourced": [
+    "growing_days",
+    "salt_tolerance",
+    "sowing_months"
+   ]
+  },
+  {
+   "key": "banana",
+   "name_en": "Banana",
+   "name_ar": "موز",
+   "reason": "FAO-56 has it (Table 11 1st year 120/90/120/60 = 390 d, Mar, Mediterranean; Table 12 1st year 0.50/1.10/1.00), but the Sudanese bulletin found says only 'the most suitable time to plant banana in Sudan is the beginning of the autumn season' (no month), and banana is not in FAO-29 Tables 4 and 5.",
+   "unsourced": [
+    "sowing_months",
+    "salt_tolerance"
+   ]
+  },
+  {
+   "key": "dry_beans",
+   "name_en": "Dry beans (Phaseolus)",
+   "name_ar": "فاصوليا جافة",
+   "reason": "Not pursued: not a major Sudanese crop, and no Sudanese sowing source was gathered. (FAO-56 and FAO-29 do list it: Table 11 'June, Pakistan, Calif.' 15/25/35/20 = 95 d; Table 12 0.4/1.15/0.35; ECe 1.0, class S.) Cowpea covers the Sudanese bean crop.",
+   "unsourced": [
+    "sowing_months"
+   ]
+  },
+  {
+   "key": "pumpkin",
+   "name_en": "Pumpkin / winter squash",
+   "name_ar": "قرع / يقطين",
+   "reason": "FAO-56 and FAO-29 are available, but the only Sudan sowing source found is a non-authoritative website (ecosudan.net, month 8) and an Egyptian bulletin that is not about Sudan.",
+   "unsourced": [
+    "sowing_months"
+   ]
+  },
+  {
+   "key": "lettuce",
+   "name_en": "Lettuce",
+   "name_ar": "خس",
+   "reason": "FAO-56/FAO-29 available (Table 11 'Oct/Nov, Arid Region' 25/35/30/10 = 100 d; ECe 1.3, MS), but the only Sudan sowing source found is ecosudan.net (non-authoritative) and an Egyptian ministry guide.",
+   "unsourced": [
+    "sowing_months"
+   ]
+  },
+  {
+   "key": "sweet_corn",
+   "name_en": "Sweet corn",
+   "name_ar": "ذرة سكرية",
+   "reason": "No Sudanese sowing source found (results were Turkish, Egyptian and Brazilian trials). Table 11 'Oct/Dec Arid Climate' row is also garbled in the text edition (footnote 3 merged into the late-season cell), so it was not relied on.",
+   "unsourced": [
+    "sowing_months",
+    "growing_days (row legibility)"
+   ]
+  },
+  {
+   "key": "okra",
+   "name_en": "Okra",
+   "name_ar": "بامية",
+   "reason": "Not in FAO-56 Table 11 or Table 12. (FAO-29 Table 5 lists okra as Sensitive, with no ECe figure.)",
+   "unsourced": [
+    "growing_days",
+    "water_need_kc"
+   ]
+  },
+  {
+   "key": "fenugreek",
+   "name_en": "Fenugreek",
+   "name_ar": "حلبة",
+   "reason": "Not in FAO-56 Table 11 or Table 12, and not in FAO-29. (A Sudan extension bulletin says October-November sowing, but the water figures cannot be sourced.)",
+   "unsourced": [
+    "growing_days",
+    "water_need_kc",
+    "salt_tolerance"
+   ]
+  },
+  {
+   "key": "mango",
+   "name_en": "Mango",
+   "name_ar": "مانجو",
+   "reason": "Not in FAO-56 Table 11 or Table 12 (checked against the table text). In FAO-29 Table 5 as Sensitive only.",
+   "unsourced": [
+    "growing_days",
+    "water_need_kc"
+   ]
+  },
+  {
+   "key": "hibiscus_roselle",
+   "name_en": "Hibiscus / roselle",
+   "name_ar": "كركديه",
+   "reason": "Not in FAO-56 Table 11 or Table 12, and not in FAO-29 Tables 4 and 5.",
+   "unsourced": [
+    "growing_days",
+    "water_need_kc",
+    "salt_tolerance"
+   ]
+  },
+  {
+   "key": "gum_arabic",
+   "name_en": "Gum arabic (Acacia senegal)",
+   "name_ar": "صمغ عربي",
+   "reason": "Not in FAO-56 Table 11 or Table 12. It is also rain-fed in the gum belt, so an irrigation requirement does not apply.",
+   "unsourced": [
+    "growing_days",
+    "water_need_kc",
+    "salt_tolerance"
+   ]
+  }
+ ]
+}

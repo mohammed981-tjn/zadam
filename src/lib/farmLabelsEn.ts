@@ -32,6 +32,23 @@ const CROP_EN: Record<string, string> = {
   sugarcane: "Sugarcane",
   millet: "Pearl millet",
   dates: "Date palm",
+  faba_bean: "Faba bean",
+  potato: "Potato",
+  sunflower: "Sunflower",
+  safflower: "Safflower",
+  barley: "Barley",
+  rice: "Rice",
+  cowpea: "Cowpea",
+  watermelon: "Watermelon",
+  sweet_melon: "Sweet melon",
+  cucumber: "Cucumber",
+  eggplant: "Eggplant",
+  sweet_pepper: "Sweet pepper",
+  cabbage: "Cabbage",
+  carrot: "Carrot",
+  zucchini: "Zucchini",
+  sweet_potato: "Sweet potato",
+  citrus: "Citrus (grapefruit)",
 };
 
 const STATION_EN: Record<string, string> = {

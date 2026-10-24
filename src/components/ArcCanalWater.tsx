@@ -4,6 +4,7 @@ import {
   waterRequirement,
   type IrrigationMethod,
 } from "@/lib/agronomy";
+import { SOWING } from "@/lib/landCrops";
 import {
   ROUTE_CLIMATE,
   END_CELL_RAINFALL,
@@ -144,9 +145,13 @@ export default function ArcCanalWater({ locale = "ar" }: { locale?: Locale }) {
             </thead>
             <tbody>
               {CROPS.map((c) => {
+                // The scenario's month where it plants the crop; else the cited Sudanese sowing
+                // month (landCrops.ts) — a winter crop must not be costed in July (backlog 156).
                 const month =
                   SCENARIO_CROP_PLAN.find((p) => p.cropKey === c.key)
-                    ?.plantingMonth ?? 6;
+                    ?.plantingMonth ??
+                  SOWING[c.key]?.month ??
+                  6;
                 return (
                   <tr key={c.key} className="border-b border-border last:border-0">
                     <td className="p-3 font-medium">{cropName(c, locale)}</td>
