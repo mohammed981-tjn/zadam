@@ -28,6 +28,7 @@ import type {
 import { addLedgerEntry, completeSeason, completeStage } from "../actions";
 import StageEvidenceUpload from "@/components/StageEvidence";
 import YieldBenchmark from "@/components/YieldBenchmark";
+import OfflineForm from "@/components/OfflineForm";
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -409,8 +410,11 @@ export default async function SeasonPage({
         )}
 
         {canWrite && (
-          <form
+          <OfflineForm
             action={addLedgerEntry}
+            outboxKey={`ledger:${season.id}`}
+            label={t("قيد مصروف أو إيراد", "A cost or revenue entry")}
+            stamp="entry_date"
             className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-4"
           >
             <input type="hidden" name="season_id" value={season.id} />
@@ -445,7 +449,7 @@ export default async function SeasonPage({
             >
               {t("أضف قيداً", "Add entry")}
             </button>
-          </form>
+          </OfflineForm>
         )}
 
         {band && (

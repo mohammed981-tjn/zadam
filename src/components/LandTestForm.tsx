@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useOutboxAction } from "@/lib/useOutboxAction";
 import { addLandTest, type LandResult } from "@/app/lands/actions";
 import { useLocale } from "@/components/LocaleProvider";
 import { tr } from "@/lib/i18n";
@@ -10,7 +11,10 @@ import { button, field, label } from "@/lib/ui";
 export default function LandTestForm({ landId, today }: { landId: string; today: string }) {
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const [state, action, pending] = useActionState<LandResult | null, FormData>(addLandTest, null);
+  const { state, formAction: action, pending, note, kept } = useOutboxAction<LandResult>(addLandTest, {
+    key: `land-test:${landId}`,
+    label: t("فحص ماء أو تربة", "A water or soil test"),
+  });
   const [kind, setKind] = useState("water");
 
   return (
@@ -54,8 +58,13 @@ export default function LandTestForm({ landId, today }: { landId: string; today:
         <textarea name="note" maxLength={500} rows={2} className={field} />
       </label>
       {state && (
-        <p className={`text-sm sm:col-span-2 ${state.ok ? "text-primary" : "text-danger"}`} role="status">
+        <p className={`text-sm sm:col-span-2 ${state.ok || kept ? "text-primary" : "text-danger"}`} role="status">
           {state.message}
+        </p>
+      )}
+      {note && (
+        <p className="text-sm text-primary sm:col-span-2" role="status">
+          {note}
         </p>
       )}
       <div className="sm:col-span-2">

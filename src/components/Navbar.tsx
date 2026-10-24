@@ -5,6 +5,7 @@ import SideSwitch from "@/components/SideSwitch";
 import NavMenu, { type NavGroup } from "./NavMenu";
 import LangToggle from "./LangToggle";
 import BottomNav from "./BottomNav";
+import OutboxProvider from "./OutboxProvider";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { adminPendingTotal } from "@/lib/adminQueue";
@@ -430,6 +431,8 @@ export default async function Navbar() {
         </div>
       </div>
     </header>
+    {/* البند ١٦٧: يعرّف صندوق الصادر بصاحب الجلسة، ويُظهر ما حُفظ على الهاتف ولم يُرسل. */}
+    <OutboxProvider userId={user?.id ?? null} />
     <BottomNav signedIn={Boolean(user)} />
     </>
   );

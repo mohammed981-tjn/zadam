@@ -1,5 +1,6 @@
 "use server";
 import { dbText } from "@/lib/dbText";
+import { ledgerEntryDate } from "@/lib/entryDate";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -277,11 +278,15 @@ export async function addLedgerEntry(formData: FormData) {
    * as though the cost was recorded, and the book is quietly short by one line.
    * Nothing downstream can detect that later — there is no gap to find.
    */
+  // A cost kept on the phone while offline is sent later; it keeps the day it was written (backlog 167).
+  const entryDate = ledgerEntryDate(str(formData, "entry_date"), new Date().toISOString().slice(0, 10));
+
   const { error } = await supabase.from("ledger_entries").insert({
     season_id: seasonId,
     category,
     amount,
     description: str(formData, "description") || null,
+    ...(entryDate ? { entry_date: entryDate } : {}),
     created_by: user.id,
   });
 

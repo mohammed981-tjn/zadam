@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useOutboxAction } from "@/lib/useOutboxAction";
 import {
   CROPS,
   STATIONS,
@@ -66,12 +67,12 @@ export default function SeasonForm({
    */
   projects?: SeasonProjectOption[];
 }) {
-  const [state, formAction, pending] = useActionState<
-    ActionResult | null,
-    FormData
-  >(createSeason, null);
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
+  const { state, formAction, pending, note, kept } = useOutboxAction<ActionResult>(createSeason, {
+    key: "season-new",
+    label: t("موسم جديد", "A new season"),
+  });
   const arrow = locale === "en" ? "→" : "←";
 
   const startLand = lands.find((l) => l.id === (agreement?.landId ?? landId));
@@ -290,10 +291,15 @@ export default function SeasonForm({
         </fieldset>
 
         {state && !state.ok && (
-          <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+          <p
+            className={`rounded-lg border px-3 py-2 text-sm ${
+              kept ? "border-primary/30 bg-primary/10 text-primary" : "border-danger/30 bg-danger/10 text-danger"
+            }`}
+          >
             {state.message}
           </p>
         )}
+        {note && <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">{note}</p>}
 
         <button
           type="submit"
