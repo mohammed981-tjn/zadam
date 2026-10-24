@@ -30,6 +30,7 @@ PRIVATE="$(pg_stage "$ROOT/supabase/migrations/20261021220000_land_rows_not_publ
 AGREEMENTS="$(pg_stage "$ROOT/supabase/migrations/20261021230000_partnership_agreements.sql" agreements.sql)"
 TRUST="$(pg_stage "$ROOT/supabase/migrations/20261023010000_partnership_trust.sql" trust.sql)"
 MANAGED="$(pg_stage "$ROOT/supabase/migrations/20261023020000_partnership_managed.sql" managed.sql)"
+OVERLAP="$(pg_stage "$ROOT/supabase/migrations/20261024060000_land_not_double_contracted.sql" overlap.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-partnership-agreements.sql" checks.sql)"
 
 # Supabase's own defaults, so that a revoke in a migration is what the checks meet.
@@ -52,6 +53,7 @@ echo "── صفُّ الأرض خاصّ";   pg_run "$PRIVATE" >/dev/null
 echo "── العقد";             pg_run "$AGREEMENTS" >/dev/null
 echo "── ما ينقص الشراكة";   pg_run "$TRUST" >/dev/null
 echo "── الشراكة الثلاثيّة";  pg_run "$MANAGED" >/dev/null
+echo "── أرضٌ لا تُعقد مرّتين"; pg_run "$OVERLAP" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"

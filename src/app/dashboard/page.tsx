@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatUsd } from "@/lib/format";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { portfolioTotals } from "@/lib/investorTotals";
 import type { Investment, Project } from "@/types/database";
 
 type InvestmentRow = Investment & { projects: Project | null };
@@ -31,8 +32,8 @@ export default async function DashboardPage({
     .order("created_at", { ascending: false });
 
   const rows = (investments ?? []) as unknown as InvestmentRow[];
-  const totalInvested = rows.reduce((sum, row) => sum + Number(row.amount), 0);
-  const totalShares = rows.reduce((sum, row) => sum + row.shares, 0);
+  // Only confirmed requests are money invested; pending ones are shown beside, cancelled ones count for nothing.
+  const totals = portfolioTotals(rows);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -62,19 +63,25 @@ export default async function DashboardPage({
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted">{t("إجمالي الاستثمار", "Total invested")}</p>
-          <p className="mt-1 text-xl font-bold">{formatUsd(totalInvested, locale)}</p>
+          <p className="mt-1 text-xl font-bold">{formatUsd(totals.invested, locale)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted">{t("إجمالي الحصص", "Total shares")}</p>
-          <p className="mt-1 text-xl font-bold">{totalShares}</p>
+          <p className="mt-1 text-xl font-bold">{totals.shares}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted">{t("عدد المشاريع", "Number of projects")}</p>
-          <p className="mt-1 text-xl font-bold">
-            {new Set(rows.map((r) => r.project_id)).size}
-          </p>
+          <p className="mt-1 text-xl font-bold">{totals.projects}</p>
         </div>
       </div>
+      {totals.pendingCount > 0 && (
+        <p className="mt-3 text-sm text-muted">
+          {t(
+            `وعندك ${totals.pendingCount} طلباً بانتظار التأكيد (${formatUsd(totals.pendingAmount, locale)}) لا يدخل في المجاميع أعلاه حتى يؤكّده فريق سوداقري.`,
+            `You also have ${totals.pendingCount} request(s) awaiting confirmation (${formatUsd(totals.pendingAmount, locale)}), not counted above until the Sudagri team confirms.`,
+          )}
+        </p>
+      )}
 
       <h2 className="mb-3 mt-8 text-lg font-bold">{t("تفاصيل الاستثمارات", "Investment details")}</h2>
       {rows.length === 0 ? (

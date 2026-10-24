@@ -399,6 +399,63 @@ do $$ begin
 end $$;
 
 \echo ''
+\echo 'ز) الأرض لا تُعقد كاملةً لمستثمرَين في المدّة نفسها (BUG-14، البند ١٦٢)'
+
+-- الأرض ٣ مساحتها ١٠ فدادين، وعقد سلمى الموقَّع عليها: ١٠ فدادين من ٢٠٢٧-٠٦-٠١ إلى ٢٠٢٧-١١-٣٠.
+-- غريب (ص) يطلب عليها ويكتب عقداً بالحصّة (sharecrop) في مدّةٍ تتداخل معه.
+do $$ begin perform _act_as(null); end $$;
+update lands set investor_models = array['managed','sharecrop'] where id = '11000000-0000-0000-0000-000000000003';
+
+set role authenticated;
+do $$
+declare v jsonb; ref text; base jsonb;
+begin
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  insert into _ids values ('second_interest', investor_express_interest('11000000-0000-0000-0000-000000000003', 'sharecrop',
+    'أزرع القمح الشتويّ وعندي خبرةٌ وآليّاتي', true));
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform land_investor_decide(_id('second_interest'), true);
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  insert into _ids values ('second', partnership_agreement_open(_id('second_interest')));
+
+  base := '{"crop":"قمح","season":"الشتوي","owner_provides":["land","water"],"investor_provides":["seed","fertiliser","fuel"],"owner_share":40,"investor_share":60,"loss_rule":"by_contribution"}'::jsonb;
+
+  -- ١٠ فدادين في مدّةٍ تتداخل مع عقد سلمى (يوليو – ديسمبر): تتجاوز المتاح فيُرفض التوقيع.
+  perform _eq(partnership_agreement_save(_id('second'),
+    base || '{"start_date":"2027-08-01","end_date":"2027-12-31","feddans":10}'), 2, 'يُحفظ عقدٌ مسوَّدة بعشرة فدادين تتداخل مدّتها (المسوَّدة لا تحجز شيئاً)');
+  v := partnership_agreement_view(_id('second'));
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _refuses(format($q$select partnership_agreement_sign(%L, %s, %L, 'الحاج عثمان محمد', 'M 1 1 L 20 20 L 30 30', null)$q$,
+    _id('second'), v->>'version', v->>'terms_hash'),
+    'ويُرفض التوقيع: العشرة محجوزةٌ كلّها في مدّةٍ متداخلة');
+
+  -- أربعة فدادين في المدّة نفسها: لا يبقى إلا صفر، فيُرفض أيضاً.
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _eq(partnership_agreement_save(_id('second'),
+    base || '{"start_date":"2027-08-01","end_date":"2027-12-31","feddans":4}'), 3, 'ويُعدَّل إلى أربعة فدادين');
+  v := partnership_agreement_view(_id('second'));
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _refuses(format($q$select partnership_agreement_sign(%L, %s, %L, 'الحاج عثمان محمد', 'M 1 1 L 20 20 L 30 30', null)$q$,
+    _id('second'), v->>'version', v->>'terms_hash'),
+    'والأربعة أيضاً: لم يبقَ من الأرض شيءٌ في تلك الأيّام');
+
+  -- مدّة لا تتداخل (بعد انتهاء عقد سلمى): تكفي الأرض كلّها.
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _eq(partnership_agreement_save(_id('second'),
+    base || '{"start_date":"2027-12-01","end_date":"2028-04-30","feddans":10}'), 4, 'وتُعدَّل المدّة إلى ما بعد عقد سلمى');
+  v := partnership_agreement_view(_id('second'));
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _eq(partnership_agreement_sign(_id('second'), (v->>'version')::int, v->>'terms_hash',
+                                         'الحاج عثمان محمد', 'M 1 1 L 20 20 L 30 30', null),
+    null::text, 'فيوقّع صاحب الأرض: مدّةٌ لا تتداخل، فالأرض كلّها متاحة');
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  ref := partnership_agreement_sign(_id('second'), (v->>'version')::int, v->>'terms_hash',
+                                    'عمر غريب الدار', 'M 5 5 L 25 25 L 35 35', null);
+  perform _eq(ref like 'SDQ-%', true, 'ويُقفل العقد الثاني برقم — ' || coalesce(ref, 'null'));
+end $$;
+reset role;
+
+\echo ''
 \echo '=========================================================================='
 
 do $$

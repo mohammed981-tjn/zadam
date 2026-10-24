@@ -8,6 +8,7 @@ import { STATIONS } from "@/lib/agronomy";
 import { WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { locationMessage, locationProblem, parseCoordinates } from "@/lib/landLocation";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -69,12 +70,8 @@ export async function registerLand(
 
   const lat = optNum(formData, "latitude");
   const lng = optNum(formData, "longitude");
-  if (lat !== null && (lat < -90 || lat > 90)) {
-    return { ok: false, message: t("خط عرض خارج النطاق.", "Latitude is out of range.") };
-  }
-  if (lng !== null && (lng < -180 || lng > 180)) {
-    return { ok: false, message: t("خط طول خارج النطاق.", "Longitude is out of range.") };
-  }
+  const problem = locationProblem(lat, lng);
+  if (problem) return { ok: false, message: locationMessage(problem, t) };
 
   const { error } = await supabase.from("lands").insert({
     owner_id: user.id,
@@ -113,6 +110,70 @@ export async function registerLand(
         "إثبات الحيازة، وصور بإحداثيات، ومعاينة ميدانية.",
       "Your land is registered. No one will see it until you upload its documents and the administrators approve it — " +
         "proof of tenure, photos with coordinates, and a field inspection.",
+    ),
+  };
+}
+
+/**
+ * موقع الأرض بعد تسجيلها (BUG-13 وMAP-3، البند ١٦٢): يُضاف لأرضٍ سُجّلت بلا موقع، أو يُصحَّح.
+ *
+ * Three ways to say it, in this order: a pasted pair or map link, the phone's own reading, two typed
+ * numbers. The database already reopens a verified land for review when its place changes
+ * (reopen_land_on_fact_change), and tells the owner; so this only has to check the pair is in Sudan.
+ * Only the owner's own row is touched, whatever land_id the form carries.
+ */
+export async function setLandLocation(
+  _prev: LandResult | null,
+  formData: FormData,
+): Promise<LandResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
+  const landId = str(formData, "land_id");
+  const pasted = parseCoordinates(str(formData, "paste"));
+  const gpsLat = optNum(formData, "lat");
+  const gpsLng = optNum(formData, "lng");
+  const lat = pasted ? pasted.lat : gpsLat !== null && gpsLng !== null ? gpsLat : optNum(formData, "latitude");
+  const lng = pasted ? pasted.lng : gpsLat !== null && gpsLng !== null ? gpsLng : optNum(formData, "longitude");
+
+  if (lat === null || lng === null) {
+    return {
+      ok: false,
+      message: t(
+        "اضغط «حدّد موقعي»، أو الصق الموقع، أو اكتب خطّ العرض وخطّ الطول.",
+        "Press “Use my location”, paste the location, or type latitude and longitude.",
+      ),
+    };
+  }
+  const problem = locationProblem(lat, lng);
+  if (problem) return { ok: false, message: locationMessage(problem, t) };
+
+  const { data, error } = await supabase
+    .from("lands")
+    .update({ latitude: lat, longitude: lng })
+    .eq("id", landId)
+    .eq("owner_id", user.id)
+    .select("id, verification")
+    .maybeSingle();
+  if (error) {
+    return { ok: false, message: t(`تعذّر حفظ الموقع: ${await dbText(error.message)}`, `Could not save the location: ${await dbText(error.message)}`) };
+  }
+  if (!data) {
+    return { ok: false, message: t("الأرض غير موجودة أو ليست لك.", "That land does not exist or is not yours.") };
+  }
+
+  revalidatePath("/lands");
+  return {
+    ok: true,
+    message: t(
+      "حُفظ الموقع. وإن كانت أرضك موثّقة فتغيير موقعها يعيدها إلى مراجعة الإدارة قبل أن تُعرض من جديد.",
+      "The location is saved. If your land was verified, changing its place sends it back to the administrators before it is shown again.",
     ),
   };
 }

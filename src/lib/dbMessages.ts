@@ -150,6 +150,7 @@ const MESSAGES: [string, string][] = [
   ["لديك عشرة عروضٍ مفتوحة. أغلق واحداً قبل أن تضيف غيره.", "You have ten open offers. Close one before adding another."],
   ["أضفتَ عشرين عرضاً اليوم. عُد غداً.", "You have added twenty offers today. Come back tomorrow."],
   ["لا عرضَ مفتوحاً لك بهذا الرقم.", "You have no open offer with this number."],
+  ["الأرض متعاقَدٌ على % من % فداناً في جزءٍ من هذه المدّة، والمتبقّي % فقط. عدّلوا المساحة أو المدّة.", "% of the land's % feddans are already contracted during part of this period; only % remain. Change the area or the period."],
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
