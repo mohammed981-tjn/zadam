@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useOutboxAction } from "@/lib/useOutboxAction";
 import Explain, { Steps } from "@/components/Explain";
 import {
   SPECIES,
@@ -27,12 +28,12 @@ export default function HerdForm({
   today: string;
   projects?: { id: string; name: string }[];
 }) {
-  const [state, formAction, pending] = useActionState<
-    ActionResult | null,
-    FormData
-  >(createHerd, null);
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
+  const { state, formAction, pending, note, kept } = useOutboxAction<ActionResult>(createHerd, {
+    key: "herd-new",
+    label: t("قطيع جديد", "A new herd"),
+  });
   const en = locale === "en";
   const arText = en ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
@@ -179,10 +180,11 @@ export default function HerdForm({
         </fieldset>
 
         {state && !state.ok && (
-          <p className="rounded-lg border border-danger/40 bg-danger/5 px-3 py-2 text-sm">
+          <p className={`rounded-lg border px-3 py-2 text-sm ${kept ? "border-primary/40 bg-primary/5 text-primary" : "border-danger/40 bg-danger/5"}`}>
             {state.message}
           </p>
         )}
+        {note && <p className="rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-sm text-primary">{note}</p>}
       </div>
 
       <aside className="flex h-fit flex-col gap-3 rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-24">

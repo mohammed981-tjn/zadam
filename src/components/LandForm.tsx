@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useActionState, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useOutboxAction } from "@/lib/useOutboxAction";
 import {
   STATIONS,
   CROPS,
@@ -31,12 +32,12 @@ const TENURES: [string, string, string][] = [
 ];
 
 export default function LandForm() {
-  const [state, formAction, pending] = useActionState<
-    LandResult | null,
-    FormData
-  >(registerLand, null);
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
+  const { state, formAction, pending, note, kept } = useOutboxAction<LandResult>(registerLand, {
+    key: "land-new",
+    label: t("تسجيل أرض", "Registering a land"),
+  });
 
   const [stationKey, setStationKey] = useState("gezira");
   const [feddans, setFeddans] = useState(20);
@@ -312,10 +313,15 @@ export default function LandForm() {
         </div>
 
         {state && !state.ok && (
-          <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+          <p
+            className={`rounded-lg border px-3 py-2 text-sm ${
+              kept ? "border-primary/30 bg-primary/10 text-primary" : "border-danger/30 bg-danger/10 text-danger"
+            }`}
+          >
             {state.message}
           </p>
         )}
+        {note && <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">{note}</p>}
 
         <button
           type="submit"
