@@ -151,6 +151,153 @@ export const CROPS: CropCoefficients[] = [
     kcMid: 0.95,
     kcEnd: 0.95,
   },
+  /*
+   * المحاصيل المضافة في ٢٤ أكتوبر ٢٠٢٦ (البند ١٥٦). كلُّ رقمٍ فيها منقولٌ من جدولٍ منشور:
+   * أطوال المراحل ومعاملات المحصول (Kc) من FAO-56 الجدولين ١١ و١٢ (https://www.fao.org/4/x0490e/x0490e0b.htm)،
+   * وموعد الزراعة من مصدرٍ سودانيّ في `SOWING` (landCrops.ts)، وتحمّل الملوحة من FAO-29 في `SALT`.
+   * مصادر كلّ محصولٍ ورابطها وملاحظاتها في docs/new-crops-sources-ar.md.
+   * وما لم يكتمل مصدره لم يدخل (القائمة هناك).
+   */
+  {
+    key: "faba_bean",
+    name: "فول مصري",
+    stages: [20, 30, 35, 15],
+    kcInitial: 0.5,
+    kcMid: 1.15,
+    kcEnd: 0.3,
+  },
+  {
+    key: "potato",
+    name: "بطاطس",
+    stages: [25, 30, 45, 30],
+    kcInitial: 0.5,
+    kcMid: 1.15,
+    kcEnd: 0.75,
+  },
+  {
+    key: "sunflower",
+    name: "عبّاد الشمس",
+    stages: [25, 35, 45, 25],
+    kcInitial: 0.35,
+    kcMid: 1.15,
+    kcEnd: 0.35,
+  },
+  {
+    key: "safflower",
+    name: "قُرطم",
+    stages: [35, 55, 60, 40],
+    kcInitial: 0.35,
+    kcMid: 1.15,
+    kcEnd: 0.25,
+  },
+  {
+    key: "barley",
+    name: "شعير",
+    stages: [15, 25, 50, 30],
+    kcInitial: 0.3,
+    kcMid: 1.15,
+    kcEnd: 0.25,
+  },
+  {
+    // Kc_end: منتصف مدى الجدول (٠٫٩٠–٠٫٦٠)، كما اعتُمد للقطن في هذا الملفّ.
+    key: "rice",
+    name: "أرز",
+    stages: [30, 30, 80, 40],
+    kcInitial: 1.05,
+    kcMid: 1.2,
+    kcEnd: 0.75,
+  },
+  {
+    // FAO-56 يطبع المجموع ١١٠ يوماً والمراحل تجمع ١٠٠؛ أُخذت المراحل كما طُبعت ولم تُضَف أيّام.
+    key: "cowpea",
+    name: "لوبيا",
+    stages: [20, 30, 30, 20],
+    kcInitial: 0.4,
+    kcMid: 1.05,
+    kcEnd: 0.35,
+  },
+  {
+    key: "watermelon",
+    name: "بطيخ",
+    stages: [10, 20, 20, 30],
+    kcInitial: 0.4,
+    kcMid: 1.0,
+    kcEnd: 0.75,
+  },
+  {
+    key: "sweet_melon",
+    name: "شمّام",
+    stages: [30, 45, 65, 20],
+    kcInitial: 0.5,
+    kcMid: 1.05,
+    kcEnd: 0.75,
+  },
+  {
+    key: "cucumber",
+    name: "خيار",
+    stages: [25, 35, 50, 20],
+    kcInitial: 0.6,
+    kcMid: 1.0,
+    kcEnd: 0.75,
+  },
+  {
+    key: "eggplant",
+    name: "باذنجان",
+    stages: [30, 40, 40, 20],
+    kcInitial: 0.6,
+    kcMid: 1.05,
+    kcEnd: 0.9,
+  },
+  {
+    key: "sweet_pepper",
+    name: "فلفل حلو",
+    stages: [30, 40, 110, 30],
+    kcInitial: 0.6,
+    kcMid: 1.05,
+    kcEnd: 0.9,
+  },
+  {
+    key: "cabbage",
+    name: "كرمب (ملفوف)",
+    stages: [40, 60, 50, 15],
+    kcInitial: 0.7,
+    kcMid: 1.05,
+    kcEnd: 0.95,
+  },
+  {
+    key: "carrot",
+    name: "جزر",
+    stages: [20, 30, 30, 20],
+    kcInitial: 0.7,
+    kcMid: 1.05,
+    kcEnd: 0.95,
+  },
+  {
+    key: "zucchini",
+    name: "كوسة",
+    stages: [25, 35, 25, 15],
+    kcInitial: 0.5,
+    kcMid: 0.95,
+    kcEnd: 0.75,
+  },
+  {
+    key: "sweet_potato",
+    name: "بطاطا (بامبي)",
+    stages: [15, 30, 50, 30],
+    kcInitial: 0.5,
+    kcMid: 1.15,
+    kcEnd: 0.65,
+  },
+  {
+    // معمّر: المراحل الأربع تجمع ٣٦٥ يوماً لتُحسب بالمحرّك نفسه كالنخيل، وتقسيمها اصطلاحٌ لا رقمٌ من FAO.
+    // Kc لبستانٍ بغطاءٍ ٧٠٪ بلا عشبٍ تحته (الجدول ١٢).
+    key: "citrus",
+    name: "موالح (قريب فروت)",
+    stages: [60, 90, 120, 95],
+    kcInitial: 0.7,
+    kcMid: 0.65,
+    kcEnd: 0.7,
+  },
   // MANGO AND GUM ARABIC ARE MISSING ON PURPOSE.
   //
   // Both are discussed in the platform's knowledge base and both were asked

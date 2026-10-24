@@ -131,15 +131,16 @@ for (const c of CROPS)
     }
 ok(bad === 0, `${n} combinations, ${bad} problems`);
 
-// Drip must always plan less water than flood.
+// Drip must plan less water than flood whenever flood plans any. Where the rain covers the whole
+// crop (watermelon at Kurmuk sown in June, 24 October 2026) both plan none, and that is no fault.
 let effBad = 0;
 for (const c of CROPS)
   for (const s of STATIONS) {
     const f = planSeason(c.key, s.key, "2026-06-10", "flood", 10, 100)!;
     const d = planSeason(c.key, s.key, "2026-06-10", "drip", 10, 100)!;
-    if (d.totalWaterM3 >= f.totalWaterM3) effBad++;
+    if (d.totalWaterM3 > f.totalWaterM3 || (f.totalWaterM3 > 0 && d.totalWaterM3 >= f.totalWaterM3)) effBad++;
   }
-ok(effBad === 0, "drip always plans less water than flood");
+ok(effBad === 0, "drip plans less water than flood wherever flood plans any (never more)");
 
 console.log("\n" + "=".repeat(76));
 console.log("E) The ledger");
