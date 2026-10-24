@@ -14,6 +14,7 @@ import LandCropFit from "@/components/LandCropFit";
 import type { InspectionRow } from "@/lib/inspections";
 import type { InvestorProfile, LandRequest } from "@/lib/investors";
 import LandWater from "@/components/LandWater";
+import LandLocationForm from "@/components/LandLocationForm";
 import { Suspense } from "react";
 import type { PartnerCompany, PartnerInterest } from "@/lib/partners";
 
@@ -246,11 +247,17 @@ export default async function LandsPage({
                 ) : (
                   <p className="mt-4 rounded-xl bg-background p-3 text-xs text-muted">
                     {t(
-                      "أضف خطّ العرض والطول لهذه الأرض (عدّل الأرض) لترى ماءها من أقمار الفاو كلّ عشرة أيّام.",
-                      "Add this land's latitude and longitude (edit the land) to see its water from FAO's satellites every ten days.",
+                      "أضف موقع هذه الأرض (من الزرّ أدناه) لترى ماءها من أقمار الفاو كلّ عشرة أيّام.",
+                      "Add this land's location (with the button below) to see its water from FAO's satellites every ten days.",
                     )}
                   </p>
                 )}
+
+                <LandLocationForm
+                  landId={l.id}
+                  current={l.latitude !== null && l.longitude !== null ? { lat: Number(l.latitude), lng: Number(l.longitude) } : null}
+                  verified={l.verification === "verified"}
+                />
 
                 <LandDocuments
                   landId={l.id}

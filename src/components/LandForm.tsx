@@ -40,7 +40,10 @@ export default function LandForm() {
 
   const [stationKey, setStationKey] = useState("gezira");
   const [feddans, setFeddans] = useState(20);
-  const [waterPerFeddan, setWaterPerFeddan] = useState(3600);
+  // MAP-4 (backlog 162): no number is put in the owner's mouth. Empty means «I do not know», and
+  // an investor is shown what the owner typed, as the owner's own declaration, or nothing.
+  const [waterText, setWaterText] = useState("");
+  const waterPerFeddan = Number(waterText);
   // The place: typed, or tapped on the map, or «موقعي» on the map.
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
@@ -254,10 +257,17 @@ export default function LandForm() {
               name="water_per_feddan"
               min={0}
               step="50"
-              value={waterPerFeddan}
-              onChange={(e) => setWaterPerFeddan(Number(e.target.value))}
+              value={waterText}
+              onChange={(e) => setWaterText(e.target.value)}
+              placeholder={t("مثلاً 3600 — أو اتركه فارغاً", "e.g. 3600 — or leave it empty")}
               className={field}
             />
+            <span className="text-xs text-muted">
+              {t(
+                "اتركه فارغاً إن لم تعرف. وما تكتبه يراه المستثمر على أنّه من إعلانك أنت.",
+                "Leave it empty if you do not know. What you type is shown to investors as your own declaration.",
+              )}
+            </span>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">

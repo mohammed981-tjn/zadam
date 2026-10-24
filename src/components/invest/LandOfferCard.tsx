@@ -78,13 +78,13 @@ export default function LandOfferCard({
           <dd className="font-medium">{waterSourceLabel(l.water_source, locale)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted">{t("المياه للفدان", "Water per feddan")}</dt>
+          <dt className="text-xs text-muted">{t("المياه للفدان (يعلنها المالك)", "Water per feddan (declared by the owner)")}</dt>
           <dd className="font-medium">
             {l.water_per_feddan ? `${Math.round(Number(l.water_per_feddan)).toLocaleString("en-US")} ${t("م³", "m³")}` : "—"}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-muted">{t("التربة", "Soil")}</dt>
+          <dt className="text-xs text-muted">{t("التربة (تقدير للمنطقة)", "Soil (regional estimate)")}</dt>
           <dd className="font-medium">{soil(l.soil_class)}</dd>
         </div>
         <div>
