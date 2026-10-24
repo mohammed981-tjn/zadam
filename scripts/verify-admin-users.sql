@@ -24,7 +24,11 @@ end $$;
 
 insert into auth.users (id, email, created_at, last_sign_in_at, email_confirmed_at, raw_user_meta_data) values
   ('ad000000-0000-0000-0000-0000000000ad', 'admin@example.com', now() - interval '60 days', now(), now(), '{}'),
-  ('b1000000-0000-0000-0000-0000000000b1', 'p966555608873@phone.invalid', now() - interval '2 hours', now() - interval '1 hour', null, '{"full_name":"محمد (جوّال)"}'),
+  -- First second of today in Khartoum — "registered today" whatever hour the gate runs. (It was `now() - 2 hours`,
+  -- which is yesterday in Khartoum between 00:00 and 02:00 there, so the gate failed for those two hours every night.)
+  ('b1000000-0000-0000-0000-0000000000b1', 'p966555608873@phone.invalid',
+   (date_trunc('day', now() at time zone 'Africa/Khartoum') at time zone 'Africa/Khartoum') + interval '1 second',
+   (date_trunc('day', now() at time zone 'Africa/Khartoum') at time zone 'Africa/Khartoum') + interval '2 seconds', null, '{"full_name":"محمد (جوّال)"}'),
   ('b2000000-0000-0000-0000-0000000000b2', 'two-ways@example.com', now() - interval '3 days', now() - interval '1 day', now(), '{}'),
   ('b3000000-0000-0000-0000-0000000000b3', 'new-mail@example.com', now() - interval '20 days', null, null, '{}');
 insert into profiles (id, full_name, role, phone) values
