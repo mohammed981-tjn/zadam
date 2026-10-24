@@ -1,0 +1,25 @@
+name: Probe soil sources
+
+# Prints what the point-level soil services answer (backlog 180). The development container
+# cannot reach them; a runner can. Read-only: nothing is committed or written.
+# Runs when the probe itself changes (the first run), and by hand after that.
+on:
+  push:
+    paths:
+      - ".github/workflows/probe-soil-sources.yml"
+      - "scripts/probe-soil-sources.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/probe-soil-sources.mjs
