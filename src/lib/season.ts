@@ -25,6 +25,7 @@ import {
   type IrrigationMethod,
   type StationClimate,
 } from "./agronomy";
+import { allocate } from "./ledger/money";
 
 export type StageKey =
   | "land_prep"
@@ -191,6 +192,17 @@ export function planSeason(
   const efficiency = IRRIGATION_EFFICIENCY[irrigation];
   const [ini, dev, mid, late] = crop.stages;
   const totalBudget = feddans * budgetPerFeddan;
+  if (!Number.isFinite(totalBudget)) return null;
+
+  // Whole dollars per stage, split by largest remainder so the stages add up to
+  // the season budget exactly. Rounding each share on its own left the stages a
+  // few dollars off the total, and the last release then never matched the plan.
+  const stageKeys = Object.keys(STAGE_TEMPLATES) as StageKey[];
+  const stageBudgets = new Map<StageKey, number>();
+  allocate(
+    BigInt(Math.round(totalBudget)),
+    stageKeys.map((k) => STAGE_TEMPLATES[k].budgetShare),
+  ).forEach((b, i) => stageBudgets.set(stageKeys[i], Number(b)));
 
   // Growth stages sit on the season timeline; the two operational stages
   // bracket it.
@@ -224,7 +236,7 @@ export function planSeason(
       endDate: iso(addDays(planting, startOffset + days - 1)),
       days,
       waterM3: Math.round(waterM3),
-      budget: Math.round(totalBudget * t.budgetShare),
+      budget: stageBudgets.get(key) ?? 0,
     });
   };
 

@@ -1,6 +1,7 @@
 "use server";
 import { dbText } from "@/lib/dbText";
 import { ledgerEntryDate } from "@/lib/entryDate";
+import { ledgerEntryInputMessage, parseLedgerEntryInput } from "@/lib/ledgerEntryInput";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -256,7 +257,6 @@ export async function addLedgerEntry(formData: FormData) {
   if (!user) redirect("/login");
 
   const seasonId = str(formData, "season_id");
-  const amount = num(formData, "amount");
   const category = str(formData, "category") as LedgerCategory;
 
   const valid: LedgerCategory[] = [
@@ -271,20 +271,31 @@ export async function addLedgerEntry(formData: FormData) {
   ];
 
   if (!seasonId || !valid.includes(category)) return;
-  if (!Number.isFinite(amount) || amount < 0) return;
 
   /*
    * A ledger entry that fails silently is the worst of these: the page returns
    * as though the cost was recorded, and the book is quietly short by one line.
-   * Nothing downstream can detect that later — there is no gap to find.
+   * Nothing downstream can detect that later — there is no gap to find. So a figure
+   * that cannot be read is sent back to the farmer with the reason, not dropped.
    */
+  const t = await translator();
+  const parsed = parseLedgerEntryInput({
+    amount: str(formData, "amount"),
+    currency: str(formData, "currency"),
+    paid_from: str(formData, "paid_from"),
+    fx_rate: str(formData, "fx_rate"),
+  });
+  if (!parsed.ok) {
+    redirect(`/seasons/${seasonId}?error=${encodeURIComponent(ledgerEntryInputMessage(parsed.error, t))}`);
+  }
+
   // A cost kept on the phone while offline is sent later; it keeps the day it was written (backlog 167).
   const entryDate = ledgerEntryDate(str(formData, "entry_date"), new Date().toISOString().slice(0, 10));
 
   const { error } = await supabase.from("ledger_entries").insert({
     season_id: seasonId,
     category,
-    amount,
+    ...parsed.money,
     description: str(formData, "description") || null,
     ...(entryDate ? { entry_date: entryDate } : {}),
     created_by: user.id,
@@ -292,13 +303,15 @@ export async function addLedgerEntry(formData: FormData) {
 
   if (error) {
     console.error("addLedgerEntry failed", { seasonId, category, error });
-    const t = await translator();
+    // The ledger's own refusals (no rate to take, a closed period) say exactly what to do; anything
+    // else is the fixed sentence, and the details stay in the log.
     redirect(
       `/seasons/${seasonId}?error=${encodeURIComponent(
-        t(
-          "تعذّر تسجيل القيد. لم يُحفظ شيء — أعد المحاولة.",
-          "Could not record the entry. Nothing was saved — please try again.",
-        ),
+        (await dbText(error.message)) ||
+          t(
+            "تعذّر تسجيل القيد. لم يُحفظ شيء — أعد المحاولة.",
+            "Could not record the entry. Nothing was saved — please try again.",
+          ),
       )}`,
     );
   }

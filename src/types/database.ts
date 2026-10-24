@@ -220,11 +220,19 @@ export interface LedgerEntryRow {
   season_id: string;
   stage_id: string | null;
   category: LedgerCategoryDb;
+  /** Always dollars; for a pound entry the database works it out from `entered_amount` and `fx_rate`. */
   amount: number;
   description: string | null;
   entry_date: string;
   created_by: string | null;
   created_at: string;
+  currency: "USD" | "SDG";
+  /** The figure as it was paid, in its own currency, when that is not the dollar. */
+  entered_amount: number | null;
+  /** Pounds per dollar, the rate this entry was converted at. */
+  fx_rate: number | null;
+  fx_source: "parallel" | "bank" | "user" | null;
+  paid_from: "cash" | "bank" | "wallet" | "credit";
 }
 
 export interface ProjectUpdate {

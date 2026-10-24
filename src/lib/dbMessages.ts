@@ -151,6 +151,12 @@ const MESSAGES: [string, string][] = [
   ["أضفتَ عشرين عرضاً اليوم. عُد غداً.", "You have added twenty offers today. Come back tomorrow."],
   ["لا عرضَ مفتوحاً لك بهذا الرقم.", "You have no open offer with this number."],
   ["الأرض متعاقَدٌ على % من % فداناً في جزءٍ من هذه المدّة، والمتبقّي % فقط. عدّلوا المساحة أو المدّة.", "% of the land's % feddans are already contracted during part of this period; only % remain. Change the area or the period."],
+  ["اكتب المبلغ بالجنيه", "Enter the amount in pounds"],
+  ["سعر الصرف خارج المعقول", "The exchange rate is out of range"],
+  ["لا سعر صرفٍ منشوراً خلال ٧ أيام قبل %؛ اكتب السعر الذي صرفت به", "No exchange rate was published in the 7 days before %; enter the rate you exchanged at"],
+  ["الفترة حتى % مقفلة؛ لا قيد بتاريخٍ فيها", "The period up to % is closed; no entry can be dated in it"],
+  ["لا قيد بتاريخٍ في المستقبل", "An entry cannot be dated in the future"],
+  ["الدفتر لا يُعدَّل ولا يُحذف: القيد يُعكس بقيدٍ جديد", "The ledger is never edited or deleted: an entry is reversed by a new entry"],
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
