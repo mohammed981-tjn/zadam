@@ -41,7 +41,11 @@ let library: Promise<ML> | null = null;
 const maplibre = () => (library ??= import(/* webpackIgnore: true */ LIBRARY) as Promise<ML>);
 
 export const STREET_STYLE = "https://tiles.openfreemap.org/styles/liberty";
-const SAT_TILES = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2016_3857/default/g/{z}/{y}/{x}.jpg";
+// The 2016 mosaic's layer is «s2cloudless_3857», with no year: the years
+// in the name (s2cloudless-2018_3857 and on) are the non-commercial ones.
+// Proved by .github/workflows/map-sources.yml, which found the first guess
+// at the name answering 404 (24 October).
+const SAT_TILES = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg";
 const SAT_ATTRIBUTION =
   '<a href="https://cloudless.eox.at" target="_blank" rel="noopener">EOxCloudless</a> by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 &amp; 2017)';
 
@@ -95,7 +99,8 @@ function hybrid(street: StyleSpecification): StyleSpecification {
     ...street,
     sources: {
       ...street.sources,
-      sat: { type: "raster", tiles: [SAT_TILES], tileSize: 256, maxzoom: 14, attribution: SAT_ATTRIBUTION },
+      // Tiles to zoom 13; closer in, MapLibre enlarges those.
+      sat: { type: "raster", tiles: [SAT_TILES], tileSize: 256, maxzoom: 13, attribution: SAT_ATTRIBUTION },
     },
     layers: [
       { id: "sat", type: "raster", source: "sat" },

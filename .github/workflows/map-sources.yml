@@ -95,8 +95,9 @@ jobs:
       - name: The satellite
         run: |
           set -euo pipefail
-          # Khartoum at zoom 6, and a field in the Gezira at zoom 12.
-          for zyx in 6/29/37 12/1881/2423; do
+          # Khartoum at zoom 6, and a field in the Gezira at zoom 13, the
+          # closest the map asks for.
+          for zyx in 6/29/37 13/3762/4846; do
             z=${zyx%%/*}; rest=${zyx#*/}; y=${rest%%/*}; x=${rest#*/}
             url=${SAT//\{z\}/$z}; url=${url//\{y\}/$y}; url=${url//\{x\}/$x}
             out=$(curl -sS --retry 3 -o tile.jpg -w "%{http_code} %{content_type} %{size_download}" "$url")
