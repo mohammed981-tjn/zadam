@@ -132,10 +132,22 @@ export const sumMinor = (xs: readonly bigint[]): bigint => xs.reduce((a, b) => a
  */
 export function allocate(total: bigint, weights: readonly number[]): bigint[] {
   if (weights.length === 0) throw new RangeError("no shares to split into");
-  const w = weights.map((x) => {
-    if (!Number.isFinite(x) || x < 0) throw new RangeError("weights must be finite and not negative");
-    return BigInt(Math.round(x * 1_000_000));
-  });
+  return allocateBig(
+    total,
+    weights.map((x) => {
+      if (!Number.isFinite(x) || x < 0) throw new RangeError("weights must be finite and not negative");
+      return BigInt(Math.round(x * 1_000_000));
+    }),
+  );
+}
+
+/**
+ * The same split with whole-number weights, for weights that are themselves amounts (the costs each
+ * party paid, shares in basis points): no float is involved anywhere, so it is exact at any size.
+ */
+export function allocateBig(total: bigint, w: readonly bigint[]): bigint[] {
+  if (w.length === 0) throw new RangeError("no shares to split into");
+  if (w.some((x) => x < ZERO)) throw new RangeError("weights must not be negative");
   const sumW = sumMinor(w);
   if (sumW <= ZERO) throw new RangeError("at least one weight must be positive");
 
