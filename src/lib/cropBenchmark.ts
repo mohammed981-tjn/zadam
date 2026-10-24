@@ -63,6 +63,29 @@ export const FAOSTAT_ITEM: Record<string, string> = {
   sugarcane: "Sugar cane",
   millet: "Millet",
   dates: "Dates",
+  // The crops added on 24 October (backlog 156), mapped on 24 October (backlog 178) to the FAOSTAT item that
+  // answers for each. FAOSTAT's yield and producer-price rows for these were already loaded (the view
+  // `crop_market` carries them), so the mapping is the whole job. Two judgements, both in the open:
+  //  - zucchini has no item of its own: FAOSTAT groups it under "Pumpkins, squash and gourds".
+  //  - citrus is several fruits to the grower and several items to FAO; "Oranges" is the one with the
+  //    longest series for Sudan and the peers, so it stands for the group.
+  // Barley and safflower are absent on purpose: FAOSTAT holds no Sudanese yield for either, and a crop with
+  // no reference says so rather than borrowing another crop's, as alfalfa does.
+  faba_bean: "Broad beans and horse beans, dry",
+  potato: "Potatoes",
+  sunflower: "Sunflower seed",
+  rice: "Rice",
+  cowpea: "Cow peas, dry",
+  watermelon: "Watermelons",
+  sweet_melon: "Cantaloupes and other melons",
+  cucumber: "Cucumbers and gherkins",
+  eggplant: "Eggplants (aubergines)",
+  sweet_pepper: "Chillies and peppers, green (Capsicum spp. and Pimenta spp.)",
+  cabbage: "Cabbages",
+  carrot: "Carrots and turnips",
+  zucchini: "Pumpkins, squash and gourds",
+  sweet_potato: "Sweet potatoes",
+  citrus: "Oranges",
 };
 
 /** Arid and semi-arid open-field producers — a fair comparison for Sudan. */

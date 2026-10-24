@@ -250,6 +250,24 @@ class _WaterScreenState extends State<WaterScreen> {
               ),
             ),
             const SizedBox(height: 16),
+          ] else ...[
+            /*
+             * A crop with no published root depth has no irrigation interval, and the
+             * seasonal total above is all this screen can honestly say about it. Say
+             * so, rather than leave the farmer to wonder where the panel went.
+             */
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'الفترة بين ريّة وريّة غير متاحة لـ${_crop.name} بعد: '
+                  'عمق جذوره لم يُدخَل من مصدرٍ منشور، ولا نُخمّنه. '
+                  'الاحتياج الموسمي أعلاه محسوبٌ كاملاً.',
+                  style: TextStyle(color: muted, fontSize: 13, height: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
 
           Card(

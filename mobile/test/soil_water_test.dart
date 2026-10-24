@@ -126,15 +126,37 @@ void main() {
       }
     });
 
-    test('every crop in the app has a root depth', () {
-      // A crop the picker offers but this engine cannot answer for would show
-      // the farmer an empty panel with no explanation.
+    test('a crop has an interval exactly when it has a published root depth', () {
+      // The picker offers crops the root-depth table does not cover yet (the
+      // ones added in October 2026 have no FAO-56 Table 22 row entered). For
+      // those the engine answers null — never a guessed depth — and the screen
+      // says why instead of showing an empty panel (water_screen.dart).
+      final station = stations.first;
       for (final crop in crops) {
-        expect(
-          rootDepthM[crop.key],
-          isNotNull,
-          reason: 'no root depth for ${crop.key}',
+        final r = irrigationInterval(
+          crop,
+          station,
+          6,
+          IrrigationMethod.flood,
+          'sandy loam',
         );
+        expect(
+          r == null,
+          rootDepthM[crop.key] == null,
+          reason: '${crop.key}: interval and root depth disagree',
+        );
+      }
+    });
+
+    test('every root depth belongs to a crop the engine can cost', () {
+      // The reverse direction: a depth entered for a key no crop carries is a
+      // row nobody can reach. `mango` is the one deliberate exception — the
+      // web keeps its depth for the knowledge base while the water engine
+      // has no Kc for it (see the note beside CROPS in agronomy.ts).
+      final keys = crops.map((c) => c.key).toSet();
+      for (final k in rootDepthM.keys) {
+        if (k == 'mango') continue;
+        expect(keys, contains(k), reason: 'root depth for unknown crop $k');
       }
     });
 
