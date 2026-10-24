@@ -34,6 +34,7 @@ const KIND_ICON: Record<string, string> = {
   locust_near: "🦗",
   animal_disease: "🐄",
   stage_due: "📅",
+  price_alert: "💹",
   investor_interest: "🤝",
   investor_decision: "🤝",
   agreement_update: "✍️",
