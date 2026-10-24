@@ -18,7 +18,7 @@ import {
 } from "@/lib/localAnswer";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { pageContextLine } from "@/lib/pageHelp";
-import { INVESTMENT_LIVE } from "@/lib/config";
+import { investmentLive } from "@/lib/platformFlags";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
@@ -330,7 +330,7 @@ export async function POST(req: NextRequest) {
       question,
       entries: allKnowledge,
       projectCount: projects?.length ?? 0,
-      investmentLive: INVESTMENT_LIVE,
+      investmentLive: await investmentLive(supabase),
       canalFacts: (canalFacts ?? []) as CanalFactRow[],
       market: (market ?? []) as MarketRow[],
     });

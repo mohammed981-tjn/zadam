@@ -9,7 +9,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cropVisual, formatUsd, riskLabel, statusLabel } from "@/lib/format";
 import type { Project, ProjectUpdate } from "@/types/database";
-import { INVESTMENT_LIVE } from "@/lib/config";
+import { investmentLive } from "@/lib/platformFlags";
 import NotifyMeForm from "@/components/NotifyMeForm";
 import { invest } from "./actions";
 import { getLocale } from "@/lib/locale";
@@ -93,7 +93,7 @@ export default async function ProjectPage({
 
   // Money only moves for a real, published project once the platform goes live.
   const investmentOpen =
-    INVESTMENT_LIVE && !typedProject.is_demo && typedProject.status === "open";
+    (await investmentLive(supabase)) && !typedProject.is_demo && typedProject.status === "open";
 
   return (
     <div>

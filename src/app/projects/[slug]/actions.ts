@@ -3,7 +3,7 @@ import { dbText } from "@/lib/dbText";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { INVESTMENT_LIVE } from "@/lib/config";
+import { investmentLive } from "@/lib/platformFlags";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -29,7 +29,7 @@ export async function invest(formData: FormData) {
 
   // Server-side gate: the platform does not accept money yet, and refusing here
   // (not just hiding the button) is what actually stops a forged request.
-  if (!INVESTMENT_LIVE) {
+  if (!(await investmentLive(await createClient()))) {
     redirect(
       `/projects/${slug}?error=${encodeURIComponent(
         t(

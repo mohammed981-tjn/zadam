@@ -19,6 +19,7 @@ on:
     paths:
       - "src/components/map/**"
       - "src/lib/mapLayers.ts"
+      - "src/lib/mapStyle.ts"
       - ".github/workflows/map-sources.yml"
   schedule:
     # Mondays 05:23 UTC, 08:23 in Khartoum, off the hour.
@@ -90,6 +91,39 @@ jobs:
               code = get(url, "glyphs.pbf")
               size = int(code.split()[-1])
               print(f"    Arabic glyphs in «{f}»: {size} bytes" + ("" if size > 1000 else " — few or none: names may show as boxes"))
+          EOF
+
+      # مثلث حلايب (البند ١٧٤): LiveMap تُخفي الخطَّ المتقطّع الذي اسمه فيه «حلايب» وترسم حدود
+      # السودان حوله (src/lib/mapStyle.ts). فإن غيّر OpenFreeMap اسم الطبقة أو شرطها أو كتابة
+      # الاسم في البلاط، رجع الخطّ الفاصل بصمت، فيفشل التشغيل هنا ويصل المالكَ بريدٌ.
+      - name: Halaib's lines are still named as the map expects
+        run: |
+          set -euo pipefail
+          pip install --quiet mapbox-vector-tile==2.1.0 shapely
+          curl -fsS --retry 3 -o style.json "$STYLE"
+          python3 - <<'EOF'
+          import json, math, subprocess
+          import mapbox_vector_tile as mvt
+          s = json.load(open("style.json"))
+          dashed = [l for l in s["layers"] if l.get("type") == "line"
+                    and '["==",["get","disputed"],1]' in json.dumps(l.get("filter", ""), ensure_ascii=False, separators=(",", ":"))]
+          assert dashed, "no line layer draws disputed = 1 any more: withHalaibInSudan() would add a border and hide nothing"
+          assert any(l["id"] == "boundary_2" for l in s["layers"]), "boundary_2 is gone: the Halaib line would not match the country border"
+          print("disputed layers:", [l["id"] for l in dashed])
+          vec = next(v for v in s["sources"].values() if v.get("type") == "vector")
+          subprocess.run(["curl", "-fsS", "--retry", "3", "-o", "tj.json", vec["url"]], check=True)
+          tj = json.load(open("tj.json"))
+          z, lon, lat = 5, 36.6, 22.2
+          n = 2 ** z
+          x = int((lon + 180) / 360 * n)
+          y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
+          url = tj["tiles"][0].replace("{z}", str(z)).replace("{x}", str(x)).replace("{y}", str(y))
+          subprocess.run(["curl", "-fsS", "--retry", "3", "-o", "halaib.pbf", url], check=True)
+          b = mvt.decode(open("halaib.pbf", "rb").read()).get("boundary", {}).get("features", [])
+          names = sorted({f["properties"].get("disputed_name", "") for f in b if f["properties"].get("disputed") == 1})
+          print("disputed names near Halaib:", names)
+          assert any("حلايب" in n or "حلائب" in n for n in names), (
+              "no disputed line near Halaib is named «حلايب»: the dashed line would come back on the map")
           EOF
 
       - name: The satellite
