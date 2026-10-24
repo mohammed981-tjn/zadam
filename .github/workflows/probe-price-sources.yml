@@ -1,0 +1,24 @@
+name: Probe price sources
+
+# Prints what each candidate price source answers (backlog 176). The development container
+# cannot reach these sites; a runner can. Read-only: nothing is committed or written.
+# Runs when the probe itself changes, and by hand.
+on:
+  push:
+    paths:
+      - ".github/workflows/probe-price-sources.yml"
+      - "scripts/probe-price-sources.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/probe-price-sources.mjs
