@@ -20,12 +20,13 @@ export async function GET(req: NextRequest) {
 
   const today = ledgerToday();
   const params = parseReportParams(Object.fromEntries(req.nextUrl.searchParams.entries()), today);
+  if (params.report === "links") return new NextResponse("Not exportable", { status: 400 });
   const book = await pickBook(supabase, params.kind);
   if (!book) return new NextResponse("No book", { status: 404 });
 
   let csv: string;
   try {
-    csv = reportToCsv(await loadReport(supabase, book, params));
+    csv = reportToCsv(await loadReport(supabase, book, { ...params, report: params.report }));
   } catch (e) {
     console.error("books export failed", { report: params.report, e });
     return new NextResponse("The report could not be loaded", { status: 500 });

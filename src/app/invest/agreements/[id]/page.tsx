@@ -8,6 +8,10 @@ import ActionNotice from "@/components/ActionNotice";
 import NoCopy from "@/components/invest/NoCopy";
 import SignaturePad from "@/components/invest/SignaturePad";
 import HarvestSplitCalculator from "@/components/invest/HarvestSplitCalculator";
+import InvestorStatementCard from "@/components/books/InvestorStatementCard";
+import LinkProposalForms from "@/components/books/LinkProposalForms";
+import { investorStatement, type LinkRow } from "@/lib/ledgerLinks";
+import { ledgerToday } from "@/lib/ledger/today";
 import {
   AGREEMENT_ITEMS,
   AGREEMENT_TITLE,
@@ -70,6 +74,12 @@ export default async function AgreementPage({
     ? await supabase.from("seasons").select("id, name, status").eq("partnership_id", a.id).order("planting_date", { ascending: false })
     : { data: null };
   const seasons = (seasonRows ?? []) as { id: string; name: string; status: string }[];
+  // The entries the two partners proposed and confirmed between their books (backlog 188).
+  const party = signed && (a.me === "owner" || a.me === "investor");
+  const { data: linkRows } = party ? await supabase.rpc("ledger_links_list") : { data: null };
+  const agreementLinks = ((linkRows ?? []) as LinkRow[]).filter((l) => l.agreement_id === a.id);
+  const statement = investorStatement(agreementLinks);
+  const pendingLinks = agreementLinks.filter((l) => l.status === "pending");
   const mine = a.signatures.find((s) => s.role === a.me);
   // Two parties, or three when a partner company manages (backlog 136).
   const roles = signerRoles(a.model);
@@ -272,6 +282,30 @@ export default async function AgreementPage({
               {seasons.length > 0 ? t("ابدأ موسماً آخر من العقد", "Start another season from the agreement") : t("ابدأ الموسم", "Start the season")}
             </Link>
           )}
+        </section>
+      )}
+
+      {/* ── الحساب بين الشريكين: قيودٌ متقابلة يؤكّدها الطرفان (البند ١٨٨) ──────── */}
+      {party && (a.me === "owner" || a.me === "investor") && (
+        <section className={`${card} mt-6 text-sm`}>
+          <h2 className="font-black">{t("الحساب بينكما", "The account between you")}</h2>
+          <InvestorStatementCard st={statement} locale={locale} role={a.me} />
+          {pendingLinks.length > 0 && (
+            <p className="mt-3">
+              <Link href="/books?r=links" className="font-bold text-primary underline">
+                {t(`${arNum(pendingLinks.length)} اقتراحٌ معلّق ← افتحها`, `${pendingLinks.length} pending proposal(s) → open them`)}
+              </Link>
+            </p>
+          )}
+          <LinkProposalForms
+            agreementId={a.id}
+            role={a.me}
+            model={a.model}
+            seasons={seasons}
+            links={agreementLinks}
+            today={ledgerToday()}
+            locale={locale}
+          />
         </section>
       )}
 

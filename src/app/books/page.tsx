@@ -5,6 +5,9 @@ import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { ledgerToday } from "@/lib/ledger/today";
 import { loadReport, pickBook } from "@/lib/ledger/load";
+import ActionNotice from "@/components/ActionNotice";
+import LinksPanel from "@/components/books/LinksPanel";
+import type { LinkRow } from "@/lib/ledgerLinks";
 import { PAGE_SIZE, parseReportParams, reportHref, type ReportKey, type ReportParams } from "@/lib/ledger/reportParams";
 import { money } from "@/lib/ledger/reports";
 import type { ChartRow, ReportData } from "@/lib/ledger/reportData";
@@ -19,6 +22,7 @@ const TABS: { key: ReportKey; ar: string; en: string }[] = [
   { key: "seasons", ar: "ربحيّة المواسم", en: "Season profit" },
   { key: "journal", ar: "اليوميّة", en: "Journal" },
   { key: "chart", ar: "شجرة الحسابات", en: "Chart of accounts" },
+  { key: "links", ar: "اقتراحات الشريك", en: "Partner proposals" },
 ];
 
 const TYPE: Record<string, { ar: string; en: string }> = {
@@ -52,7 +56,13 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
 
   const book = await pickBook(supabase, p.kind);
 
-  if (!book) {
+  // What the partners in my agreements proposed to book in both books. It belongs to the person, not to a book:
+  // a proposal can wait for someone whose book is not yet opened.
+  const { data: linkRows } = await supabase.rpc("ledger_links_list");
+  const links = (linkRows ?? []) as LinkRow[];
+  const waitingForMe = links.filter((l) => l.status === "pending" && !l.mine).length;
+
+  if (!book && p.report !== "links") {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
         <h1 className="text-2xl font-bold">{t("دفتر الحسابات", "Books")}</h1>
@@ -70,13 +80,15 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   }
 
   let data: ReportData | null = null;
-  try {
-    data = await loadReport(supabase, book, p);
-  } catch (e) {
-    console.error("books report failed", { report: p.report, e });
+  if (book && p.report !== "links") {
+    try {
+      data = await loadReport(supabase, book, { ...p, report: p.report });
+    } catch (e) {
+      console.error("books report failed", { report: p.report, e });
+    }
   }
   // `loadReport` falls back to the chart when an account is not found; the page follows what it got.
-  const shown: ReportKey = data?.kind ?? p.report;
+  const shown: ReportKey = p.report === "links" ? "links" : (data?.kind ?? p.report);
 
   const link = (patch: Partial<ReportParams> & { report: ReportKey }) =>
     reportHref("/books", { kind: p.kind, from: p.from, to: p.to, asOf: p.asOf, ...patch }, today);
@@ -89,14 +101,16 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
         <div>
           <h1 className="text-2xl font-bold">{t("دفتر الحسابات", "Books")}</h1>
           <p className="mt-1 text-sm text-muted">
-            {book.kind === "platform"
-              ? t("دفتر المنصّة", "The platform's book")
-              : book.kind === "investor"
-                ? t("دفتر المستثمر", "Investor book")
-                : t("دفتر مزرعتك", "Your farm book")}
+            {!book
+              ? t("لم يُفتح لك دفتر بعد", "No book opened for you yet")
+              : book.kind === "platform"
+                ? t("دفتر المنصّة", "The platform's book")
+                : book.kind === "investor"
+                  ? t("دفتر المستثمر", "Investor book")
+                  : t("دفتر مزرعتك", "Your farm book")}
             {" · "}
             {t("كلّ المبالغ بالدولار", "all amounts in US dollars")}
-            {book.closed_through && ` · ${t("مقفل حتى", "closed through")} ${book.closed_through}`}
+            {book?.closed_through && ` · ${t("مقفل حتى", "closed through")} ${book.closed_through}`}
           </p>
         </div>
         {data && (
@@ -125,10 +139,14 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
             }`}
           >
             {t(tab.ar, tab.en)}
+            {tab.key === "links" && waitingForMe > 0 && (
+              <span className="ms-1.5 rounded-full bg-danger px-1.5 py-0.5 text-xs font-bold text-white">{waitingForMe}</span>
+            )}
           </Link>
         ))}
       </nav>
 
+      {shown !== "links" && (
       <form method="get" action="/books" className="mt-4 flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3">
         <input type="hidden" name="r" value={shown} />
         {p.kind && <input type="hidden" name="book" value={p.kind} />}
@@ -156,8 +174,17 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
           </button>
         )}
       </form>
+      )}
 
-      {!data ? (
+      <div className="mt-4">
+        <ActionNotice ok={sp.ok} error={sp.error} />
+      </div>
+
+      {shown === "links" ? (
+        <div className="mt-2">
+          <LinksPanel rows={links} locale={locale} returnTo="/books?r=links" />
+        </div>
+      ) : !data ? (
         <p className="mt-6 rounded-2xl border border-danger/40 bg-card p-4 text-sm text-danger" role="alert">
           {t("تعذّر تحميل التقرير الآن. أعد المحاولة بعد قليل.", "The report could not be loaded just now. Please try again shortly.")}
         </p>
