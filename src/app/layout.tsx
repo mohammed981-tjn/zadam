@@ -134,6 +134,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 "Sudagri — a digital agricultural investment platform in Sudan · pilot MVP",
               )}
             </p>
+            <Link href="/privacy" className="text-xs text-muted underline">
+              {t("الخصوصية وحذف الحساب", "Privacy and account deletion")}
+            </Link>
           </div>
         </footer>
         <AssistantWidget />

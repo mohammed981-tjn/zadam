@@ -41,6 +41,7 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/news/*",
   "/guide",
   "/feedback",
+  "/privacy",
   "/notifications",
   // Accounts, portfolio and projects
   "/login",

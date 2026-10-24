@@ -1,5 +1,6 @@
 import AuthForm from "@/components/AuthForm";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { enabledProviders } from "@/lib/oauth";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -24,6 +25,8 @@ export default async function EntryScreen({
   // Whether this deployment can create a phone account — only whether the key
   // exists; no admin call is made while rendering a public page.
   const phoneSignup = createAdminClient() !== null;
+  // Google and Facebook, once the owner switches them on in Supabase.
+  const providers = await enabledProviders();
 
   return (
     <div className="mx-auto max-w-sm px-4 py-12">
@@ -60,7 +63,13 @@ export default async function EntryScreen({
         </p>
       )}
 
-      <AuthForm next={next} startNew={startNew} startRole={investor ? "investor" : "farmer"} phoneSignup={phoneSignup} />
+      <AuthForm
+        next={next}
+        startNew={startNew}
+        startRole={investor ? "investor" : "farmer"}
+        phoneSignup={phoneSignup}
+        providers={providers}
+      />
     </div>
   );
 }

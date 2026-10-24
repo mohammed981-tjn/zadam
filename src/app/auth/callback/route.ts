@@ -3,6 +3,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
+import { homeFor } from "@/lib/authEntry";
 
 /**
  * حيث تهبط روابط البريد — وكانت غائبة.
@@ -102,6 +103,20 @@ export async function GET(request: NextRequest) {
    */
   const providerError =
     searchParams.get("error_description") ?? searchParams.get("error");
+  // Back from Google or Facebook (backlog 153): their refusals are not about a
+  // mailed link, so they go to the sign-in screen with words that fit.
+  const via = searchParams.get("via");
+  if (via && (providerError || !code)) {
+    if (providerError) console.error("auth/callback: provider refused:", via, providerError);
+    return NextResponse.redirect(
+      `${origin}/login?error=${encodeURIComponent(
+        t(
+          "لم يكتمل الدخول بهذا الحساب. جرّب مرّةً أخرى، أو ادخل برقم جوالك أو بريدك.",
+          "Signing in with that account did not finish. Try again, or sign in with your mobile number or email.",
+        ),
+      )}`,
+    );
+  }
   if (providerError) {
     return failure(
       origin,
@@ -115,7 +130,18 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
 
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data: exchanged, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error && via) {
+      console.error("auth/callback: provider code exchange failed:", via, error.message);
+      return NextResponse.redirect(
+        `${origin}/login?error=${encodeURIComponent(
+          t(
+            "لم يكتمل الدخول بهذا الحساب. افتح الصفحة في المتصفّح نفسه وجرّب مرّةً أخرى.",
+            "Signing in with that account did not finish. Open the page in the same browser and try again.",
+          ),
+        )}`,
+      );
+    }
     if (error) {
       console.error("auth/callback: code exchange failed:", error.message);
       return failure(
@@ -127,6 +153,17 @@ export async function GET(request: NextRequest) {
           "The link could not be completed. Open it in the same browser you requested it from, or request a new one.",
         ),
       );
+    }
+    if (via && exchanged.user) {
+      // A first sign-in with Google or Facebook made the account just now,
+      // with the default side; the side chosen on the screen is set here
+      // (one account does both — backlog 151 — so this only picks the home).
+      const side = searchParams.get("side") === "investor" ? "investor" : "farmer";
+      const made = new Date(exchanged.user.created_at).getTime();
+      if (Date.now() - made < 10 * 60_000) {
+        await supabase.from("profiles").update({ role: side }).eq("id", exchanged.user.id).in("role", ["farmer", "investor"]);
+      }
+      return NextResponse.redirect(`${origin}${next ?? (await homeFor(supabase, exchanged.user.id))}`);
     }
     return NextResponse.redirect(
       `${origin}${next ?? DEFAULT_NEXT[type] ?? "/dashboard"}`,
