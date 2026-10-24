@@ -68,10 +68,8 @@ export default async function AdminExportQueuePage() {
 
   const [{ data: originRows }, { data: evidenceRows }, { data: requirementRows }] = ids.length
     ? await Promise.all([
-        supabase
-          .from("export_offer_origins")
-          .select("offer_id, plot_ref, area_hectares, latitude, longitude, boundary")
-          .in("offer_id", ids),
+        // The place of a farm is the owner's and the administration's alone: read through the function.
+        supabase.rpc("export_offer_origins_detail", { p_offer_ids: ids }),
         supabase
           .from("export_offer_evidence")
           .select("offer_id, kind, sha256")

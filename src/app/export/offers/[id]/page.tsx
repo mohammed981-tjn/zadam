@@ -86,10 +86,8 @@ export default async function ExportOfferDetailPage({
     readiness,
     { data: lineRows },
   ] = await Promise.all([
-    supabase
-      .from("export_offer_origins")
-      .select("plot_ref, area_hectares, latitude, longitude, boundary")
-      .eq("offer_id", id),
+    // The place of a farm is the owner's and the administration's alone: read through the function.
+    supabase.rpc("export_offer_origins_detail", { p_offer_ids: [id] }),
     supabase
       .from("export_offer_custody")
       .select("sequence, occurred_at, place_name, latitude, longitude, note")
