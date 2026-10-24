@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Map as MLMap, StyleSpecification, LayerSpecification, GeoJSONSourceSpecification } from "maplibre-gl";
 import { useLocale } from "@/components/LocaleProvider";
 import { tr } from "@/lib/i18n";
+import { withHalaibInSudan } from "@/lib/mapStyle";
 
 /**
  * خريطةٌ حيّة بطبقتين يُبدَّل بينهما بلمسة: الخريطة العاديّة، والقمر الصناعيّ (البند ١٤٧).
@@ -87,7 +88,7 @@ export type Picked = { title: string; detail?: string; lonLat: [number, number] 
 
 let styleCache: StyleSpecification | null = null;
 async function streetStyle(): Promise<StyleSpecification> {
-  if (!styleCache) styleCache = (await (await fetch(STREET_STYLE)).json()) as StyleSpecification;
+  if (!styleCache) styleCache = withHalaibInSudan((await (await fetch(STREET_STYLE)).json()) as StyleSpecification);
   return styleCache;
 }
 

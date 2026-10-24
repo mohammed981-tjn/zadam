@@ -60,6 +60,17 @@ export const SUDAN_BORDER: LonLat[] = [
   [34.77, 10.75], [34.57, 10.88], [34.34, 10.66], [34.27, 10.53], [34.31, 10.19], [34.08, 9.46],
 ];
 
+/**
+ * The stretch of the border that goes round the Halaib Triangle, from where the
+ * 22°N line stops (34.08°E) to the Red Sea coast. The live map draws it as the
+ * border and hides the dashed «disputed» line that OpenStreetMap lays along the
+ * triangle's southern edge, which cut the triangle off from Sudan (البند ١٧٤).
+ */
+export const HALAIB_BORDER: LonLat[] = SUDAN_BORDER.slice(
+  SUDAN_BORDER.findIndex(([lon, lat]) => lon === 34.08 && lat === 22),
+  SUDAN_BORDER.findIndex(([lon, lat]) => lon === 36.89 && lat === 22.01) + 1,
+);
+
 export const CELL_DEG = 1.5;
 export const LON_MIN = 21.75;
 export const LON_MAX = 38.75;
