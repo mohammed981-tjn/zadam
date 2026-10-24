@@ -5,7 +5,7 @@ import { CROP_WINDOW_DAYS, FX_WINDOW_DAYS, loadFeedStates, staleLines } from "@/
 import { SITE_URL } from "@/lib/site";
 import {
   holdReason,
-  readBankOfKhartoum,
+  readBank,
   readGedarefProse,
   readObeidList,
   readParallelMarket,
@@ -36,7 +36,11 @@ interface Source {
   days: number;
 }
 
-const BANK: Source[] = [{ base: "https://iqraa24.com", search: "بنك الخرطوم", days: FX_WINDOW_DAYS }];
+const BANK: Source[] = [
+  { base: "https://iqraa24.com", search: "بنك الخرطوم", days: FX_WINDOW_DAYS },
+  { base: "https://bajnews.net", search: "بنك الخرطوم", days: FX_WINDOW_DAYS },
+  { base: "https://bajnews.net", search: "الدولار", days: FX_WINDOW_DAYS },
+];
 const PARALLEL: Source[] = [
   { base: "https://bajnews.net", search: "الموازية", days: FX_WINDOW_DAYS },
   { base: "https://bajnews.net", search: "الدولار", days: FX_WINDOW_DAYS },
@@ -135,7 +139,7 @@ export async function refreshPrices(admin: SupabaseClient, trigger: "cron" | "ad
 
   // ── العملات ──
   const bankLast = await lastFx(admin, "fx_bank");
-  const bank = await firstRead(BANK, readBankOfKhartoum, errors);
+  const bank = await firstRead(BANK, readBank, errors);
   if (bank && (!bankLast || bank.q.date > bankLast.date)) rows.push(fxRow("fx_bank", bank.q, bank.post.link, bankLast?.sell ?? null));
 
   const parallelLast = await lastFx(admin, "fx_parallel");

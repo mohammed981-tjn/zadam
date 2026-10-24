@@ -15,6 +15,10 @@
  *   • Bank of Khartoum — iqraa24 publishes the bank's table every day: a row
  *     per currency, «شراء التحويل · شراء النقد · سعر البيع». Read from the
  *     table, by its column headings.
+ *     iqraa24.com has since become an aggregator (it redirects to pls48.net) and no longer
+ *     prints that table, so the same figure is also read from bajnews, which states it in
+ *     one sentence («… في بنك الخرطوم ليُسجل سعر شراء الدولار 4,850 جنيهًا، مقابل 4,886
+ *     جنيهًا للبيع»). Read on a GitHub runner, 24 October 2026 (backlog 176).
  *   • The parallel market — bajnews writes it as one sentence after a sentence
  *     naming «السوق الموازية». The bank's own figures sit in an earlier
  *     paragraph of the same article and must not be taken for it.
@@ -190,6 +194,35 @@ export function readBankOfKhartoum(post: WpPost): FxQuote | null {
     }
   }
   return null;
+}
+
+// ── بنك الخرطوم: الجملة ─────────────────────────────────────────────────────
+
+const BANK_SENTENCE = new RegExp(
+  String.raw`بنك\s+الخرطوم[^.،,]*?شراء\s+(?:ال)?دولار(?:\s+الأمريكي|\s+الامريكي)?\s+(${NUMBER})\s*جنيه[^\s،,]*\s*[،,]\s*(?:مقابل|بينما|و)\s+(${NUMBER})\s*جنيه[^\s،,]*\s+للبيع`,
+  "u",
+);
+
+/**
+ * The bank's dollar from a news sentence: one that names «بنك الخرطوم» itself and then gives
+ * the buying price and the selling price in pounds. A sentence about another bank, or about
+ * the parallel market, is never taken; and a figure not written as two prices stays unread.
+ */
+export function readBankOfKhartoumSentence(post: WpPost): FxQuote | null {
+  for (const line of htmlToLines(post.content.rendered)) {
+    const m = line.match(BANK_SENTENCE);
+    if (!m) continue;
+    const buy = parseAmount(m[1]);
+    const sell = parseAmount(m[2]);
+    if (buy === null || sell === null) continue;
+    return { date: marketDay(line, post.date), buy, sell, quote: line };
+  }
+  return null;
+}
+
+/** The bank's dollar from whichever form the article uses: its table, else its sentence. */
+export function readBank(post: WpPost): FxQuote | null {
+  return readBankOfKhartoum(post) ?? readBankOfKhartoumSentence(post);
 }
 
 // ── السوق الموازي: الجملة ───────────────────────────────────────────────────
