@@ -25,12 +25,15 @@ const field =
 export default function AuthForm({
   next,
   startNew = false,
+  startRole = "farmer",
   phoneSignup = true,
 }: {
   /** A path on this site to return to, already checked by the page. */
   next?: string | null;
   /** Opened from «أنشئ حساباً»: the name and role are shown from the start. */
   startNew?: boolean;
+  /** «أستثمر» already chosen, for someone who came from an opportunity. */
+  startRole?: "farmer" | "investor";
   /** False when this deployment cannot create phone accounts (no service key). */
   phoneSignup?: boolean;
 }) {
@@ -44,7 +47,7 @@ export default function AuthForm({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"farmer" | "investor">("farmer");
+  const [role, setRole] = useState<"farmer" | "investor">(startRole);
 
   // The server's answer decides which of the two the screen is now.
   const [answered, setAnswered] = useState(state);

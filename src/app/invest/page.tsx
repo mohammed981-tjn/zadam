@@ -14,6 +14,7 @@ import { loadLandOffers, loadProjectLands } from "@/lib/landOffers";
 import { card } from "@/lib/ui";
 import type { Project } from "@/types/database";
 import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
+import { investorSignupTo } from "@/lib/authEntry";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -73,6 +74,53 @@ export default async function InvestPage({
 
       <InvestTabs active="/invest" locale={locale} />
       <ActionNotice ok={sp.ok} error={sp.error} />
+
+      {/* ── كيف تبدأ ───────────────────────────────────────────────── */}
+      {/* The owner, 24 October: «كيف حيسجّل المستثمر، وكيف الشراكات حتتمّ؟» —
+          the whole way in four lines, before the models and the lands. */}
+      <section aria-labelledby="start" className="mb-10">
+        <h2 id="start" className="title-bar mb-4 text-lg font-black">
+          {t("كيف تبدأ كمستثمر", "How to start as an investor")}
+        </h2>
+        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            [
+              t("أنشئ حسابك", "Create your account"),
+              t("برقم جوالك أو بريدك، واختر «أستثمر». مجّاناً.", "With your mobile number or email; choose «I invest». Free."),
+            ],
+            [
+              t("اختر أرضاً واطلب الشراكة", "Choose land, request a partnership"),
+              t("من «أراضٍ تبحث عن شريك» أدناه: أرضٌ موثّقة، ونموذج شراكةٍ يقبله صاحبها، ورسالةٌ منك.", "From «Land looking for a partner» below: verified land, a model its owner accepts, and a message from you."),
+            ],
+            [
+              t("يقبل صاحب الأرض", "The owner accepts"),
+              t("يصله إشعار؛ وحين يقبل ترى اسمه وهاتفه وموقع الأرض.", "They are notified; once they accept you see their name, phone and the land's location."),
+            ],
+            [
+              t("العقد ثمّ الموسم", "The agreement, then the season"),
+              t("تكتبان العقد وتوقّعانه على المنصّة، وتتابع الموسم بالصور والمصروفات. المال بينكما مباشرةً.", "You write and sign the agreement on the platform, and follow the season in photos and costs. The money passes between you directly."),
+            ],
+          ].map(([title, body], i) => (
+            <li key={title} className={`${card} flex gap-3`}>
+              <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-primary-foreground">
+                {locale === "en" ? i + 1 : (i + 1).toLocaleString("ar-SA")}
+              </span>
+              <span>
+                <strong className="block">{title}</strong>
+                <span className="mt-1 block text-sm leading-6 text-muted">{body}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        {!user && (
+          <Link
+            href={investorSignupTo("/invest")}
+            className="mt-4 inline-block rounded-xl bg-primary px-5 py-2.5 font-bold text-primary-foreground hover:opacity-90"
+          >
+            {t("سجّل كمستثمر", "Sign up as an investor")}
+          </Link>
+        )}
+      </section>
 
       {/* ── طرق الشراكة ───────────────────────────────────────────── */}
       <section aria-labelledby="models" className="mb-10">

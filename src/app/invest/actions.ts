@@ -93,11 +93,14 @@ export async function withdrawInvestorInterest(fd: FormData) {
 export async function setInvestorConsent(fd: FormData) {
   const { supabase, user } = await signedIn();
   const { locale, t } = await translator();
+  // Sent from the project page built on this land: back there. Nowhere else.
+  const from = str(fd, "return_to");
+  const origin = /^\/projects\/[A-Za-z0-9_-]{1,80}$/.test(from) ? from : "/lands";
   const landId = str(fd, "land_id");
   const open = str(fd, "open") === "true";
   const chosen = models(fd);
   if (open && chosen.length === 0) {
-    back("/lands", "error", t("اختر نموذجاً واحداً على الأقلّ من نماذج الشراكة.", "Choose at least one partnership model."));
+    back(origin, "error", t("اختر نموذجاً واحداً على الأقلّ من نماذج الشراكة.", "Choose at least one partnership model."));
   }
   const { data: land } = await supabase
     .from("lands")
@@ -105,7 +108,7 @@ export async function setInvestorConsent(fd: FormData) {
     .eq("id", landId)
     .eq("owner_id", user.id)
     .maybeSingle();
-  if (!land) back("/lands", "error", t("ليست لك هذه الأرض.", "This land is not yours."));
+  if (!land) back(origin, "error", t("ليست لك هذه الأرض.", "This land is not yours."));
   const note = str(fd, "note").slice(0, 500);
   const { error } = await supabase.rpc("land_set_investor_consent", {
     p_land: landId,
@@ -114,9 +117,10 @@ export async function setInvestorConsent(fd: FormData) {
     p_note: note.length >= 10 ? note : null,
     p_soil_class: soilAt(land.longitude, land.latitude),
   });
-  if (error) back("/lands", "error", explain(locale, error));
+  if (error) back(origin, "error", explain(locale, error));
+  if (origin !== "/lands") revalidatePath(origin);
   back(
-    "/lands",
+    origin,
     "ok",
     open
       ? t(

@@ -15,6 +15,7 @@ import {
 import { button, card, field, ghost, label } from "@/lib/ui";
 import { expressInvestorInterest } from "@/app/invest/actions";
 import { requestInspection } from "@/app/invest/inspections/actions";
+import { investorSignupTo } from "@/lib/authEntry";
 
 /**
  * One verified land offered to investors (backlogs 124, 128, 129).
@@ -112,8 +113,10 @@ export default function LandOfferCard({
             {lbl(INTEREST_STATUS_LABEL[l.interest_status], locale)}
           </Link>
         ) : !signedIn ? (
-          <Link href="/login" className={`${button} inline-block`}>
-            {t("سجّل الدخول لتطلب الشراكة", "Sign in to request a partnership")}
+          // A new account with «أستثمر» chosen, back to this land after; one
+          // with an account signs in on the same screen.
+          <Link href={investorSignupTo(returnTo ?? `/invest#land-${l.land_id}`)} className={`${button} inline-block`}>
+            {t("سجّل كمستثمر لتطلب الشراكة", "Sign up as an investor to request a partnership")}
           </Link>
         ) : (
           <details className="group">
