@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import FilmPlayer from "@/components/FilmPlayer";
 import KnowledgeCard from "@/components/KnowledgeCard";
 import MineralsMap, { GROUPS, MINERALS, type MineralSite } from "@/components/MineralsMap";
+import MapScreen from "@/components/map/MapScreen";
+import { mapThemes } from "@/lib/mapLayers";
 import { digits } from "@/components/RainMap";
 import type { KnowledgeEntry } from "@/types/database";
 import { COMMODITY_EN, SITE_STATUS_EN, SITE_WHAT_EN, inEnglish, placeName } from "@/lib/enNames";
@@ -87,8 +89,25 @@ export default async function MiningPage() {
             : `${digits(MINERALS.sites.length, locale)} موقعاً: المناجم والمصانع وحقول النفط كما سجّلها المسح الجيولوجي الأمريكي لسنة ${digits(MINERALS.asOf, locale)}، قبل الحرب، ومعها الرواسب المعروفة. هي خريطة لمكان المعادن، لا لمن يعمل فيها اليوم.`}
         </p>
         <div className="grid gap-8 lg:grid-cols-[3fr_2fr]">
-          <div className="rounded-2xl border border-border bg-card p-3 sm:p-4">
-            <MineralsMap locale={locale} />
+          <div className="flex flex-col gap-3">
+            {/* The live map (البند ١٤٧): every site, tapped for what it is. */}
+            <MapScreen
+              themes={mapThemes(null, [], locale).filter((x) => x.key === "minerals")}
+              initial="none"
+              initialOver={["minerals"]}
+              address={false}
+              full="/map?layer=none&over=minerals"
+              className="h-[65vh] min-h-80"
+            />
+            {/* The printed map stays, folded: it draws a site's kind as its shape. */}
+            <details className="rounded-2xl border border-border bg-card p-3 sm:p-4">
+              <summary className="cursor-pointer text-sm font-bold">
+                {t("الخريطة المرسومة: نوع كلّ موقعٍ بشكل علامته", "The drawn map: each site's kind by the shape of its mark")}
+              </summary>
+              <div className="mt-3">
+                <MineralsMap locale={locale} />
+              </div>
+            </details>
           </div>
           <div className="flex flex-col gap-2">
             {byCommodity.map(([commodity, sites]) => (

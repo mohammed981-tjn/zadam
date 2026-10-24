@@ -119,6 +119,8 @@ export default async function Navbar() {
       hint: t("المطر والماء والجدوى ومحاصيل جديدة", "Rain, water, feasibility and new crops"),
       icon: "droplet",
       items: [
+        // The live map (البند ١٤٧): every layer on one map, with the satellite.
+        { href: "/map", label: t("الخرائط: خريطةٌ حيّة وقمرٌ صناعيّ", "Maps: a live map and satellite") },
         { href: "/rain", label: t("توقّع الأمطار والخرائط", "Rain forecast and maps") },
         { href: "/tools/water", label: t("حاسبة الاحتياج المائي", "Crop water calculator") },
         { href: "/tools/feasibility", label: t("دراسة الجدوى المرحلية", "Staged feasibility study") },

@@ -44,7 +44,9 @@ function guardVideo(request: NextRequest) {
 }
 
 export const config = {
+  // vendor/: the map's library as it ships (scripts/vendor-maplibre.mjs), which
+  // needs no session refresh any more than an image does.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|vendor/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

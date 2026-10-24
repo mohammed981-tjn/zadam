@@ -1,0 +1,110 @@
+name: Map sources
+
+# Are the live map's two free sources still there, at the addresses the code
+# asks for? (البند ١٤٧, src/components/map/LiveMap.tsx)
+#
+#   - the map: OpenFreeMap's «liberty» style, its vector tiles and its fonts.
+#     The live map also puts its colour bands under the style's layers whose
+#     source-layer is water, waterway, transportation or boundary; if the
+#     style renames them, the bands cover the Nile and the names.
+#   - the satellite: EOxCloudless 2016, a 256-pixel JPEG per tile.
+#
+# Neither host can be reached from the sessions that build this code, so this
+# is where the addresses are proved: on every change to the map, and every
+# week, since a free service can move without notice. A missing piece fails
+# the run, and GitHub emails the owner.
+
+on:
+  push:
+    paths:
+      - "src/components/map/**"
+      - "src/lib/mapLayers.ts"
+      - ".github/workflows/map-sources.yml"
+  schedule:
+    # Mondays 05:23 UTC, 08:23 in Khartoum, off the hour.
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the addresses from the code
+        run: |
+          set -euo pipefail
+          style=$(grep -oP 'STREET_STYLE = "\K[^"]+' src/components/map/LiveMap.tsx)
+          sat=$(grep -oP 'SAT_TILES = "\K[^"]+' src/components/map/LiveMap.tsx)
+          echo "STYLE=$style" >> "$GITHUB_ENV"
+          echo "SAT=$sat" >> "$GITHUB_ENV"
+          echo "style: $style"
+          echo "satellite: $sat"
+
+      - name: The map, its tiles and its fonts
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 -o style.json "$STYLE"
+          python3 - <<'EOF'
+          import json, math, os, subprocess, urllib.parse
+          s = json.load(open("style.json"))
+          layers = s["layers"]
+          srcl = sorted({l.get("source-layer") for l in layers if l.get("source-layer")})
+          print("layers:", len(layers), "· source layers:", ", ".join(srcl))
+          need = {"water", "waterway", "transportation", "boundary"}
+          missing = need - set(srcl)
+          assert not missing, f"the style no longer has {missing}: LiveMap's firstAbove() needs them"
+          names = [l for l in layers if l["type"] == "symbol" and "text-field" in l.get("layout", {})]
+          print("label layers:", len(names))
+          assert names, "no label layers: Arabic names would not be set"
+
+          def get(url, out):
+              code = subprocess.run(["curl", "-sS", "--retry", "3", "-o", out, "-w", "%{http_code} %{content_type} %{size_download}", url],
+                                    capture_output=True, text=True, check=True).stdout
+              print(" ", code, url)
+              assert code.startswith("200 "), f"{url} answered {code}"
+              return code
+
+          # One vector tile over Khartoum at zoom 6.
+          vec = next(v for v in s["sources"].values() if v.get("type") == "vector")
+          tj = vec
+          if "url" in vec:
+              subprocess.run(["curl", "-fsS", "--retry", "3", "-o", "tj.json", vec["url"]], check=True)
+              tj = json.load(open("tj.json"))
+          z, lon, lat = 6, 32.53, 15.6
+          n = 2 ** z
+          x = int((lon + 180) / 360 * n)
+          y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
+          get(tj["tiles"][0].replace("{z}", str(z)).replace("{x}", str(x)).replace("{y}", str(y)), "tile.pbf")
+
+          # The fonts the labels use, for the Arabic block (U+0600–06FF).
+          fonts = set()
+          for l in names:
+              f = l["layout"].get("text-font")
+              if isinstance(f, list) and all(isinstance(i, str) for i in f):
+                  fonts.update(f)
+          print("fonts:", ", ".join(sorted(fonts)) or "(from expressions)")
+          for f in sorted(fonts)[:3]:
+              url = s["glyphs"].replace("{fontstack}", urllib.parse.quote(f)).replace("{range}", "1536-1791")
+              code = get(url, "glyphs.pbf")
+              size = int(code.split()[-1])
+              print(f"    Arabic glyphs in «{f}»: {size} bytes" + ("" if size > 1000 else " — few or none: names may show as boxes"))
+          EOF
+
+      - name: The satellite
+        run: |
+          set -euo pipefail
+          # Khartoum at zoom 6, and a field in the Gezira at zoom 12.
+          for zyx in 6/29/37 12/1881/2423; do
+            z=${zyx%%/*}; rest=${zyx#*/}; y=${rest%%/*}; x=${rest#*/}
+            url=${SAT//\{z\}/$z}; url=${url//\{y\}/$y}; url=${url//\{x\}/$x}
+            out=$(curl -sS --retry 3 -o tile.jpg -w "%{http_code} %{content_type} %{size_download}" "$url")
+            echo "  $out $url"
+            case "$out" in "200 image/jpeg"*) ;; *) echo "::error::the satellite tile $url answered $out"; exit 1 ;; esac
+          done
+          {
+            echo "### مصادر الخريطة تعمل"
+            echo ""
+            echo "الخريطة (OpenFreeMap) وصورة القمر الصناعيّ (EOxCloudless 2016) تُجيبان على العناوين التي في الكود."
+          } >> "$GITHUB_STEP_SUMMARY"

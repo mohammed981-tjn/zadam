@@ -100,9 +100,11 @@ export default function AssistantWidget() {
    * page, and on the sign-in screen altogether (the review of 23 October: it
    * sat over the button that creates the account). The keyboard is up then,
    * and the form's own button is the one thing that should be pressed.
+   * And on the maps screen, which fills the phone: there it sat on the map's
+   * colour key (24 October).
    */
   const [typing, setTyping] = useState(false);
-  const formPage = /^\/(login|signup|reset)(\/|$)/.test(pathname ?? "");
+  const formPage = /^\/(login|signup|reset|map)(\/|$)/.test(pathname ?? "");
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [loading, setLoading] = useState(false);

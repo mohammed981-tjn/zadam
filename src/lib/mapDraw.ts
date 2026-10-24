@@ -1,4 +1,5 @@
 import { contours } from "d3-contour";
+import * as clippingModule from "polygon-clipping";
 import base from "./sudanBase.json";
 import {
   CELL_DEG,
@@ -7,6 +8,8 @@ import {
   LON_MAX,
   LON_MIN,
   SOIL_CLASSES,
+  SUDAN_BORDER,
+  insideSudan,
   type GridCell,
   type Layer,
 } from "./rainMap";
@@ -100,13 +103,41 @@ export function sample(field: number[][], lon: number, lat: number): number {
 }
 
 /** The fine grid d3-contour reads: row 0 at the NORTH, as an image is. */
-function fine(field: number[][]): number[] {
+function fine(field: number[][], away?: number): number[] {
+  const near = away == null ? null : nearSudan();
   const out = new Array<number>(FX * FY);
   for (let r = 0; r < FY; r++) {
     const lat = LAT_MAX - (r + 0.5) * FINE;
-    for (let c = 0; c < FX; c++) out[r * FX + c] = sample(field, LON_MIN + (c + 0.5) * FINE, lat);
+    for (let c = 0; c < FX; c++) {
+      const i = r * FX + c;
+      out[i] = near && !near[i] ? away! : sample(field, LON_MIN + (c + 0.5) * FINE, lat);
+    }
   }
   return out;
+}
+
+/**
+ * Which points of the fine grid are in Sudan or within one step of it. The
+ * live map (src/lib/mapLayers.ts) asks for bands that end here — one step
+ * past the border, never short of it — and then cuts them to the border
+ * (clipToSudan), which is quicker on shapes that do not run to the frame.
+ * Worked out once; the border does not move.
+ */
+let nearCache: boolean[] | null = null;
+function nearSudan(): boolean[] {
+  if (nearCache) return nearCache;
+  const out = new Array<boolean>(FX * FY);
+  for (let r = 0; r < FY; r++) {
+    const lat = LAT_MAX - (r + 0.5) * FINE;
+    for (let c = 0; c < FX; c++) {
+      const lon = LON_MIN + (c + 0.5) * FINE;
+      let hit = false;
+      for (let dy = -1; dy <= 1 && !hit; dy++)
+        for (let dx = -1; dx <= 1 && !hit; dx++) hit = insideSudan([lon + dx * FINE, lat + dy * FINE]);
+      out[r * FX + c] = hit;
+    }
+  }
+  return (nearCache = out);
 }
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
@@ -131,11 +162,31 @@ const shapesOf = (values: number[], threshold: number): Shape[] => {
   return mp.coordinates.map((poly) => poly.map((ring) => ring.map(toLonLat)));
 };
 
-export function isobands(cells: GridCell[], layer: Layer): Bands | null {
+/**
+ * A band's shapes cut to Sudan's border, exactly. The printed map clips with
+ * SVG; the live map shows every country around Sudan as it is (the owner, 24
+ * October: «لماذا لا تجعلها تشمل كلّ الدول، مثل طلبات التوصيل … مثل خريطة
+ * قوقل»), so the cut is made on the shapes themselves before they are sent.
+ */
+const BORDER_RING = SUDAN_BORDER.map(([lon, lat]) => [lon, lat] as [number, number]);
+// The package's ES build exports one default object, while its types name
+// the functions: take whichever the bundler or tsx hands over.
+const clipping =
+  (clippingModule as unknown as { default?: typeof clippingModule }).default ?? clippingModule;
+export function clipToSudan(shapes: Shape[]): Shape[] {
+  if (shapes.length === 0) return [];
+  return clipping.intersection(shapes as clippingModule.MultiPolygon, [BORDER_RING]).map((poly) =>
+    poly.map((ring) => ring.map(([lon, lat]) => [r3(lon), r3(lat)] as Pt)),
+  );
+}
+
+/** `clip`: bands that stop just past the border (the live map), not at the frame. */
+export function isobands(cells: GridCell[], layer: Layer, clip = false): Bands | null {
   const field = coarseField(cells, layer.value);
   if (!field) return null;
-  const values = fine(field);
-  const lo = Math.min(...values);
+  // Outside, a value under every band's minimum: no band reaches there.
+  const values = fine(field, clip ? Math.min(...layer.bands.map((b) => b.min)) - 1 : undefined);
+  const lo = Math.min(...values.filter((v, i) => !clip || nearSudan()[i]));
   let base = 0;
   layer.bands.forEach((b, k) => {
     if (b.min <= lo) base = k;
@@ -151,12 +202,12 @@ export function isobands(cells: GridCell[], layer: Layer): Bands | null {
  * neighbourhood is that group, interpolated and cut at one half. The
  * commonest is the base; the rest are drawn over it, commonest first.
  */
-export function classRegions(cells: GridCell[]): Bands | null {
+export function classRegions(cells: GridCell[], clip = false): Bands | null {
   if (SOIL_CLASSES.length === 0) return null;
   const bands = SOIL_CLASSES.slice(1)
     .map((w, k) => {
       const field = coarseField(cells, (c) => (c.soil == null ? null : c.soil === w ? 1 : 0));
-      return { band: k + 1, shapes: field ? shapesOf(fine(field), 0.5) : [] };
+      return { band: k + 1, shapes: field ? shapesOf(fine(field, clip ? 0 : undefined), 0.5) : [] };
     })
     .filter((b) => b.shapes.length > 0);
   return { base: 0, bands };
