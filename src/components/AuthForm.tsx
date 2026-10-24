@@ -182,7 +182,14 @@ export default function AuthForm({
             </label>
 
             <fieldset className="flex flex-col gap-2 text-sm">
-              <legend className="mb-1">{t("وأنت؟", "And you?")}</legend>
+              <legend className="mb-1">{t("بماذا تبدأ؟", "Where do you start?")}</legend>
+              {/* البند ١٥١: حسابٌ واحد للجانبين؛ هذا الاختيار يحدّد أوّل صفحة فقط. */}
+              <p className="-mt-1 mb-1 text-xs text-muted">
+                {t(
+                  "حسابٌ واحد للاثنين: تعرض أرضك وتستثمر متى شئت، وتبدّل بينهما من القائمة.",
+                  "One account does both: offer your land and invest whenever you like, switching from the menu.",
+                )}
+              </p>
               <label className="flex items-start gap-2 rounded-lg border border-border p-3">
                 <input
                   type="radio"
@@ -193,7 +200,7 @@ export default function AuthForm({
                   className="mt-1"
                 />
                 <span>
-                  <strong>{t("أزرع أو أملك أرضاً", "I farm or own land")}</strong>
+                  <strong>{t("بأرضي: أزرع أو أملك أرضاً", "With my land: I farm or own land")}</strong>
                   <span className="block text-xs text-muted">
                     {t(
                       "أسجّل أرضي وأوثّق مواسمي. ولا تُعرض أرضي لأحدٍ قبل أن تعتمدها الإدارة بمستندات الحيازة.",
@@ -212,7 +219,7 @@ export default function AuthForm({
                   className="mt-1"
                 />
                 <span>
-                  <strong>{t("أستثمر", "I invest")}</strong>
+                  <strong>{t("بالاستثمار: أستثمر", "With investing: I invest")}</strong>
                   <span className="block text-xs text-muted">
                     {t(
                       "أبحث عن أرضٍ موثّقة أشارك صاحبها، بعقدٍ مكتوبٍ على المنصّة.",

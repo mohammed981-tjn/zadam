@@ -130,6 +130,14 @@ export default async function LandsPage({
         </Link>
       </div>
 
+      {/* البند ١٥١: الجانب الآخر من الحساب نفسه. */}
+      <p className="-mt-4 mb-8 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+        {t("وتستثمر أيضاً بالحساب نفسه: ", "You can also invest with the same account: ")}
+        <Link href="/invest" className="font-bold text-primary underline">
+          {t("فرص الاستثمار — أراضٍ موثّقة تبحث عن شريك", "Investment opportunities — verified land looking for a partner")}
+        </Link>
+      </p>
+
       {sp.ok && (
         <p role="status" className="mb-6 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
           {sp.ok}

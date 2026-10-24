@@ -38,6 +38,18 @@ export default async function DashboardPage({
     <div className="mx-auto max-w-4xl px-4 py-10">
       <h1 className="text-2xl font-bold">{t("محفظتي الاستثمارية", "My investment portfolio")}</h1>
 
+      {/* البند ١٥١: الجانب الآخر من الحساب نفسه. */}
+      <p className="mt-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+        {t("تملك أرضاً؟ سجّلها واعرضها على المستثمرين بالحساب نفسه: ", "Own land? Register it and offer it to investors with the same account: ")}
+        <Link href="/lands" className="font-bold text-primary underline">
+          {t("أراضيّ", "My land")}
+        </Link>
+        {" · "}
+        <Link href="/invest" className="font-bold text-primary underline">
+          {t("فرص الاستثمار", "Investment opportunities")}
+        </Link>
+      </p>
+
       {invested === "1" && (
         <p className="mt-4 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
           {t(

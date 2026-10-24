@@ -112,6 +112,12 @@ export default async function InvestPage({
             </li>
           ))}
         </ol>
+        <p className="mt-3 text-sm text-muted">
+          {t("وتملك أرضاً أيضاً؟ تعرضها من «أراضيّ» بالحساب نفسه — حسابٌ واحد للاثنين.", "Own land too? Offer it from «My land» with the same account — one account does both.")}{" "}
+          <Link href="/lands" className="font-bold text-primary underline">
+            {t("أراضيّ", "My land")}
+          </Link>
+        </p>
         {!user && (
           <Link
             href={investorSignupTo("/invest")}

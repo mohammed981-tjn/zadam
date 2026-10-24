@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
+import SideSwitch from "@/components/SideSwitch";
 import NavMenu, { type NavGroup } from "./NavMenu";
 import LangToggle from "./LangToggle";
 import BottomNav from "./BottomNav";
@@ -49,14 +50,9 @@ export default async function Navbar() {
    * said which account he was in. The menu now does, above «خروج», with the
    * account's kind, so "I am in the wrong account" is something one can see.
    */
-  const roleLabel =
-    role === "admin"
-      ? t("مدير", "Administrator")
-      : role === "investor"
-        ? t("مستثمر", "Investor")
-        : role === "farmer"
-          ? t("مزارع وصاحب أرض", "Farmer and landowner")
-          : null;
+  // Only the administrator's account is named a kind now: farmer and investor
+  // are two sides of one account, switched below (backlog 151).
+  const roleLabel = role === "admin" ? t("مدير", "Administrator") : null;
 
   // ما ينتظر قرار الإدارة (البند ١٢٤): المالكُ وجد الأرض في الإشعارات وحدها،
   // والإشعارُ يُقرأ فيختفي ولا يقول إن قُرّر في الأمر شيء. فالعدد هنا من
@@ -424,6 +420,8 @@ export default async function Navbar() {
                     </span>
                     {roleLabel && <> — {roleLabel}</>}
                   </p>
+                  {/* البند ١٥١: حسابٌ واحد للجانبين، يُبدَّل بينهما كما في Airbnb. */}
+                  <SideSwitch role={role ?? null} locale={locale} />
                   <SignOutButton />
                 </>
               ) : undefined
