@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { bearerMatches } from "@/lib/cronAuth";
 import { refreshPrices } from "@/lib/priceRefresh";
 import { evaluatePriceAlerts } from "@/lib/priceAlerts";
+import { runBookkeeping } from "@/lib/bookkeeping";
 
 /**
  * Daily health check, which also keeps the database from being paused.
@@ -114,6 +115,13 @@ export async function GET(req: NextRequest) {
      */
     const alerts = await evaluatePriceAlerts(supabase);
     if (alerts.checked > 0) console.log("health: price alerts", alerts);
+
+    /*
+     * مسكُ الدفاتر (البندان ١٨٧ و١٩١): ترحيلُ ما فات، ومطابقةُ الدفترين، وتسجيلُ مجاميع الشبكة في
+     * دفتر المنصّة. لا يرمي أبداً، وكلُّ خطوةٍ فيه تُسجَّل علّتها وتمضي التي بعدها.
+     */
+    const books = await runBookkeeping(supabase);
+    if (books.synced || books.mismatched || books.snapshot) console.log("health: books", books);
 
     const { data, error } = await supabase.rpc("run_system_check");
 
