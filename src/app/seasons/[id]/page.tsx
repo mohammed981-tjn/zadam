@@ -399,9 +399,14 @@ export default async function SeasonPage({
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-4 text-lg font-bold">
-          {t("دفتر الحسابات", "Ledger")}
-        </h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold">{t("دفتر الحسابات", "Ledger")}</h2>
+          {isOwner && (
+            <Link href="/books?r=seasons" className="text-sm text-primary hover:underline">
+              {t("القوائم الماليّة وميزان المراجعة ←", "Statements and trial balance →")}
+            </Link>
+          )}
+        </div>
 
         {summary.byCategory.length > 0 && (
           <div className="mb-4 overflow-x-auto rounded-xl border border-border">
