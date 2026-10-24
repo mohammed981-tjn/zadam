@@ -1,7 +1,7 @@
 "use server";
 import { dbText } from "@/lib/dbText";
 import { ledgerEntryDate } from "@/lib/entryDate";
-import { ledgerEntryInputMessage, parseLedgerEntryInput } from "@/lib/ledgerEntryInput";
+import { isSettleFrom, ledgerEntryInputMessage, parseLedgerEntryInput, parseSettleRate } from "@/lib/ledgerEntryInput";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -314,6 +314,71 @@ export async function addLedgerEntry(formData: FormData) {
           ),
       )}`,
     );
+  }
+
+  revalidatePath(`/seasons/${seasonId}`);
+}
+
+/**
+ * "I paid" / "I was paid" on a row kept on credit (backlog 187, 2c). The ledger books the settlement as an
+ * entry of its own, and closes the exchange difference of a pound debt in the same transaction; this only
+ * reads what the farmer chose and hands it over. The database checks that the row is his.
+ */
+export async function settleLedgerEntry(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const seasonId = str(formData, "season_id");
+  const entryId = str(formData, "entry_id");
+  const from = str(formData, "paid_from");
+  if (!seasonId || !entryId) return;
+
+  const t = await translator();
+  const back = (message: string) => `/seasons/${seasonId}?error=${encodeURIComponent(message)}`;
+
+  if (!isSettleFrom(from)) {
+    redirect(back(t("اختر النقد أو البنك أو المحفظة.", "Choose cash, bank or wallet.")));
+  }
+  const rate = parseSettleRate(str(formData, "fx_rate"));
+  if (!rate.ok) {
+    redirect(back(ledgerEntryInputMessage("rate", t)));
+  }
+  const date = ledgerEntryDate(str(formData, "settle_date"), new Date().toISOString().slice(0, 10));
+
+  const { error } = await supabase.rpc("farm_settle_entry", {
+    p_entry_id: entryId,
+    p_from: from,
+    p_date: date,
+    p_rate: rate.rate === null ? null : Number(rate.rate),
+  });
+
+  if (error) {
+    console.error("settleLedgerEntry failed", { seasonId, entryId, error });
+    redirect(back(await dbText(error.message)));
+  }
+
+  revalidatePath(`/seasons/${seasonId}`);
+}
+
+/** Cancels a settlement: it is reversed in the ledger, and the row can then be changed or settled again. */
+export async function unsettleLedgerEntry(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const seasonId = str(formData, "season_id");
+  const entryId = str(formData, "entry_id");
+  if (!seasonId || !entryId) return;
+
+  const { error } = await supabase.rpc("farm_unsettle_entry", { p_entry_id: entryId });
+  if (error) {
+    console.error("unsettleLedgerEntry failed", { seasonId, entryId, error });
+    redirect(`/seasons/${seasonId}?error=${encodeURIComponent(await dbText(error.message))}`);
   }
 
   revalidatePath(`/seasons/${seasonId}`);
