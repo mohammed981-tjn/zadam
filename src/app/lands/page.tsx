@@ -10,6 +10,7 @@ import LandDocuments from "@/components/LandDocuments";
 import FilmPlayer from "@/components/FilmPlayer";
 import LandPartnerConsent from "@/components/partners/LandPartnerConsent";
 import LandInvestorConsent from "@/components/invest/LandInvestorConsent";
+import LandCropFit from "@/components/LandCropFit";
 import type { InspectionRow } from "@/lib/inspections";
 import type { InvestorProfile, LandRequest } from "@/lib/investors";
 import LandWater from "@/components/LandWater";
@@ -296,6 +297,9 @@ export default async function LandsPage({
                     </div>
                   </div>
                 )}
+
+                {/* البند ١٥٢: الغنيمة الأولى من كنوز — بقواعد تُقرأ ومصادر. */}
+                <LandCropFit land={l} locale={locale} />
 
                 <LandInvestorConsent
                   land={l}
