@@ -1,0 +1,107 @@
+name: Database backup and drift
+
+# Every week, two things the review of 23 October found missing (fix plan,
+# wave one):
+#
+# 1. A copy of the database. There was none, and the database cannot be
+#    rebuilt from the repository. The owner chose a free one now and the paid
+#    plan later (23 October): pg_dump of the public schema, and the accounts
+#    (auth.users, auth.identities) as data, gzipped and locked with a
+#    passphrase before it leaves the runner — it holds names and phone
+#    numbers — then kept as a file on the db-backups release of this private
+#    repository. Release files do not count against the account's full
+#    artifact storage (mobile.yml explains), and every week's file is kept:
+#    the database is a few megabytes, and the owner keeps the old.
+#    The files in the storage bucket (photos, documents) are not in the
+#    database and not in this copy.
+#
+# 2. The drift guard (scripts/db-drift.py): every function and table a
+#    migration creates must exist in production. Three did not, unnoticed.
+#    A missing one fails the run, and GitHub emails the owner.
+#
+# Two repository secrets, set by the owner and never written anywhere else:
+#   SUPABASE_DB_URL     the session-pooler connection string, with the
+#                       database password in it.
+#   BACKUP_PASSPHRASE   what locks the copies. Without it they cannot be
+#                       opened, by anyone.
+# Until they are set the run says so in its summary and stops without failing:
+# keep-alive.yml once failed every night for want of a secret nobody had set,
+# and the failure read as a broken workflow rather than a missing setting.
+#
+# To open a copy:
+#   gpg -d sudagri-2026-10-24.tar.gz.gpg | tar -xz
+#   psql "$URL" -f public.sql   (and auth-users.sql for the accounts)
+
+on:
+  schedule:
+    # Once a week (the owner, 23 October: «الآن مرّة واحدة في الأسبوع، وبعد
+    # تفعيل المدفوع تتكفّل سوبابيس بالنسخ»): Friday 01:17 UTC, 04:17 in
+    # Khartoum, the quietest hour of the week, off the hour.
+    - cron: "17 1 * * 5"
+  workflow_dispatch:
+
+concurrency:
+  group: db-backup
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Are the secrets there?
+        id: ready
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            {
+              echo "### النسخ الاحتياطيّ لم يُضبط بعد"
+              echo ""
+              echo "يحتاج سرّين في إعدادات المستودع (Settings → Secrets and variables → Actions):"
+              echo "\`SUPABASE_DB_URL\` و\`BACKUP_PASSPHRASE\`. التفاصيل في رأس db-backup.yml."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # pg_dump must be as new as the server; the image brings version 17.
+      - name: Copy the database
+        if: steps.ready.outputs.ok == 'true'
+        run: |
+          set -euo pipefail
+          day=$(date -u +%Y-%m-%d)
+          mkdir -p dump
+          docker run --rm -e URL="$SUPABASE_DB_URL" -v "$PWD/dump:/dump" postgres:17 bash -c '
+            set -euo pipefail
+            pg_dump "$URL" --no-owner --no-privileges --schema=public -f /dump/public.sql
+            pg_dump "$URL" --no-owner --no-privileges --data-only -t auth.users -t auth.identities -f /dump/auth-users.sql'
+          tar -C dump -czf "sudagri-$day.tar.gz" public.sql auth-users.sql
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 \
+              -o "sudagri-$day.tar.gz.gpg" "sudagri-$day.tar.gz" 3<<<"$BACKUP_PASSPHRASE"
+          rm -rf dump "sudagri-$day.tar.gz"
+          echo "FILE=sudagri-$day.tar.gz.gpg" >> "$GITHUB_ENV"
+          echo "SIZE=$(du -h "sudagri-$day.tar.gz.gpg" | cut -f1)" >> "$GITHUB_ENV"
+
+      - name: Keep it on the db-backups release
+        if: steps.ready.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if ! gh release view db-backups >/dev/null 2>&1; then
+            gh release create db-backups --title "نسخ القاعدة الاحتياطيّة" --prerelease \
+              --notes "نسخةٌ كلّ أسبوع من قاعدة سوداقري، مقفلةٌ بكلمة مرور. الطريقة في .github/workflows/db-backup.yml."
+          fi
+          gh release upload db-backups "$FILE" --clobber
+          echo "### نُسخت القاعدة: \`$FILE\` ($SIZE)" >> "$GITHUB_STEP_SUMMARY"
+
+      # Needs only the connection, not the passphrase.
+      - name: Does the database have what the code says?
+        if: env.SUPABASE_DB_URL != ''
+        run: python3 scripts/db-drift.py

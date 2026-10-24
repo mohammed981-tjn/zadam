@@ -34,9 +34,18 @@ export type IconName =
   | "message"
   | "home"
   | "wrench"
-  | "user";
+  | "user"
+  | "calculator";
 
 const PATHS: Record<IconName, React.ReactNode> = {
+  // A pocket calculator: «احسب» in the bar along the bottom (the owner, 23 October).
+  calculator: (
+    <>
+      <rect x="5" y="2.5" width="14" height="19" rx="2" />
+      <path d="M8 6.5h8v3H8z" />
+      <path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01" />
+    </>
+  ),
   // A stalk with grain — agriculture, without the emoji's cartoon warmth.
   wheat: (
     <>

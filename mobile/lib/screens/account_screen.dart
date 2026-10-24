@@ -19,6 +19,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../account.dart';
 import '../api.dart';
 import '../theme.dart';
+import 'messages_screen.dart';
 
 /// Opens a page of the website in the phone's browser.
 Future<void> openOnSite(BuildContext context, String path) async {
@@ -436,6 +437,8 @@ class _SignedInState extends State<_SignedIn> {
                 _ReviewCard(account: a),
               ],
               const SizedBox(height: 16),
+              const _MessagesCard(),
+              const SizedBox(height: 16),
               _NoticesCard(account: a, onChanged: _reload),
               const SizedBox(height: 16),
               _LandsCard(account: a),
@@ -618,8 +621,35 @@ class _NoticesCard extends StatelessWidget {
             title: Text(n.title,
                 style: TextStyle(fontWeight: n.read ? FontWeight.w500 : FontWeight.w800)),
             subtitle: n.body.isEmpty ? null : Text(n.body, maxLines: 3, overflow: TextOverflow.ellipsis),
-            onTap: n.link == null ? null : () => openOnSite(context, n.link!),
+            onTap: n.link == null
+                ? null
+                : () => n.link!.startsWith('/messages/')
+                    ? Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => ThreadScreen(id: n.link!.substring('/messages/'.length))))
+                    : openOnSite(context, n.link!),
           ),
+      ],
+    );
+  }
+}
+
+/// صندوق الرسائل (البند ١٤٤): the way in from «حسابي».
+class _MessagesCard extends StatelessWidget {
+  const _MessagesCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      title: 'الرسائل',
+      children: [
+        Text('محادثات طلبات الشراكة وعقودها، و«راسل سوداقري».',
+            style: TextStyle(color: mutedOn(context), height: 1.6)),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MessagesScreen())),
+          icon: const Icon(Icons.chat_bubble_outline),
+          label: const Text('افتح الرسائل'),
+        ),
       ],
     );
   }

@@ -11,6 +11,7 @@ import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
 import { MIN_PASSWORD, readIdentifier, safeNext } from "@/lib/authEntry";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
+import { OAUTH_PROVIDERS, type OAuthProvider } from "@/lib/oauth";
 
 /*
  * Phone is the primary identifier, email the fallback.
@@ -697,4 +698,39 @@ export async function completePasswordReset(formData: FormData) {
       ),
     )}`,
   );
+}
+
+/**
+ * «تابِع بحساب Google / Facebook» (البند ١٥٣): off to the provider, back to
+ * /auth/callback with where the person was going and which side they chose.
+ * Supabase follows only redirect URLs on the project's allow-list, so a forged
+ * Host header cannot send anyone elsewhere (as with the reset link above).
+ */
+export async function signInWithProvider(formData: FormData) {
+  const { locale } = await translator();
+  const provider = str(formData, "provider") as OAuthProvider;
+  if (!(OAUTH_PROVIDERS as readonly string[]).includes(provider)) redirect("/login");
+  const next = safeNext(str(formData, "next"));
+  const side = str(formData, "role") === "investor" ? "investor" : "farmer";
+
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const back = new URLSearchParams({ via: provider, side });
+  if (next) back.set("next", next);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: host ? `${proto}://${host}/auth/callback?${back}` : undefined },
+  });
+  if (error || !data?.url) {
+    console.error("signInWithProvider:", provider, error?.message);
+    redirect(
+      `/login?error=${encodeURIComponent(
+        tr(locale, "تعذّر الدخول بهذا الحساب الآن. جرّب رقم جوالك أو بريدك.", "Signing in with that account failed just now. Try your mobile number or email."),
+      )}`,
+    );
+  }
+  redirect(data.url);
 }

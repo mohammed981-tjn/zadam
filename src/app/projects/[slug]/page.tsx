@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { loadLandOffers, loadProjectLands, type LandOffers } from "@/lib/landOffers";
 import LandOfferCard from "@/components/invest/LandOfferCard";
+import OpenToInvestorsForm from "@/components/invest/OpenToInvestorsForm";
+import ActionNotice from "@/components/ActionNotice";
+import { investorSignupTo } from "@/lib/authEntry";
 import type { OpenLand } from "@/lib/investors";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -18,10 +21,10 @@ export default async function ProjectPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const { slug } = await params;
-  const { error } = await searchParams;
+  const { error, ok } = await searchParams;
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
@@ -54,16 +57,32 @@ export default async function ProjectPage({
   // is found only for a member; a visitor is asked to sign in first.
   let landOffers: LandOffers | null = null;
   let landOffer: OpenLand | null = null;
+  let landId: string | null = null;
   if (user && verifiedLand) {
     const [{ data: landRow }, offers] = await Promise.all([
       supabase.from("projects").select("land_id").eq("id", typedProject.id).maybeSingle(),
       loadLandOffers(supabase, true),
     ]);
-    const landId = (landRow as { land_id: string | null } | null)?.land_id ?? null;
+    landId = (landRow as { land_id: string | null } | null)?.land_id ?? null;
     landOffers = offers;
     landOffer = landId ? (offers.lands.find((l) => l.land_id === landId) ?? null) : null;
   }
   const isSubmitter = Boolean(user) && user?.id === typedProject.submitted_by;
+  // The owner opens the land to investors here, on the project built on it,
+  // rather than being sent to «أراضيّ» for it (the owner, 24 October: «كيف
+  // الشراكات حتتمّ؟»). Only a land that is their own.
+  type OwnLand = { id: string; investor_models: string[] | null; investor_note: string | null };
+  let ownLand: OwnLand | null = null;
+  if (user && landId && !landOffer) {
+    const { data } = await supabase
+      .from("lands")
+      .select("id, investor_models, investor_note")
+      .eq("id", landId)
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    ownLand = data as OwnLand | null;
+  }
+  const here = `/projects/${typedProject.slug}`;
 
   const fundedPct = Math.min(
     100,
@@ -94,6 +113,9 @@ export default async function ProjectPage({
             )}
           </div>
         )}
+
+        {/* What the last form did: a request sent back here, the land opened. */}
+        <ActionNotice ok={ok} error={investmentOpen ? undefined : error} />
 
         <p className="text-sm text-muted" {...arText}>{typedProject.location}</p>
         <h1 className="mt-1 text-3xl font-black" {...arText}>{typedProject.name}</h1>
@@ -194,13 +216,40 @@ export default async function ProjectPage({
                     inspection={landOffers.openInspection.get(landOffer.land_id)}
                     inspectionsOn={landOffers.inspectionsOn}
                     locale={locale}
-                    returnTo={`/projects/${typedProject.slug}`}
+                    returnTo={here}
                   />
                 </ul>
               ) : !user ? (
-                <Link href="/login" className="inline-block rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90">
-                  {t("سجّل الدخول لتطلب الشراكة", "Sign in to request a partnership")}
-                </Link>
+                <>
+                  <Link
+                    href={investorSignupTo(here)}
+                    className="inline-block rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90"
+                  >
+                    {t("سجّل كمستثمر لتطلب الشراكة", "Sign up as an investor to request a partnership")}
+                  </Link>
+                  <p className="mt-2 text-xs text-muted">
+                    {t("لك حساب؟ ادخل من الشاشة نفسها، وتعود إلى هذه الصفحة.", "Have an account? Sign in on the same screen and you come back here.")}
+                  </p>
+                </>
+              ) : ownLand ? (
+                <div className="rounded-xl bg-background px-3 py-3 text-sm">
+                  <p className="font-bold">
+                    {t("أرضك لم تُعرض على المستثمرين بعد.", "Your land is not offered to investors yet.")}
+                  </p>
+                  <p className="mt-1 text-muted">
+                    {t(
+                      "اختر الشراكات التي تقبلها، فيظهر للمستثمرين هنا وفي «فرص الاستثمار» زرّ «اطلب الشراكة». لا يرون اسمك ولا موقع الأرض حتى تقبل طلباً.",
+                      "Choose the partnerships you accept, and investors see «Request a partnership» here and on «Investment opportunities». They see neither your name nor the land's location until you accept a request.",
+                    )}
+                  </p>
+                  <OpenToInvestorsForm
+                    landId={ownLand.id}
+                    models={ownLand.investor_models ?? []}
+                    note={ownLand.investor_note}
+                    locale={locale}
+                    returnTo={here}
+                  />
+                </div>
               ) : isSubmitter ? (
                 <p className="rounded-xl bg-background px-3 py-2 text-sm">
                   {t(

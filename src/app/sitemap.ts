@@ -27,6 +27,8 @@ const PUBLIC_ROUTES: {
 }[] = [
   { path: "", priority: 1, changeFrequency: "weekly" },
   { path: "/knowledge", priority: 0.9, changeFrequency: "weekly" },
+  { path: "/map", priority: 0.9, changeFrequency: "daily" },
+  { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
   { path: "/rain", priority: 0.9, changeFrequency: "daily" },
   { path: "/nafir", priority: 0.8, changeFrequency: "daily" },
   { path: "/nafir/charter", priority: 0.7, changeFrequency: "weekly" },

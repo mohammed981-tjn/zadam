@@ -41,6 +41,7 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/news/*",
   "/guide",
   "/feedback",
+  "/privacy",
   "/notifications",
   // Accounts, portfolio and projects
   "/login",
@@ -79,8 +80,10 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/my-project",
   "/herds",
   "/herds/*",
-  // Rain, tools, studies, the Arc Canal and mining
+  // Maps, rain, tools, studies, the Arc Canal and mining
+  "/map",
   "/rain",
+  "/tools",
   "/tools/water",
   "/tools/feasibility",
   "/rates",

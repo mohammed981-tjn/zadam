@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { markAllRead } from "./actions";
 import PushToggle from "@/components/PushToggle";
 import { getLocale } from "@/lib/locale";
-import { tr, type Locale } from "@/lib/i18n";
+import { tr } from "@/lib/i18n";
+import { timeAgo } from "@/lib/timeAgo";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -39,41 +40,8 @@ const KIND_ICON: Record<string, string> = {
   agreement_signed: "📜",
   inspection_update: "🔎",
   inspection_report: "📋",
+  message: "💬",
 };
-
-function timeAgo(iso: string, locale: Locale): string {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (locale === "en") {
-    if (seconds < 60) return "just now";
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 30) return days === 1 ? "1 day ago" : `${days} days ago`;
-    return new Date(iso).toLocaleDateString("en-GB", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }
-  if (seconds < 60) return "الآن";
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `قبل ${minutes} دقيقة`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `قبل ${hours} ساعة`;
-
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `قبل ${days} يوم`;
-
-  return new Date(iso).toLocaleDateString("ar-EG", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 export default async function NotificationsPage() {
   const locale = await getLocale();

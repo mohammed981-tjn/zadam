@@ -2,6 +2,8 @@ import Link from "next/link";
 import DailyRainTable from "@/components/DailyRainTable";
 import InfraMap, { FUEL_INK, INFRA } from "@/components/InfraMap";
 import RainMap from "@/components/RainMap";
+import MapScreen from "@/components/map/MapScreen";
+import { mapThemes } from "@/lib/mapLayers";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import WeekForecast from "@/components/WeekForecast";
 import { SOIL_CLASSES, SOIL_FETCHED_AT, availableLayers, fetchDailyTable, fetchRainGrid, layerFor, localizeLayer } from "@/lib/rainMap";
@@ -89,8 +91,37 @@ export default async function RainPage({
         />
       </figure>
 
+      {/* ───────── الخريطة الحيّة ───────── */}
+      {/*
+        The live map first (البند ١٤٧, «وستغيّر جميع الخرائط»): the same layers
+        on a map or a satellite image, tapped for their values. The drawn map
+        and its tabs follow, folded unless a tab was asked for: they print,
+        open with no script, and are what the app's /api/rain also draws.
+      */}
+      <MapScreen
+        themes={mapThemes(
+          grid,
+          available,
+          locale,
+          grid
+            ? t(`من ${dayMonth(grid.from, locale)} إلى ${dayMonth(grid.to, locale)}`, `From ${dayMonth(grid.from, locale)} to ${dayMonth(grid.to, locale)}`)
+            : undefined,
+        ).filter((x) => x.group === "grid" || x.key === "infra" || x.key === "canal")}
+        initial={infra ? "none" : (layerKey ?? "rain")}
+        initialOver={infra ? ["infra"] : []}
+        full="/map"
+        className="mt-6 h-[75vh] min-h-96"
+      />
+
       {/* ───────── الخريطة ───────── */}
-      <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-6">
+      <details
+        open={Boolean(layerKey)}
+        className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-card sm:p-6"
+      >
+        <summary className="cursor-pointer font-bold">
+          {t("الخريطة المرسومة وطبقاتها — للطباعة وللاتصال الضعيف", "The drawn map and its layers — for printing and weak connections")}
+        </summary>
+        <div className="mt-4">
         {grid ? (
           <>
             {/* Two rows on a phone rather than seven squeezed tabs. */}
@@ -180,7 +211,8 @@ export default async function RainPage({
             {t("تعذّر جلبُ التوقّع الآن. أعد المحاولة بعد قليل.", "The forecast could not be fetched just now. Please try again shortly.")}
           </p>
         )}
-      </section>
+        </div>
+      </details>
 
       {/* ───────── يوماً بيوم ───────── */}
       {table && (

@@ -51,6 +51,30 @@ type Spec = Omit<QueueSection, "count" | "items"> & {
 };
 
 const SPECS: Spec[] = [
+  // صندوق الرسائل (البند ١٤٤): «راسل سوداقري» حين تكون آخر كلمةٍ للعضو،
+  // والمحادثات المبلَّغ عنها حتى يراجعها المدير ويغلق البلاغ.
+  {
+    key: "messages_waiting",
+    title: { ar: "رسائل تنتظر ردّ الإدارة", en: "Messages awaiting the administration" },
+    what: { ar: "اقرأ رسالة العضو وردّ عليه باسم سوداقري.", en: "Read the member's message and reply as Sudagri." },
+    href: "/messages",
+    table: "conversations",
+    select: "id, kind, last_message_at",
+    filter: (q) => q.eq("kind", "support").eq("needs_reply", true),
+    order: "last_message_at",
+    row: (r) => ({ id: r.id, title: "راسل سوداقري", meta: null, at: r.last_message_at }),
+  },
+  {
+    key: "messages_reported",
+    title: { ar: "محادثات مبلَّغ عنها", en: "Reported conversations" },
+    what: { ar: "اقرأ المحادثة وسبب البلاغ، ثمّ «راجعتُ البلاغ — أغلقه».", en: "Read the thread and the reason, then close the report." },
+    href: "/messages",
+    table: "conversations",
+    select: "id, kind, reported_at",
+    filter: (q) => q.not("reported_at", "is", null),
+    order: "reported_at",
+    row: (r) => ({ id: r.id, title: r.kind === "support" ? "راسل سوداقري" : "محادثة شراكة", meta: null, at: r.reported_at }),
+  },
   {
     key: "lands",
     title: { ar: "أراضٍ تنتظر التوثيق", en: "Land awaiting verification" },

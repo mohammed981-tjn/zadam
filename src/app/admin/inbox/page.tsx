@@ -97,7 +97,13 @@ export default async function AdminInboxPage() {
               <ul className="mt-3 divide-y divide-border text-sm">
                 {s.items.map((it) => (
                   <li key={it.id} className="flex flex-wrap items-baseline justify-between gap-x-3 py-2">
-                    <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{it.title}</span>
+                    {s.key.startsWith("messages_") ? (
+                      <Link href={`/messages/${it.id}`} className="min-w-0 font-medium text-primary underline [overflow-wrap:anywhere]">
+                        {it.title}
+                      </Link>
+                    ) : (
+                      <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{it.title}</span>
+                    )}
                     <span className="text-xs text-muted">
                       {s.key === "investor_interests" && it.meta
                         ? lbl(INVESTOR_MODEL_LABEL[it.meta as InvestorModel] ?? { ar: it.meta, en: it.meta }, locale)

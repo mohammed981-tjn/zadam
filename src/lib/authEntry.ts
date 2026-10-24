@@ -88,6 +88,15 @@ export function loginTo(path: string): string {
 }
 
 /**
+ * An investor's way in from an opportunity: a new account with «أستثمر»
+ * already chosen, back to `path` after. Someone with an account signs in from
+ * the same screen («لي حساب»), so one link serves both.
+ */
+export function investorSignupTo(path: string): string {
+  return `/signup?as=investor&next=${encodeURIComponent(path)}`;
+}
+
+/**
  * Where someone already signed in lands when they open the sign-in screen with
  * nowhere to return to: the farmer at their lands, the investor at their
  * portfolio — as after signing in (homeAfterAuth in app/login/actions.ts).

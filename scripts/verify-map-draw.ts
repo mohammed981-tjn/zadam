@@ -2,7 +2,7 @@
  * Checks the drawing behind the national map: the ground data is whole, the
  * interpolation is right, and the bands are the ones the values fall in.
  */
-import { BASE, MAP_LABELS, NEIGHBOUR_LABELS, coarseField, isobands, sample, townValues } from "../src/lib/mapDraw";
+import { BASE, MAP_LABELS, NEIGHBOUR_LABELS, clipToSudan, coarseField, isobands, sample, townValues } from "../src/lib/mapDraw";
 import { RAIN_CELLS, insideSudan, layerFor, type GridCell } from "../src/lib/rainMap";
 import { simplify, clipRing } from "./build-sudan-base";
 
@@ -44,6 +44,36 @@ ok(
   wet.bands.at(-1)!.shapes.flat(2).every(([, lat]) => lat < 13.5),
   "وأعلاها في الجنوب وحده",
 );
+
+// The live map (البند ١٤٧) cannot clip to the border, so it asks for bands
+// that stop one step past it. Wet in the north: unclipped, the top band runs
+// to the frame (Egypt, Libya); clipped, it stays within a degree of Sudan —
+// the step past the border, and the Halaib triangle's northern tip, which
+// comes within that of the frame.
+console.log("\nالخريطة الحيّة:");
+const soaked = cells((c) => (c.lat > 12 ? 70 : 2));
+const near = ([lon, lat]: number[]) =>
+  [-1, 0, 1].some((dx) => [-1, 0, 1].some((dy) => insideSudan([lon + dx, lat + dy])));
+const open = isobands(soaked, rain)!.bands.at(-1)!.shapes.flat(2);
+const cut = isobands(soaked, rain, true)!.bands.at(-1)!.shapes.flat(2);
+ok(open.some((p) => !near(p)), "بلا قصّ: النطاق يبلغ إطار الخريطة خارج السودان");
+ok(cut.length > 0 && cut.every(near), "وبالقصّ: يقف عند الحدود، في درجةٍ منها");
+ok(isobands(soaked, rain, true)!.base === isobands(soaked, rain)!.base, "والأساس هو هو");
+const hot = cells(() => 0).map((c) => ({ ...c, tmaxC: c.lat > 20 ? 45 : 33 }));
+ok(
+  isobands(hot, layerFor("tmax"), true)!.bands.every((b) => b.shapes.flat(2).every(near)),
+  "وكذلك الحرارة: لا شيء منها فوق مصر",
+);
+
+// Then cut at the border itself, since the live map shows the countries
+// around Sudan as they are (the owner, 24 October): nothing past it, to
+// rounding, and the band still covers the wet north.
+const onBorder = ([lon, lat]: number[]) =>
+  [-0.01, 0, 0.01].some((dx) => [-0.01, 0, 0.01].some((dy) => insideSudan([lon + dx, lat + dy])));
+const exact = clipToSudan(isobands(soaked, rain, true)!.bands.at(-1)!.shapes);
+ok(exact.length > 0 && exact.flat(2).every(onBorder), "ثمّ يُقصّ عند الحدود بالضبط: لا نقطة خارجها");
+ok(insideSudan([30, 19]) && exact.some((poly) => insideSudan([30, 19], poly[0])), "ويبقى يغطّي الشمال المبتلّ");
+ok(clipToSudan([]).length === 0, "ولا شيء يُقصّ إلى لا شيء");
 
 console.log("\nالمدن:");
 const tv = townValues(cells((c) => c.lat), rain);

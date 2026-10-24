@@ -4,6 +4,8 @@ import { PHOTOS } from "@/lib/photos";
 import NotifyMeForm from "@/components/NotifyMeForm";
 import ArcCanalProfile from "@/components/ArcCanalProfile";
 import ArcCanalMap from "@/components/ArcCanalMap";
+import MapScreen from "@/components/map/MapScreen";
+import { mapThemes } from "@/lib/mapLayers";
 import ArcCanalCorridor from "@/components/ArcCanalCorridor";
 import ArcCanalWater from "@/components/ArcCanalWater";
 import ArcCanalDesign from "@/components/ArcCanalDesign";
@@ -198,6 +200,32 @@ export default async function ArcCanalPage() {
               : `قِسنا المسار من قمر SRTM بدقّة ثلاثين متراً، إحدى وأربعين نقطة من جبل أولياء إلى السروراب. القوس نصف دائرة على الوتر بين الطرفين — نصف قطرها ٣٠ كم وطولها π×٣٠ ≈ ${Math.round(ROUTE_LENGTH_KM)} كم — وأقصى غربها عند ${west.lon.toFixed(3)}°ق، أي نحو ٢٨ كم غرب أم درمان.`}
           </p>
         </div>
+
+        {/*
+          The route on the live map (البند ١٤٧), on the satellite by default:
+          the river, the reservoir and the fields it would water are what a
+          reader looks for here. The drawn map under it stays — it is the
+          study's figure, with the ground's height that the satellite cannot show.
+        */}
+        <MapScreen
+          themes={mapThemes(null, [], locale).filter((x) => x.key === "canal")}
+          initial="none"
+          initialOver={["canal"]}
+          bounds={[
+            [32.16, 15.2],
+            [32.6, 15.84],
+          ]}
+          initialGround="sat"
+          address={false}
+          full="/map?layer=none&over=canal"
+          className="h-[70vh] min-h-80"
+        />
+        <p className="-mt-3 text-xs text-muted">
+          {t(
+            "الخريطة الحيّة: بدّل بين صورة القمر الصناعيّ والخريطة بالزرّ على اليمين. وتحتها الخريطة المرسومة بالقياسات.",
+            "The live map: switch between the satellite image and the map with the button on the right. Below it, the map drawn from the measurements.",
+          )}
+        </p>
 
         <ArcCanalMap locale={locale} />
 

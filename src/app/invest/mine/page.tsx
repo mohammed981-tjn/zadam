@@ -12,6 +12,7 @@ import { lbl } from "@/lib/partners";
 import { button, card, ghost } from "@/lib/ui";
 import { withdrawInvestorInterest } from "../actions";
 import { openAgreement } from "../agreements/actions";
+import { openPartnershipConversation } from "@/app/messages/actions";
 import { INSPECTION_STATUS_LABEL, VERDICT_LABEL, type InspectionRow } from "@/lib/inspections";
 
 export async function generateMetadata() {
@@ -192,6 +193,14 @@ export default async function MyInvestorRequestsPage({
                     <button className={button}>{t("اكتبا العقد ووقّعاه هنا", "Write and sign the agreement here")}</button>
                   </form>
                 </div>
+              )}
+
+              {(r.status === "pending" || r.status === "accepted") && (
+                <form action={openPartnershipConversation} className="mt-3">
+                  <input type="hidden" name="interest_id" value={r.interest_id} />
+                  <input type="hidden" name="from" value="/invest/mine" />
+                  <button className={ghost}>{t("💬 راسل صاحب الأرض", "💬 Message the landowner")}</button>
+                </form>
               )}
 
               {r.status === "pending" && (

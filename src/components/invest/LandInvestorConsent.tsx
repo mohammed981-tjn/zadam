@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { tr, type Locale } from "@/lib/i18n";
 import { lbl } from "@/lib/partners";
-import { INVESTOR_MODEL_DETAIL, INVESTOR_MODEL_LABEL, INVESTOR_MODELS, type InvestorProfile, type LandRequest } from "@/lib/investors";
+import { INVESTOR_MODEL_LABEL, type InvestorProfile, type LandRequest } from "@/lib/investors";
+import OpenToInvestorsForm from "@/components/invest/OpenToInvestorsForm";
 import { COUNTRIES } from "@/lib/phone";
-import { button, field, ghost } from "@/lib/ui";
+import { button, ghost } from "@/lib/ui";
 import { decideInvestorInterest, setInvestorConsent } from "@/app/invest/actions";
 import { openAgreement } from "@/app/invest/agreements/actions";
+import { openPartnershipConversation } from "@/app/messages/actions";
 import { decideInspection } from "@/app/invest/inspections/actions";
 import { CHECK_LABEL, INSPECTION_STATUS_LABEL, VERDICT_LABEL, type InspectionRow } from "@/lib/inspections";
 import type { Land } from "@/types/database";
@@ -34,7 +36,6 @@ export default function LandInvestorConsent({
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const arText = locale === "en" ? ({ lang: "ar", dir: "auto" } as const) : {};
   const open = land.open_to_investors;
-  const chosen = new Set(land.investor_models ?? []);
 
   return (
     <section className="mt-4 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
@@ -76,40 +77,7 @@ export default function LandInvestorConsent({
             )}{" "}
             <span className="font-bold text-primary underline">{t("اعرضها", "Offer it")}</span>
           </summary>
-          <form action={setInvestorConsent} className="mt-3 flex flex-col gap-3">
-            <input type="hidden" name="land_id" value={land.id} />
-            <input type="hidden" name="open" value="true" />
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 font-bold">{t("ما الشراكة التي تقبلها؟", "Which partnerships do you accept?")}</legend>
-              {INVESTOR_MODELS.map((m) => (
-                <label key={m} className="flex items-start gap-2">
-                  <input type="checkbox" name="models" value={m} defaultChecked={chosen.size === 0 || chosen.has(m)} className="mt-1 size-4" />
-                  <span>
-                    <span className="font-bold">{lbl(INVESTOR_MODEL_LABEL[m], locale)}</span>
-                    <span className="block text-xs text-muted">{lbl(INVESTOR_MODEL_DETAIL[m].owner, locale)}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-            <label className="flex flex-col gap-1">
-              {t("سطرٌ عن أرضك للمستثمر (اختياري)", "A line about your land for investors (optional)")}
-              <textarea
-                name="note"
-                rows={2}
-                maxLength={500}
-                defaultValue={land.investor_note ?? ""}
-                className={field}
-                placeholder={t(
-                  "مثال: أرضٌ على النيل بمضخّة تعمل، زرعتُها بامية وطماطم، وأريد ممّولاً للموسم الشتوي.",
-                  "e.g. Land on the Nile with a working pump; grew okra and tomato; looking for finance for the winter season.",
-                )}
-              />
-              <span className="text-xs text-muted">
-                {t("لا تكتب اسمك ولا هاتفك هنا — يُكشفان بعد موافقتك.", "Don't write your name or phone here — they are shared after you agree.")}
-              </span>
-            </label>
-            <button className={`${button} self-start`}>{t("اعرض أرضي على المستثمرين", "Offer my land to investors")}</button>
-          </form>
+          <OpenToInvestorsForm landId={land.id} models={land.investor_models ?? []} note={land.investor_note} locale={locale} />
         </details>
       )}
 
@@ -168,6 +136,12 @@ export default function LandInvestorConsent({
               <p className="mt-1 whitespace-pre-line [overflow-wrap:anywhere]" {...arText}>
                 {r.message}
               </p>
+              {/* صندوق الرسائل (البند ١٣٧): محادثة الطلب، قبل القبول وبعده. */}
+              <form action={openPartnershipConversation} className="mt-2">
+                <input type="hidden" name="interest_id" value={r.interest_id} />
+                <input type="hidden" name="from" value="/lands" />
+                <button className={ghost}>{t("💬 راسل المستثمر", "💬 Message the investor")}</button>
+              </form>
               {r.status === "accepted" ? (
                 <div className="mt-1 text-xs text-muted">
                   {t("هاتفه:", "Phone:")}{" "}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
+import SideSwitch from "@/components/SideSwitch";
 import NavMenu, { type NavGroup } from "./NavMenu";
 import LangToggle from "./LangToggle";
 import BottomNav from "./BottomNav";
@@ -19,20 +20,25 @@ export default async function Navbar() {
   let role: string | null = null;
   let fullName: string | null = null;
   let unread = 0;
+  let unreadMessages = 0;
   if (user) {
     // Row-level security scopes the count to this user's own inbox, so no
     // recipient filter is needed here — and adding one would imply the filter
     // is what keeps inboxes apart.
-    const [{ data: profile }, { count }] = await Promise.all([
+    const [{ data: profile }, { count }, { data: messageCount }] = await Promise.all([
       supabase.from("profiles").select("role, full_name").eq("id", user.id).single(),
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
         .is("read_at", null),
+      // صندوق الرسائل (البند ١٤٤): the unread messages in the threads one is a
+      // party to. Before the migration is applied this errors and reads as 0.
+      supabase.rpc("my_unread_message_count"),
     ]);
     role = profile?.role ?? null;
     fullName = profile?.full_name ?? null;
     unread = count ?? 0;
+    unreadMessages = typeof messageCount === "number" ? messageCount : 0;
   }
 
   /*
@@ -44,14 +50,9 @@ export default async function Navbar() {
    * said which account he was in. The menu now does, above «خروج», with the
    * account's kind, so "I am in the wrong account" is something one can see.
    */
-  const roleLabel =
-    role === "admin"
-      ? t("مدير", "Administrator")
-      : role === "investor"
-        ? t("مستثمر", "Investor")
-        : role === "farmer"
-          ? t("مزارع وصاحب أرض", "Farmer and landowner")
-          : null;
+  // Only the administrator's account is named a kind now: farmer and investor
+  // are two sides of one account, switched below (backlog 151).
+  const roleLabel = role === "admin" ? t("مدير", "Administrator") : null;
 
   // ما ينتظر قرار الإدارة (البند ١٢٤): المالكُ وجد الأرض في الإشعارات وحدها،
   // والإشعارُ يُقرأ فيختفي ولا يقول إن قُرّر في الأمر شيء. فالعدد هنا من
@@ -114,6 +115,8 @@ export default async function Navbar() {
       hint: t("المطر والماء والجدوى ومحاصيل جديدة", "Rain, water, feasibility and new crops"),
       icon: "droplet",
       items: [
+        // The live map (البند ١٤٧): every layer on one map, with the satellite.
+        { href: "/map", label: t("الخرائط: خريطةٌ حيّة وقمرٌ صناعيّ", "Maps: a live map and satellite") },
         { href: "/rain", label: t("توقّع الأمطار والخرائط", "Rain forecast and maps") },
         { href: "/tools/water", label: t("حاسبة الاحتياج المائي", "Crop water calculator") },
         { href: "/tools/feasibility", label: t("دراسة الجدوى المرحلية", "Staged feasibility study") },
@@ -200,6 +203,7 @@ export default async function Navbar() {
       ...(user
         ? [
             { href: "/invest/mine", label: t("طلباتي: الشراكة والمعاينة", "My requests: partnership and inspection") },
+            { href: "/messages", label: t("الرسائل وراسل سوداقري", "Messages, and write to Sudagri") },
             { href: "/dashboard", label: t("محفظتي", "My portfolio") },
             { href: "/plan", label: t("خطط استثمارك", "Plan your investment") },
           ]
@@ -345,6 +349,24 @@ export default async function Navbar() {
           )}
           {user && (
             <Link
+              href="/messages"
+              aria-label={
+                unreadMessages > 0
+                  ? t(`الرسائل، ${unreadMessages} غير مقروءة`, `Messages, ${unreadMessages} unread`)
+                  : t("الرسائل", "Messages")
+              }
+              className="relative rounded-xl border border-border bg-card px-2.5 py-2 text-sm transition hover:border-rose"
+            >
+              💬
+              {unreadMessages > 0 && (
+                <span className="absolute -end-1.5 -top-1.5 min-w-5 rounded-full bg-danger px-1 text-center text-[0.65rem] font-bold leading-5 text-white">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
+            </Link>
+          )}
+          {user && (
+            <Link
               href="/notifications"
               aria-label={
                 unread > 0
@@ -398,6 +420,8 @@ export default async function Navbar() {
                     </span>
                     {roleLabel && <> — {roleLabel}</>}
                   </p>
+                  {/* البند ١٥١: حسابٌ واحد للجانبين، يُبدَّل بينهما كما في Airbnb. */}
+                  <SideSwitch role={role ?? null} locale={locale} />
                   <SignOutButton />
                 </>
               ) : undefined

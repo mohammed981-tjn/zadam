@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
+    "postinstall": "node scripts/vendor-maplibre.mjs",
     "verify": "for f in scripts/verify-*.ts; do echo \"── $f\" && tsx \"$f\" || exit 1; done",
     "test": "npm run typecheck && npm run lint && npm run verify"
   },
@@ -16,7 +17,9 @@
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.2",
     "d3-contour": "^4.0.2",
+    "maplibre-gl": "6.12.0",
     "next": "16.3.0",
+    "polygon-clipping": "0.15.7",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "web-push": "^3.6.7"

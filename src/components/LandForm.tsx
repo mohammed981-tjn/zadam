@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useActionState, useMemo, useState } from "react";
 import {
   STATIONS,
@@ -14,6 +15,10 @@ import { tr } from "@/lib/i18n";
 import { cropName, stationName, waterSourceLabel } from "@/lib/farmLabelsEn";
 
 const SOURCES = Object.keys(WATER_SOURCE_LABEL) as WaterSource[];
+
+/** The live map, fetched only when the farmer opens it (البند ١٤٧). */
+const LiveMap = dynamic(() => import("@/components/map/LiveMap"), { ssr: false });
+const deg = (v: number) => String(Math.round(v * 1e5) / 1e5);
 const field =
   "rounded-lg border border-border bg-background px-3 py-2 outline-none focus:border-primary";
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
@@ -36,6 +41,14 @@ export default function LandForm() {
   const [stationKey, setStationKey] = useState("gezira");
   const [feddans, setFeddans] = useState(20);
   const [waterPerFeddan, setWaterPerFeddan] = useState(3600);
+  // The place: typed, or tapped on the map, or «موقعي» on the map.
+  const [lat, setLat] = useState("");
+  const [lon, setLon] = useState("");
+  const [picking, setPicking] = useState(false);
+  const at: [number, number] | null =
+    lat !== "" && lon !== "" && Number.isFinite(Number(lat)) && Number.isFinite(Number(lon))
+      ? [Number(lon), Number(lat)]
+      : null;
 
   /**
    * What the declared water actually supports. A farmer describing a plot
@@ -131,6 +144,8 @@ export default function LandForm() {
               name="latitude"
               className={field}
               placeholder="15.5"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -141,8 +156,46 @@ export default function LandForm() {
               name="longitude"
               className={field}
               placeholder="32.1"
+              value={lon}
+              onChange={(e) => setLon(e.target.value)}
             />
           </label>
+
+          {/*
+            No one knows their field's latitude by heart; everyone can find it
+            on a satellite image. The map opens on the satellite, and a tap or
+            «موقعي» writes the two numbers above.
+          */}
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <button
+              type="button"
+              onClick={() => setPicking((v) => !v)}
+              aria-expanded={picking}
+              className="self-start rounded-full border border-primary px-4 py-2 text-sm font-bold text-primary transition hover:bg-primary/10"
+            >
+              📍 {picking ? t("أخفِ الخريطة", "Hide the map") : t("حدّد موقع الأرض على الخريطة", "Find the land on the map")}
+            </button>
+            {picking && (
+              <>
+                <p className="text-xs leading-6 text-muted">
+                  {t(
+                    "المس أرضك على صورة القمر الصناعيّ، أو اضغط «موقعي» وأنت فيها، فيُكتب الموقع في الخانتين. موقع الأرض في صفحتها، لمن يأذن له صاحبها.",
+                    "Tap your land on the satellite image, or press «My location» while you are on it, and the place is written into the two boxes. A land's place is on its own page, for whom its owner allows.",
+                  )}
+                </p>
+                <LiveMap
+                  className="h-80"
+                  initialGround="sat"
+                  {...(at ? { center: at, zoom: 13 } : {})}
+                  marker={at}
+                  onPick={([x, y]) => {
+                    setLon(deg(x));
+                    setLat(deg(y));
+                  }}
+                />
+              </>
+            )}
+          </div>
         </fieldset>
 
         <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2">
