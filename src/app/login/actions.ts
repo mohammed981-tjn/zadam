@@ -81,7 +81,30 @@ async function homeAfterAuth(): Promise<string> {
     : "/dashboard";
 }
 
+/**
+ * One throttle for every auth action (backlog 160, SEC-10). `enter` had it; the
+ * older actions below stayed callable without it — a server action is an
+ * endpoint whether or not a form still points at it — as did the reset and
+ * resend actions, where a stranger can make the platform send mail.
+ * Five a minute per connecting address, the same bucket, closed when the limiter
+ * cannot be asked.
+ */
+async function throttleAuth(back: string): Promise<void> {
+  const verdict = await checkRateLimit("web-auth", clientAddress(await headers()));
+  if (verdict.allowed) return;
+  const { t } = await translator();
+  redirect(
+    `${back}${back.includes("?") ? "&" : "?"}error=${encodeURIComponent(
+      t(
+        "محاولاتٌ كثيرة في وقتٍ قصير. انتظر دقيقةً ثمّ أعد المحاولة.",
+        "Too many attempts in a short time. Wait a minute and try again.",
+      ),
+    )}`,
+  );
+}
+
 export async function login(formData: FormData) {
+  await throttleAuth("/login");
   const { locale } = await translator();
   const method = str(formData, "method") || "phone";
   const password = str(formData, "password");
@@ -125,6 +148,7 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
+  await throttleAuth("/signup");
   const { locale, t } = await translator();
   const method = str(formData, "method") || "phone";
   const password = str(formData, "password");
@@ -531,6 +555,7 @@ export async function logout() {
  * that is worth denying.
  */
 export async function resendConfirmation(formData: FormData) {
+  await throttleAuth("/login?method=email");
   const { t } = await translator();
   const email = str(formData, "email");
 
@@ -582,6 +607,7 @@ export async function resendConfirmation(formData: FormData) {
  * nothing would be worse than saying it plainly.
  */
 export async function requestPasswordReset(formData: FormData) {
+  await throttleAuth("/reset");
   const { t } = await translator();
   const email = str(formData, "email");
 
@@ -649,6 +675,7 @@ export async function requestPasswordReset(formData: FormData) {
  * silently doing nothing.
  */
 export async function completePasswordReset(formData: FormData) {
+  await throttleAuth("/reset/confirm");
   const { locale, t } = await translator();
   const password = str(formData, "password");
   const confirm = str(formData, "confirm");
