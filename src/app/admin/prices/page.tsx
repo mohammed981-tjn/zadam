@@ -6,6 +6,7 @@ import { tr } from "@/lib/i18n";
 import PageHeader from "@/components/PageHeader";
 import ActionNotice from "@/components/ActionNotice";
 import { cropName, UNIT_NAME } from "@/lib/marketPrices";
+import { loadFeedStates, type FeedKey } from "@/lib/priceFreshness";
 import { button, card, ghost } from "@/lib/ui";
 import { reviewQuote, runPricesNow } from "./actions";
 
@@ -72,6 +73,12 @@ export default async function AdminPricesPage({
     supabase.from("market_quotes").select("*").eq("status", "published").order("created_at", { ascending: false }).limit(20),
     supabase.from("price_runs").select("*").order("started_at", { ascending: false }).limit(10),
   ]);
+  const feeds = await loadFeedStates(supabase);
+  const feedName: Record<FeedKey, string> = {
+    fx_bank: t("سعر بنك الخرطوم", "Bank of Khartoum rate"),
+    fx_parallel: t("سعر السوق الموازي", "Parallel-market rate"),
+    crop_obeid: t("نشرة سوق الأبيض", "El Obeid bulletin"),
+  };
   const held = (heldRows ?? []) as Quote[];
   const recent = (recentRows ?? []) as Quote[];
   const runs = (runRows ?? []) as Run[];
@@ -102,6 +109,27 @@ export default async function AdminPricesPage({
           {t("تعمل هذه الشاشة بعد تطبيق هجرتها.", "This screen works once its migration is applied.")}
         </p>
       )}
+
+      <section className="mb-8">
+        <h2 className="title-bar mb-3 font-black">{t("حداثة الأسعار", "How fresh the prices are")}</h2>
+        <ul className="flex flex-col gap-2 text-sm">
+          {feeds.map((f) => (
+            <li key={f.key} className={`${card} flex flex-wrap items-center justify-between gap-2`}>
+              <span className="font-bold">{feedName[f.key]}</span>
+              <span className={f.stale ? "font-bold text-accent" : "text-muted"}>
+                {f.newest
+                  ? t(`آخر رقمٍ ${f.newest} · قبل ${f.ageDays} يوماً`, `Latest ${f.newest} · ${f.ageDays} days ago`)
+                  : t("لا رقمَ منشور", "No figure published")}
+                {f.stale &&
+                  t(
+                    ` — أقدم من الحدّ (${f.limitDays} أيام): المصدر لا يردّ أو تغيّر`,
+                    ` — older than the limit (${f.limitDays} days): the source is not answering or has changed`,
+                  )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <form action={runPricesNow} className="mb-8">
         <button className={button}>{t("حدّث الأسعار الآن", "Update prices now")}</button>

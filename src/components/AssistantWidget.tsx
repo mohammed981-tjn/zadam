@@ -7,6 +7,7 @@ import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { useDraggable } from "@/lib/useDraggable";
 import { tr } from "@/lib/i18n";
 import { collectTranscript, recognitionCtor, speechErrorText, speechLang, type RecognitionLike } from "@/lib/speech";
+import { brandForSpeech } from "@/lib/speechName";
 import { useLocale } from "./LocaleProvider";
 
 type Msg = { role: "user" | "assistant"; text: string; source?: string; image?: string };
@@ -49,7 +50,7 @@ async function shrinkPhoto(file: File): Promise<Photo> {
 function speak(text: string, lang: string): boolean {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
   window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
+  const u = new SpeechSynthesisUtterance(lang.startsWith("ar") ? brandForSpeech(text) : text);
   u.lang = lang;
   const voice = window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang.slice(0, 2)));
   if (voice) u.voice = voice;
