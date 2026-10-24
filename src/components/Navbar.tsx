@@ -184,6 +184,7 @@ export default async function Navbar() {
       items: [
         { href: "/lands", label: t("أراضيّ", "My land") },
         { href: "/seasons", label: t("مواسمي", "My seasons") },
+        { href: "/books", label: t("دفتر حساباتي", "My books") },
         { href: "/my-project", label: t("مشروعي — قائمة المدخلات", "My project — input list") },
         { href: "/herds", label: t("دورات الإنتاج الحيواني", "Livestock production cycles") },
         { href: "/opportunities/new", label: t("ارفع فرصة", "Post an opportunity") },
