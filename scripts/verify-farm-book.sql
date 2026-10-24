@@ -334,6 +334,29 @@ end $$;
 
 \echo ''
 \echo '=========================================================================='
+\echo 'ح٢) الشكل الذي يرسله نموذج القيد في الموقع'
+\echo '=========================================================================='
+-- The form sends the pound figure as entered_amount, a zero dollar amount to be overwritten, and no rate
+-- unless the farmer typed one (the database then takes the latest published parallel rate).
+insert into ledger_entries (id, season_id, category, amount, entered_amount, currency, fx_rate, paid_from, entry_date, created_by) values
+  ('e0000000-0000-0000-0000-0000000000f1', '51000000-0000-0000-0000-000000000001', 'seeds', 0, 1500000.00, 'SDG', null, 'bank', current_date, 'a1000000-0000-0000-0000-0000000000a1'),
+  ('e0000000-0000-0000-0000-0000000000f2', '51000000-0000-0000-0000-000000000001', 'seeds', 0, 1.00,       'SDG', 3000, 'cash', current_date, 'a1000000-0000-0000-0000-0000000000a1');
+do $$
+begin
+  perform _eq((select amount from ledger_entries where id = 'e0000000-0000-0000-0000-0000000000f1'), 612.12, 'مليون ونصف جنيه بلا سعرٍ مكتوب: ٦١٢٫١٢$ بآخر سعرٍ منشور');
+  perform _eq((select fx_source from ledger_entries where id = 'e0000000-0000-0000-0000-0000000000f1'), 'parallel', 'ومصدر السعر «سوق موازية»');
+  perform _eq((select fx_rate from ledger_entries where id = 'e0000000-0000-0000-0000-0000000000f1'), 2450.5, 'والسعر ٢٤٥٠٫٥ (المنشور لا المحجوز)');
+  perform _eq(_postings('e0000000-0000-0000-0000-0000000000f1'), 1, 'وله قيدٌ واحد');
+  perform _eq((select l.amount_minor from journal_lines l join ledger_accounts ac on ac.id = l.account_id
+                where l.entry_id = _entry_of('e0000000-0000-0000-0000-0000000000f1') and ac.system_key = 'bank' and l.side = 'C'),
+              150000000::bigint, 'ودائنُ البنك بالجنيه كما دُفع: ١٬٥٠٠٬٠٠٠٫٠٠');
+  perform _eq((select amount from ledger_entries where id = 'e0000000-0000-0000-0000-0000000000f2'), 0.00, 'جنيهٌ واحد بثلاثة آلاف: أقلّ من سنتٍ فيُحفظ صفراً بالدولار');
+  perform _eq(_postings('e0000000-0000-0000-0000-0000000000f2'), 1, 'ويبقى له قيدٌ بالجنيه، فلا يضيع مبلغٌ مكتوب');
+  perform _eq((select balanced from ledger_trial_balance_proof((select id from ledger_books where owner_id = 'a1000000-0000-0000-0000-0000000000a1' and kind = 'farm'))), true, 'والدفتر متوازن بعدهما');
+end $$;
+
+\echo ''
+\echo '=========================================================================='
 \echo 'ط) الحرّاس الباقية'
 \echo '=========================================================================='
 do $$

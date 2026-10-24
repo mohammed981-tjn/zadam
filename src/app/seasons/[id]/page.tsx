@@ -32,6 +32,15 @@ import OfflineForm from "@/components/OfflineForm";
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
+const paidFromLabel = (p: LedgerEntryRow["paid_from"], t: (ar: string, en: string) => string) =>
+  p === "bank"
+    ? t("بنك", "Bank")
+    : p === "wallet"
+      ? t("محفظة", "Wallet")
+      : p === "credit"
+        ? t("آجل", "On credit")
+        : t("نقداً", "Cash");
+
 export default async function SeasonPage({
   params,
   searchParams,
@@ -77,6 +86,18 @@ export default async function SeasonPage({
 
   const stages = (stageRows ?? []) as SeasonStage[];
   const ledger = (ledgerRows ?? []) as LedgerEntryRow[];
+
+  // The rate a pound entry would take today, shown so the farmer knows what he is agreeing to.
+  // None published is a normal state: the farmer then types the rate he exchanged at.
+  const today = new Date().toISOString().slice(0, 10);
+  const suggested = canWrite
+    ? ((await supabase.rpc("ledger_fx_rate", { p_date: today, p_source: "parallel" })).data as
+        | { rate: number; rate_date: string }[]
+        | null)?.[0] ?? null
+    : null;
+  const recent = [...ledger]
+    .sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.created_at.localeCompare(a.created_at))
+    .slice(0, 8);
 
   const { data: evidenceRows } = await supabase
     .from("stage_evidence")
@@ -429,13 +450,38 @@ export default async function SeasonPage({
               </select>
             </label>
             <label className="flex flex-col gap-1 text-xs">
-              {t("المبلغ ($)", "Amount ($)")}
+              {t("المبلغ", "Amount")}
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 name="amount"
-                min={0}
-                step="1"
                 required
+                className={field}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs">
+              {t("العملة", "Currency")}
+              <select name="currency" className={field} defaultValue="USD">
+                <option value="USD">{t("دولار ($)", "US dollar ($)")}</option>
+                <option value="SDG">{t("جنيه سوداني", "Sudanese pound")}</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs">
+              {t("دُفع أو قُبض", "Paid or received")}
+              <select name="paid_from" className={field} defaultValue="cash">
+                <option value="cash">{t("نقداً", "Cash")}</option>
+                <option value="bank">{t("من البنك", "Bank")}</option>
+                <option value="wallet">{t("محفظة إلكترونية", "Mobile wallet")}</option>
+                <option value="credit">{t("آجل — لم يُدفع أو يُقبض بعد", "On credit — not paid or received yet")}</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs">
+              {t("سعر الصرف (للجنيه فقط)", "Exchange rate (pounds only)")}
+              <input
+                type="text"
+                inputMode="decimal"
+                name="fx_rate"
+                placeholder={suggested ? String(Number(suggested.rate)) : t("جنيه لكل دولار", "pounds per dollar")}
                 className={field}
               />
             </label>
@@ -449,7 +495,57 @@ export default async function SeasonPage({
             >
               {t("أضف قيداً", "Add entry")}
             </button>
+            <p className="basis-full text-xs text-muted">
+              {suggested
+                ? t(
+                    `إن كتبت بالجنيه ولم تكتب سعراً، نأخذ ${Number(suggested.rate).toLocaleString("en-US")} جنيهاً للدولار (السوق الموازي، ${suggested.rate_date}).`,
+                    `If you enter pounds and no rate, we take ${Number(suggested.rate).toLocaleString("en-US")} pounds per dollar (parallel market, ${suggested.rate_date}).`,
+                  )
+                : t(
+                    "إن كتبت بالجنيه فاكتب سعر الصرف الذي صرفت به (جنيهات لكل دولار)؛ لا سعر منشوراً اليوم نأخذه عنك.",
+                    "If you enter pounds, type the rate you exchanged at (pounds per dollar); there is no published rate to take for you today.",
+                  )}
+            </p>
           </OfflineForm>
+        )}
+
+        {recent.length > 0 && (
+          <div className="mt-4 overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-card text-start">
+                <tr>
+                  <th className="px-4 py-3">{t("التاريخ", "Date")}</th>
+                  <th className="px-4 py-3">{t("البند", "Item")}</th>
+                  <th className="px-4 py-3">{t("المبلغ", "Amount")}</th>
+                  <th className="px-4 py-3">{t("بالدولار", "In dollars")}</th>
+                  <th className="px-4 py-3">{t("الدفع", "Paid")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map((l) => (
+                  <tr key={l.id} className="border-t border-border">
+                    <td className="px-4 py-2">{l.entry_date}</td>
+                    <td className="px-4 py-2">
+                      {ledgerLabel(l.category, locale)}
+                      {l.description && <span className="text-muted"> · {l.description}</span>}
+                    </td>
+                    <td className="px-4 py-2">
+                      {l.currency === "SDG" && l.entered_amount !== null
+                        ? `${Number(l.entered_amount).toLocaleString("en-US")} ${t("ج.س", "SDG")}`
+                        : `$${Number(l.amount).toLocaleString("en-US")}`}
+                    </td>
+                    <td className="px-4 py-2">
+                      ${Number(l.amount).toLocaleString("en-US")}
+                      {l.currency === "SDG" && l.fx_rate !== null && (
+                        <span className="text-xs text-muted"> · {Number(l.fx_rate).toLocaleString("en-US")}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2">{paidFromLabel(l.paid_from, t)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {band && (

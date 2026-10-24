@@ -56,8 +56,25 @@ ok(
   `budget shares sum to exactly 1 (got ${shareSum.toFixed(4)})`,
 );
 ok(
-  Math.abs(p.totalBudget - 50 * 120) <= 7,
-  `budget totals the input ($${p.totalBudget} vs $${50 * 120}, rounding only)`,
+  p.totalBudget === 50 * 120,
+  `the stages add up to the season budget exactly ($${p.totalBudget} vs $${50 * 120})`,
+);
+
+// The stages must always add up to the budget to the dollar, whatever the area and the
+// per-feddan figure. Rounding each share on its own missed in two cases of three.
+let budgetOff = 0,
+  budgetRuns = 0;
+for (const feddans of [1, 2, 3, 7, 12.5, 33, 50, 101, 250.75, 1000])
+  for (const per of [0, 1, 17, 99.5, 120, 333, 457.25, 1000, 2500.6]) {
+    const q = planSeason("wheat", "gezira", "2026-11-15", "flood", feddans, per)!;
+    budgetRuns++;
+    if (q.totalBudget !== Math.round(feddans * per)) budgetOff++;
+    if (q.stages.some((st) => !Number.isInteger(st.budget) || st.budget < 0)) budgetOff++;
+  }
+ok(budgetOff === 0, `${budgetRuns} area and budget combinations: stages sum to the budget exactly (${budgetOff} off)`);
+ok(
+  planSeason("wheat", "gezira", "2026-11-15", "flood", Infinity, 120) === null,
+  "an infinite budget is refused, not turned into nonsense",
 );
 
 // Water must match what the agronomy engine says for the same inputs.
