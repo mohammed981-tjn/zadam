@@ -43,6 +43,7 @@ const KIND_ICON: Record<string, string> = {
   inspection_report: "📋",
   message: "💬",
   ledger_inspection: "🔎",
+  ledger_link: "🤝",
 };
 
 export default async function NotificationsPage() {
