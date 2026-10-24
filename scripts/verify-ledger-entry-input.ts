@@ -3,7 +3,13 @@
  *
  *   npx tsx scripts/verify-ledger-entry-input.ts
  */
-import { ledgerEntryInputMessage, parseLedgerEntryInput, type LedgerEntryInputError } from "../src/lib/ledgerEntryInput";
+import {
+  isSettleFrom,
+  ledgerEntryInputMessage,
+  parseLedgerEntryInput,
+  parseSettleRate,
+  type LedgerEntryInputError,
+} from "../src/lib/ledgerEntryInput";
 
 let failed = 0;
 const ok = (cond: boolean, label: string) => {
@@ -69,6 +75,24 @@ console.log("\nد) الرسائل");
   const en = errs.map((e) => ledgerEntryInputMessage(e, (_a, b) => b));
   ok(ar.every((m) => m.length > 5) && new Set(ar).size === errs.length, "لكلّ سببٍ رسالةٌ عربيّة مختلفة");
   ok(en.every((m) => /^[\x20-\x7E—]+$/.test(m)) && new Set(en).size === errs.length, "ولكلٍّ رسالةٌ إنجليزيّة");
+}
+
+console.log("\nه) «سدّدتُ / قبضتُ»");
+{
+  for (const p of ["cash", "bank", "wallet"]) ok(isSettleFrom(p), `السداد من ${p} يُقبل`);
+  ok(!isSettleFrom("credit"), "والسداد «آجلاً» لا يُقبل");
+  ok(!isSettleFrom(""), "ولا الفراغ");
+  ok(!isSettleFrom("cheque"), "ولا جهةٌ مجهولة");
+  const none = parseSettleRate("  ");
+  ok(none.ok && none.rate === null, "بلا سعر: تأخذ القاعدة آخر سعرٍ منشور");
+  const typed = parseSettleRate("2,450.5");
+  ok(typed.ok && typed.rate === "2450.5", "سعرٌ مكتوب بفاصلة: 2450.5");
+  const arabic = parseSettleRate("٣٠٠٠");
+  ok(arabic.ok && arabic.rate === "3000", "بأرقامٍ عربيّة: 3000");
+  ok(!parseSettleRate("0.5").ok, "سعر دون واحد يُرفض");
+  ok(!parseSettleRate("abc").ok, "وغير الرقم");
+  ok(!parseSettleRate("1.1234567").ok, "وسبعة كسور");
+  ok(!parseSettleRate("1000000000").ok, "وما فوق الحدّ");
 }
 
 if (failed) {

@@ -93,3 +93,18 @@ export function ledgerEntryInputMessage(error: LedgerEntryInputError, t: (ar: st
       );
   }
 }
+
+/** Where a credit is settled from: it must be a real place, never "credit" again. */
+export const SETTLE_FROM = ["cash", "bank", "wallet"] as const;
+export type SettleFrom = (typeof SETTLE_FROM)[number];
+export const isSettleFrom = (p: string): p is SettleFrom => (SETTLE_FROM as readonly string[]).includes(p);
+
+/**
+ * The rate typed beside "I paid" (pounds only; empty is fine — the database then takes the latest published one).
+ * Returned as text so no figure passes through a float on the way.
+ */
+export function parseSettleRate(raw: string): { ok: true; rate: string | null } | { ok: false } {
+  if (raw.trim() === "") return { ok: true, rate: null };
+  const micro = parseRate(raw);
+  return micro === null ? { ok: false } : { ok: true, rate: formatRate(micro) };
+}

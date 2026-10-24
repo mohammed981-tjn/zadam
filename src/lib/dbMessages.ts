@@ -157,6 +157,17 @@ const MESSAGES: [string, string][] = [
   ["الفترة حتى % مقفلة؛ لا قيد بتاريخٍ فيها", "The period up to % is closed; no entry can be dated in it"],
   ["لا قيد بتاريخٍ في المستقبل", "An entry cannot be dated in the future"],
   ["الدفتر لا يُعدَّل ولا يُحذف: القيد يُعكس بقيدٍ جديد", "The ledger is never edited or deleted: an entry is reversed by a new entry"],
+  ["سُدِّد هذا القيد من قبل", "This entry has already been settled"],
+  ["هذا القيد ليس آجلاً", "This entry is not on credit"],
+  ["اختر النقد أو البنك أو المحفظة", "Choose cash, bank or wallet"],
+  ["السداد لا يسبق القيد", "A settlement cannot come before the entry"],
+  ["لم يُسدَّد هذا القيد", "This entry has not been settled"],
+  ["سُدِّد هذا القيد؛ ألغِ السداد أولاً ثم عدّله", "This entry was settled; cancel the settlement first, then change it"],
+  ["سُدِّد هذا القيد؛ ألغِ السداد أولاً ثم احذفه", "This entry was settled; cancel the settlement first, then delete it"],
+  ["ليس هذا قيدك", "This is not your entry"],
+  ["القيد غير موجود", "The entry does not exist"],
+  ["لا قيد لهذا السطر في الدفتر", "This row has no entry in the book"],
+  ["لا دين مقيَّد لهذا السطر", "This row has no debt recorded"],
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

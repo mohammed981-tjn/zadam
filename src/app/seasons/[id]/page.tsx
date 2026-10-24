@@ -25,7 +25,7 @@ import type {
   SeasonStage,
   StageEvidence,
 } from "@/types/database";
-import { addLedgerEntry, completeSeason, completeStage } from "../actions";
+import { addLedgerEntry, completeSeason, completeStage, settleLedgerEntry, unsettleLedgerEntry } from "../actions";
 import StageEvidenceUpload from "@/components/StageEvidence";
 import YieldBenchmark from "@/components/YieldBenchmark";
 import OfflineForm from "@/components/OfflineForm";
@@ -90,11 +90,21 @@ export default async function SeasonPage({
   // The rate a pound entry would take today, shown so the farmer knows what he is agreeing to.
   // None published is a normal state: the farmer then types the rate he exchanged at.
   const today = new Date().toISOString().slice(0, 10);
-  const suggested = canWrite
+  const suggested = isOwner
     ? ((await supabase.rpc("ledger_fx_rate", { p_date: today, p_source: "parallel" })).data as
         | { rate: number; rate_date: string }[]
         | null)?.[0] ?? null
     : null;
+  // Rows kept on credit and whether each has been settled: the owner can settle them even after the season closes.
+  const credit = isOwner
+    ? (((await supabase.rpc("farm_credit_status", { p_season: id })).data as
+        | { entry_id: string; settled_on: string | null }[]
+        | null) ?? [])
+    : [];
+  const settledOn = new Map(credit.map((c) => [c.entry_id, c.settled_on]));
+  const creditRows = [...ledger]
+    .filter((l) => settledOn.has(l.id))
+    .sort((a, b) => a.entry_date.localeCompare(b.entry_date) || a.created_at.localeCompare(b.created_at));
   const recent = [...ledger]
     .sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.created_at.localeCompare(a.created_at))
     .slice(0, 8);
@@ -545,6 +555,87 @@ export default async function SeasonPage({
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {creditRows.length > 0 && (
+          <div className="mt-6">
+            <h3 className="mb-2 text-sm font-bold">{t("الآجل", "On credit")}</h3>
+            <ul className="space-y-2">
+              {creditRows.map((l) => {
+                const done = settledOn.get(l.id);
+                const isRevenue = l.category === "revenue";
+                return (
+                  <li key={l.id} className="rounded-xl border border-border bg-card p-3 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span>
+                        {ledgerLabel(l.category, locale)}
+                        {l.description && <span className="text-muted"> · {l.description}</span>}
+                        <span className="text-muted"> · {l.entry_date}</span>
+                      </span>
+                      <span className="font-bold">
+                        {l.currency === "SDG" && l.entered_amount !== null
+                          ? `${Number(l.entered_amount).toLocaleString("en-US")} ${t("ج.س", "SDG")}`
+                          : `$${Number(l.amount).toLocaleString("en-US")}`}
+                      </span>
+                    </div>
+                    {done ? (
+                      <form action={unsettleLedgerEntry} className="mt-2 flex flex-wrap items-center gap-2">
+                        <input type="hidden" name="season_id" value={season.id} />
+                        <input type="hidden" name="entry_id" value={l.id} />
+                        <span className="text-primary">
+                          {isRevenue
+                            ? t(`قُبض في ${done}`, `Received on ${done}`)
+                            : t(`سُدِّد في ${done}`, `Paid on ${done}`)}
+                        </span>
+                        {isOwner && (
+                          <button type="submit" className="rounded-lg border border-border px-3 py-1 text-xs hover:bg-background">
+                            {t("إلغاء السداد", "Cancel")}
+                          </button>
+                        )}
+                      </form>
+                    ) : (
+                      isOwner && (
+                        <form action={settleLedgerEntry} className="mt-2 flex flex-wrap items-end gap-2">
+                          <input type="hidden" name="season_id" value={season.id} />
+                          <input type="hidden" name="entry_id" value={l.id} />
+                          <label className="flex flex-col gap-1 text-xs">
+                            {isRevenue ? t("قُبض في", "Received into") : t("دُفع من", "Paid from")}
+                            <select name="paid_from" className={field} defaultValue="cash">
+                              <option value="cash">{t("نقداً", "Cash")}</option>
+                              <option value="bank">{t("البنك", "Bank")}</option>
+                              <option value="wallet">{t("محفظة إلكترونية", "Mobile wallet")}</option>
+                            </select>
+                          </label>
+                          {l.currency === "SDG" && (
+                            <label className="flex flex-col gap-1 text-xs">
+                              {t("سعر الصرف اليوم", "Today's rate")}
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                name="fx_rate"
+                                placeholder={suggested ? String(Number(suggested.rate)) : t("جنيه لكل دولار", "pounds per dollar")}
+                                className={field}
+                              />
+                            </label>
+                          )}
+                          <label className="flex flex-col gap-1 text-xs">
+                            {t("التاريخ (اختياري)", "Date (optional)")}
+                            <input type="date" name="settle_date" max={today} className={field} />
+                          </label>
+                          <button
+                            type="submit"
+                            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                          >
+                            {isRevenue ? t("قبضتُ", "I was paid") : t("سدّدتُ", "I paid")}
+                          </button>
+                        </form>
+                      )
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
 
