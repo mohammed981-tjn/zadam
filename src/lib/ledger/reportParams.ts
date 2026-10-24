@@ -6,7 +6,7 @@
  * a period that runs backwards is turned round, and a page number is a small positive whole number.
  */
 
-export const REPORTS = ["trial", "income", "balance", "cash", "seasons", "journal", "chart", "account"] as const;
+export const REPORTS = ["trial", "income", "balance", "cash", "seasons", "journal", "chart", "account", "links"] as const;
 export type ReportKey = (typeof REPORTS)[number];
 
 export const BOOK_KINDS = ["farm", "investor", "platform"] as const;

@@ -4,7 +4,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { dayBefore, PAGE_SIZE, type BookKind, type ReportParams } from "./reportParams";
+import { dayBefore, PAGE_SIZE, type BookKind, type ReportKey, type ReportParams } from "./reportParams";
 import {
   buildBalanceSheet,
   buildCashFlow,
@@ -44,7 +44,10 @@ async function rpc<T>(supabase: SupabaseClient, fn: string, args: Record<string,
   return (data ?? []) as T[];
 }
 
-export async function loadReport(supabase: SupabaseClient, book: BookRef, p: ReportParams): Promise<ReportData> {
+/** The reports that read a book. The partner proposals ("links") are the person's, not a book's, and load beside it. */
+export type BookReportParams = ReportParams & { report: Exclude<ReportKey, "links"> };
+
+export async function loadReport(supabase: SupabaseClient, book: BookRef, p: BookReportParams): Promise<ReportData> {
   switch (p.report) {
     case "trial": {
       const rows = await rpc<TrialRow>(supabase, "ledger_trial_balance", { p_book: book.id, p_as_of: p.asOf });

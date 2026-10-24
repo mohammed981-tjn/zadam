@@ -121,6 +121,7 @@ console.log("\nو) ما في العنوان لا يُوثَق به");
   const d = parseReportParams({}, today);
   ok(d.report === "trial" && d.from === "2026-01-01" && d.to === today && d.asOf === today && d.page === 1 && d.kind === null, "بلا شيء: ميزان المراجعة، من أوّل السنة إلى اليوم");
   ok(parseReportParams({ r: "income" }, today).report === "income", "تقريرٌ معروف يمرّ");
+  ok(parseReportParams({ r: "links" }, today).report === "links", "واقتراحات الشريك تبويبٌ معروف");
   ok(parseReportParams({ r: "drop table" }, today).report === "trial", "ومجهولٌ يعود إلى الميزان");
   ok(parseReportParams({ r: "account" }, today).report === "chart", "وكشف حسابٍ بلا حساب يعود إلى الشجرة");
   const acct = "2b1c0f3e-aaaa-4bbb-8ccc-0123456789ab";
