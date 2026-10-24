@@ -228,6 +228,39 @@ export default async function SeasonPage({
         ))}
       </div>
 
+      {/* البند ١٦٥: التكلفة والهامش لكلّ فدان، بجانب الخطّة. */}
+      {summary.costs > 0 && (
+        <section className="mt-6 rounded-2xl border border-border bg-card p-4">
+          <h2 className="mb-3 font-bold">{t("لكلّ فدان", "Per feddan")}</h2>
+          <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            <div>
+              <dt className="text-xs text-muted">{t("التكلفة حتى الآن", "Cost so far")}</dt>
+              <dd className="font-black">${n0(summary.costPerFeddan)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">{t("الخطّة", "The plan")}</dt>
+              <dd className="font-black">${n0(summary.plannedPerFeddan)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">{t("المبيع", "Sold")}</dt>
+              <dd className="font-black">${n0(summary.revenuePerFeddan)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">{t("الهامش", "Margin")}</dt>
+              <dd className="font-black" dir="ltr">
+                {summary.marginPct === null ? "—" : `${summary.marginPct.toFixed(0)}%`}
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-2 text-xs text-muted">
+            {t(
+              "الهامش = الربح ÷ المبيع، ولا يظهر قبل أن يُسجَّل بيع. كلّ الأرقام بالدولار كما في دفتر الموسم.",
+              "Margin = profit ÷ sold, and it does not show before a sale is entered. All figures are in dollars, as in the season ledger.",
+            )}
+          </p>
+        </section>
+      )}
+
       <section className="mt-10">
         <h2 className="mb-4 text-lg font-bold">
           {t("خط الموسم", "Season timeline")}

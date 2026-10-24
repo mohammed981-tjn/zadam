@@ -298,6 +298,14 @@ export interface LedgerSummary {
   revenue: number;
   profit: number;
   profitPerFeddan: number;
+  /** What the season has cost per feddan so far (backlog 165). */
+  costPerFeddan: number;
+  /** What it sold for per feddan so far. */
+  revenuePerFeddan: number;
+  /** The plan's budget per feddan, for the comparison beside the cost. */
+  plannedPerFeddan: number;
+  /** Profit as a share of revenue, in percent; null until something has been sold. */
+  marginPct: number | null;
   /** Costs broken down by category, largest first. */
   byCategory: { category: LedgerCategory; label: string; amount: number }[];
   /** Costs booked so far against the planned budget, 0–1 and uncapped above. */
@@ -339,6 +347,10 @@ export function summariseLedger(
     revenue,
     profit,
     profitPerFeddan: feddans > 0 ? profit / feddans : 0,
+    costPerFeddan: feddans > 0 ? costs / feddans : 0,
+    revenuePerFeddan: feddans > 0 ? revenue / feddans : 0,
+    plannedPerFeddan: feddans > 0 ? plannedBudget / feddans : 0,
+    marginPct: revenue > 0 ? (profit / revenue) * 100 : null,
     byCategory,
     budgetUsed: plannedBudget > 0 ? costs / plannedBudget : 0,
   };

@@ -167,6 +167,17 @@ ok(sum.revenue === 9200, "revenue separated");
 ok(sum.profit === 3200, "profit is revenue minus costs");
 ok(Math.abs(sum.profitPerFeddan - 64) < 1e-9, "profit per feddan correct");
 ok(sum.byCategory[0].category === "fertiliser", "categories sorted by size");
+// Backlog 165: per-feddan cost and margin beside the plan.
+ok(Math.abs(sum.costPerFeddan - 120) < 1e-9, "cost per feddan: $6000 over 50 feddans is $120");
+ok(Math.abs(sum.revenuePerFeddan - 184) < 1e-9, "revenue per feddan: $9200 over 50 is $184");
+ok(Math.abs(sum.plannedPerFeddan - 120) < 1e-9, "the plan per feddan: the same $6000 budget over 50 is $120");
+ok(sum.marginPct !== null && Math.abs(sum.marginPct - (3200 / 9200) * 100) < 1e-9, "margin: profit over revenue, 34.78%");
+ok(summariseLedger([{ category: "seeds", amount: 100 }], 10, 100).marginPct === null, "no sales yet: no margin to quote, not 0% or -inf");
+ok(
+  summariseLedger([{ category: "seeds", amount: 100 }, { category: "revenue", amount: 50 }], 10, 100).marginPct === -100,
+  "a loss is a negative margin: sold $50 on $100 of cost is -100%",
+);
+ok(summariseLedger([], 0, 0).costPerFeddan === 0, "zero area: per-feddan figures are 0, not NaN");
 ok(
   summariseLedger([], 0, 0).profitPerFeddan === 0,
   "zero area does not divide by zero",
