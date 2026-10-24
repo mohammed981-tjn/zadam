@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bearerMatches } from "@/lib/cronAuth";
 import { refreshPrices } from "@/lib/priceRefresh";
+import { evaluatePriceAlerts } from "@/lib/priceAlerts";
 
 /**
  * Daily health check, which also keeps the database from being paused.
@@ -105,6 +106,14 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       console.error("health: price run failed", e);
     }
+
+    /*
+     * تنبيهات الأسعار (البند ١٦٦): بعد أن تُنشر الأسعار الجديدة، يُطلَق ما تجاوزته الحدود.
+     * An alert closes as it fires, so running this twice a day (or from /admin/prices) writes
+     * nothing the second time. It never throws; a failure is logged and the check goes on.
+     */
+    const alerts = await evaluatePriceAlerts(supabase);
+    if (alerts.checked > 0) console.log("health: price alerts", alerts);
 
     const { data, error } = await supabase.rpc("run_system_check");
 

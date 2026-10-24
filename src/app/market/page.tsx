@@ -404,6 +404,17 @@ export default async function MarketPage() {
 
       {!quiet && monthly}
 
+      <section className="mt-10 rounded-2xl border border-border bg-card p-5 text-sm leading-relaxed">
+        <h2 className="mb-1 text-base font-bold">{t("نبّهني حين يتغيّر السعر", "Tell me when the price moves")}</h2>
+        <p className="text-muted">
+          {t(
+            "ضع حدّاً لسعر محصولٍ أو للدولار، فيصلك إشعارٌ حين يتجاوزه آخر سعرٍ منشور.",
+            "Set a limit on a crop or on the dollar and get a notification when the latest published price passes it.",
+          )}{" "}
+          <Link href="/market/alerts" className="font-bold text-primary underline">{t("ضع تنبيهاً", "Set an alert")}</Link>
+        </p>
+      </section>
+
       <section className="mt-10 flex flex-col gap-2 text-sm text-muted">
         <h2 className="text-base font-semibold text-foreground">{t("الوحدات", "Units")}</h2>
         <p>{t(UNIT_NAME.qintar.noteAr, UNIT_NAME.qintar.noteEn)} {t(UNIT_NAME.ardeb.noteAr, UNIT_NAME.ardeb.noteEn)}</p>
