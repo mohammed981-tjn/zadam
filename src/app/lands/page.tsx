@@ -253,6 +253,13 @@ export default async function LandsPage({
                   </p>
                 )}
 
+                {/* البند ١٦٤: تاريخ الأرض وفحوصها في مكانٍ واحد. */}
+                <p className="mt-4">
+                  <Link href={`/lands/${l.id}`} className="font-bold text-primary underline">
+                    {t("بطاقة الحقل: المواسم وفحوص الماء والتربة", "Field card: seasons and water and soil tests")}
+                  </Link>
+                </p>
+
                 <LandLocationForm
                   landId={l.id}
                   current={l.latitude !== null && l.longitude !== null ? { lat: Number(l.latitude), lng: Number(l.longitude) } : null}
