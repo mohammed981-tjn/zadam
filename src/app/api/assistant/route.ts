@@ -19,7 +19,7 @@ import {
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
 import { pageContextLine } from "@/lib/pageHelp";
 import { investmentLive } from "@/lib/platformFlags";
-import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
+import { checkModelBudget, checkRateLimit, clientAddress, type ModelBudget } from "@/lib/rateLimit";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -166,6 +166,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    /*
+     * The paid model has a daily ceiling (SEC-9, backlog 163), per address and for the platform.
+     * It is asked for only where a call would cost money: an answer the platform gives from its
+     * own tables, or from the curated knowledge, never spends it. A refusal here — including
+     * «unavailable», which means the count could not be read — sends the visitor to the nearest
+     * curated answer, as when every engine is down.
+     */
+    const budgetRefusal = (budget: ModelBudget) =>
+      NextResponse.json(
+        {
+          error:
+            budget === "unavailable"
+              ? t("المساعد غير متاح مؤقتاً. حاول بعد قليل.", "The assistant is temporarily unavailable. Try again shortly.")
+              : t(
+                  "بلغ المساعد حدّه اليومي. عُد غداً، أو ابحث في قاعدة المعرفة.",
+                  "The assistant has reached its limit for today. Come back tomorrow, or search the knowledge base.",
+                ),
+        },
+        { status: budget === "unavailable" ? 503 : 429 },
+      );
+
     const [
       { data: projects, error: projectsError },
       { data: knowledge, error: knowledgeError },
@@ -295,6 +316,11 @@ export async function POST(req: NextRequest) {
      * still ride along, so a known Sudanese pest is named as the base names it.
      */
     if (image) {
+      const photoBudget = await checkModelBudget(clientAddress(req.headers));
+      if (photoBudget !== "ok") {
+        await logQuestion(false, `budget_${photoBudget}`);
+        return budgetRefusal(photoBudget);
+      }
       const { result, attempts } = await generateWithFallback(
         engines,
         locale === "en" ? PHOTO_SYSTEM_PROMPT + ENGLISH_ANSWER : PHOTO_SYSTEM_PROMPT,
@@ -435,18 +461,22 @@ export async function POST(req: NextRequest) {
     const ranked = fuseRankings(question, allKnowledge, semantic, 12);
     const knowledgeContext = JSON.stringify(ranked);
 
-    const { result, attempts } = await generateWithFallback(
-      engines,
-      locale === "en" ? SYSTEM_PROMPT + ENGLISH_ANSWER : SYSTEM_PROMPT,
-      // The page context goes first when there is one: a vague question is
-      // resolved against the screen the visitor is looking at before anything
-      // else is considered.
-      `${pageContext ? `${pageContext}\n\n` : ""}المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
-    );
+    const budget = await checkModelBudget(clientAddress(req.headers));
+    const { result, attempts } =
+      budget === "ok"
+        ? await generateWithFallback(
+            engines,
+            locale === "en" ? SYSTEM_PROMPT + ENGLISH_ANSWER : SYSTEM_PROMPT,
+            // The page context goes first when there is one: a vague question is
+            // resolved against the screen the visitor is looking at before anything
+            // else is considered.
+            `${pageContext ? `${pageContext}\n\n` : ""}المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
+          )
+        : { result: null, attempts: [{ engine: "-", reason: `daily budget: ${budget}` }] };
 
     if (!result) {
       console.error("assistant: every engine failed", attempts);
-      await logQuestion(false, "engine_failed");
+      await logQuestion(false, budget === "ok" ? "engine_failed" : `budget_${budget}`);
 
       // Every engine being down is not a reason to send the visitor away empty
       // handed. Show the nearest entries, labelled as approximate — and use the
@@ -459,6 +489,8 @@ export async function POST(req: NextRequest) {
           source: "knowledge",
         });
       }
+
+      if (budget !== "ok") return budgetRefusal(budget);
 
       // Worth naming separately only when every engine hit its quota: that is
       // temporary and waiting genuinely fixes it, which is not true of the
@@ -475,9 +507,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Which engines were tried, and what their providers answered, is for the log
+      // above (SEC-8): the visitor gets one sentence.
       return NextResponse.json(
         {
-          error: `${t("تعذّر الاتصال بمحركات سوداقري الذكية", "Could not reach Sudagri's answer engines")} (${attempts.length} ${t("محاولة", "attempts")}): ${attempts.map((a) => `${a.engine} — ${a.reason}`).join(" | ").slice(0, 300)}`,
+          error: t(
+            "تعذّر الوصول إلى المساعد الآن. حاول بعد قليل.",
+            "The assistant could not be reached just now. Try again shortly.",
+          ),
         },
         { status: 502 },
       );
@@ -500,12 +537,11 @@ export async function POST(req: NextRequest) {
 
     setCachedAnswer(cacheKey, answer);
 
-    return NextResponse.json({ answer, source: "model", engine: result.engine });
+    return NextResponse.json({ answer, source: "model" });
   } catch (err) {
     console.error("assistant: unhandled error", err);
-    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: `${t("خطأ غير متوقع", "Unexpected error")}: ${message}` },
+      { error: t("حدث خطأ غير متوقع. حاول بعد قليل.", "Something unexpected went wrong. Try again shortly.") },
       { status: 500 },
     );
   }

@@ -5,6 +5,7 @@ import { formatUsd, statusLabel } from "@/lib/format";
 import { activeProvider } from "@/lib/embedding";
 import { countStale } from "@/lib/backfillEmbeddings";
 import EmbeddingBackfill from "@/components/EmbeddingBackfill";
+import { loadFeedStates, staleLines } from "@/lib/priceFreshness";
 import type { Project } from "@/types/database";
 
 export default async function AdminPage() {
@@ -43,6 +44,8 @@ export default async function AdminPage() {
   } | null;
   const problems = check?.details?.problems ?? [];
   const scheduleStalled = check?.stale === true;
+  // GAP-3: a price feed that has gone quiet shows here, not only in a table nobody opens.
+  const stalePrices = staleLines(await loadFeedStates(supabase));
 
   /*
    * How many knowledge entries are waiting for a vector.
@@ -170,6 +173,19 @@ export default async function AdminPage() {
               <li key={p}>• {p}</li>
             ))}
           </ul>
+        )}
+
+        {stalePrices.length > 0 && (
+          <div className="mt-3 text-sm text-danger">
+            <ul className="flex flex-col gap-1">
+              {stalePrices.map((p) => (
+                <li key={p}>• {p}</li>
+              ))}
+            </ul>
+            <Link href="/admin/prices" className="mt-1 inline-block text-xs text-primary underline">
+              شاشة الأسعار
+            </Link>
+          </div>
         )}
       </section>
 

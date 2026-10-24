@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { dbMessage } from "@/lib/dbMessages";
 
 /**
  * Registers or stops this browser's push subscription for the signed-in user.
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
   });
   if (error) {
     const status = /سجّل الدخول/.test(error.message) ? 401 : 400;
-    return NextResponse.json({ error: error.message }, { status });
+    return NextResponse.json({ error: dbMessage(error.message, "ar") }, { status });
   }
   return NextResponse.json({ ok: true, id: data });
 }
@@ -52,7 +53,7 @@ export async function DELETE(req: NextRequest) {
   const { data, error } = await supabase.rpc("push_unsubscribe", { p_endpoint: body.endpoint });
   if (error) {
     const status = /سجّل الدخول/.test(error.message) ? 401 : 400;
-    return NextResponse.json({ error: error.message }, { status });
+    return NextResponse.json({ error: dbMessage(error.message, "ar") }, { status });
   }
   return NextResponse.json({ ok: true, stopped: data === true });
 }

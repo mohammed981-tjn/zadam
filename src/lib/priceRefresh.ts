@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { readFxReference } from "@/lib/fxRates";
 import { readMarketPrices } from "@/lib/marketPrices";
+import { CROP_WINDOW_DAYS, FX_WINDOW_DAYS, loadFeedStates, staleLines } from "@/lib/priceFreshness";
 import { SITE_URL } from "@/lib/site";
 import {
   holdReason,
@@ -35,13 +36,13 @@ interface Source {
   days: number;
 }
 
-const BANK: Source[] = [{ base: "https://iqraa24.com", search: "بنك الخرطوم", days: 4 }];
+const BANK: Source[] = [{ base: "https://iqraa24.com", search: "بنك الخرطوم", days: FX_WINDOW_DAYS }];
 const PARALLEL: Source[] = [
-  { base: "https://bajnews.net", search: "الموازية", days: 4 },
-  { base: "https://bajnews.net", search: "الدولار", days: 4 },
+  { base: "https://bajnews.net", search: "الموازية", days: FX_WINDOW_DAYS },
+  { base: "https://bajnews.net", search: "الدولار", days: FX_WINDOW_DAYS },
 ];
-const OBEID: Source[] = [{ base: "https://sudafax.com", search: "سوق الأبيض", days: 10 }];
-const GEDAREF: Source[] = [{ base: "https://sudafax.com", search: "القضارف", days: 10 }];
+const OBEID: Source[] = [{ base: "https://sudafax.com", search: "سوق الأبيض", days: CROP_WINDOW_DAYS }];
+const GEDAREF: Source[] = [{ base: "https://sudafax.com", search: "القضارف", days: CROP_WINDOW_DAYS }];
 
 const isPost = (p: unknown): p is WpPost => {
   const r = p as WpPost;
@@ -181,6 +182,12 @@ export async function refreshPrices(admin: SupabaseClient, trigger: "cron" | "ad
       else held++;
     }
   }
+
+  // A feed whose newest figure is older than the window this run looks back over is broken, not
+  // quiet (GAP-3): say so in the run, where /admin/prices and the server log both show it.
+  const stale = staleLines(await loadFeedStates(admin));
+  if (stale.length > 0) console.error("prices: stale feeds", stale);
+  errors.push(...stale);
 
   const summary = { found: rows.length, published, held, errors: errors.slice(0, 20) };
   if (run) {

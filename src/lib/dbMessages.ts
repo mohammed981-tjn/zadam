@@ -7,8 +7,10 @@ import type { Locale } from "./i18n";
  * the actions pass that text through as it is — it is the most exact account of
  * why an action was refused. For an English reader the same refusal is looked
  * up here; `%` is a value Postgres filled in, carried over in the same order.
- * A message not listed (a new trigger, or a Postgres error of its own) is shown
- * as it came.
+ * A message not listed is shown as it came only if it is the platform's own
+ * refusal (Arabic); what Postgres or PostgREST wrote themselves — table and
+ * constraint names, policy names — never reaches a reader (SEC-12, backlog 163):
+ * a fixed sentence goes out instead and the text goes to the server log.
  *
  * Generated from every Arabic `raise exception` in supabase/migrations on
  * 11 October; a new one needs its line added here.
@@ -160,15 +162,36 @@ const PATTERNS = MESSAGES.map(([ar, en]) => ({
   en,
 }));
 
-/** The English for a refusal the database wrote in Arabic, or the text as it came. */
+const WITHHELD: Record<Locale, string> = {
+  ar: "تعذّر تنفيذ الطلب. حاول مرة أخرى، وإن تكرّر فأخبر الإدارة.",
+  en: "The request could not be completed. Try again, and tell the team if it keeps happening.",
+};
+
+/** What Postgres and PostgREST write on their own, in every wording they use. */
+const ENGINE_TEXT =
+  /violates|duplicate key|constraint|row-level security|permission denied|syntax error|does not exist|invalid input|null value|could not|deadlock|timeout|JWT|PGRST|relation "|column "|function |schema |operator |type "|unrecognized|must be owner|not authorized/i;
+
+/** True for a refusal the platform wrote itself: Arabic, and none of the engine's own phrasing. */
+export function isPlatformMessage(message: string): boolean {
+  return /[\u0600-\u06FF]/.test(message) && !ENGINE_TEXT.test(message);
+}
+
+/**
+ * The English for a refusal the database wrote in Arabic, the Arabic as it came, or — for text
+ * the database engine wrote itself — a fixed sentence.
+ */
 export function dbMessage(message: string, locale: Locale): string {
-  if (locale !== "en") return message;
+  if (!message?.trim()) return message ?? "";
   const text = message.trim();
-  for (const { re, en } of PATTERNS) {
-    const m = re.exec(text);
-    if (!m) continue;
-    let i = 1;
-    return en.replace(/%/g, () => m[i++] ?? "%").trim();
+  if (locale === "en") {
+    for (const { re, en } of PATTERNS) {
+      const m = re.exec(text);
+      if (!m) continue;
+      let i = 1;
+      return en.replace(/%/g, () => m[i++] ?? "%").trim();
+    }
   }
-  return message;
+  if (isPlatformMessage(text)) return message;
+  console.warn("db message withheld from the reader:", text.slice(0, 300));
+  return WITHHELD[locale];
 }

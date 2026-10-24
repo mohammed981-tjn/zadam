@@ -84,11 +84,32 @@ function takeInProcess(key: string): boolean {
  */
 export function clientAddress(headers: Headers): string {
   const forwarded = headers.get("x-forwarded-for");
-  return (
+  return networkOf(
     headers.get("x-real-ip") ??
-    forwarded?.split(",").pop()?.trim() ??
-    "unknown"
+      forwarded?.split(",").pop()?.trim() ??
+      "unknown",
   );
+}
+
+/**
+ * What a limiter should count as «one caller». An IPv4 address is one; an IPv6 subscriber is given
+ * a whole /64 (2^64 addresses) by the provider, so counting the full address lets one phone line
+ * rotate through as many callers as it likes (SEC-9). An IPv6 address is cut to its first four
+ * groups; anything else is kept as it came.
+ */
+export function networkOf(ip: string): string {
+  if (!ip.includes(":")) return ip;
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
+  if (mapped) return mapped[1]; // an IPv4 address in IPv6 dress is still that address
+  const [head, tail = ""] = ip.split("::");
+  const left = head ? head.split(":") : [];
+  if (ip.includes("::")) {
+    const right = tail ? tail.split(":") : [];
+    const zeros = Array(Math.max(0, 8 - left.length - right.length)).fill("0");
+    left.push(...zeros, ...right);
+  }
+  if (left.length !== 8 || left.some((g) => !/^[0-9a-f]{1,4}$/i.test(g))) return ip;
+  return left.slice(0, 4).map((g) => g.toLowerCase().replace(/^0+(?=.)/, "")).join(":") + "::/64";
 }
 
 export async function checkRateLimit(
@@ -119,4 +140,28 @@ export async function checkRateLimit(
   }
 
   return { allowed: data !== false, tier: "database" };
+}
+
+
+/**
+ * The daily ceiling on the paid model (SEC-9): per address and for the platform, counted in the
+ * database (check_model_budget), where the two numbers also live. Asked right before a call that
+ * would cost money — never for an answer the platform gives from its own tables.
+ *
+ * «unavailable» is a refusal: if the count cannot be read, the model is not called. Without a
+ * service-role key there is no shared counter to read; that deployment keeps the per-instance
+ * minute counter only, as everywhere else in this file.
+ */
+export type ModelBudget = "ok" | "address_day" | "total_day" | "unavailable";
+
+export async function checkModelBudget(ip: string): Promise<ModelBudget> {
+  const admin = createAdminClient();
+  if (!admin) return "ok";
+
+  const { data, error } = await admin.rpc("check_model_budget", { p_ip: `model:${ip}` });
+  if (error) {
+    console.error("rate-limit: model budget check failed", error);
+    return "unavailable";
+  }
+  return data === "ok" || data === "address_day" || data === "total_day" ? data : "unavailable";
 }
