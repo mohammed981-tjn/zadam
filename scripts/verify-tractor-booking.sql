@@ -347,6 +347,20 @@ begin
   perform _eq(has_table_privilege('service_role', 'machinery_bookings', 'insert'), false, 'ولا مفتاح الخدمة يكتب في الحجوزات');
 end $$;
 
+\echo ''
+\echo 'الحساب المُغلَق: اسمه في الحجز يصير «حساب مُغلَق»'
+do $$
+declare m uuid; others integer;
+begin
+  select member_id into m from machinery_booking_members limit 1;
+  select count(*) into others from machinery_booking_members where member_id <> m and display_name <> 'حساب مُغلَق';
+  insert into closed_accounts (user_id) values (m);
+  perform _eq((select count(*)::int from machinery_booking_members where member_id = m and display_name <> 'حساب مُغلَق'), 0,
+              'كلّ أسماء العضو في الحجوزات أُخفيت');
+  perform _eq((select count(*)::int from machinery_booking_members where member_id <> m and display_name <> 'حساب مُغلَق'), others,
+              'وأسماء غيره كما هي');
+end $$;
+
 do $$
 declare n integer;
 begin
