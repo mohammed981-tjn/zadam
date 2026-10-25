@@ -30,10 +30,13 @@ export async function reviewQuote(fd: FormData) {
   back("ok", publish ? t("نُشر الرقم، وصار يظهر في الصفحات.", "Published; the pages now show it.") : t("رُفض الرقم ولن يظهر.", "Rejected; it will not be shown."));
 }
 
-export async function approveAllAwaiting() {
+export async function approveAllAwaiting(fd: FormData) {
   const { supabase } = await signedIn();
   const { locale, t } = await translator();
-  const { data, error } = await supabase.rpc("market_quote_review_all");
+  // The figures the page listed, and only those (backlog 198 C12): one read after the page opened waits for the next look.
+  const ids = fd.getAll("quote_id").map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x));
+  if (ids.length === 0) back("error", t("لا شيء ينتظر الاعتماد.", "Nothing is waiting for approval."));
+  const { data, error } = await supabase.rpc("market_quote_review_all", { p_ids: ids });
   if (error) back("error", explain(locale, error));
   const n = Number(data ?? 0);
   back(

@@ -116,9 +116,12 @@ begin
   perform set_config('app.erase_quote', 'off', true);
 end $$;
 
--- ── الاعتماد بنقرة: ما حجزه النظام لأنّه لا ينشر وحده ───────────────────────
+-- ── الاعتماد بنقرة: ما حجزه النظام لأنّه لا ينشر وحده، ممّا رآه المدير ────────
+--
+-- النقرة تأتي بأرقام ما عُرض على المدير في صفحته (البند ١٩٨ ج١٢)، فلا تعتمد رقماً قرأه الفحص بعد أن فتح الصفحة، ولا
+-- رقماً فاته العرض؛ وما تغيّر منها منذ العرض (رُوجع أو حُجز لسببٍ آخر) لا يُعتمد.
 
-create function public.market_quote_review_all()
+create function public.market_quote_review_all(p_ids uuid[])
 returns integer
 language plpgsql
 security definer
@@ -128,9 +131,12 @@ declare
   n integer;
 begin
   if not is_admin() then raise exception 'للإدارة وحدها.'; end if;
+  if p_ids is null or cardinality(p_ids) = 0 then
+    raise exception 'لا شيء ينتظر الاعتماد.';
+  end if;
   update public.market_quotes
      set status = 'published', reviewed_by = auth.uid(), reviewed_at = now()
-   where status = 'held' and reason = 'قراءة موثوقة تنتظر اعتماد الإدارة';
+   where id = any (p_ids) and status = 'held' and reason = 'قراءة موثوقة تنتظر اعتماد الإدارة';
   get diagnostics n = row_count;
   return n;
 end $$;
@@ -138,5 +144,5 @@ end $$;
 -- ── الصلاحيّات ──────────────────────────────────────────────────────────────
 
 revoke execute on function public.market_quotes_keep() from public, anon, authenticated, service_role;
-revoke execute on function public.market_quote_erase(uuid, text), public.market_quote_review_all() from public, anon, service_role;
-grant execute on function public.market_quote_erase(uuid, text), public.market_quote_review_all() to authenticated;
+revoke execute on function public.market_quote_erase(uuid, text), public.market_quote_review_all(uuid[]) from public, anon, service_role;
+grant execute on function public.market_quote_erase(uuid, text), public.market_quote_review_all(uuid[]) to authenticated;

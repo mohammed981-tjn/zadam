@@ -75,12 +75,14 @@ export default async function AdminFaostatPage({
     const { count: c } = await (fresh ? q.is("old_value", null) : q.not("old_value", "is", null));
     return c ?? 0;
   };
-  const [counts, changedSample, newSample, { data: syncRows, error }, { data: loadRows }] = await Promise.all([
+  const [counts, changedSample, newSample, { data: syncRows, error }, { data: loadRows }, { data: newestRow }] = await Promise.all([
     Promise.all(SLICES.map(async (s) => ({ ...s, fresh: await count(s.domain, true), changed: await count(s.domain, false) }))),
     supabase.from("faostat_pending").select("*").not("old_value", "is", null).order("domain").order("item").limit(40),
     supabase.from("faostat_pending").select("*").is("old_value", null).order("domain").order("item").limit(12),
     supabase.from("faostat_syncs").select("*").order("ran_at", { ascending: false }).limit(6),
     supabase.from("faostat_loads").select("*").order("applied_at", { ascending: false }).limit(6),
+    // The newest staged row: the approval sends it back with the count, and is refused if the difference moved since.
+    supabase.from("faostat_pending").select("found_at").order("found_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const changed = (changedSample.data ?? []) as PendingRow[];
   const fresh = (newSample.data ?? []) as PendingRow[];
@@ -89,6 +91,7 @@ export default async function AdminFaostatPage({
   const totalNew = counts.reduce((a, c) => a + c.fresh, 0);
   const totalChanged = counts.reduce((a, c) => a + c.changed, 0);
   const waiting = totalNew + totalChanged;
+  const newest = (newestRow as { found_at: string } | null)?.found_at ?? "";
 
   const row = (p: PendingRow) => (
     <li key={`${p.domain}|${p.area}|${p.element}|${p.item}|${p.year}`} className="rounded-xl bg-background px-3 py-2 text-sm" dir="ltr">
@@ -148,6 +151,8 @@ export default async function AdminFaostatPage({
         {waiting > 0 ? (
           <div className="flex flex-wrap items-start gap-3">
             <form action={applyFaostat}>
+              <input type="hidden" name="seen_rows" value={waiting} />
+              <input type="hidden" name="seen_newest" value={newest} />
               <button className={button}>{t(`اعتمد التحميل (${n(waiting)})`, `Approve the load (${n(waiting)})`)}</button>
             </form>
             <form action={discardFaostat}>

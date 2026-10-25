@@ -17,10 +17,16 @@ function back(key: "ok" | "error", message: string): never {
   redirect(`/admin/faostat?${key}=${encodeURIComponent(message)}`);
 }
 
-export async function applyFaostat() {
+export async function applyFaostat(fd: FormData) {
   const { supabase } = await signedIn();
   const { locale, t } = await translator();
-  const { data, error } = await supabase.rpc("faostat_apply_pending");
+  // What the page showed (backlog 198 C12): the database approves exactly that, or refuses if a check moved it since.
+  const seenRows = Number(fd.get("seen_rows"));
+  const seenNewest = String(fd.get("seen_newest") ?? "");
+  if (!Number.isInteger(seenRows) || seenRows < 1 || !seenNewest) {
+    back("error", t("افتح الصفحة من جديد ثمّ اعتمد.", "Open the page again, then approve."));
+  }
+  const { data, error } = await supabase.rpc("faostat_apply_pending", { p_seen_rows: seenRows, p_seen_newest: seenNewest });
   if (error) back("error", explain(locale, error));
   const r = (data ?? {}) as { new?: number; changed?: number };
   back(

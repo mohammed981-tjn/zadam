@@ -5,6 +5,7 @@ import { refreshPrices } from "@/lib/priceRefresh";
 import { evaluatePriceAlerts } from "@/lib/priceAlerts";
 import { runBookkeeping } from "@/lib/bookkeeping";
 import { syncFaostat } from "@/lib/faostatSync";
+import { DAILY_DEADLINE_MS, DAILY_RESERVE_MS, dailySteps, runSteps } from "@/lib/dailyCheck";
 
 /**
  * Daily health check, which also keeps the database from being paused.
@@ -41,7 +42,7 @@ import { syncFaostat } from "@/lib/faostatSync";
 // response would not touch the database at all, defeating the whole point.
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-// The price run (backlog 131) reads five news feeds, fifteen seconds each at most.
+// The price run (backlog 131) reads five news feeds; every step's budget fits in this (src/lib/dailyCheck.ts).
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
@@ -73,79 +74,50 @@ export async function GET(req: NextRequest) {
     }
 
     /*
-     * الكنسُ هنا لا في المسار الساخن.
+     * الخطوات بترتيبٍ ومهلة (البند ١٩٨ ج٨، src/lib/dailyCheck.ts): ما وُجد الفحص من أجله أوّلاً، وقراءة الأسعار من
+     * المصادر الخارجيّة البطيئة آخراً بما بقي من الدقيقة. كلّ خطوةٍ تتعثّر أو تتجاوز مهلتها تُسجَّل ويمضي ما بعدها.
      *
-     * `check_assistant_rate_limit` used to delete a day of rows on every call —
-     * once per question a visitor asked. This job already runs daily and
-     * already holds the service-role key, so the sweep belongs here.
-     *
-     * It runs **before** the check and its failure is logged rather than
-     * raised: keeping the database awake is this endpoint's first duty, and a
-     * failed prune must not take that down. Nothing depends on the prune
-     * having happened — the tables it trims are read by count and by date, not
-     * by size.
+     *  - الكنس (`prune_ephemeral_rows`): كان يجري في كلّ سؤالٍ للمساعد، ومكانه هنا. لا يعتمد عليه شيء.
+     *  - فحص النظام (`run_system_check`): هو ما يُبقي القاعدة مستيقظة ويسجّل حالتها؛ فشله وحده يجعل الجواب 500.
+     *  - الفاو (البند ١٩٧): تقارن ملفّات data/ بالقاعدة وتضع الفرق بانتظار المدير؛ طلبٌ صغير حين لا يتغيّر ملفّ.
+     *  - مسك الدفاتر (١٨٧ و١٩١): ترحيل ما فات، والمطابقة، ومجاميع الشبكة.
+     *  - الأسعار (١٣١) ثمّ تنبيهاتها (١٦٦): سجلّها في price_runs، و/admin/prices يقرؤه.
      */
-    const { data: pruned, error: pruneError } =
-      await supabase.rpc("prune_ephemeral_rows");
-    if (pruneError) {
-      console.error("health: prune failed", pruneError);
-    } else if (pruned) {
-      console.log("health: pruned", pruned);
+    let check: { data: unknown; error: { message: string } | null } = { data: null, error: null };
+    const results = await runSteps(
+      dailySteps({
+        prune: async () => {
+          const { data, error } = await supabase.rpc("prune_ephemeral_rows");
+          if (error) throw new Error(error.message);
+          return data;
+        },
+        systemCheck: async () => {
+          check = await supabase.rpc("run_system_check");
+          if (check.error) throw new Error(check.error.message);
+          return true;
+        },
+        faostat: () => syncFaostat(supabase, "cron"),
+        bookkeeping: () => runBookkeeping(supabase),
+        prices: () => refreshPrices(supabase, "cron"),
+        priceAlerts: () => evaluatePriceAlerts(supabase),
+      }),
+      DAILY_DEADLINE_MS,
+      DAILY_RESERVE_MS,
+    );
+    for (const r of results) {
+      if (r.status === "ok") console.log(`health: ${r.name}`, r.ms, "ms");
+      else console.error(`health: ${r.name} ${r.status}`, r.error ?? "", r.ms, "ms");
     }
 
-    /*
-     * الأسعار تتحدّث وحدها (البند ١٣١).
-     *
-     * The daily job the platform already has, rather than a third: the plan's
-     * cron allowance is not ours to spend blindly, and this one already holds
-     * the service-role client the run writes with. Like the prune, a failed
-     * run is logged and never takes the health check down; its own record is
-     * in price_runs, which /admin/prices reads.
-     */
-    try {
-      const prices = await refreshPrices(supabase, "cron");
-      console.log("health: prices", prices);
-    } catch (e) {
-      console.error("health: price run failed", e);
-    }
-
-    /*
-     * تنبيهات الأسعار (البند ١٦٦): بعد أن تُنشر الأسعار الجديدة، يُطلَق ما تجاوزته الحدود.
-     * An alert closes as it fires, so running this twice a day (or from /admin/prices) writes
-     * nothing the second time. It never throws; a failure is logged and the check goes on.
-     */
-    const alerts = await evaluatePriceAlerts(supabase);
-    if (alerts.checked > 0) console.log("health: price alerts", alerts);
-
-    /*
-     * مسكُ الدفاتر (البندان ١٨٧ و١٩١): ترحيلُ ما فات، ومطابقةُ الدفترين، وتسجيلُ مجاميع الشبكة في
-     * دفتر المنصّة. لا يرمي أبداً، وكلُّ خطوةٍ فيه تُسجَّل علّتها وتمضي التي بعدها.
-     */
-    const books = await runBookkeeping(supabase);
-    if (books.synced || books.mismatched || books.snapshot) console.log("health: books", books);
-
-    /*
-     * بيانات الفاو (البند ١٩٧): تقارن ملفّات data/ بالقاعدة وتضع الفرق وحده بانتظار اعتماد المدير. وحين لا يتغيّر
-     * ملفٌّ منذ آخر فحص تعود دون أن تلمس القاعدة، فهي في أيّام السنة كلّها تقريباً طلبٌ واحد صغير. لا ترمي أبداً.
-     */
-    try {
-      const faostat = await syncFaostat(supabase, "cron");
-      if (!faostat.skipped || faostat.problems.length > 0) console.log("health: faostat", faostat);
-    } catch (e) {
-      console.error("health: faostat sync failed", e);
-    }
-
-    const { data, error } = await supabase.rpc("run_system_check");
-
-    if (error) {
-      console.error("health: check failed", error);
+    const checked = results.find((r) => r.name === "system_check");
+    if (!checked || checked.status !== "ok") {
+      const why = check.error?.message ?? (checked ? checked.status : "not run");
+      console.error("health: check failed", why);
       // A 500 here means the check could not run, which is a genuine failure
       // worth alerting on.
-      return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 500 },
-      );
+      return NextResponse.json({ ok: false, error: why }, { status: 500 });
     }
+    const data = check.data as Record<string, unknown> | null;
 
     /*
      * Always 200 when the check ran, even when it found problems.

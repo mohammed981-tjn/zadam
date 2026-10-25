@@ -126,30 +126,42 @@ revoke execute on function public.faostat_log_keep() from public, anon, authenti
 
 -- ── الاعتماد: للمدير وحده، بدالّةٍ واحدة ────────────────────────────────────
 
-create function public.faostat_apply_pending()
+-- Three rules, from the review of 25 October 2026 (البند ١٩٨ ج١٢):
+--  - What the administrator approves is what the page showed: how many rows, and the newest of them. A difference that grew
+--    or changed since (a check that ran in between) is refused, to be looked at again — one click never covers rows unseen.
+--  - The table is locked for the approval, so a check running at the same moment waits instead of staging rows that the
+--    final delete would then drop unapplied.
+--  - Whether a row replaces one is read from the table at this moment, not from the flag the check staged: whatever is
+--    replaced goes to the history first, even a row that was new when the check looked and exists by now.
+create function public.faostat_apply_pending(p_seen_rows integer, p_seen_newest timestamptz)
 returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
+  n_rows integer;
+  v_newest timestamptz;
   n_new integer;
   n_changed integer;
 begin
   if not is_admin() then raise exception 'للإدارة وحدها.'; end if;
-  if not exists (select 1 from public.faostat_pending) then
+  lock table public.faostat_pending in exclusive mode;
+  select count(*), max(found_at) into n_rows, v_newest from public.faostat_pending;
+  if n_rows = 0 then
     raise exception 'لا شيء ينتظر الاعتماد.';
   end if;
+  if n_rows is distinct from p_seen_rows or v_newest is distinct from p_seen_newest then
+    raise exception 'تغيّر الفرق منذ فتحت الصفحة (فحصٌ جرى بعدها)؛ راجعه من جديد ثمّ اعتمده.';
+  end if;
 
-  -- ما سيُستبدل يُحفظ قبل أن يُستبدل.
+  -- ما سيُستبدل يُحفظ قبل أن يُستبدل — كلّ ما في الجدول بمفتاحه الآن، لا ما ظنّه الفحص.
   insert into public.faostat_observation_history (domain, area, element, item, year, unit, value, flag, loaded_at, replaced_by)
   select o.domain, o.area, o.element, o.item, o.year, o.unit, o.value, o.flag, o.loaded_at, auth.uid()
     from public.faostat_observations o
-    join public.faostat_pending p using (domain, area, element, item, year)
-   where p.old_value is not null;
+    join public.faostat_pending p using (domain, area, element, item, year);
   get diagnostics n_changed = row_count;
-
-  select count(*) into n_new from public.faostat_pending where old_value is null;
+  n_new := n_rows - n_changed;
 
   insert into public.faostat_observations (domain, area, element, item, year, unit, value, flag)
   select domain, area, element, item, year, unit, value, flag from public.faostat_pending
@@ -178,5 +190,5 @@ begin
   return n;
 end $$;
 
-revoke execute on function public.faostat_apply_pending(), public.faostat_discard_pending() from public, anon, service_role;
-grant execute on function public.faostat_apply_pending(), public.faostat_discard_pending() to authenticated;
+revoke execute on function public.faostat_apply_pending(integer, timestamptz), public.faostat_discard_pending() from public, anon, service_role;
+grant execute on function public.faostat_apply_pending(integer, timestamptz), public.faostat_discard_pending() to authenticated;

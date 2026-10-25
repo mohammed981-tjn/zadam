@@ -147,6 +147,9 @@ export default async function AdminPricesPage({
         </h2>
         {awaiting.length > 0 && (
           <form action={approveAllAwaiting} className={`${card} mb-4 flex flex-wrap items-center gap-3`}>
+            {awaiting.map((q) => (
+              <input key={q.id} type="hidden" name="quote_id" value={q.id} />
+            ))}
             <button className={button}>
               {t(`اعتمد كلّ ما قُرئ بيقين (${awaiting.length})`, `Approve everything read with certainty (${awaiting.length})`)}
             </button>

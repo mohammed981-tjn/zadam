@@ -73,11 +73,66 @@ on conflict (id) do update set full_name = excluded.full_name, role = excluded.r
 insert into auth.sessions (user_id) values ('a1000000-0000-0000-0000-0000000000a1'), ('b2000000-0000-0000-0000-0000000000b2');
 insert into auth.identities (user_id, identity_data) values ('a1000000-0000-0000-0000-0000000000a1', '{"email":"ahmed@example.sd"}');
 insert into notifications (recipient_id, kind, title) values
-  ('a1000000-0000-0000-0000-0000000000a1', 'x', 'لأحمد'), ('b2000000-0000-0000-0000-0000000000b2', 'x', 'لبكري');
+  ('a1000000-0000-0000-0000-0000000000a1', 'nafir_joined', 'لأحمد'), ('b2000000-0000-0000-0000-0000000000b2', 'nafir_joined', 'لبكري');
 insert into push_subscriptions (user_id) values ('a1000000-0000-0000-0000-0000000000a1');
 insert into price_alerts (user_id) values ('a1000000-0000-0000-0000-0000000000a1'), ('b2000000-0000-0000-0000-0000000000b2');
 insert into field_alerts_sent (recipient_id) values ('a1000000-0000-0000-0000-0000000000a1');
 insert into lands (owner_id, name, state, feddans, station_key, water_source) values ('a1000000-0000-0000-0000-0000000000a1', 'أرض أحمد', 'الجزيرة', 10, 'gezira', 'canal');
+
+-- Where the name or phone was copied for others to see (البند ١٩٨ ج٩): one row of each, for him and one for بكري. Planted
+-- with the guards off, as the guards stamp the session's own id; the closure itself then runs with them on.
+set session_replication_role = replica;
+insert into charter_signatures (user_id, charter_version, role, display_name) values
+  ('a1000000-0000-0000-0000-0000000000a1', 1, 'member', 'أحمد علي'), ('b2000000-0000-0000-0000-0000000000b2', 1, 'member', 'بكري');
+insert into nafir_calls (id, organizer_id, display_name, kind, title, description, state, locality, starts_on, needed) values
+  ('c0000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', 'harvest', 'حصاد القمح', 'نحتاج أيادي للحصاد يوم السبت', 'الجزيرة', 'ود مدني', current_date + 3, 5);
+insert into nafir_joins (call_id, user_id, display_name) values
+  ('c0000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000a1', 'أحمد علي'),
+  ('c0000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-0000000000b2', 'بكري');
+insert into faza_requests (id, requester_id, display_name, cause, title, description, state, locality, needs) values
+  ('c0000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', 'flood', 'غرقت الأرض', 'غمرت المياه نصف الأرض أمس', 'الجزيرة', 'ود مدني', array['labor']);
+insert into faza_pledges (request_id, pledger_id, display_name, kind, detail) values
+  ('c0000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', 'labor', 'يومان'),
+  ('c0000000-0000-0000-0000-000000000002', 'b2000000-0000-0000-0000-0000000000b2', 'بكري', 'tools', 'مضخّة');
+insert into shura_items (author_id, display_name, kind, title, body) values
+  ('a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', 'question', 'سؤال عن الري', 'متى يُفتح الري في القناة؟');
+insert into shura_items (author_id, display_name, kind, title, body, answer, answered_by, answer_name, answered_at) values
+  ('b2000000-0000-0000-0000-0000000000b2', 'بكري', 'question', 'سؤال عن السماد', 'أين يُباع السماد المدعوم؟',
+   'في مكتب المشروع كلّ أحد', 'a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', now());
+insert into judiyya_mediators (user_id, display_name, state, about) values
+  ('a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', 'الجزيرة', 'أصلح بين الجيران في نزاعات الماء منذ سنين');
+insert into judiyya_cases (id, opened_by, kind, title, summary, state, locality) values
+  ('c0000000-0000-0000-0000-000000000003', 'b2000000-0000-0000-0000-0000000000b2', 'water', 'نوبة الري', 'خلافٌ على نوبة الري بين أرضين متجاورتين', 'الجزيرة', 'ود مدني');
+insert into judiyya_parties (case_id, side, user_id, display_name) values
+  ('c0000000-0000-0000-0000-000000000003', 'a', 'b2000000-0000-0000-0000-0000000000b2', 'بكري'),
+  ('c0000000-0000-0000-0000-000000000003', 'b', 'a1000000-0000-0000-0000-0000000000a1', 'أحمد علي');
+insert into canals (id, name, state, locality, created_by) values
+  ('c0000000-0000-0000-0000-000000000004', 'ترعة الشرق', 'الجزيرة', 'ود مدني', 'b2000000-0000-0000-0000-0000000000b2');
+insert into canal_members (canal_id, user_id, display_name, feddans) values
+  ('c0000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', 10),
+  ('c0000000-0000-0000-0000-000000000004', 'b2000000-0000-0000-0000-0000000000b2', 'بكري', 5);
+insert into feedback (author_id, display_name, body) values ('a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', 'اقتراح: أضيفوا الذرة الشاميّة');
+insert into market_offers (kind, crop, quantity, unit, state, locality, contact_phone, created_by) values
+  ('sell', 'ذرة', 20, 'sack', 'الجزيرة', 'ود مدني', '249912000001', 'a1000000-0000-0000-0000-0000000000a1'),
+  ('sell', 'سمسم', 5, 'sack', 'الجزيرة', 'ود مدني', '249912000002', 'b2000000-0000-0000-0000-0000000000b2');
+insert into suppliers (id, owner_id, name, state, locality, phone, categories) values
+  ('c0000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-0000000000a1', 'مورّد أحمد', 'الجزيرة', 'ود مدني', '0912000001', array['seed']);
+insert into group_orders (id, organiser_id, organiser_name, organiser_phone, supplier_id, title, pickup_name, pickup_locality, pickup_state,
+                          drop_day, deadline, target_tonnes, payee, payee_account) values
+  ('c0000000-0000-0000-0000-000000000006', 'a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', '0912000001', 'c0000000-0000-0000-0000-000000000005',
+   'سماد الموسم', 'مخزن الجمعيّة', 'ود مدني', 'الجزيرة', current_date + 20, current_date + 10, 5, 'supplier', 'حساب ١٢٣٤٥');
+insert into group_order_lines (id, order_id, name, unit_label, unit_kg, unit_price_usd) values
+  ('c0000000-0000-0000-0000-000000000007', 'c0000000-0000-0000-0000-000000000006', 'يوريا', 'شوال', 50, 30);
+insert into group_order_pledges (order_id, line_id, user_id, display_name, phone, quantity) values
+  ('c0000000-0000-0000-0000-000000000006', 'c0000000-0000-0000-0000-000000000007', 'a1000000-0000-0000-0000-0000000000a1', 'أحمد علي', '0912000001', 4),
+  ('c0000000-0000-0000-0000-000000000006', 'c0000000-0000-0000-0000-000000000007', 'b2000000-0000-0000-0000-0000000000b2', 'بكري', '0912000002', 2);
+insert into carriers (owner_id, name, phone, vehicle, capacity_tonnes, states) values
+  ('a1000000-0000-0000-0000-0000000000a1', 'نقل أحمد', '0912000001', 'دفّار', 5, array['الجزيرة']);
+insert into partner_companies (owner_id, name, kinds, states, contact_name, phone) values
+  ('a1000000-0000-0000-0000-0000000000a1', 'شركة أحمد', array['inputs'], array['الجزيرة'], 'أحمد علي', '0912000001');
+insert into service_providers (owner_id, name, phone, kind) values
+  ('a1000000-0000-0000-0000-0000000000a1', 'خدمات أحمد', '0912000001', 'drone');
+set session_replication_role = origin;
 
 grant usage on schema public, auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
@@ -151,6 +206,37 @@ do $$ begin
   perform _eq((select reason from closed_accounts), 'بطلبه في ٢٥ أكتوبر', 'ولماذا');
 end $$;
 
+\echo ''
+\echo 'ب٢) اسمه وجوّاله يختفيان حيث نُسخا لغيره، وتبقى الصفوف لمن شاركه (ج٩)'
+do $$
+declare a uuid := 'a1000000-0000-0000-0000-0000000000a1'; c text := 'حساب مُغلَق';
+begin
+  perform _eq((select display_name from charter_signatures where user_id = a), c, 'توقيع الميثاق');
+  perform _eq((select display_name from charter_signatures where user_id <> a), 'بكري', 'وتوقيع غيره كما هو');
+  perform _eq((select display_name from nafir_calls where organizer_id = a), c, 'دعوة النفير');
+  perform _eq((select string_agg(display_name, '،' order by user_id) from nafir_joins), c || '،' || 'بكري', 'والمنضمّون إليها: اسمه وحده');
+  perform _eq((select display_name from faza_requests where requester_id = a), c, 'طلب الفزعة');
+  perform _eq((select count(*)::int from faza_pledges where display_name = 'أحمد علي'), 0, 'وتعهّده فيها');
+  perform _eq((select count(*)::int from faza_pledges where display_name = 'بكري'), 1, 'وتعهّد غيره كما هو');
+  perform _eq((select display_name from shura_items where author_id = a), c, 'سؤاله في الشورى');
+  perform _eq((select answer_name from shura_items where answered_by = a), c, 'وجوابه عن سؤال غيره');
+  perform _eq((select display_name from shura_items where author_id <> a), 'بكري', 'وسؤال غيره باسمه');
+  perform _eq((select display_name from judiyya_mediators where user_id = a), c, 'الجوديّة: الأجاويد');
+  perform _eq((select display_name from judiyya_parties where user_id = a), c, 'وطرفاً في قضيّة');
+  perform _eq((select display_name from judiyya_parties where user_id <> a), 'بكري', 'والطرف الآخر كما هو');
+  perform _eq((select display_name from canal_members where user_id = a), c, 'عضويّة القناة');
+  perform _eq((select display_name from feedback where author_id = a), null::text, 'والملاحظة بلا اسم');
+  perform _eq((select display_name || '|' || coalesce(phone, '') from group_order_pledges where user_id = a), c || '|', 'تعهّده في الطلب الجماعي بلا اسم ولا جوّال');
+  perform _eq((select display_name || '|' || phone from group_order_pledges where user_id <> a), 'بكري|0912000002', 'وتعهّد غيره كما هو');
+  perform _eq((select organiser_name || '|' || coalesce(organiser_phone, '') from group_orders where organiser_id = a), c || '|', 'الطلب الجماعي الذي نظّمه: بلا اسم ولا جوّال');
+  perform _eq((select status from group_orders where organiser_id = a), 'closed', 'ويُغلق الانضمام إليه');
+  perform _eq((select status from market_offers where created_by = a), 'closed', 'عرضه في السوق أُغلق (لا يراه الزائر)');
+  perform _eq((select status from market_offers where created_by <> a), 'open', 'وعرض غيره مفتوح');
+  perform _eq((select bool_or(active) from (select active from suppliers where owner_id = a union all select active from carriers where owner_id = a
+                union all select active from partner_companies where owner_id = a union all select active from service_providers where owner_id = a) x),
+              false, 'والمورّد والناقل والشركة ومقدّم الخدمة لم تعد تُعرض');
+end $$;
+
 set role authenticated;
 do $$ begin
   perform _act_as('f6000000-0000-0000-0000-0000000000f6');
@@ -163,6 +249,22 @@ do $$ begin
   perform _refuses($q$select account_close_request(null)$q$, 'ولا يطلب من أُغلق حسابه');
 end $$;
 reset role;
+
+grant select, update on faza_pledges, shura_items to authenticated;
+grant select on faza_requests to authenticated;
+set role authenticated;
+do $$ begin
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  update faza_pledges set display_name = 'اسمٌ آخر' where pledger_id = auth.uid();
+  update shura_items set display_name = 'اسمٌ آخر' where author_id = auth.uid();
+end $$;
+reset role;
+do $$ begin
+  perform _eq((select display_name from faza_pledges where pledger_id = 'b2000000-0000-0000-0000-0000000000b2'), 'بكري',
+              'والحارس باقٍ خارج الإغلاق: لا يغيّر أحدٌ اسمه في تعهّدٍ مضى');
+  perform _eq((select display_name from shura_items where author_id = 'b2000000-0000-0000-0000-0000000000b2'), 'بكري',
+              'ولا في سؤالٍ أُجيب');
+end $$;
 
 \echo ''
 \echo 'ج) السجلّ لا يتغيّر إلا بمحو المدير'
@@ -194,6 +296,38 @@ reset role;
 do $$ begin
   perform _refuses($q$update closed_accounts set erase_reason = 'غيره'$q$, 'وبعد المحو لا يتغيّر شيء');
 end $$;
+
+\echo ''
+\echo 'هـ) الحساب المُغلَق لا يكتب ولا يقرأ من لحظة إغلاقه، ولو بقي رمز دخوله صالحاً (ج١٠)'
+
+do $$ begin
+  perform _eq((select bool_or(s = 'pgrst.db_pre_request=public.closed_account_gate')
+                 from pg_db_role_setting rs join pg_roles r on r.oid = rs.setrole, unnest(rs.setconfig) s
+                where r.rolname = 'authenticator'), true, 'كلّ طلبٍ إلى الواجهة يمرّ أوّلاً بفحص الحساب المُغلَق');
+end $$;
+
+-- A permissive policy of the harness's own, so that the restrictive one is what refuses.
+create policy harness_any_upload on storage.objects for insert to authenticated with check (true);
+grant usage on schema storage to authenticated;
+grant insert on storage.objects to authenticated;
+
+set role authenticated;
+do $$ begin
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _refuses($q$select closed_account_gate()$q$, 'صاحب الحساب المُغلَق: كلّ طلبٍ له يُرفض');
+  perform _eq(account_is_open(), false, 'وهو حسابٌ غير مفتوح');
+  perform _refuses($q$insert into storage.objects (bucket_id, name, owner) values ('evidence', 'x/after-close.jpg', auth.uid())$q$,
+                   'ولا يرفع ملفّاً');
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  perform closed_account_gate();
+  perform _pass('وغيره يمرّ');
+  insert into storage.objects (bucket_id, name, owner) values ('evidence', 'x/open.jpg', auth.uid());
+  perform _pass('ويرفع');
+  perform _act_as(null);
+  perform closed_account_gate();
+  perform _pass('والزائر يمرّ (يقرأ ما للعامّة)');
+end $$;
+reset role;
 
 \echo ''
 \echo 'د) الصلاحيّات'

@@ -99,7 +99,7 @@ do $$ begin
   perform _refuses($q$insert into faostat_loads (new_rows, changed_rows) values (1, 1)$q$, 'ولا تسجّل تحميلاً معتمداً');
   perform _refuses($q$insert into faostat_observation_history (domain, area, element, item, year, unit, value, loaded_at) values ('PP','a','b','c',1,'u',1,now())$q$,
     'ولا تكتب في سجلّ المستبدَل');
-  perform _refuses($q$select faostat_apply_pending()$q$, 'ولا تعتمد بنفسها');
+  perform _refuses($q$select faostat_apply_pending(0, null)$q$, 'ولا تعتمد بنفسها');
   perform _eq((select count(*)::int from faostat_observations), 3, 'والأرقام المحمَّلة كما هي');
 end $$;
 reset role;
@@ -112,7 +112,7 @@ do $$ begin
   perform _eq((select count(*)::int from faostat_observations), 3, 'الزائرُ يرى الأرقام المحمَّلة وحدها');
   perform _refuses($q$select count(*) from faostat_pending$q$, 'ولا يقرأ الفرق المنتظر');
   perform _refuses($q$select count(*) from faostat_syncs$q$, 'ولا سجلّ الفحص');
-  perform _refuses($q$select faostat_apply_pending()$q$, 'ولا يعتمد');
+  perform _refuses($q$select faostat_apply_pending(0, null)$q$, 'ولا يعتمد');
   perform _refuses($q$select faostat_discard_pending()$q$, 'ولا يرفض');
 end $$;
 reset role;
@@ -124,7 +124,7 @@ do $$ begin
   perform _eq((select count(*)::int from faostat_observation_history), 0, 'ولا سجلّ المستبدَل');
   perform _eq((select count(*)::int from faostat_loads), 0, 'ولا سجلّ التحميلات');
   perform _eq((select count(*)::int from faostat_syncs), 0, 'ولا سجلّ الفحص');
-  perform _refuses($q$select faostat_apply_pending()$q$, 'ولا يعتمد');
+  perform _refuses($q$select faostat_apply_pending(0, null)$q$, 'ولا يعتمد');
   perform _refuses($q$select faostat_discard_pending()$q$, 'ولا يرفض');
   perform _refuses($q$insert into faostat_pending (domain, area, element, item, year, unit, value) values ('PP','a','b','c',1,'u',1)$q$, 'ولا يكتب فرقاً');
 
@@ -143,7 +143,13 @@ do $$
 declare r jsonb;
 begin
   perform _act_as('f6000000-0000-0000-0000-0000000000f6');
-  r := faostat_apply_pending();
+  -- What the page showed: two rows, and the newest of them. Anything else is refused.
+  perform _refuses(format('select faostat_apply_pending(%s, %L)', 1, (select max(found_at) from faostat_pending)),
+                   'ولا يعتمد عدداً غير الذي رآه');
+  perform _refuses(format('select faostat_apply_pending(%s, %L)', 2, (select max(found_at) from faostat_pending) - interval '1 minute'),
+                   'ولا فرقاً جدّ فيه صفٌّ بعد أن فتح الصفحة');
+  perform _eq((select count(*)::int from faostat_observation_history), 0, 'والرفض لا يمسّ شيئاً');
+  r := faostat_apply_pending((select count(*)::int from faostat_pending), (select max(found_at) from faostat_pending));
   perform _eq((r ->> 'new')::int, 1, 'عدد الجديد في الجواب');
   perform _eq((r ->> 'changed')::int, 1, 'وعدد المعدَّل');
   perform _eq((select value from faostat_observations where item = 'Sesame seed' and year = 2023), 1310.0::numeric, 'الرقم المعدَّل صار الجديد');
@@ -159,7 +165,26 @@ begin
   perform _eq((select count(*)::int from faostat_pending), 0, 'والمنتظِر فرغ');
   perform _eq((select new_rows from faostat_loads), 1, 'سجلّ التحميل: جديد');
   perform _eq((select changed_rows from faostat_loads), 1, 'ومعدَّل');
-  perform _refuses($q$select faostat_apply_pending()$q$, 'ولا اعتماد حين لا شيء ينتظر');
+  perform _refuses($q$select faostat_apply_pending(0, null)$q$, 'ولا اعتماد حين لا شيء ينتظر');
+end $$;
+reset role;
+
+\echo ''
+\echo 'ج٢) صفٌّ ظنّه الفحص جديداً وصار في الجدول قبل الاعتماد: يُحفظ القديم ولا يُمحى (ج١٢)'
+
+insert into faostat_pending (domain, area, element, item, year, unit, value, flag) values
+  ('QCL', 'Sudan', 'Yield', 'Sorghum', 2023, 'kg/ha', 9999, 'A');
+set role authenticated;
+do $$
+declare r jsonb;
+begin
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  r := faostat_apply_pending(1, (select max(found_at) from faostat_pending));
+  perform _eq((r ->> 'changed')::int, 1, 'يُعدّ معدَّلاً لا جديداً، بما في الجدول الآن');
+  perform _eq((r ->> 'new')::int, 0, 'ولا جديد');
+  perform _eq((select value from faostat_observation_history where item = 'Sorghum' and year = 2023), 640::numeric,
+              'والرقم القديم (٦٤٠) في سجلّ المستبدَل');
+  perform _eq((select value from faostat_observations where item = 'Sorghum' and year = 2023), 9999::numeric, 'والجديد مكانه');
 end $$;
 reset role;
 
@@ -188,7 +213,7 @@ do $$ begin
   perform _eq(faostat_discard_pending(), 1, 'المدير يرفض: صفٌّ واحد');
   perform _eq((select count(*)::int from faostat_pending), 0, 'والمنتظِر فرغ');
   perform _eq((select count(*)::int from faostat_observations), 4, 'والأرقام كما هي');
-  perform _eq((select count(*)::int from faostat_loads), 1, 'ولا يُسجَّل تحميلٌ لم يقع');
+  perform _eq((select count(*)::int from faostat_loads), 2, 'ولا يُسجَّل تحميلٌ لم يقع');
 end $$;
 reset role;
 
@@ -196,9 +221,9 @@ reset role;
 \echo 'و) الصلاحيّات'
 
 do $$ begin
-  perform _eq(has_function_privilege('anon', 'faostat_apply_pending()', 'execute'), false, 'الاعتماد ليس للزائر');
-  perform _eq(has_function_privilege('service_role', 'faostat_apply_pending()', 'execute'), false, 'ولا لمفتاح الخدمة');
-  perform _eq(has_function_privilege('authenticated', 'faostat_apply_pending()', 'execute'), true, 'وهو للمسجَّل (والدالّة تسأل: مدير؟)');
+  perform _eq(has_function_privilege('anon', 'faostat_apply_pending(integer,timestamptz)', 'execute'), false, 'الاعتماد ليس للزائر');
+  perform _eq(has_function_privilege('service_role', 'faostat_apply_pending(integer,timestamptz)', 'execute'), false, 'ولا لمفتاح الخدمة');
+  perform _eq(has_function_privilege('authenticated', 'faostat_apply_pending(integer,timestamptz)', 'execute'), true, 'وهو للمسجَّل (والدالّة تسأل: مدير؟)');
   perform _eq(has_function_privilege('service_role', 'faostat_discard_pending()', 'execute'), false, 'والرفض ليس لمفتاح الخدمة');
   perform _eq(has_function_privilege('authenticated', 'faostat_log_keep()', 'execute'), false, 'والحارس الداخليّ لا يستدعيه أحد');
   perform _eq(has_table_privilege('service_role', 'faostat_observations', 'insert'), false, 'ومفتاح الخدمة لا يكتب في الأرقام المحمَّلة');
