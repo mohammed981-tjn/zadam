@@ -58,11 +58,16 @@ export async function loadReport(supabase: SupabaseClient, book: BookRef, p: Boo
       return { kind: "income", statement: buildIncomeStatement(rows) };
     }
     case "balance": {
-      const [rows, income] = await Promise.all([
+      const [rows, income, prior] = await Promise.all([
         rpc<BalanceRow>(supabase, "ledger_balance_sheet", { p_book: book.id, p_as_of: p.asOf }),
         rpc<IncomeRow>(supabase, "ledger_income_statement", { p_book: book.id, p_from: null, p_to: p.asOf, p_season: null }),
+        // Up to the last day of the year before the sheet's date: the part of the profit a year-end closing would carry forward.
+        rpc<IncomeRow>(supabase, "ledger_income_statement", { p_book: book.id, p_from: null, p_to: dayBefore(`${p.asOf.slice(0, 4)}-01-01`), p_season: null }),
       ]);
-      return { kind: "balance", sheet: buildBalanceSheet(rows, buildIncomeStatement(income).netIncome) };
+      return {
+        kind: "balance",
+        sheet: buildBalanceSheet(rows, buildIncomeStatement(income).netIncome, buildIncomeStatement(prior).netIncome),
+      };
     }
     case "cash": {
       const [rows, opening, closing] = await Promise.all([

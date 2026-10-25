@@ -103,7 +103,8 @@ export function reportToCsv(data: ReportData): string {
       for (const r of data.sheet.liabilities) rows.push([r.code, r.name_ar, "التزام", moneyCell(r.balance)]);
       rows.push(["", "مجموع الالتزامات", "", moneyCell(data.sheet.totalLiabilities)]);
       for (const r of data.sheet.equity) rows.push([r.code, r.name_ar, "ملكيّة", moneyCell(r.balance)]);
-      rows.push(["", "صافي الدخل غير المقفل", "", moneyCell(data.sheet.netIncome)]);
+      rows.push(["", "أرباح السنوات السابقة (محتجزة)", "", moneyCell(data.sheet.retainedIncome)]);
+      rows.push(["", "ربح هذه السنة حتى اليوم", "", moneyCell(data.sheet.currentIncome)]);
       rows.push(["", "مجموع الملكيّة", "", moneyCell(data.sheet.totalEquityWithIncome)]);
       break;
     case "cash":

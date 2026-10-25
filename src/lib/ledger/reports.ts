@@ -67,15 +67,25 @@ export interface BalanceSheet {
   totalLiabilities: bigint;
   /** Equity accounts only; the unclosed net income is shown beside it, not inside it. */
   totalEquity: bigint;
-  /** What the income statement says the period earned and nobody has yet closed into retained earnings. */
+  /** What the income statement says the book earned since it opened and nobody has yet closed into retained earnings. */
   netIncome: bigint;
+  /** The part of it earned before the start of the balance sheet's year — what a year-end closing entry would carry forward. */
+  retainedIncome: bigint;
+  /** The part earned in the balance sheet's year so far. retainedIncome + currentIncome = netIncome, always. */
+  currentIncome: bigint;
   /** Equity including the unclosed net income. */
   totalEquityWithIncome: bigint;
   /** Assets = liabilities + equity + net income. False means a ledger fault, and the page must say so. */
   balanced: boolean;
 }
 
-export function buildBalanceSheet(rows: readonly BalanceRow[], netIncome: bigint): BalanceSheet {
+/**
+ * `priorNetIncome` is the net income up to the end of the year before the sheet's date. The ledger posts no
+ * year-end closing entry (an entry that rewrites a year's profit is exactly what an immutable ledger avoids), so the
+ * split is read from the dated income statement instead: nothing is stored, and a late correction in a past year
+ * moves the two lines and leaves the total where it was.
+ */
+export function buildBalanceSheet(rows: readonly BalanceRow[], netIncome: bigint, priorNetIncome: bigint = BigInt(0)): BalanceSheet {
   const assets = rows.filter((r) => r.type === "asset");
   const liabilities = rows.filter((r) => r.type === "liability");
   const equity = rows.filter((r) => r.type === "equity");
@@ -91,6 +101,8 @@ export function buildBalanceSheet(rows: readonly BalanceRow[], netIncome: bigint
     totalLiabilities,
     totalEquity,
     netIncome,
+    retainedIncome: priorNetIncome,
+    currentIncome: netIncome - priorNetIncome,
     totalEquityWithIncome,
     balanced: totalAssets === totalLiabilities + totalEquityWithIncome,
   };
