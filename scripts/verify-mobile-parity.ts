@@ -215,7 +215,7 @@ async function verifyTables() {
   console.log("C) mobile/lib/soil_water.dart — the tables themselves, side by side");
   console.log("=".repeat(78));
 
-  const { TAW_MM_PER_M, ROOT_DEPTH_M, DEPLETION_FRACTION } = await import(
+  const { TAW_MM_PER_M, ROOT_DEPTH_M, SHALLOW_P, DEPLETION_FRACTION } = await import(
     "../src/lib/soilWater"
   );
   const dart = await read("mobile/lib/soil_water.dart");
@@ -235,6 +235,7 @@ async function verifyTables() {
   for (const [name, web] of [
     ["tawMmPerM", TAW_MM_PER_M],
     ["rootDepthM", ROOT_DEPTH_M],
+    ["shallowP", SHALLOW_P],
   ] as const) {
     const port = table(name);
     const keys = new Set([...Object.keys(web), ...Object.keys(port)]);
