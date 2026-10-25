@@ -85,7 +85,7 @@ const ground = `position:absolute;inset:0;display:flex;flex-direction:column;ali
   background:radial-gradient(circle at 50% 40%,#16523f 0%,#0a2d22 70%);color:#fff;text-align:center`;
 await draw(
   `<div style="${ground}"><img src="${logo}" style="width:300px"><div style="font-size:64px;font-weight:900">سوداقري</div>
-   <div style="font-size:34px;font-weight:500;opacity:.9">جولةٌ في المنصّة كلّها</div></div>`,
+   <div style="font-size:34px;font-weight:500;opacity:.9">للمستثمر: جولةٌ في المنصّة كلّها</div></div>`,
   `${work}/intro.png`, false);
 await draw(
   `<div style="${ground}"><img src="${logo}" style="width:300px"><div style="font-size:46px;font-weight:700">سجّل اليوم مجّاناً</div>
