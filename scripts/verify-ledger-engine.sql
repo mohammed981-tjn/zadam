@@ -790,7 +790,10 @@ begin
   perform _eq((select debit_total - credit_total from ledger_integrity() where book_id = fa), 700::bigint, 'وفرقه ٧٠٠');
   perform _eq((select count(*)::int from ledger_integrity() where ok), 4, 'والدفاتر الأخرى سليمة');
 end $$;
+-- The rollback would take the failures above with it: the count is carried across it.
+select fails as fails_inside from _score \gset
 rollback;
+update _score set fails = :fails_inside;
 
 do $$
 begin

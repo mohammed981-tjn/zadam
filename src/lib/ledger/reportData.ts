@@ -139,6 +139,8 @@ export function reportToCsv(data: ReportData): string {
           ]);
         }
       }
+      // A file that does not hold the whole period says so, on its last line.
+      if (data.hasMore) rows.push(["", "", `الملف ناقص: يحمل أحدث ${data.entries.length} قيداً من الفترة فقط؛ صدّر فترةً أقصر لما قبلها`]);
       break;
     case "chart":
       rows.push(["الرمز", "الحساب", "النوع", "يُقيَّد عليه", "نشط"]);

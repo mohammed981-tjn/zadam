@@ -92,6 +92,9 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
 
       <section className="mt-8">
         <h2 className="mb-3 text-lg font-bold">١ · الحركة الماليّة في الشبكة (بالدولار، آخر ١٢ شهراً)</h2>
+        <p className="mb-3 text-sm text-muted">
+          كلّ قيدٍ يُعدّ في الشهر الذي سُجّل فيه، والشهر الجاري يظهر حين ينتهي: فرقمُ الشهر المنتهي ثابتٌ لا يتغيّر بين قراءتين، فلا يُعرف منه قيد أحد.
+        </p>
         <div className={box}>
           <table className="w-full text-sm">
             <thead className="bg-card">

@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   let csv: string;
   try {
-    csv = reportToCsv(await loadReport(supabase, book, { ...params, report: params.report }));
+    csv = reportToCsv(await loadReport(supabase, book, { ...params, report: params.report }, { whole: true }));
   } catch (e) {
     console.error("books export failed", { report: params.report, e });
     return new NextResponse("The report could not be loaded", { status: 500 });
