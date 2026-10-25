@@ -84,7 +84,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       dir={dirOf(locale)}
       className={`${tajawal.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col lg:ps-64">
         <LocaleProvider locale={locale}>
         {/* شاشةُ البداية فوق الصفحة لا مكانَها: الصفحةُ تُعرض من أوّل إطار،
             وهذه طبقةٌ تنزاح عنها. */}

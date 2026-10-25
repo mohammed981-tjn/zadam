@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import SideSwitch from "@/components/SideSwitch";
 import NavMenu, { type NavGroup } from "./NavMenu";
+import DesktopSidebar from "./DesktopSidebar";
 import LangToggle from "./LangToggle";
 import BottomNav from "./BottomNav";
 import OutboxProvider from "./OutboxProvider";
@@ -291,8 +292,24 @@ export default async function Navbar() {
     });
   }
 
+  const account = user ? (
+    <>
+      <p className="mb-2 text-xs text-muted">
+        {t("أنت داخل بحساب", "Signed in as")}{" "}
+        <span className="font-bold text-foreground">
+          {fullName || t("بلا اسم", "no name")}
+        </span>
+        {roleLabel && <> — {roleLabel}</>}
+      </p>
+      {/* البند ١٥١: حسابٌ واحد للجانبين، يُبدَّل بينهما كما في Airbnb. */}
+      <SideSwitch role={role ?? null} locale={locale} />
+      <SignOutButton />
+    </>
+  ) : undefined;
+
   return (
     <>
+    <DesktopSidebar groups={groups} account={account} />
     {/* The header stays on screen (backlog 121): the menu is the way around the
         site, and on a long page it was a scroll back to the top away. Opaque,
         not frosted: a backdrop filter would make the header the frame the
@@ -300,10 +317,12 @@ export default async function Navbar() {
         and even 95% let the headings scrolling under it show through. */}
     <header className="sticky top-0 z-40 border-b border-border bg-background print:hidden">
       <div className="brand-edge" aria-hidden />
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+      {/* From `lg` up the name and the menu are in the side column (DesktopSidebar),
+          and the bar keeps the actions, at its end. */}
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 lg:max-w-none lg:justify-end lg:px-8">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 text-lg font-black text-primary sm:text-xl"
+          className="flex shrink-0 items-center gap-2 text-lg font-black text-primary sm:text-xl lg:hidden"
         >
           {/*
             السنبلةُ هنا، والشعارُ في الواجهة — وهذا ما طلبه المالك حرفيّاً.
@@ -412,25 +431,9 @@ export default async function Navbar() {
             </Link>
           )}
           <LangToggle />
-          <NavMenu
-            groups={groups}
-            signOut={
-              user ? (
-                <>
-                  <p className="mb-2 text-xs text-muted">
-                    {t("أنت داخل بحساب", "Signed in as")}{" "}
-                    <span className="font-bold text-foreground">
-                      {fullName || t("بلا اسم", "no name")}
-                    </span>
-                    {roleLabel && <> — {roleLabel}</>}
-                  </p>
-                  {/* البند ١٥١: حسابٌ واحد للجانبين، يُبدَّل بينهما كما في Airbnb. */}
-                  <SideSwitch role={role ?? null} locale={locale} />
-                  <SignOutButton />
-                </>
-              ) : undefined
-            }
-          />
+          <div className="lg:hidden">
+            <NavMenu groups={groups} signOut={account} />
+          </div>
         </div>
       </div>
     </header>
