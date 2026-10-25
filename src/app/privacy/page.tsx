@@ -9,8 +9,8 @@ export async function generateMetadata() {
     title: tr(locale, "الخصوصية | سوداقري", "Privacy | Sudagri"),
     description: tr(
       locale,
-      "ما تحفظه سوداقري عنك، ومن يراه، وكيف تحذف حسابك.",
-      "What Sudagri keeps about you, who sees it, and how to delete your account.",
+      "ما تحفظه سوداقري عنك، ومن يراه، وكيف تُغلق حسابك.",
+      "What Sudagri keeps about you, who sees it, and how to close your account.",
     ),
   };
 }
@@ -70,11 +70,15 @@ export default async function PrivacyPage() {
       ],
     },
     {
-      title: t("حذف حسابك وبياناتك", "Deleting your account and data"),
+      title: t("إغلاق حسابك وبياناتك", "Closing your account and your data"),
       body: [
         t(
-          "اكتب لنا من صفحة «ملاحظات واقتراحات» أنّك تريد حذف حسابك، من الحساب نفسه أو مع رقمه أو بريده، فنحذف الحساب وما أضفته فيه ونؤكّد لك ذلك. وما يخصّ طرفاً آخر معك — عقدٌ وقّعتماه أو رسائل بينكما — يبقى عنده، لأنّه سجلُّه أيضاً.",
-          "Write to us from the «Feedback» page that you want your account deleted — from the account itself, or giving its number or email — and we delete the account and what you added in it, and confirm it to you. What belongs to another party with you — an agreement you both signed, or messages between you — stays with them, because it is their record too.",
+          "اطلب إغلاق حسابك من صفحة «إغلاق الحساب» وأنت داخلٌ إليه، ونزّل منها قبل ذلك ملفّاً بدفاترك وعقودك وأراضيك. فإن لم تستطع الدخول فاكتب لنا من صفحة «ملاحظات واقتراحات» مع رقم الحساب أو بريده. وتُغلقه الإدارة: يتوقّف دخولك، ويختفي اسمك وجوّالك وبريدك عن الناس كلّهم، وتُحذف إشعاراتك وتنبيهاتك.",
+          "Ask to close your account from the «Close account» page while signed in, and download from it first a file with your books, agreements and land. If you cannot sign in, write to us from the «Feedback» page with the account's number or email. The administrators close it: your sign-in stops, your name, phone and email are hidden from everyone, and your notifications and alerts are deleted.",
+        ),
+        t(
+          "ولا نحذف الدفاتر والعقود والرسائل: فيها حقٌّ لطرفٍ آخر معك، فتبقى باسم «حساب مُغلَق». ويبقى اسمك وجوّالك عند الإدارة وحدها، لا يراهما غيرها، حتى تمحوهما بفعلٍ صريح يُسجَّل فيه من محا ومتى ولماذا.",
+          "We do not delete books, agreements or messages: another party with you has a right to them, so they stay under «Closed account». Your name and phone stay with the administrators alone, seen by no one else, until they erase them by an explicit act that records who erased them, when and why.",
         ),
       ],
     },
@@ -83,7 +87,7 @@ export default async function PrivacyPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <PageHeader icon="book" eyebrow={t("سوداقري", "Sudagri")} title={t("الخصوصية", "Privacy")}>
-        {t("ما نحفظه عنك، ومن يراه، وكيف تحذفه.", "What we keep about you, who sees it, and how to delete it.")}
+        {t("ما نحفظه عنك، ومن يراه، وكيف تُغلق حسابك.", "What we keep about you, who sees it, and how to close your account.")}
       </PageHeader>
       <div className="flex flex-col gap-6 leading-8">
         {sections.map((s) => (
@@ -97,8 +101,12 @@ export default async function PrivacyPage() {
           </section>
         ))}
         <p>
+          <Link href="/account/close" className="font-bold text-primary underline">
+            {t("إغلاق الحساب وتنزيل بياناتك", "Close your account and download your data")}
+          </Link>
+          {" · "}
           <Link href="/feedback" className="font-bold text-primary underline">
-            {t("ملاحظات واقتراحات — ومنها طلب الحذف", "Feedback — including a deletion request")}
+            {t("ملاحظات واقتراحات", "Feedback")}
           </Link>
         </p>
       </div>

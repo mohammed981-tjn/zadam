@@ -95,6 +95,8 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/admin/inspections",
   "/admin/prices",
   "/admin/faostat",
+  "/admin/accounts",
+  "/account/close",
   "/studies",
   "/studies/exchange-rate",
   "/arc-canal",

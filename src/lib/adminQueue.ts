@@ -261,6 +261,21 @@ const SPECS: Spec[] = [
     row: (r) => ({ id: r.id, title: `${r.model} — v${r.version}`, meta: null, at: r.updated_at }),
   },
   {
+    // An account owner asked for the account to be closed (backlog 195); an administrator closes it.
+    key: "account_closures",
+    title: { ar: "طلبات إغلاق حسابات", en: "Account closure requests" },
+    what: {
+      ar: "طلب صاحب الحساب إغلاقه: أغلقه بسبب، فيتوقّف دخوله وتختفي هويّته عن الناس وتبقى دفاتره وعقوده.",
+      en: "The owner asked to close the account: close it with a reason; sign-in stops, the identity is hidden, books and agreements stay.",
+    },
+    href: "/admin/accounts",
+    table: "account_closure_requests",
+    select: "id, user_id, requested_at",
+    filter: (q) => q.eq("status", "open"),
+    order: "requested_at",
+    row: (r) => ({ id: r.id, title: String(r.user_id).slice(0, 8), meta: null, at: r.requested_at }),
+  },
+  {
     // A figure the daily price run could not publish on its own (backlog 131).
     key: "prices",
     title: { ar: "أسعارٌ محجوزة للمراجعة", en: "Prices held for review" },
