@@ -232,6 +232,13 @@ const PARALLEL_SENTENCE = new RegExp(
   "u",
 );
 
+// «… إذ بلغ سعر بيع الدولار الأميركي 10,250 جنيها سودانيا، مقابل 9,670 جنيها للشراء» (الغد السوداني، 23 أكتوبر 2026):
+// البيع أوّلاً ثمّ الشراء. تُقبل بصيغتها الكاملة وحدها: بيعٌ فدولارٌ فرقمان فكلمة «للشراء» بعد «مقابل».
+const PARALLEL_SELL_FIRST = new RegExp(
+  String.raw`بيع\s+(?:ال)?دولار(?:\s+الأمريكي|\s+الامريكي|\s+الأميركي|\s+الاميركي)?\s+(${NUMBER})\s*(?:ألف\s*)?جنيه[^،,.]*?[،,]\s*مقابل\s+(${NUMBER})\s*جنيه[^\s،,.]*\s+للشراء`,
+  "u",
+);
+
 /**
  * The parallel market's dollar: a sentence naming «الموازي/الموازية» or the
  * one after it, never a sentence naming a bank — the bank's figures sit in the
@@ -244,9 +251,11 @@ export function readParallelMarket(post: WpPost): FxQuote | null {
     for (const line of lines.slice(i, i + 3)) {
       if (/بنك/u.test(line)) continue;
       const m = line.match(PARALLEL_SENTENCE);
-      if (!m) continue;
-      const buy = parseAmount(m[1]);
-      const sell = parseAmount(m[2]);
+      const s = m ? null : line.match(PARALLEL_SELL_FIRST);
+      if (!m && !s) continue;
+      // The first sentence gives the buying price first; the second gives the selling price first.
+      const buy = parseAmount(m ? m[1] : s![2]);
+      const sell = parseAmount(m ? m[2] : s![1]);
       if (buy === null || sell === null) continue;
       return { date: post.date.slice(0, 10), buy, sell, quote: line };
     }

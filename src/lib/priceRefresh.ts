@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { readFxReference } from "@/lib/fxRates";
 import { readMarketPrices } from "@/lib/marketPrices";
-import { CROP_WINDOW_DAYS, FX_WINDOW_DAYS, loadFeedStates, staleLines } from "@/lib/priceFreshness";
+import { AWAITING_REASON, CROP_WINDOW_DAYS, FX_WINDOW_DAYS, loadFeedStates, staleLines } from "@/lib/priceFreshness";
 import { SITE_URL } from "@/lib/site";
 import {
   holdReason,
@@ -22,11 +22,15 @@ import {
  * scheduled job has no visitor to act as; what it writes is only ever a row in
  * market_quotes and one in price_runs.
  *
- * A figure is published when its reader read it with certainty and it sits
- * within a day's movement of the last published figure; otherwise it is held
- * for an administrator. Gedaref's prose is always held. A figure no newer than
- * the last one already shown is skipped — the run adds days, it does not
- * repeat them.
+ * Nothing is published by this job (the owner, 25 October 2026: read by the
+ * platform, approved by a click). Every figure it reads is written held: with
+ * the reason AWAITING_REASON when its reader read it with certainty and it sits
+ * within a day's movement of the last published figure — the administrator's
+ * one click approves those — and with its own reason when it strays or comes
+ * from free prose (Gedaref), which are decided one by one. A figure no newer
+ * than the last one already shown is skipped — the run adds days, it does not
+ * repeat them. What is read is kept: nothing in market_quotes is ever deleted
+ * except by an administrator's erasure.
  */
 
 interface Source {
@@ -44,6 +48,8 @@ const BANK: Source[] = [
 const PARALLEL: Source[] = [
   { base: "https://bajnews.net", search: "الموازية", days: FX_WINDOW_DAYS },
   { base: "https://bajnews.net", search: "الدولار", days: FX_WINDOW_DAYS },
+  // 25 أكتوبر 2026 (البند ١٩٦): خبرٌ شبه يوميّ بأسعار السوق الموازي، وواجهته المنظَّمة تردّ للأجهزة.
+  { base: "https://alghadalsudani.com", search: "الدولار", days: FX_WINDOW_DAYS },
 ];
 const OBEID: Source[] = [{ base: "https://sudafax.com", search: "سوق الأبيض", days: CROP_WINDOW_DAYS }];
 const GEDAREF: Source[] = [{ base: "https://sudafax.com", search: "القضارف", days: CROP_WINDOW_DAYS }];
@@ -82,7 +88,7 @@ export interface RefreshSummary {
   errors: string[];
 }
 
-type Row = Record<string, unknown> & { status: "published" | "held" };
+export type Row = Record<string, unknown> & { status: "held" };
 
 async function lastFx(admin: SupabaseClient, kind: "fx_bank" | "fx_parallel") {
   const { data } = await admin
@@ -119,18 +125,32 @@ async function lastCrop(admin: SupabaseClient, market: string, crop: string, uni
   return filePoint ? { date: filePoint.date, price: filePoint.price } : null;
 }
 
-/** The first article of the first source that a reader can read. */
-async function firstRead<T>(sources: Source[], read: (p: WpPost) => T | null, errors: string[]) {
+/**
+ * The newest figure any source gives, and the other sources' figures for the same day. Not the first source that
+ * reads: a site that publishes late must not beat a newer article elsewhere (found by verify-price-refresh.ts on
+ * 25 October 2026, when bajnews's 21 October sentence came ahead of Alghad's 23 October one). The sources' order
+ * decides only between equal days.
+ */
+async function newestRead<T extends { date: string }>(sources: Source[], read: (p: WpPost) => T | null, errors: string[]) {
+  const found: { q: T; post: WpPost }[] = [];
   for (const src of sources) {
     const { posts, error } = await fetchPosts(src);
     if (error) errors.push(error);
     for (const post of posts) {
       const q = read(post);
-      if (q) return { q, post };
+      if (q) {
+        found.push({ q, post });
+        break;
+      }
     }
   }
-  return null;
+  found.sort((a, b) => (a.q.date < b.q.date ? 1 : a.q.date > b.q.date ? -1 : 0));
+  const [best, ...rest] = found;
+  return best ? { ...best, sameDay: rest.filter((f) => f.q.date === best.q.date && f.post.link !== best.post.link) } : null;
 }
+
+/** Two sources reading the same day further apart than this are not in agreement: a person decides. */
+const SOURCES_AGREE = 0.05;
 
 export async function refreshPrices(admin: SupabaseClient, trigger: "cron" | "admin"): Promise<RefreshSummary> {
   const errors: string[] = [];
@@ -139,16 +159,17 @@ export async function refreshPrices(admin: SupabaseClient, trigger: "cron" | "ad
 
   // ── العملات ──
   const bankLast = await lastFx(admin, "fx_bank");
-  const bank = await firstRead(BANK, readBank, errors);
-  if (bank && (!bankLast || bank.q.date > bankLast.date)) rows.push(fxRow("fx_bank", bank.q, bank.post.link, bankLast?.sell ?? null));
+  const bank = await newestRead(BANK, readBank, errors);
+  if (bank && (!bankLast || bank.q.date > bankLast.date)) {
+    rows.push(disagreement(fxRow("fx_bank", bank.q, bank.post.link, bankLast?.sell ?? null), bank.q, bank.sameDay));
+  }
 
   const parallelLast = await lastFx(admin, "fx_parallel");
-  const parallel = await firstRead(PARALLEL, readParallelMarket, errors);
+  const parallel = await newestRead(PARALLEL, readParallelMarket, errors);
   if (parallel && (!parallelLast || parallel.q.date > parallelLast.date)) {
-    const row = fxRow("fx_parallel", parallel.q, parallel.post.link, parallelLast?.sell ?? null);
+    const row = disagreement(fxRow("fx_parallel", parallel.q, parallel.post.link, parallelLast?.sell ?? null), parallel.q, parallel.sameDay);
     const bankSell = bank?.q.sell ?? bankLast?.sell ?? null;
-    if (row.status === "published" && bankSell && parallel.q.sell < bankSell) {
-      row.status = "held";
+    if (row.reason === AWAITING_REASON && bankSell && parallel.q.sell < bankSell) {
       row.reason = `أدنى من سعر البنك (${bankSell}) — يُراجَع`;
     }
     rows.push(row);
@@ -203,7 +224,15 @@ export async function refreshPrices(admin: SupabaseClient, trigger: "cron" | "ad
   return summary;
 }
 
-function fxRow(kind: "fx_bank" | "fx_parallel", q: FxQuote, link: string, lastSell: number | null): Row {
+/** A row whose day another source read differently is no longer the one click's: both figures are in the reason. */
+export function disagreement(row: Row, q: FxQuote, sameDay: { q: FxQuote }[]): Row {
+  if (row.reason !== AWAITING_REASON) return row;
+  const apart = sameDay.find((o) => Math.abs(o.q.sell - q.sell) / q.sell > SOURCES_AGREE);
+  if (apart) row.reason = `المصادر تختلف في هذا اليوم: ${q.sell} هنا و${apart.q.sell} في مصدرٍ آخر — يُراجَع`;
+  return row;
+}
+
+export function fxRow(kind: "fx_bank" | "fx_parallel", q: FxQuote, link: string, lastSell: number | null): Row {
   const reason = q.buy > q.sell ? "سعر الشراء أعلى من البيع" : holdReason(q.sell, lastSell, 0.25, [500, 200_000]);
   return {
     kind,
@@ -212,12 +241,12 @@ function fxRow(kind: "fx_bank" | "fx_parallel", q: FxQuote, link: string, lastSe
     sell: q.sell,
     source_url: link,
     quote: q.quote.slice(0, 600),
-    status: reason ? "held" : "published",
-    reason,
+    status: "held",
+    reason: reason ?? AWAITING_REASON,
   };
 }
 
-function cropRow(q: CropQuote, link: string, lastPrice: number | null, alwaysHold: boolean): Row {
+export function cropRow(q: CropQuote, link: string, lastPrice: number | null, alwaysHold: boolean): Row {
   const reason = alwaysHold
     ? "نصٌّ حرّ من نشرة القضارف — يُنشر بعد المراجعة"
     : holdReason(q.price, lastPrice, 0.5, [1_000, 1_000_000_000]);
@@ -230,7 +259,7 @@ function cropRow(q: CropQuote, link: string, lastPrice: number | null, alwaysHol
     price: q.price,
     source_url: link,
     quote: q.quote.slice(0, 600),
-    status: reason ? "held" : "published",
-    reason,
+    status: "held",
+    reason: reason ?? AWAITING_REASON,
   };
 }

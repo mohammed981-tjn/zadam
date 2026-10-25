@@ -83,6 +83,17 @@ eq(parallel && { date: parallel.date, buy: parallel.buy, sell: parallel.sell }, 
   "the sentence after «السوق الموازية» — not the bank's 4,850 in the paragraph before");
 eq(readParallelMarket(fixture("iqraa24-45070.json")), null, "a bank table is not the parallel market");
 
+console.log("\nThe parallel market — alghadalsudani, 23 October 2026 (backlog 196: selling stated first)");
+const sellFirst = readParallelMarket(fixture("alghadalsudani-34920.json"));
+eq(sellFirst && { date: sellFirst.date, buy: sellFirst.buy, sell: sellFirst.sell }, { date: "2026-10-23", buy: 9670, sell: 10250 },
+  "«سعر بيع الدولار … 10,250 … مقابل 9,670 للشراء» — the first figure is the selling one, not the buying");
+eq(sellFirst && sellFirst.sell > sellFirst.buy, true, "selling above buying, as a market quotes");
+eq(sellFirst ? sellFirst.quote.includes("10,250") && sellFirst.quote.includes("9,670") : false, true,
+  "the quote kept beside the figure is the sentence it was read from, both numbers in it");
+eq(sellFirst && [2600, 2660, 184, 193, 2730, 2790].some((n) => n === sellFirst.buy || n === sellFirst.sell), false,
+  "the Saudi riyal, Egyptian pound and dirham beside the dollar are not taken");
+eq(readBank(fixture("alghadalsudani-34920.json")), null, "the parallel market's article is not the Bank of Khartoum's");
+
 console.log("\nEl Obeid — sudafax, 14 October 2026");
 const obeid = readObeidList(fixture("sudafax-585058.json"));
 eq(

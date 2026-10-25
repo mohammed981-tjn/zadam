@@ -18,6 +18,14 @@ import { readMarketPrices } from "@/lib/marketPrices";
  */
 
 export const FX_WINDOW_DAYS = 4;
+
+/**
+ * Why a figure the readers read with certainty is still held: the platform publishes nothing by itself (the owner,
+ * 25 October 2026 — «قراءةٌ آليّة واعتمادٌ بنقرة»). The administrator's one click (`market_quote_review_all`) approves
+ * exactly the rows that carry this reason and no others, so the same words are in
+ * supabase/migrations/20261025120000_market_quotes_keep.sql — scripts/verify-price-refresh.ts compares them.
+ */
+export const AWAITING_REASON = "قراءة موثوقة تنتظر اعتماد الإدارة";
 export const CROP_WINDOW_DAYS = 10;
 
 export type FeedKey = "fx_bank" | "fx_parallel" | "crop_obeid";
