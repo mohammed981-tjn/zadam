@@ -46,7 +46,8 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
   const months = lastMonths(today, 12);
   const from = months[0];
 
-  const [flowsRes, mixRes, linksRes, staleRes, reconRes, inspRes, peopleRes] = await Promise.all([
+  const [settingsRes, flowsRes, mixRes, linksRes, staleRes, reconRes, inspRes, peopleRes] = await Promise.all([
+    supabase.from("oversight_settings").select("min_books").maybeSingle(),
     supabase.rpc("oversight_flows", { p_from: from, p_to: today }),
     supabase.rpc("oversight_currency_mix", { p_from: months[months.length - 3], p_to: today }),
     supabase.rpc("oversight_links", { p_from: from, p_to: today }),
@@ -55,6 +56,9 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
     supabase.rpc("ledger_inspections_list"),
     q ? supabase.rpc("admin_users_list", { p_limit: 10, p_offset: 0, p_q: q }) : Promise.resolve({ data: [] as Person[] }),
   ]);
+  // The floor is the administration's setting (now five books); the words below follow it instead of repeating a number.
+  const minBooks = Number((settingsRes.data as { min_books?: number } | null)?.min_books ?? 5);
+  const floorWord = minBooks.toLocaleString("ar-EG");
   const flows = pivotFlows((flowsRes.data ?? []) as FlowRow[]);
   const mix = (mixRes.data ?? []) as Mix[];
   const linkAgg = (linksRes.data ?? []) as LinkAgg[];
@@ -72,7 +76,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
       <h1 className="mt-3 text-2xl font-bold">الرقابة الماليّة</h1>
       <p className="mt-2 text-sm leading-7 text-muted">
         تراقب المنصّة الحركة الماليّة في الشبكة كما يراقب البنك المركزيّ البنوك: ترى الأرقام المجمَّعة بلا أسماء، ولا تكتب في دفتر أحد ولا في ماله.
-        وأيّ رقمٍ ساهم فيه أقلّ من ثلاثة دفاتر، أو غلب عليه دفترٌ واحد، يُحجب حتى لا يُعرف صاحبه.
+        وأيّ رقمٍ ساهم فيه أقلّ من {floorWord} دفاتر، أو غلب عليه دفترٌ واحد، يُحجب حتى لا يُعرف صاحبه.
         وقراءة دفترٍ بعينه لا تكون إلا بفحصٍ تكتب سببه، مدّته محدودة، ويصل صاحبَ الدفتر إشعارٌ عند فتحه وعند إغلاقه.
       </p>
 
@@ -145,7 +149,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
                   <td className={td}>{LINK_KIND_LABEL[r.kind]?.ar ?? r.kind}</td>
                   <td className={td}>{LINK_STATUS_LABEL[r.status]?.ar ?? r.status}</td>
                   {r.suppressed ? (
-                    <td className={`${td} text-muted`} colSpan={3}>محجوب (أقلّ من ثلاثة عقود)</td>
+                    <td className={`${td} text-muted`} colSpan={3}>محجوب (أقلّ من {floorWord} عقود)</td>
                   ) : (
                     <>
                       <td className={num}>{r.links}</td>
@@ -172,7 +176,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
                 <tr key={r.what} className="border-t border-border">
                   <td className={td}>{STALE_LABEL[r.what] ?? r.what}</td>
                   {r.suppressed ? (
-                    <td className={`${td} text-muted`} colSpan={3}>محجوب (أقلّ من ثلاثة عقود)</td>
+                    <td className={`${td} text-muted`} colSpan={3}>محجوب (أقلّ من {floorWord} عقود)</td>
                   ) : (
                     <>
                       <td className={num}>{r.items}</td>
