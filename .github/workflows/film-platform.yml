@@ -1,0 +1,124 @@
+name: Film — the platform
+
+# The film that walks through the platform, page by page (backlog 199; the
+# owner, 25 October: «فيديو يشرح ما تقدّمه المنصّة… بالصور من الموقع… استعمل
+# هيوقن فيس»). The narrator is the films' Fasih voice on Hugging Face, as in
+# tts.yml: film/platform/lines.json, every line written with its vowels and the
+# name as the owner chose it, «سُودَاكْرِي». A line already in
+# film/platform/voice is not spoken again. Then the live site is photographed as
+# a signed-out visitor sees it, and the film is put together and attached to the
+# «film-platform» pre-release, for the owner alone: nothing here goes on the site.
+on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: ["film/platform/lines.json", "film/platform/scenes.json", "scripts/film/platform_*", ".github/workflows/film-platform.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: film-platform-${{ github.ref }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      chunks: ${{ steps.p.outputs.chunks }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          lines = json.load(open("film/platform/lines.json", encoding="utf-8"))
+          todo = [l["id"] for l in lines if not os.path.exists(f"film/platform/voice/{l['id']}.wav")]
+          chunks = [",".join(todo[i:i + 2]) for i in range(0, len(todo), 2)] or ["none"]
+          print("chunks=" + json.dumps(chunks))
+          PY
+
+  speak:
+    needs: plan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        ids: ${{ fromJson(needs.plan.outputs.chunks) }}
+    steps:
+      - uses: actions/checkout@v4
+        if: matrix.ids != 'none'
+      - if: matrix.ids != 'none'
+        env:
+          IDS: ${{ matrix.ids }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install -q gradio_client
+          mkdir -p out
+          python3 - <<'PY'
+          import json, os, shutil, time
+          from gradio_client import Client
+          tok = os.environ.get("HF_TOKEN") or None
+          c = Client("NightPrince/Fasih-TTS", token=tok) if tok else Client("NightPrince/Fasih-TTS")
+          lines = {l["id"]: l for l in json.load(open("film/platform/lines.json", encoding="utf-8"))}
+          for i in os.environ["IDS"].split(","):
+              for attempt in range(3):
+                  try:
+                      r = c.predict(text=lines[i]["text"], auto_diacritize=lines[i].get("diac", True),
+                                    temperature=0.5, api_name="/predict")
+                      shutil.copy(r, f"out/{i}.wav"); print("spoke", i); break
+                  except Exception as e:
+                      print("failed", i, str(e)[:200]); time.sleep(30)
+          PY
+      - if: matrix.ids != 'none'
+        run: |
+          mkdir -p film/platform/voice
+          cp out/*.wav film/platform/voice/ 2>/dev/null || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add film/platform/voice
+          git diff --cached --quiet && exit 0
+          git commit -m "Film of the platform: lines ${{ matrix.ids }} in the Fasih voice"
+          for n in 1 2 3 4 5 6 7 8 9 10; do
+            git pull --rebase -q origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((RANDOM % 10 + 3))
+          done
+          exit 1
+
+  film:
+    needs: speak
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start from the branch as it is now, with every line spoken so far
+        run: |
+          git fetch -q --depth=1 origin "${GITHUB_REF_NAME}"
+          git reset -q --hard FETCH_HEAD
+      - name: Tools
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg >/dev/null
+          pip install -q pillow
+          mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i -s playwright@1.49.1
+          npx --prefix /tmp/pw playwright install --with-deps chromium >/dev/null
+      - name: Photograph the live site and draw the words
+        env:
+          NODE_PATH: /tmp/pw/node_modules
+        run: node scripts/film/platform_shoot.mjs film/platform work
+      - name: Put the film together
+        run: python3 scripts/film/platform_assemble.py film/platform work out
+      - name: Attach it to the pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls out/*.mp4 >/dev/null 2>&1 || { echo "### Film: not ready yet (lines still to speak)" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
+          notes="جولةٌ في منصّة سوداقري بصور صفحاتها — البناء رقم ${{ github.run_number }} من ${GITHUB_SHA::7}. platform-wide.mp4 بمقاس ١٦:٩، وplatform-portrait.mp4 للهاتف، وplatform-sheet.jpg لقطةٌ من كلّ مشهد. للمالك وحده، لا يُنشر في الموقع قبل أن يختار."
+          if gh release view film-platform >/dev/null 2>&1; then
+            gh release edit film-platform --notes "$notes"
+          else
+            gh release create film-platform --title "فيلم المنصّة" --notes "$notes" --prerelease --target "$GITHUB_SHA"
+          fi
+          gh release upload film-platform out/platform-wide.mp4 out/platform-portrait.mp4 out/platform-sheet.jpg --clobber
+          echo "### Film: https://github.com/${{ github.repository }}/releases/tag/film-platform" >> "$GITHUB_STEP_SUMMARY"

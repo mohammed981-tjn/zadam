@@ -1,0 +1,160 @@
+[
+ {
+  "id": "01",
+  "line": "01",
+  "title": "منصّة سوداقري",
+  "path": "/"
+ },
+ {
+  "id": "02",
+  "line": "02",
+  "title": "كيف نعمل: من البذرة إلى السوق",
+  "path": "/how-we-work"
+ },
+ {
+  "id": "03",
+  "line": "03",
+  "title": "سجّل أرضك مجّاناً",
+  "path": "/lands"
+ },
+ {
+  "id": "04",
+  "line": "04",
+  "title": "الخريطة الكاملة",
+  "path": "/map"
+ },
+ {
+  "id": "05",
+  "line": "05",
+  "title": "توقّعات المطر",
+  "path": "/rain"
+ },
+ {
+  "id": "06",
+  "line": "06",
+  "title": "حاسبة الماء",
+  "path": "/tools/water"
+ },
+ {
+  "id": "07",
+  "line": "07",
+  "title": "دراسة الجدوى",
+  "path": "/tools/feasibility"
+ },
+ {
+  "id": "08",
+  "line": "08",
+  "title": "محاصيل جديدة",
+  "path": "/tools/new-crops"
+ },
+ {
+  "id": "09",
+  "line": "09",
+  "title": "سوق المحاصيل",
+  "path": "/market"
+ },
+ {
+  "id": "10",
+  "line": "10",
+  "title": "عروض البيع والشراء",
+  "path": "/market/offers"
+ },
+ {
+  "id": "11",
+  "line": "11",
+  "title": "أسعار المدخلات والوقود",
+  "path": "/market/inputs"
+ },
+ {
+  "id": "12",
+  "line": "12",
+  "title": "أسعار الصرف",
+  "path": "/rates"
+ },
+ {
+  "id": "13",
+  "line": "13",
+  "title": "كتالوج الخدمات",
+  "path": "/services"
+ },
+ {
+  "id": "14",
+  "line": "14",
+  "title": "الشركات الشريكة",
+  "path": "/partners"
+ },
+ {
+  "id": "15",
+  "line": "15",
+  "title": "الموردون",
+  "path": "/suppliers"
+ },
+ {
+  "id": "16",
+  "line": "16",
+  "title": "العقد والتنفيذ بالدليل",
+  "path": "/how-we-work",
+  "anchor": "العقد"
+ },
+ {
+  "id": "17",
+  "line": "17",
+  "title": "دفتر الحسابات",
+  "path": "/guide",
+  "anchor": "دفتر الحسابات"
+ },
+ {
+  "id": "18",
+  "line": "18",
+  "title": "فرص الاستثمار",
+  "path": "/invest"
+ },
+ {
+  "id": "19",
+  "line": "19",
+  "title": "المشاريع",
+  "path": "/projects"
+ },
+ {
+  "id": "20",
+  "line": "20",
+  "title": "الثروة الحيوانية",
+  "path": "/herds"
+ },
+ {
+  "id": "21",
+  "line": "21",
+  "title": "ملفّ الصادر",
+  "path": "/export"
+ },
+ {
+  "id": "22",
+  "line": "22",
+  "title": "التعدين والذهب",
+  "path": "/mining/gold"
+ },
+ {
+  "id": "23",
+  "line": "23",
+  "title": "النفير",
+  "path": "/nafir"
+ },
+ {
+  "id": "24",
+  "line": "24",
+  "title": "قاعدة المعرفة والمساعد",
+  "path": "/knowledge"
+ },
+ {
+  "id": "25",
+  "line": "25",
+  "title": "الدراسات",
+  "path": "/studies"
+ },
+ {
+  "id": "26",
+  "line": "26",
+  "title": "سوداقري",
+  "card": "outro"
+ }
+]
