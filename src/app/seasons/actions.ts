@@ -1,6 +1,7 @@
 "use server";
 import { dbText } from "@/lib/dbText";
 import { ledgerEntryDate } from "@/lib/entryDate";
+import { ledgerToday } from "@/lib/ledger/today";
 import { isSettleFrom, ledgerEntryInputMessage, parseLedgerEntryInput, parseSettleRate } from "@/lib/ledgerEntryInput";
 
 import { revalidatePath } from "next/cache";
@@ -238,7 +239,7 @@ export async function completeStage(formData: FormData) {
     .from("season_stages")
     .update({
       completed: true,
-      actual_end: new Date().toISOString().slice(0, 10),
+      actual_end: ledgerToday(),
     })
     .eq("id", str(formData, "stage_id"));
 
@@ -290,14 +291,17 @@ export async function addLedgerEntry(formData: FormData) {
   }
 
   // A cost kept on the phone while offline is sent later; it keeps the day it was written (backlog 167).
-  const entryDate = ledgerEntryDate(str(formData, "entry_date"), new Date().toISOString().slice(0, 10));
+  // Without a day of its own the row takes Khartoum's today, sent explicitly: the column's default is the database's
+  // UTC date, a day behind between midnight and two (review 198 B6).
+  const today = ledgerToday();
+  const entryDate = ledgerEntryDate(str(formData, "entry_date"), today);
 
   const { error } = await supabase.from("ledger_entries").insert({
     season_id: seasonId,
     category,
     ...parsed.money,
     description: str(formData, "description") || null,
-    ...(entryDate ? { entry_date: entryDate } : {}),
+    entry_date: entryDate ?? today,
     created_by: user.id,
   });
 
@@ -346,7 +350,7 @@ export async function settleLedgerEntry(formData: FormData) {
   if (!rate.ok) {
     redirect(back(ledgerEntryInputMessage("rate", t)));
   }
-  const date = ledgerEntryDate(str(formData, "settle_date"), new Date().toISOString().slice(0, 10));
+  const date = ledgerEntryDate(str(formData, "settle_date"), ledgerToday());
 
   const { error } = await supabase.rpc("farm_settle_entry", {
     p_entry_id: entryId,

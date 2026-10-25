@@ -233,17 +233,48 @@ export function linkUsd(row: Pick<LinkRow, "amount_minor" | "currency" | "fx_rat
   return micro === null ? ZERO : toBase(BigInt(Math.round(minor)), micro);
 }
 
-/** What a season still owes the investor as financing: confirmed financing less the principal the shares settled, per currency. */
-export function outstandingFinancing(rows: readonly LinkRow[], seasonId: string): Record<CurrencyCode, bigint> {
-  const out: Record<CurrencyCode, bigint> = { USD: ZERO, SDG: ZERO };
+/**
+ * What a season still owes the investor as financing, in dollars' cents: confirmed financing less the principal the
+ * shares settled, each at the rate it was booked at. One figure, not one per currency: a share in dollars settles
+ * financing given in pounds too (review 198 B9 — kept apart, pounds financed and settled by a dollar share still
+ * showed as owed).
+ */
+export function outstandingFinancing(rows: readonly LinkRow[], seasonId: string): bigint {
+  let out = ZERO;
   for (const r of rows) {
     if (!isLive(r) || r.season_id !== seasonId) continue;
-    if (r.kind === "input_finance") out[r.currency] += BigInt(Math.round(r.amount_minor));
-    if (r.kind === "harvest_share") out[r.currency] -= BigInt(Math.round(r.principal_minor));
+    if (r.kind === "input_finance") out += linkUsd(r);
+    if (r.kind === "harvest_share") out -= linkUsd(r, r.principal_minor);
   }
-  if (out.USD < ZERO) out.USD = ZERO;
-  if (out.SDG < ZERO) out.SDG = ZERO;
-  return out;
+  return out < ZERO ? ZERO : out;
+}
+
+/**
+ * The shortest stretch, first flow to last, a yearly rate is shown for. Over days or weeks a modest gain compounds
+ * into an absurd yearly figure (2% in a day is 137,000% a year); the investment-performance standards (GIPS) do not
+ * annualise a period under a year, and neither does this (review 198 B3).
+ */
+export const MIN_ANNUAL_DAYS = 365;
+
+/**
+ * The return line of the statement: a yearly rate when the money moved over a year or more, else the plain return
+ * over the days it took, saying why no yearly rate is shown.
+ */
+export function returnSentence(
+  st: Pick<InvestorStatement, "xirr" | "cashReturn" | "spanDays" | "settled">,
+  t: (ar: string, en: string) => string,
+): string {
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+  const rest = st.settled ? "" : t(" (يرتفع حين يُسلَّم الباقي)", " (it rises as the rest is handed over)");
+  if (st.xirr !== null) {
+    return t(`العائد السنويّ على ما سُلّم فعلاً: ${pct(st.xirr)}${rest}.`, `Yearly return on what was actually paid: ${pct(st.xirr)}${rest}.`);
+  }
+  if (st.cashReturn === null) return "";
+  const days = st.spanDays ?? 0;
+  return t(
+    `العائد على ما سُلّم فعلاً: ${pct(st.cashReturn)} خلال ${days} يوماً${rest}. لا يُحسب عائدٌ سنويّ لمدّةٍ أقلّ من سنة.`,
+    `Return on what was actually paid: ${pct(st.cashReturn)} over ${days} days${rest}. No yearly rate is given for less than a year.`,
+  );
 }
 
 export interface InvestorStatement {
@@ -263,8 +294,12 @@ export interface InvestorStatement {
   moicCash: number | null;
   /** recognised ÷ invested: the multiple the crop share stands for, collected or not. */
   moicRecognised: number | null;
-  /** The yearly rate of the cash flows; null when there is none to compute. */
+  /** The yearly rate of the cash flows; null when there is none to compute, or the flows span less than MIN_ANNUAL_DAYS. */
   xirr: number | null;
+  /** Days from the first flow to the last; null without flows. */
+  spanDays: number | null;
+  /** (money back − money in) ÷ money in over the whole span, not per year; null when nothing went in. */
+  cashReturn: number | null;
   /** True when nothing recognised is still waiting to be handed over. */
   settled: boolean;
 }
@@ -294,6 +329,10 @@ export function investorStatement(rows: readonly LinkRow[]): InvestorStatement {
   }
   const inv = Number(invested) / 100;
   const due = recognised - handedOver;
+  const days = flows.map((f) => Date.parse(`${f.date}T00:00:00Z`) / 86_400_000).filter((d) => Number.isFinite(d));
+  const spanDays = days.length ? Math.max(...days) - Math.min(...days) : null;
+  const paidIn = flows.filter((f) => f.amount < 0).reduce((a, f) => a - f.amount, 0);
+  const paidBack = flows.filter((f) => f.amount > 0).reduce((a, f) => a + f.amount, 0);
   return {
     invested,
     recognised,
@@ -303,7 +342,9 @@ export function investorStatement(rows: readonly LinkRow[]): InvestorStatement {
     flows,
     moicCash: inv > 0 ? Number(handedOver) / 100 / inv : null,
     moicRecognised: inv > 0 ? Number(recognised) / 100 / inv : null,
-    xirr: xirr(flows),
+    xirr: spanDays !== null && spanDays >= MIN_ANNUAL_DAYS ? xirr(flows) : null,
+    spanDays,
+    cashReturn: paidIn > 0 ? (paidBack - paidIn) / paidIn : null,
     settled: due <= ZERO,
   };
 }
