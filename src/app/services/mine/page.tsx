@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import Explain, { EmptyState } from "@/components/Explain";
 import OfferForm from "@/components/OfferForm";
 import { setProviderPaused } from "../actions";
+import { confirmAvailability } from "../machinery/actions";
+import { AVAILABILITY_FRESH_DAYS, AVAILABILITY_LABEL, availabilityState, confirmedLabel } from "@/lib/machinery";
 import {
   serviceKindLabel,
   serviceName,
@@ -172,6 +174,57 @@ export default async function MyProviderPage({
                   </form>
                 )}
               </header>
+
+              {/*
+                Mechanisation only (backlog 168): the farmer booking a tractor sees when this was last said, and a word
+                older than two weeks opens no new booking — so the button is the whole job, pressed again each time.
+              */}
+              {provider.kind === "mechanization" && provider.verified_at && (() => {
+                const state = availabilityState(provider.available, provider.availability_confirmed_at);
+                return (
+                  <section className="rounded-2xl border border-border bg-card p-5">
+                    <h3 className="font-bold">{t("التوفّر للحجز", "Availability for bookings")}</h3>
+                    <p className="mt-1 text-sm">
+                      {provider.availability_confirmed_at
+                        ? t(
+                            `آخر تأكيدٍ للتوفّر: ${confirmedLabel(provider.availability_confirmed_at, locale)}`,
+                            `Last confirmed: ${confirmedLabel(provider.availability_confirmed_at, locale)}`,
+                          )
+                        : t("لم تؤكّد توفّرك بعد.", "You have not confirmed your availability yet.")}{" "}
+                      <span className={state === "fresh" ? "text-primary" : "text-muted"}>
+                        — {t(AVAILABILITY_LABEL[state].ar, AVAILABILITY_LABEL[state].en)}
+                      </span>
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      {t(
+                        `يحجز عليك المزارعون معاً ما دام تأكيدك أحدث من ${AVAILABILITY_FRESH_DAYS} يوماً. والطلبات التي تصلك في صفحة الحجوزات.`,
+                        `Farmers can book you together while your confirmation is under ${AVAILABILITY_FRESH_DAYS} days old. Requests reach you on the bookings page.`,
+                      )}{" "}
+                      <Link href="/services/machinery" className="text-primary underline">
+                        {t("الحجوزات", "Bookings")}
+                      </Link>
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <form action={confirmAvailability}>
+                        <input type="hidden" name="provider_id" value={provider.id} />
+                        <input type="hidden" name="available" value="true" />
+                        <button className="rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground">
+                          {t("أنا متوفّر — أكّد اليوم", "I am available — confirm today")}
+                        </button>
+                      </form>
+                      {provider.available && (
+                        <form action={confirmAvailability}>
+                          <input type="hidden" name="provider_id" value={provider.id} />
+                          <input type="hidden" name="available" value="false" />
+                          <button className="rounded-lg border border-border px-4 py-1.5 text-sm hover:bg-background">
+                            {t("لست متوفّراً الآن", "Not available now")}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </section>
+                );
+              })()}
 
               {!provider.verified_at && (
                 <Explain>
