@@ -5,6 +5,7 @@ import { tr } from "@/lib/i18n";
 import { useLocale } from "./LocaleProvider";
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
 import { SUDAGRI_LOGO } from "@/lib/brand";
+import { INTRO_WAIT_MAX_MS } from "@/lib/splash";
 
 /**
  * واجهةُ الرئيسيّة: أفلامُ سوداقري، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
@@ -59,7 +60,6 @@ import { SUDAGRI_LOGO } from "@/lib/brand";
  * without saying which; the reel says both. The swipe still works, and the
  * leaving film still turns away to the left while the chosen one swings in.
  */
-const INTRO_WAIT_MAX_MS = 16000;
 const DROP_MS = 420;
 const SETTLE_MS = 560;
 

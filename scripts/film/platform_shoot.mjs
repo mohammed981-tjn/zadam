@@ -38,7 +38,9 @@ const browser = await chromium.launch();
 // ── the pages ────────────────────────────────────────────────────────────────
 const site = await browser.newContext({ viewport: { width: W, height: H }, locale: "ar", colorScheme: "light" });
 // The splash plays once per visitor; the film starts after it.
-await site.addInitScript(() => { try { localStorage.setItem("sudagri:splash:v3", "1"); } catch {} });
+await site.addInitScript(() => {
+  try { for (const v of ["v3", "v4"]) localStorage.setItem(`sudagri:splash:${v}`, "1"); } catch {}
+});
 const page = await site.newPage();
 const meta = {};
 for (const s of scenes.filter((s) => s.path)) {

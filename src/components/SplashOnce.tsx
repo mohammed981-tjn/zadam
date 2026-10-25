@@ -8,10 +8,12 @@ import { useLocale } from "./LocaleProvider";
 import {
   SPLASH_FADE_MS,
   SPLASH_MAX_MS,
+  SPLASH_SLIDE_MS,
   SPLASH_VIDEO_MAX_MS,
   SPLASH_VIDEO_START_MS,
   splashEndsAt,
 } from "@/lib/splash";
+import { SLIDES } from "@/lib/introSlides";
 
 /**
  * شاشةُ البداية — مرّةً واحدةً لكلّ زائر، ولا تحجب شيئاً.
@@ -67,8 +69,11 @@ import {
  *
  * ثمّ `v3` (25 سبتمبر): صارت المقدّمةُ فيديو المزارع ثمّ الشعار، فيراها كلُّ
  * زائرٍ مرّةً واحدةً بشكلها الجديد.
+ *
+ * ثمّ `v4` (البند ٢٠٠): أُضيفت بعد الشعار أربعُ شاشاتٍ تعرّف بالمنصّة، ومن رأى
+ * المقدّمة قبلها لم يرَها؛ فتُعرض له مرّةً واحدة.
  */
-const SEEN_KEY = "sudagri:splash:v3";
+const SEEN_KEY = "sudagri:splash:v4";
 
 /**
  * التوقيتُ يتبع الصورةَ لا العكس.
@@ -104,6 +109,7 @@ export default function SplashOnce() {
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
+  const slidesRef = useRef<HTMLDivElement>(null);
 
   /*
    * جسرٌ بين `onLoad` والمؤقّت.
@@ -170,13 +176,39 @@ export default function SplashOnce() {
     };
 
     let shown = 0;
+    let sliding = false;
+
+    /*
+     * من الشعار إلى شاشات التعريف (البند ٢٠٠): كلُّ شاشةٍ `SPLASH_SLIDE_MS`، ثمّ
+     * التالية، وبعد الأخيرة تنتهي المقدّمة. ولمسةٌ أو مفتاحٌ ينهيها كلَّها كما كان.
+     */
+    const slides = slidesRef.current;
+    const showSlide = (i: number) => {
+      slides?.querySelectorAll<HTMLElement>("[data-slide]").forEach((n) => {
+        n.classList.toggle("opacity-0", Number(n.dataset.slide) !== i);
+      });
+      slides?.querySelectorAll<HTMLElement>("[data-dot]").forEach((n) => {
+        n.classList.toggle("bg-white", Number(n.dataset.dot) === i);
+        n.classList.toggle("bg-white/35", Number(n.dataset.dot) !== i);
+      });
+      hold = window.setTimeout(() => (i + 1 < SLIDES.length ? showSlide(i + 1) : end()), SPLASH_SLIDE_MS);
+    };
+    const toSlides = () => {
+      if (ending || sliding) return;
+      sliding = true;
+      window.clearTimeout(hold);
+      if (!slides) return end();
+      logo?.classList.add("opacity-0");
+      slides.classList.remove("opacity-0");
+      showSlide(0);
+    };
 
     /** تُستدعى حين تصل الصورة: تُقرّب النهايةَ أو تُبعدها، ضمن الحدّين. */
     const settle = () => {
-      if (ending || !shown) return;
+      if (ending || !shown || sliding) return;
       const elapsed = Date.now() - shown;
       window.clearTimeout(hold);
-      hold = window.setTimeout(end, Math.max(0, splashEndsAt(elapsed) - elapsed));
+      hold = window.setTimeout(toSlides, Math.max(0, splashEndsAt(elapsed) - elapsed));
     };
 
     /*
@@ -196,7 +228,7 @@ export default function SplashOnce() {
       video?.classList.add("opacity-0");
       video?.pause();
       logo?.classList.remove("opacity-0");
-      hold = window.setTimeout(end, SPLASH_MAX_MS);
+      hold = window.setTimeout(toSlides, SPLASH_MAX_MS);
       announce.current = settle;
       if (loaded.current) settle();
     };
@@ -253,7 +285,7 @@ export default function SplashOnce() {
       aria-hidden
       // داكنٌ دائماً (المالك، 12 أكتوبر: «يتغيّر مع الألوان الجديدة الغامقة») — يكمل شاشةَ
       // النظام الافتتاحيّة الداكنة في `manifest.ts` بلا ومضة.
-      className="fixed inset-0 z-[60] bg-[#10160f] opacity-100 transition-opacity duration-500"
+      className="fixed inset-0 z-[110] bg-[#10160f] opacity-100 transition-opacity duration-500"
     >
       {/*
         المرحلةُ الأولى: فيديو المزارع على الشاشة كاملة. `preload="none"` لأنّ
@@ -291,6 +323,32 @@ export default function SplashOnce() {
         <p className="text-sm text-[#e8e6dc]">
           {tr(locale, "منصّة سودانية للزراعة والتجارة", "A Sudanese platform for agriculture and trade")}
         </p>
+      </div>
+
+      {/* المرحلةُ الثالثة: أربعُ شاشاتٍ تعرّف بالمنصّة، ثلاثُ ثوانٍ لكلٍّ. */}
+      <div ref={slidesRef} className="absolute inset-0 opacity-0 transition-opacity duration-500">
+        {SLIDES.map((s, i) => (
+          <div
+            key={s.photo}
+            data-slide={i}
+            className="absolute inset-0 opacity-0 transition-opacity duration-700"
+          >
+            <Image src={s.photo} alt="" fill sizes="100vw" className="object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a1a12] via-[#0a1a12]/70 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 mx-auto max-w-2xl px-6 pb-20 text-center text-white sm:pb-24">
+              <p className="mb-3 text-sm font-medium text-[#f6b26b]">
+                {i + 1} / {SLIDES.length}
+              </p>
+              <h2 className="text-3xl font-black leading-tight sm:text-5xl">{tr(locale, ...s.title)}</h2>
+              <p className="mt-4 text-lg leading-relaxed text-white/90 sm:text-2xl">{tr(locale, ...s.body)}</p>
+            </div>
+          </div>
+        ))}
+        <div className="absolute inset-x-0 bottom-8 flex justify-center gap-2">
+          {SLIDES.map((s, i) => (
+            <span key={s.photo} data-dot={i} className="h-2 w-8 rounded-full bg-white/35 transition-colors" />
+          ))}
+        </div>
       </div>
 
       <span className="absolute top-5 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-xs text-white">

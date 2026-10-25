@@ -33,11 +33,15 @@ import {
   SPLASH_FADE_MS,
   SPLASH_MAX_MS,
   SPLASH_MIN_MS,
+  INTRO_WAIT_MAX_MS,
   SPLASH_INTRO_WORST_MS,
+  SPLASH_SLIDE_MS,
+  SPLASH_SLIDES,
   SPLASH_VIDEO_MAX_MS,
   SPLASH_VIDEO_START_MS,
   splashEndsAt,
 } from "../src/lib/splash";
+import { SLIDES } from "../src/lib/introSlides";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -118,10 +122,18 @@ ok(
   SPLASH_VIDEO_START_MS + SPLASH_MAX_MS + SPLASH_FADE_MS < 5000,
   "فشبكةٌ لا تحمل الفيديو لا تُبقي الزائر أكثر من خمس ثوانٍ",
 );
+section("ز) شاشاتُ التعريف بعد الشعار — ثلاثُ ثوانٍ لكلٍّ، كما طلب المالك");
+
+ok(SPLASH_SLIDE_MS === 3000, `كلُّ شاشةٍ ${SPLASH_SLIDE_MS}ms`);
+ok(SPLASH_SLIDES >= 3 && SPLASH_SLIDES <= 4, `وعددُها ${SPLASH_SLIDES} — «ثلاث او أربعة»`);
+ok(SPLASH_SLIDES === SLIDES.length, `والنصوصُ المكتوبة ${SLIDES.length} بعدد الشاشات`);
 ok(
-  SPLASH_INTRO_WORST_MS === SPLASH_VIDEO_MAX_MS + SPLASH_MAX_MS + SPLASH_FADE_MS && SPLASH_INTRO_WORST_MS < 12_000,
+  SPLASH_INTRO_WORST_MS ===
+    SPLASH_VIDEO_MAX_MS + SPLASH_MAX_MS + SPLASH_SLIDES * SPLASH_SLIDE_MS + SPLASH_FADE_MS &&
+    SPLASH_INTRO_WORST_MS < 25_000,
   `وأسوأُ المقدّمة كلّها ${SPLASH_INTRO_WORST_MS}ms — مرّةً واحدةً لكلّ زائر، وتُتخطّى بلمسة`,
 );
+ok(INTRO_WAIT_MAX_MS > SPLASH_INTRO_WORST_MS, `وأفلامُ الرئيسيّة تنتظرها كلَّها (${INTRO_WAIT_MAX_MS}ms)`);
 
 section(fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`);
 process.exit(fail === 0 ? 0 : 1);

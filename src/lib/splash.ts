@@ -46,8 +46,21 @@ export const SPLASH_FADE_MS = 400;
 export const SPLASH_VIDEO_START_MS = 2500;
 export const SPLASH_VIDEO_MAX_MS = 9000;
 
-/** The longest the intro can last, clip and logo screen together, fade included. */
-export const SPLASH_INTRO_WORST_MS = SPLASH_VIDEO_MAX_MS + SPLASH_MAX_MS + SPLASH_FADE_MS;
+/*
+ * ثمّ شاشاتُ التعريف بعد الشعار (البند ٢٠٠؛ المالك، 25 أكتوبر 2026: «ثلاث
+ * اسبلاشات او أربعة في البداية قبل ما يفتح التطبيق تشرح ماتقدمه المنصة… مع كل
+ * السبلاش ٣ ثواني»). Four screens, three seconds each, and the same tap or key
+ * ends the whole intro at any point. They come once per visitor, with the rest.
+ */
+export const SPLASH_SLIDE_MS = 3000;
+export const SPLASH_SLIDES = 4;
+
+/** The longest the intro can last, clip, logo and the four screens together, fade included. */
+export const SPLASH_INTRO_WORST_MS =
+  SPLASH_VIDEO_MAX_MS + SPLASH_MAX_MS + SPLASH_SLIDES * SPLASH_SLIDE_MS + SPLASH_FADE_MS;
+
+/** How long the homepage films wait for the intro before they start anyway. */
+export const INTRO_WAIT_MAX_MS = SPLASH_INTRO_WORST_MS + 1500;
 
 /**
  * متى تنتهي الشاشة، بالمللي ثانية من لحظة ظهورها.
