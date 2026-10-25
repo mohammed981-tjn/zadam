@@ -59,11 +59,12 @@ export default async function ProjectPage({
   let landOffer: OpenLand | null = null;
   let landId: string | null = null;
   if (user && verifiedLand) {
-    const [{ data: landRow }, offers] = await Promise.all([
-      supabase.from("projects").select("land_id").eq("id", typedProject.id).maybeSingle(),
+    // projects.land_id is not a member's column either (backlog 181): the land comes when it is open to investors.
+    const [{ data: openLand }, offers] = await Promise.all([
+      supabase.rpc("project_open_land", { p_project: typedProject.id }),
       loadLandOffers(supabase, true),
     ]);
-    landId = (landRow as { land_id: string | null } | null)?.land_id ?? null;
+    landId = (openLand as string | null) ?? null;
     landOffers = offers;
     landOffer = landId ? (offers.lands.find((l) => l.land_id === landId) ?? null) : null;
   }

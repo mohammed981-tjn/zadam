@@ -1,3 +1,4 @@
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatUsd, riskLabel } from "@/lib/format";
@@ -27,11 +28,11 @@ export default async function ReviewPage() {
 
   const { data } = await supabase
     .from("projects")
-    .select("*")
+    .select(MEMBER_COLUMNS.projects)
     .eq("review_status", "submitted")
     .order("created_at", { ascending: true });
 
-  const pending = (data ?? []) as Project[];
+  const pending = (data ?? []) as unknown as Project[];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">

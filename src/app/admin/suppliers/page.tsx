@@ -47,17 +47,21 @@ export default async function AdminSuppliersPage({
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
-  const [{ data: sRows, error: sErr }, { data: pRows }, { data: cRows }, { data: rRows }, { data: noteRows }] = await Promise.all([
+  const [{ data: sRows, error: sErr }, { data: pRows }, { data: cRows }, { data: rRows }, { data: noteRows }, { data: privRows }] = await Promise.all([
     supabase.from("suppliers").select(MEMBER_COLUMNS.suppliers).order("created_at"),
     supabase.from("supplier_products").select("id, supplier_id, category, name, registration_no, active"),
     supabase.from("carriers").select("*").order("created_at"),
     supabase.from("product_reports").select("*").order("created_at", { ascending: false }).limit(200),
     // The review note left the table's member columns (backlog 132); the administrators read it here.
     supabase.rpc("review_notes", { p_kind: "supplier" }),
+    // The owner, the licence photo and who verified are the administrators' (backlog 181), not every member's.
+    supabase.rpc("supplier_private"),
   ]);
   const notDeployed = isNotDeployed(sErr);
   const notes = new Map(((noteRows ?? []) as { id: string; review_note: string }[]).map((r) => [r.id, r.review_note]));
-  const suppliers = ((sRows ?? []) as unknown as Supplier[]).map((s) => ({ ...s, review_note: notes.get(s.id) ?? null }));
+  type Priv = { id: string; owner_id: string; licence_doc_path: string | null; verified_by: string | null };
+  const priv = new Map(((privRows ?? []) as Priv[]).map((r) => [r.id, r]));
+  const suppliers = ((sRows ?? []) as unknown as Supplier[]).map((s) => ({ ...s, ...priv.get(s.id), review_note: notes.get(s.id) ?? null }));
   const products = (pRows ?? []) as Pick<SupplierProduct, "id" | "supplier_id" | "category" | "name" | "registration_no" | "active">[];
   const carriers = (cRows ?? []) as Carrier[];
   const reports = (rRows ?? []) as ProductReport[];

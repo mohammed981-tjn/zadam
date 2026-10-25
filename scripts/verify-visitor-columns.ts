@@ -16,7 +16,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { MEMBER_COLUMNS, VISITOR_COLUMNS } from "../src/lib/visitorColumns";
 
-const sql = readFileSync(join(__dirname, "../supabase/migrations/20261022050000_visitor_columns.sql"), "utf8");
+// The later migration narrows what a member reads of projects and suppliers (backlog 181); its grant is the one that stands.
+const sql = ["20261022050000_visitor_columns.sql", "20261025230000_projects_suppliers_private_ids.sql"]
+  .map((f) => readFileSync(join(__dirname, "../supabase/migrations", f), "utf8"))
+  .join("\n");
 
 let failed = 0;
 const check = (ok: boolean, label: string, why = "") => {
@@ -77,6 +80,12 @@ for (const table of ["suppliers", "partner_companies"] as const) {
   check(!split(MEMBER_COLUMNS[table]).includes("review_note"), `a member does not read ${table}.review_note`, "it is in the list");
 }
 check(!split(MEMBER_COLUMNS.feedback).includes("contact"), "a member does not read feedback.contact", "it is in the list");
+for (const [table, col] of [
+  ["suppliers", "owner_id"], ["suppliers", "licence_doc_path"], ["suppliers", "verified_by"],
+  ["projects", "created_by"], ["projects", "review_note"], ["projects", "land_id"],
+] as const) {
+  check(!split(MEMBER_COLUMNS[table]).includes(col), `a member does not read ${table}.${col}`, "it is in the list");
+}
 
 /*
  * The phone app reads as a visitor too, and it was missed: its النفير screen

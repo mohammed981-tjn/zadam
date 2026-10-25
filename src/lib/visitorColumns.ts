@@ -8,9 +8,11 @@
  * includes the columns it does not hold. So every query a signed-out visitor
  * can reach names its columns from here.
  *
- * `MEMBER_COLUMNS` is the same for signed-in members on the two tables whose
- * review note is the owner's and the administration's alone; they read it
- * through `review_notes()`.
+ * `MEMBER_COLUMNS` is the same for signed-in members on the tables where some
+ * columns are the owner's and the administration's alone: review notes through
+ * `review_notes()`, and since backlog 181 the account ids and the licence path of
+ * suppliers and projects through `supplier_private()` and `project_private()`
+ * (supabase/migrations/20261025230000_projects_suppliers_private_ids.sql).
  *
  * scripts/verify-visitor-columns.ts holds these strings to the migration's
  * grants: add a column to one, add it to the other.
@@ -55,10 +57,8 @@ export const VISITOR_COLUMNS = {
 } as const;
 
 export const MEMBER_COLUMNS = {
-  suppliers:
-    "id, owner_id, name, state, locality, phone, whatsapp, delivery_states, categories, pesticide_licence_no, " +
-    "seed_registration_no, commercial_registration_no, licence_doc_path, bio, verified_at, verified_by, active, " +
-    "created_at, updated_at",
+  suppliers: VISITOR_COLUMNS.suppliers,
+  projects: VISITOR_COLUMNS.projects,
   partner_companies:
     "id, owner_id, name, commercial_registration_no, kinds, states, contact_name, phone, whatsapp, bio, " +
     "verified_at, verified_by, active, created_at, updated_at",

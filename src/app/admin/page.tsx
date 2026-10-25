@@ -1,3 +1,4 @@
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -25,7 +26,7 @@ export default async function AdminPage() {
   if (profile?.role !== "admin") redirect("/dashboard");
 
   const [{ data: projects }, { data: lastCheck }] = await Promise.all([
-    supabase.from("projects").select("*").order("created_at", { ascending: false }),
+    supabase.from("projects").select(MEMBER_COLUMNS.projects).order("created_at", { ascending: false }),
     // The view answers "has the schedule stopped?" from the database's own
     // clock. Comparing the check's timestamp against the web server's clock
     // would compare two different clocks, and drift on either would report a
@@ -211,7 +212,7 @@ export default async function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {(projects as Project[]).map((project) => (
+              {(projects as unknown as Project[]).map((project) => (
                 <tr key={project.id} className="border-t border-border">
                   <td className="px-4 py-3 font-medium">{project.name}</td>
                   <td className="px-4 py-3">{statusLabel(project.status)}</td>

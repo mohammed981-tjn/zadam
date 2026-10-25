@@ -1,3 +1,4 @@
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatUsd, statusLabel } from "@/lib/format";
@@ -31,11 +32,11 @@ export default async function AdminProjectPage({
 
   const { data: project } = await supabase
     .from("projects")
-    .select("*")
+    .select(MEMBER_COLUMNS.projects)
     .eq("id", id)
     .single();
   if (!project) notFound();
-  const typedProject = project as Project;
+  const typedProject = project as unknown as Project;
 
   const { data: updates } = await supabase
     .from("project_updates")
