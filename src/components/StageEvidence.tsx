@@ -29,6 +29,7 @@ export default function StageEvidence({
       kinds={kinds}
       folder="stages"
       label={tr(locale, "ارفع الدليل", "Upload evidence")}
+      offline={{ key: `stage:${stageId}`, label: tr(locale, "دليل مرحلة", "Stage evidence") }}
       onUploaded={({ kind, storagePath, caption, metadata }) =>
         addEvidence({ stageId, seasonId, kind, storagePath, caption, metadata })
       }

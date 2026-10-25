@@ -81,6 +81,7 @@ export default function LandDocuments({
         kinds={kinds}
         folder="lands"
         label={t("ارفع المستند", "Upload document")}
+        offline={{ key: `land:${landId}`, label: t("مستند أرض", "Land document") }}
         onUploaded={async ({ kind, storagePath, caption, metadata }) => {
           const result = await addLandDocument({
             landId,

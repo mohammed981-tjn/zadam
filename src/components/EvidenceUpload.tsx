@@ -1,11 +1,27 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/imageCompress";
 import { readJpegMetadata, NO_METADATA, type PhotoMetadata } from "@/lib/exif";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "./LocaleProvider";
+import { getOutboxOwner, isNetworkError, offlineNow } from "@/lib/outboxClient";
+import { newPhotoId, storagePathOf } from "@/lib/photoOutbox";
+import {
+  dropPhoto,
+  keepPhotoOffline,
+  keptPhotoMessage,
+  photosSnapshot,
+  refreshPhotos,
+  sendKeptPhotos,
+  subscribePhotos,
+  type PhotoSummary,
+} from "@/lib/photoOutboxClient";
+
+/** How often a mounted form looks for a network that came back without a browser event. */
+const RETRY_MS = 30_000;
 
 export interface EvidenceKind {
   value: string;
@@ -52,6 +68,7 @@ export default function EvidenceUpload({
   folder,
   onUploaded,
   label,
+  offline,
 }: {
   kinds: EvidenceKind[];
   /** Sub-folder under the user's own id, e.g. "lands" or "stages". */
@@ -63,6 +80,11 @@ export default function EvidenceUpload({
     metadata: PhotoMetadata;
   }) => Promise<{ ok: boolean; message?: string } | void>;
   label?: string;
+  /**
+   * Keep the file on the phone when there is no network, and upload it when there is (backlog 185): `key` names the
+   * form (`stage:<id>`), `label` says what it is in the banner. Without it, an offline upload fails as before.
+   */
+  offline?: { key: string; label: string };
 }) {
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -73,6 +95,43 @@ export default function EvidenceUpload({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const path = usePathname();
+  const offlineKey = offline?.key;
+
+  const keptJson = useSyncExternalStore(
+    subscribePhotos,
+    () => (offlineKey ? photosSnapshot(offlineKey) : "[]"),
+    () => "[]",
+  );
+  const kept = JSON.parse(keptJson) as PhotoSummary[];
+
+  // Sends what this form kept: when the page opens, when the browser says the network is back, and on a slow retry.
+  useEffect(() => {
+    if (!offlineKey) return;
+    let stopped = false;
+    const send = async () => {
+      await refreshPhotos().catch(() => undefined);
+      if (stopped || offlineNow() || photosSnapshot(offlineKey) === "[]") return;
+      const supabase = createClient();
+      await sendKeptPhotos(
+        offlineKey,
+        (storagePath, blob, type) =>
+          supabase.storage.from("evidence").upload(storagePath, blob, { contentType: type, upsert: false }),
+        (item, storagePath) =>
+          onUploaded({ kind: item.kind, storagePath, caption: item.caption, metadata: item.metadata }),
+      );
+    };
+    void send();
+    window.addEventListener("online", send);
+    const timer = window.setInterval(send, RETRY_MS);
+    return () => {
+      stopped = true;
+      window.removeEventListener("online", send);
+      window.clearInterval(timer);
+    };
+    // onUploaded is the form's own action, fixed for the life of this form.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offlineKey]);
 
   const field =
     "rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary";
@@ -105,11 +164,45 @@ export default function EvidenceUpload({
 
     setBusy(true);
     setNotice(null);
+
+    // Keeps the file on the phone, under the id given (an upload that already went up keeps its path).
+    const keep = async (keptFile: File, keptMetadata: PhotoMetadata, id?: string) => {
+      const result = await keepPhotoOffline({
+        id,
+        key: offline!.key,
+        path,
+        label: offline!.label,
+        folder,
+        kind,
+        caption: caption.trim() || file.name,
+        metadata: keptMetadata,
+        file: keptFile,
+      });
+      const said = keptPhotoMessage(result, t);
+      if (said.ok) {
+        setNotice(said.message);
+        setCaption("");
+        if (fileRef.current) fileRef.current.value = "";
+      } else {
+        setError(said.message);
+      }
+    };
+
     try {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      // Offline, nothing can confirm the session with the server; the account the page was rendered for is the owner.
+      let userId: string | null = null;
+      if (offline && offlineNow()) {
+        userId = getOutboxOwner();
+      } else {
+        try {
+          userId = (await supabase.auth.getUser()).data.user?.id ?? null;
+        } catch (e) {
+          if (!(offline && isNetworkError(e))) throw e;
+          userId = getOutboxOwner();
+        }
+      }
+      const user = userId ? { id: userId } : null;
 
       if (!user) {
         setError(t("انتهت الجلسة — أعد تسجيل الدخول.", "Your session has ended — please sign in again."));
@@ -150,17 +243,40 @@ export default function EvidenceUpload({
         return;
       }
 
+      // No network: the file waits on the phone (photoOutbox says why its path is fixed now).
+      if (offline && offlineNow()) {
+        await keep(toUpload, metadata);
+        return;
+      }
+
       // The storage policy checks the first path segment against the caller,
       // so the user id must lead.
       const extension = ACCEPTED_EXTENSION[toUpload.type] ?? "jpg";
-      const path = `${user.id}/${folder}/${crypto.randomUUID()}.${extension}`;
+      const id = offline ? newPhotoId(Date.now()) : crypto.randomUUID();
+      const storagePath = offline
+        ? storagePathOf({ userId: user.id, folder, id, type: toUpload.type })
+        : `${user.id}/${folder}/${id}.${extension}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("evidence")
-        .upload(path, toUpload, {
-          contentType: toUpload.type,
-          upsert: false,
-        });
+      let uploadError: { message: string } | null;
+      try {
+        uploadError = (
+          await supabase.storage.from("evidence").upload(storagePath, toUpload, {
+            contentType: toUpload.type,
+            upsert: false,
+          })
+        ).error;
+      } catch (e) {
+        if (offline && isNetworkError(e)) {
+          await keep(toUpload, metadata, id);
+          return;
+        }
+        throw e;
+      }
+
+      if (uploadError && offline && isNetworkError(uploadError)) {
+        await keep(toUpload, metadata, id);
+        return;
+      }
 
       if (uploadError) {
         setError(t(`تعذّر رفع الملف: ${uploadError.message}`, `Could not upload the file: ${uploadError.message}`));
@@ -176,12 +292,23 @@ export default function EvidenceUpload({
         );
       }
 
-      const result = await onUploaded({
-        kind,
-        storagePath: path,
-        caption: caption.trim() || file.name,
-        metadata,
-      });
+      let result: { ok: boolean; message?: string } | void;
+      try {
+        result = await onUploaded({
+          kind,
+          storagePath,
+          caption: caption.trim() || file.name,
+          metadata,
+        });
+      } catch (e) {
+        // The file is up and the record never reached the server: kept under the same id, the next try finds the
+        // file there and records it.
+        if (offline && isNetworkError(e)) {
+          await keep(toUpload, metadata, id);
+          return;
+        }
+        throw e;
+      }
 
       if (result && !result.ok) {
         setError(result.message ?? t("تعذّر حفظ الدليل.", "Could not save the evidence."));
@@ -239,6 +366,28 @@ export default function EvidenceUpload({
       </div>
 
       {error && <p className="text-xs text-danger">{error}</p>}
+      {kept.length > 0 && (
+        <ul className="flex flex-col gap-1 rounded-lg border border-border p-2 text-xs" role="status">
+          {kept.map((k) => (
+            <li key={k.id} className="flex flex-wrap items-center gap-2 [overflow-wrap:anywhere]">
+              {k.status === "refused" ? (
+                <span className="text-danger">
+                  {t("رُفض حين أُرسل:", "Refused when sent:")} <span dir="auto">{k.caption}</span>
+                  {k.message ? <> — {k.message}</> : null}
+                </span>
+              ) : (
+                <span>
+                  {t("محفوظ على هاتفك وينتظر الشبكة:", "Kept on your phone, waiting for the network:")}{" "}
+                  <span dir="auto">{k.caption}</span> ({mb(k.size)} {t("ميجابايت", "MB")})
+                </span>
+              )}
+              <button type="button" onClick={() => void dropPhoto(k.id)} className="text-muted underline">
+                {t("احذفه", "Remove it")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {notice && <p className="text-xs text-primary">{notice}</p>}
       <p className="text-xs text-muted">
         {t(
