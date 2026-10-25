@@ -207,6 +207,17 @@ export async function addEvidence(args: {
     };
   }
 
+  // A photo kept offline is sent again if the reply to its first send was lost (backlog 185): the same file on the
+  // same stage is the evidence already recorded, not a second piece of it.
+  const { data: already } = await supabase
+    .from("stage_evidence")
+    .select("id")
+    .eq("stage_id", args.stageId)
+    .eq("storage_path", args.storagePath)
+    .limit(1)
+    .maybeSingle();
+  if (already) return { ok: true };
+
   const photo = sanitisePhotoMetadata(args.metadata);
 
   const { error } = await supabase.from("stage_evidence").insert({

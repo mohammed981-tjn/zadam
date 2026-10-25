@@ -59,6 +59,17 @@ export async function addLandDocument(args: {
     };
   }
 
+  // A document kept offline is sent again if the reply to its first send was lost (backlog 185): the same file on the
+  // same land is the document already recorded.
+  const { data: already } = await supabase
+    .from("land_documents")
+    .select("id")
+    .eq("land_id", args.landId)
+    .eq("storage_path", args.storagePath)
+    .limit(1)
+    .maybeSingle();
+  if (already) return { ok: true };
+
   const photo = sanitisePhotoMetadata(args.metadata);
 
   const { error } = await supabase.from("land_documents").insert({
