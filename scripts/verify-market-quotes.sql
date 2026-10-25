@@ -164,7 +164,7 @@ set role anon;
 do $$ begin
   perform _refuses($q$delete from market_quotes$q$, 'والزائر لا يحذف');
   perform _refuses($q$select market_quote_erase((select id from market_quotes limit 1), 'سبب كافٍ')$q$, 'ولا يمحو بالدالّة');
-  perform _refuses($q$select market_quote_review_all()$q$, 'ولا يعتمد بنقرة');
+  perform _refuses($q$select market_quote_review_all(array(select id from market_quotes))$q$, 'ولا يعتمد بنقرة');
 end $$;
 reset role;
 
@@ -175,7 +175,7 @@ declare victim uuid; n_before integer; n_after integer; snap jsonb;
 begin
   perform _act_as('c3000000-0000-0000-0000-0000000000c3');
   perform _refuses($q$select market_quote_erase((select id from market_quotes limit 1), 'سبب كافٍ')$q$, 'المسجَّل غير المدير لا يمحو');
-  perform _refuses($q$select market_quote_review_all()$q$, 'ولا يعتمد بنقرة');
+  perform _refuses($q$select market_quote_review_all(array(select id from market_quotes))$q$, 'ولا يعتمد بنقرة');
   perform _act_as('f6000000-0000-0000-0000-0000000000f6');
   select id into victim from market_quotes where reason like 'قفزة%';
   perform _refuses(format($q$select market_quote_erase(%L, 'ab')$q$, victim), 'والمحو بلا سببٍ كافٍ يُرفض');
@@ -207,11 +207,15 @@ declare n integer;
 begin
   perform _act_as('f6000000-0000-0000-0000-0000000000f6');
   perform _eq((select count(*)::int from market_quotes where status = 'held'), 3, 'قبل النقرة: ثلاثة محجوزات مقروءة بيقين (والنصّ الحرّ القديم نُشر في أ)');
-  n := market_quote_review_all();
-  perform _eq(n, 3, 'النقرة تعتمد ما قُرئ بيقين: دولاران ومحصول');
+  -- The page showed two of the three: the third (read after it opened, or past its list) waits for the next look.
+  n := market_quote_review_all(array(select id from market_quotes where status = 'held' order by created_at, id limit 2));
+  perform _eq(n, 2, 'النقرة تعتمد ما عُرض على المدير وحده: اثنان من ثلاثة');
+  perform _eq((select count(*)::int from market_quotes where status = 'held'), 1, 'والثالث الذي لم يُعرض باقٍ محجوزاً');
+  n := n + market_quote_review_all(array(select id from market_quotes where status = 'held'));
+  perform _eq(n, 3, 'ثمّ يُعتمد حين يُعرض: دولاران ومحصول');
   perform _eq((select count(*)::int from market_quotes where status = 'published' and reason = 'قراءة موثوقة تنتظر اعتماد الإدارة' and reviewed_by is not null and reviewed_at is not null), 3, 'وتسجّل من اعتمد ومتى');
   perform _eq((select count(*)::int from market_quotes where status = 'held'), 0, 'ولا يبقى محجوزٌ');
-  perform _eq(market_quote_review_all(), 0, 'والنقرة الثانية لا تجد شيئاً');
+  perform _eq(market_quote_review_all(array(select id from market_quotes)), 0, 'والنقرة الثانية لا تجد شيئاً');
 end $$;
 reset role;
 
@@ -222,7 +226,7 @@ insert into market_quotes (kind, market_date, buy, sell, source_url, quote, stat
 set role authenticated;
 do $$ begin
   perform _act_as('f6000000-0000-0000-0000-0000000000f6');
-  perform _eq(market_quote_review_all(), 1, 'النقرة تعتمد المقروء بيقين وحده');
+  perform _eq(market_quote_review_all(array(select id from market_quotes where status = 'held')), 1, 'النقرة تعتمد المقروء بيقين وحده');
   perform _eq((select status from market_quotes where source_url = 'https://bajnews.net/e/'), 'held', 'وما شذّ يبقى محجوزاً لقرارٍ منفرد');
   perform _eq((select status from market_quotes where source_url = 'https://bajnews.net/f/'), 'published', 'والمقروء بيقين نُشر');
 end $$;
@@ -231,7 +235,7 @@ reset role;
 do $$ begin
   perform _eq(has_function_privilege('anon', 'market_quote_erase(uuid,text)', 'execute'), false, 'المحو ليس للزائر');
   perform _eq(has_function_privilege('service_role', 'market_quote_erase(uuid,text)', 'execute'), false, 'ولا لمفتاح الخدمة');
-  perform _eq(has_function_privilege('service_role', 'market_quote_review_all()', 'execute'), false, 'ولا الاعتماد بنقرة');
+  perform _eq(has_function_privilege('service_role', 'market_quote_review_all(uuid[])', 'execute'), false, 'ولا الاعتماد بنقرة');
   perform _eq(has_function_privilege('authenticated', 'market_quotes_keep()', 'execute'), false, 'والحارس الداخليّ لا يستدعيه أحد');
   perform _eq(has_table_privilege('service_role', 'market_quotes', 'delete'), false, 'ومفتاح الخدمة لا يملك DELETE');
   perform _eq(has_table_privilege('service_role', 'market_quotes', 'truncate'), false, 'ولا TRUNCATE');

@@ -40,3 +40,51 @@ echo "── المزامنة";     pg_run "$SYNC" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"
+
+# A check that writes the difference while an approval is under way (ج١٢): the approval waits for it, then sees that the
+# difference is no longer what the page showed, and refuses — instead of deleting rows it never applied.
+RACE_SYNC="$(cat <<'EOF' | pg_write race-sync.sql
+begin;
+insert into faostat_pending (domain, area, element, item, year, unit, value, flag) values ('PP', 'Sudan', 'Producer Price (USD/tonne)', 'Late row', 2024, 'USD', 5, 'A');
+select pg_sleep(2);
+commit;
+EOF
+)"
+RACE_SETUP="$(cat <<'EOF' | pg_write race-setup.sql
+insert into faostat_pending (domain, area, element, item, year, unit, value, flag, found_at) values ('PP', 'Sudan', 'Producer Price (USD/tonne)', 'Seen row', 2024, 'USD', 4, 'A', '2026-10-25 01:00:00+00');
+update _who set uid = 'f6000000-0000-0000-0000-0000000000f6';
+EOF
+)"
+RACE_APPLY="$(cat <<'EOF' | pg_write race-apply.sql
+\set ON_ERROR_STOP off
+set role authenticated;
+select faostat_apply_pending(1, '2026-10-25 01:00:00+00');
+EOF
+)"
+RACE_CHECK="$(cat <<'EOF' | pg_write race-check.sql
+\set ON_ERROR_STOP on
+\set QUIET on
+\echo ''
+\echo 'ز) فحصٌ يكتب الفرق أثناء الاعتماد: لا يضيع صفّ (ج١٢)'
+do $$ begin
+  perform _eq((select count(*)::int from faostat_pending where item = 'Late row'), 1, 'الصفّ الذي كُتب أثناء الاعتماد باقٍ ينتظر');
+  perform _eq((select count(*)::int from faostat_pending where item = 'Seen row'), 1, 'والاعتماد رُفض لأنّ الفرق تغيّر: ما رآه المدير باقٍ أيضاً');
+  perform _eq((select count(*)::int from faostat_observations where item in ('Late row', 'Seen row')), 0, 'ولم يدخل شيءٌ لم يُرَ');
+end $$;
+do $$
+declare f integer;
+begin
+  select fails into f from _score;
+  if f > 0 then raise exception 'فشل % فحصاً.', f; end if;
+  raise notice 'ALL CHECKS PASSED — والاعتماد لا يُسقط ما كُتب أثناءه';
+end $$;
+EOF
+)"
+echo "── السباق"
+pg_run_quiet "$RACE_SETUP"
+pg_sh "$PG_PSQL -q -f $RACE_SYNC" >/dev/null &
+SYNCER=$!
+sleep 0.7
+pg_sh "$PG_PSQL -q -f $RACE_APPLY" >/dev/null 2>&1 || true
+wait "$SYNCER"
+pg_run "$RACE_CHECK"
