@@ -93,6 +93,9 @@ export default async function AdminPage() {
           <Link href="/admin/oversight" className="text-sm text-primary underline">
             الرقابة الماليّة
           </Link>
+          <Link href="/admin/books" className="text-sm text-primary underline">
+            دفتر المنصّة والرسوم
+          </Link>
           <Link
             href="/admin/feedback"
             className="text-sm text-primary underline"

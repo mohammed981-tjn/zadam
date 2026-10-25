@@ -6,6 +6,7 @@ import { tr } from "@/lib/i18n";
 import { ledgerToday } from "@/lib/ledger/today";
 import { loadReport, pickBook } from "@/lib/ledger/load";
 import ActionNotice from "@/components/ActionNotice";
+import PrintButton from "@/components/PrintButton";
 import LinksPanel from "@/components/books/LinksPanel";
 import { reversalAction } from "@/lib/ledgerLinks";
 import { loadLinks } from "@/lib/ledgerLinksLoad";
@@ -61,6 +62,11 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   // a proposal can wait for someone whose book is not yet opened.
   const links = await loadLinks(supabase);
   const waitingForMe = links.filter((l) => (l.status === "pending" && !l.mine) || reversalAction(l) === "answer").length;
+  // Fees the platform recorded against me, waiting for me to say where I paid them from (backlog 189).
+  const { data: feeRows } = await supabase.rpc("ledger_fees_list");
+  const feesWaiting = ((feeRows ?? []) as { status: string; payer_owner: string }[]).filter(
+    (f) => f.status === "pending" && f.payer_owner === user.id,
+  ).length;
 
   if (!book && p.bookId) {
     return (
@@ -123,11 +129,23 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
             {book?.closed_through && ` · ${t("مقفل حتى", "closed through")} ${book.closed_through}`}
           </p>
         </div>
-        {data && (
-          <a href={exportLink} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
-            {t("تصدير CSV", "Export CSV")}
-          </a>
-        )}
+        <div className="flex flex-wrap gap-2 print:hidden">
+          {book && book.owner_id === user.id && (
+            <Link href={`/books/reconcile${p.kind ? `?book=${p.kind}` : ""}`} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
+              {t("مطابقة الكشف", "Match a statement")}
+            </Link>
+          )}
+          <Link href="/books/fees" className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
+            {t("رسوم المنصّة", "Platform fees")}
+            {feesWaiting > 0 && <span className="ms-1.5 rounded-full bg-danger px-1.5 py-0.5 text-xs font-bold text-white">{feesWaiting}</span>}
+          </Link>
+          {data && (
+            <a href={exportLink} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
+              {t("تصدير CSV", "Export CSV")}
+            </a>
+          )}
+          {data && <PrintButton label={t("اطبع أو احفظ PDF", "Print or save as PDF")} />}
+        </div>
       </div>
 
       <p className="mt-3 text-xs text-muted">
@@ -137,7 +155,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
         )}
       </p>
 
-      <nav className="mt-4 flex gap-2 overflow-x-auto pb-1" aria-label={t("التقارير", "Reports")}>
+      <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 print:hidden" aria-label={t("التقارير", "Reports")}>
         {TABS.map((tab) => (
           <Link
             key={tab.key}
@@ -157,7 +175,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
       </nav>
 
       {shown !== "links" && (
-      <form method="get" action="/books" className="mt-4 flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3">
+      <form method="get" action="/books" className="mt-4 flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3 print:hidden">
         <input type="hidden" name="r" value={shown} />
         {p.kind && <input type="hidden" name="book" value={p.kind} />}
         {p.bookId && <input type="hidden" name="id" value={p.bookId} />}
