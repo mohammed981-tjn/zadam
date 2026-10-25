@@ -33,6 +33,11 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *      an administrator first. A scheduled job has no visitor to act as; it
  *      writes only rows in market_quotes and price_runs.
  *
+ *   4. The contact and feedback forms (/api/leads, /api/feedback; backlog 198,
+ *      D9). The public key holds no INSERT on those tables any more, so one
+ *      script cannot fill their hourly ceiling and shut the forms for everyone;
+ *      the routes limit each address first and build the row from a few fields.
+ *
  * A further caller is a decision, not a detail. Add it to this list.
  */
 

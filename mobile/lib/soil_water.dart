@@ -148,13 +148,13 @@ class IrrigationInterval {
   /// Readily available water in the root zone, mm.
   final double rawMm;
 
-  /// Peak daily crop water use, mm/day.
+  /// Peak daily crop water use (net, what the plant draws from the soil), mm/day.
   final double peakMmPerDay;
 
   /// Days between irrigations at peak demand.
   final double days;
 
-  /// Depth to apply each time, and the same as a volume per feddan.
+  /// Depth that refills the root zone each time (net), and what to pump for it per feddan (gross).
   final double doseMm;
   final double doseM3PerFeddan;
 }
@@ -181,10 +181,11 @@ IrrigationInterval? irrigationInterval(
   final rawMm = taw * rootDepth * p;
 
   final req = waterRequirement(crop, station, plantingMonth, method);
-  // peakM3PerFeddanPerDay is gross — what leaves the pump. Back out the depth
-  // the plant actually sees, so the interval is not shortened by the delivery
-  // system's own losses.
-  final peakMmPerDay = req.peakM3PerFeddanPerDay / m3PerMmPerFeddan;
+  final efficiency = irrigationEfficiency[method]!;
+  // peakM3PerFeddanPerDay is gross — what leaves the pump. The plant draws the
+  // root zone down by the net depth only, so the efficiency is multiplied back
+  // in: the interval is the soil's and the crop's, the same under every method.
+  final peakMmPerDay = req.peakM3PerFeddanPerDay / m3PerMmPerFeddan * efficiency;
   if (peakMmPerDay <= 0) return null;
 
   return IrrigationInterval(
@@ -193,6 +194,7 @@ IrrigationInterval? irrigationInterval(
     peakMmPerDay: peakMmPerDay,
     days: rawMm / peakMmPerDay,
     doseMm: rawMm,
-    doseM3PerFeddan: rawMm * m3PerMmPerFeddan,
+    // What to pump to put rawMm into the root zone: the method's losses are added here, not to the interval.
+    doseM3PerFeddan: rawMm * m3PerMmPerFeddan / efficiency,
   );
 }

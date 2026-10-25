@@ -91,7 +91,8 @@ insert into season_stages (id, season_id, stage_key, stage_order, planned_start,
   ('51000000-0000-0000-0000-000000000002', '5e000000-0000-0000-0000-000000000001', 'planting',      2, date '2026-06-11', date '2026-06-20', false, null),
   ('51000000-0000-0000-0000-000000000003', '5e000000-0000-0000-0000-000000000001', 'establishment', 3, date '2026-06-21', date '2026-06-30', false, null),
   ('52000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000002', 'land_prep',     1, date '2026-06-01', date '2026-06-10', false, null),
-  ('52000000-0000-0000-0000-000000000002', '5e000000-0000-0000-0000-000000000002', 'planting',      2, date '2026-06-11', date '2026-06-20', true,  now());
+  ('52000000-0000-0000-0000-000000000002', '5e000000-0000-0000-0000-000000000002', 'planting',      2, date '2026-06-11', date '2026-06-20', true,  now()),
+  ('53000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000003', 'land_prep',     1, date '2026-06-01', date '2026-06-10', false, null);
 
 insert into stage_evidence (id, stage_id, kind, storage_path, created_by) values
   ('e1000000-0000-0000-0000-000000000001', '51000000-0000-0000-0000-000000000001', 'photo', 'fa000000-0000-0000-0000-0000000000fa/s1-done.jpg', 'fa000000-0000-0000-0000-0000000000fa'),
@@ -117,6 +118,8 @@ insert into service_contracts (id, season_id, provider_id, client_id, title) val
    'b0000000-0000-0000-0000-0000000000b0', 'fa000000-0000-0000-0000-0000000000fa', 'عقد');
 insert into contract_milestones (id, contract_id, seq, title, unit, quantity, unit_price) values
   ('11000000-0000-0000-0000-000000000011', 'cc000000-0000-0000-0000-0000000000c1', 1, 'مرحلة', 'lump', 1, 100);
+insert into contract_milestones (id, contract_id, seq, title, unit, quantity, unit_price) values
+  ('11000000-0000-0000-0000-000000000012', 'cc000000-0000-0000-0000-0000000000c1', 2, 'مرحلة ثانية', 'lump', 1, 100);
 update contract_milestones set approved_at = now(), approved_by = 'fa000000-0000-0000-0000-0000000000fa'
  where id = '11000000-0000-0000-0000-000000000011';
 insert into milestone_evidence (id, milestone_id, kind, storage_path, created_by) values
@@ -173,8 +176,23 @@ begin
     'ولا تُحذف مرحلةٌ اعتُمدت');
   perform _refuses($q$delete from season_stages where id = '52000000-0000-0000-0000-000000000001'$q$,
     'ولا تُحذف مرحلةٌ مفتوحةٌ قبل مرحلةٍ معتمدة (فيُغلق ما بعدها بلا سابق)');
-  perform _works($q$delete from season_stages where id = '51000000-0000-0000-0000-000000000003'$q$,
-    'وتُحذف مرحلةٌ مفتوحةٌ لا دليل لها ولا معتمدةَ بعدها', 1);
+  -- البند ١٩٨ د٣: المرحلة ١ معتمدة و٢ و٣ مفتوحتان؛ كان يُحذف ٢ ثمّ يُعتمد ٣ «بلا مفتوحٍ قبله».
+  perform _refuses($q$delete from season_stages where id = '51000000-0000-0000-0000-000000000002'$q$,
+    'ولا تُحذف مرحلةٌ مفتوحة من موسمٍ بدأ اعتماد مراحله (كان يُحذف ما قبل المرحلة ليُعتمد ما بعدها)');
+  perform _refuses($q$delete from season_stages where id = '51000000-0000-0000-0000-000000000003'$q$,
+    'ولا الأخيرةُ منه: خطّة موسمٍ بدأ ثابتة');
+  perform _refuses($q$delete from season_stages where id = '53000000-0000-0000-0000-000000000001'$q$,
+    'ولا تُحذف مرحلةٌ مفتوحة من موسمٍ أُقفل (فتعلو نسبة التزامه)');
+  perform _works($q$delete from season_stages where season_id = '5e000000-0000-0000-0000-000000000005'$q$,
+    'وتُحذف مراحلُ موسمٍ لم تُعتمد فيه مرحلةٌ بعد', 1);
+
+  -- د٤: موسمٌ يُدرَج مُقفلاً بحصادٍ مكتوب كان يرفع السجلّ ويتخطّى ترحيل الإقفال.
+  perform _refuses($q$insert into seasons (owner_id, name, crop_key, station_key, irrigation, feddans, planting_date, status, harvest_kg)
+    values ('fa000000-0000-0000-0000-0000000000fa', 'مُقفلٌ من أوّله', 'sesame', 'wad_medani', 'canal', 5, date '2026-01-01', 'completed', 999999)$q$,
+    'لا يُدرَج موسمٌ مُقفلاً مباشرةً');
+  perform _works($q$insert into seasons (owner_id, name, crop_key, station_key, irrigation, feddans, planting_date)
+    values ('fa000000-0000-0000-0000-0000000000fa', 'موسمٌ جديد', 'sesame', 'wad_medani', 'canal', 5, date '2026-07-01')$q$,
+    'ويُدرَج جارياً كما يفعل التطبيق', 1);
 end $$;
 
 \echo ''
@@ -228,6 +246,23 @@ begin
 
   perform _refuses($q$delete from milestone_evidence where id = 'ee000000-0000-0000-0000-000000000011'$q$,
     'ولا يُحذف دليلُ مرحلةِ عقدٍ وُوفق عليها');
+
+  -- د٦: دليل مرحلة العقد بقاعدة دليل المرحلة.
+  perform _refuses($q$insert into milestone_evidence (milestone_id, kind, storage_path, created_by)
+    values ('11000000-0000-0000-0000-000000000011', 'photo', 'fa000000-0000-0000-0000-0000000000fa/s1-done.jpg', 'fa000000-0000-0000-0000-0000000000fa')$q$,
+    'لا يُضاف دليلٌ إلى مرحلة عقدٍ وُوفق عليها');
+  perform _refuses($q$insert into milestone_evidence (milestone_id, kind, storage_path, created_by)
+    values ('11000000-0000-0000-0000-000000000012', 'photo', 'bb000000-0000-0000-0000-0000000000bb/theirs.jpg', 'bb000000-0000-0000-0000-0000000000bb')$q$,
+    'ولا ملفٌّ من مجلّد الطرف الآخر باسمه');
+  perform _refuses($q$insert into milestone_evidence (milestone_id, kind, storage_path, created_by)
+    values ('11000000-0000-0000-0000-000000000012', 'invoice', 'fa000000-0000-0000-0000-0000000000fa/never-uploaded.pdf', 'fa000000-0000-0000-0000-0000000000fa')$q$,
+    'ولا ملفٌّ لم يُرفع قطّ');
+  perform _works($q$insert into milestone_evidence (milestone_id, kind, storage_path, created_by)
+    values ('11000000-0000-0000-0000-000000000012', 'photo', 'fa000000-0000-0000-0000-0000000000fa/land-new.pdf', 'bb000000-0000-0000-0000-0000000000bb')$q$,
+    'ويُسجَّل ملفُّك الموجود على مرحلةٍ لم يُوافَق عليها', 1);
+  perform _works($q$select 1 from milestone_evidence where storage_path = 'fa000000-0000-0000-0000-0000000000fa/land-new.pdf'
+       and created_by = 'fa000000-0000-0000-0000-0000000000fa'$q$,
+    'وباسمك أنت ولو كُتب اسم غيرك', 1);
   perform _refuses($q$delete from custody_evidence where id = 'cc000000-0000-0000-0000-0000000000cc'$q$,
     'ولا دليلُ سلسلة العهدة — تُلحَق ولا تُعدَّل');
 end $$;

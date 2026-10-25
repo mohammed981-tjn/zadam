@@ -189,8 +189,8 @@ class _WaterScreenState extends State<WaterScreen> {
               title: 'الفترة بين ريّة وريّة — تربة ${soilLabel[_soil]}',
               primary: 'كل ${_n(iv.days, 1)} يوم',
               secondary:
-                  'الجرعة ${_n(iv.doseMm)} مم — أي ${_n(iv.doseM3PerFeddan * _feddans)} م³ '
-                  '(${_n(iv.doseM3PerFeddan)} م³ للفدان) في كل ريّة، '
+                  'الجرعة ${_n(iv.doseMm)} مم تبلغ الجذور، وتضخّ لها ${_n(iv.doseM3PerFeddan * _feddans)} م³ '
+                  '(${_n(iv.doseM3PerFeddan)} م³ للفدان) في كل ريّة مع فاقد طريقة الريّ، '
                   'محسوبة على شهر الذروة لا على المتوسط',
             ),
             const SizedBox(height: 12),

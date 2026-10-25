@@ -29,6 +29,7 @@ FREEZE="$(pg_stage "$ROOT/supabase/migrations/20260903190000_export_freeze_requi
 LOCK="$(pg_stage "$ROOT/supabase/migrations/20260904210000_evidence_is_not_withdrawable.sql" lock.sql)"
 FIXTURE="$(pg_stage "$ROOT/scripts/direct-writes.fixture.sql" fixture.sql)"
 GATES="$(pg_stage "$ROOT/supabase/migrations/20261024010000_close_direct_writes_stages_evidence_ledger.sql" gates.sql)"
+REVIEW="$(pg_stage "$ROOT/supabase/migrations/20261025200000_stages_seasons_evidence.sql" review.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-direct-writes.sql" checks.sql)"
 
 echo "── الأساس";            pg_run_quiet "$BASE"
@@ -40,6 +41,7 @@ echo "── تجميدُ المتطلّبات";  pg_run_quiet "$FREEZE"
 echo "── قفلُ الأدلّة";       pg_run_quiet "$LOCK"
 echo "── أعمدةٌ لاحقة";      pg_run_quiet "$FIXTURE"
 echo "── الحرّاس الجديدة";    pg_run_quiet "$GATES"
+echo "── مراجعة ١٩٨ (د٣ د٤ د٦)"; pg_run "$REVIEW" >/dev/null
 
 echo "── الفحوص"
 pg_run "$CHECKS"
