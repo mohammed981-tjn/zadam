@@ -71,6 +71,23 @@ TRADE_ITEM_KEYWORDS = (
 
 FIRST_YEAR = 2017
 
+# The Crops and livestock products slice (backlog 197): the elements the reference table already holds, for the same
+# twenty-eight areas. Names, not codes, as for the other slices — and printed, so a silently empty slice is visible.
+QCL_ELEMENTS = {
+    "Area harvested", "Yield", "Production", "Stocks",
+    "Producing Animals/Slaughtered", "Milk Animals", "Laying",
+    "Yield/Carcass Weight",
+}
+
+# Two rows can share (Area, Element, Item, Year) and differ only in unit — eggs have a «Production» in tonnes and another
+# in thousands of eggs — and the table's key cannot hold both. The mass unit wins, a count comes last; the same order as
+# UNIT_RANK in src/lib/faostatSync.ts, which applies it again when it reads the file.
+UNIT_RANK = ["t", "kg/ha", "ha", "kg/An", "g/An", "An", "1000 An", "No", "1000 No"]
+
+
+def unit_rank(unit: str) -> int:
+    return UNIT_RANK.index(unit) if unit in UNIT_RANK else len(UNIT_RANK)
+
 
 def open_member(zf: zipfile.ZipFile) -> io.TextIOWrapper:
     """Open the single CSV inside a FAOSTAT zip, whatever it is named."""
@@ -107,6 +124,10 @@ def keep_price(row: dict[str, str]) -> bool:
     return "USD" in (row.get("Element") or "")
 
 
+def keep_yield(row: dict[str, str]) -> bool:
+    return row.get("Area") in AREAS and (row.get("Element") or "").strip() in QCL_ELEMENTS
+
+
 def keep_trade(row: dict[str, str]) -> bool:
     if row.get("Area") not in TRADE_AREAS:
         return False
@@ -121,11 +142,11 @@ def keep_trade(row: dict[str, str]) -> bool:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--zip", required=True)
-    ap.add_argument("--domain", required=True, choices=("PP", "TCL"))
+    ap.add_argument("--domain", required=True, choices=("PP", "TCL", "QCL"))
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
-    keep = keep_price if args.domain == "PP" else keep_trade
+    keep = {"PP": keep_price, "TCL": keep_trade, "QCL": keep_yield}[args.domain]
 
     seen: dict[tuple[str, str, str, int], tuple[str, str, str]] = {}
     scanned = 0
@@ -155,12 +176,11 @@ def main() -> int:
                 except ValueError:
                     continue
                 key = (row["Area"], row["Element"], row["Item"], int(year_text))
-                # Last row wins, matching the loader's own upsert.
-                seen[key] = (
-                    (row.get("Unit") or "").strip(),
-                    value,
-                    (row.get("Flag") or "").strip(),
-                )
+                # Last row wins, matching the loader's own upsert — unless the row already held has a better unit.
+                unit = (row.get("Unit") or "").strip()
+                if key in seen and unit_rank(seen[key][0]) < unit_rank(unit):
+                    continue
+                seen[key] = (unit, value, (row.get("Flag") or "").strip())
                 items.add(row["Item"])
 
     print(f"scanned {scanned:,} rows, kept {len(seen):,}")

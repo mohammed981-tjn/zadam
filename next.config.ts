@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /*
+   * ملفّات الفاو (البند ١٩٧) تُقرأ من القرص بالمزامنة اليومية وبزرّ «افحص الآن»، وقراءتها بمسارٍ يُبنى وقت التشغيل
+   * لا يراها تتبّع الملفّات، فتُذكر هنا صراحةً. وتفحص verify-faostat-sync.ts أنّ كلّ شريحةٍ تقرؤها المزامنة مذكورة.
+   */
+  outputFileTracingIncludes: {
+    "/api/health": ["./data/faostat-*.tsv"],
+    "/admin/faostat": ["./data/faostat-*.tsv"],
+  },
   // The framework's name and version are not for visitors (SEC-11).
   poweredByHeader: false,
   /*

@@ -4,6 +4,7 @@ import { bearerMatches } from "@/lib/cronAuth";
 import { refreshPrices } from "@/lib/priceRefresh";
 import { evaluatePriceAlerts } from "@/lib/priceAlerts";
 import { runBookkeeping } from "@/lib/bookkeeping";
+import { syncFaostat } from "@/lib/faostatSync";
 
 /**
  * Daily health check, which also keeps the database from being paused.
@@ -122,6 +123,17 @@ export async function GET(req: NextRequest) {
      */
     const books = await runBookkeeping(supabase);
     if (books.synced || books.mismatched || books.snapshot) console.log("health: books", books);
+
+    /*
+     * بيانات الفاو (البند ١٩٧): تقارن ملفّات data/ بالقاعدة وتضع الفرق وحده بانتظار اعتماد المدير. وحين لا يتغيّر
+     * ملفٌّ منذ آخر فحص تعود دون أن تلمس القاعدة، فهي في أيّام السنة كلّها تقريباً طلبٌ واحد صغير. لا ترمي أبداً.
+     */
+    try {
+      const faostat = await syncFaostat(supabase, "cron");
+      if (!faostat.skipped || faostat.problems.length > 0) console.log("health: faostat", faostat);
+    } catch (e) {
+      console.error("health: faostat sync failed", e);
+    }
 
     const { data, error } = await supabase.rpc("run_system_check");
 

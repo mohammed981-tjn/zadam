@@ -1,6 +1,7 @@
-name: FAOSTAT prices and trade
+name: FAOSTAT prices, trade and yield
 
-# Fetches two FAOSTAT bulk downloads, trims them, and commits the result.
+# Fetches three FAOSTAT bulk downloads (producer prices, trade, and crops-and-livestock yield), trims them, and commits
+# the result.
 #
 # It runs here rather than anywhere else for one reason: fao.org is not
 # reachable from the environment this repository is developed in, and the
@@ -9,7 +10,10 @@ name: FAOSTAT prices and trade
 #
 # Nothing about this touches the database. The commit is the deliverable; the
 # load is a separate, deliberate step so that a bad refresh is a diff to read
-# rather than a table to repair.
+# rather than a table to repair. Since backlog 197 that step is the platform's
+# own: the daily check (src/lib/faostatSync.ts, called by /api/health) compares
+# data/faostat-*.tsv with faostat_observations and stages only the difference in
+# faostat_pending, and the administrator approves it at /admin/faostat.
 
 on:
   # مرّتان في السنة. فـFAOSTAT تنشر سنوياً، وجدولٌ أكثفُ من ذلك يُنزّل ٢٧٣
@@ -51,28 +55,39 @@ jobs:
             'https://bulks-faostat.fao.org/production/Trade_CropsLivestock_E_All_Data_(Normalized).zip'
           ls -l trade.zip
 
+      - name: Download the Crops and livestock products archive
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 \
+            -o yield.zip \
+            'https://bulks-faostat.fao.org/production/Production_Crops_Livestock_E_All_Data_(Normalized).zip'
+          ls -l yield.zip
+
       - name: Trim prices
         run: python3 scripts/faostat-trim.py --zip prices.zip --domain PP  --out data/faostat-prices.tsv
 
       - name: Trim trade
         run: python3 scripts/faostat-trim.py --zip trade.zip  --domain TCL --out data/faostat-trade.tsv
 
+      - name: Trim yield
+        run: python3 scripts/faostat-trim.py --zip yield.zip  --domain QCL --out data/faostat-yield.tsv
+
       - name: Report what will be committed
         run: |
-          wc -l data/faostat-prices.tsv data/faostat-trade.tsv
-          du -h data/faostat-prices.tsv data/faostat-trade.tsv
+          wc -l data/faostat-prices.tsv data/faostat-trade.tsv data/faostat-yield.tsv
+          du -h data/faostat-prices.tsv data/faostat-trade.tsv data/faostat-yield.tsv
           echo '--- first three rows of each ---'
           head -3 data/faostat-prices.tsv
           head -3 data/faostat-trade.tsv
+          head -3 data/faostat-yield.tsv
 
       - name: Commit
         run: |
           git config user.name  'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data/faostat-prices.tsv data/faostat-trade.tsv
+          git add data/faostat-prices.tsv data/faostat-trade.tsv data/faostat-yield.tsv
           if git diff --cached --quiet; then
             echo 'FAOSTAT is unchanged since the last refresh.'
             exit 0
           fi
-          git commit -m 'Refresh the FAOSTAT price and trade slices'
+          git commit -m 'Refresh the FAOSTAT price, trade and yield slices'
           git push origin HEAD:${GITHUB_REF_NAME}

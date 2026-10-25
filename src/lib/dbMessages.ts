@@ -203,6 +203,8 @@ const MESSAGES: [string, string][] = [
   ["للإدارة وحدها", "For administrators only"],
   ["الأسعار المحفوظة لا تُفرَّغ", "Kept prices are never emptied"],
   ["سجلّ المحو لا يتغيّر", "The erasure log never changes"],
+  ["سجلّ بيانات الفاو لا يتغيّر", "The FAOSTAT log never changes"],
+  ["لا شيء ينتظر الاعتماد.", "Nothing is waiting for approval."],
   ["ما يُقرأ من الأسعار يُحفظ ولا يمحوه إلا المدير", "What is read of the prices is kept; only an administrator can erase it"],
   ["اكتب سبب المحو (٣ أحرفٍ فأكثر).", "Write the reason for erasing (3 characters or more)."],
   ["لا رقمَ بهذا المعرّف.", "There is no figure with this id."],

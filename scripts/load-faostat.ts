@@ -3,6 +3,11 @@
  *
  *   SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/load-faostat.ts [--dry-run]
  *
+ * RETIRED FOR WRITING (backlog 197, 25 October 2026): the service-role key can no longer write to faostat_observations
+ * (migration 20261025130000_faostat_sync.sql). The files in data/ are compared with the table every day by
+ * src/lib/faostatSync.ts and only the difference is staged; the administrator approves it at /admin/faostat, and the
+ * table is written by one function (faostat_apply_pending) that keeps what it replaces. `--dry-run` still parses the CSVs.
+ *
  * NO LONGER THE ONLY WAY IN, AND NO LONGER THE FIRST ONE TO REACH FOR.
  *
  * This needs a machine that can reach both the service role key and the
@@ -48,7 +53,6 @@
 
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { createClient } from "@supabase/supabase-js";
 
 /*
  * Every CSV in data/ is loaded, not one named file.
@@ -61,7 +65,6 @@ import { createClient } from "@supabase/supabase-js";
  * than a duplicate to reconcile.
  */
 const CSV_DIR = "data";
-const BATCH = 500;
 
 interface Observation {
   area: string;
@@ -198,44 +201,11 @@ async function main() {
     return;
   }
 
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!key || !url) {
-    console.error(
-      "SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL must both be set.\n" +
-        "The service role key is needed because faostat_observations is admin-write:\n" +
-        "a benchmark anyone could edit is not a benchmark.",
-    );
-    process.exit(1);
-  }
-
-  const supabase = createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  let written = 0;
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const chunk = rows.slice(i, i + BATCH);
-    const { error } = await supabase
-      .from("faostat_observations")
-      .upsert(chunk, { onConflict: "area,element,item,year" });
-
-    if (error) {
-      console.error(`batch at ${i} failed: ${error.message}`);
-      process.exit(1);
-    }
-
-    written += chunk.length;
-    process.stdout.write(`\r  ${written}/${rows.length}`);
-  }
-
-  console.log(`\nloaded ${written} observations`);
-
-  // Read back and report, so a run that silently wrote nothing is visible.
-  const { count } = await supabase
-    .from("faostat_observations")
-    .select("*", { count: "exact", head: true });
-  console.log(`table now holds ${count} rows`);
+  console.error(
+    "This script no longer writes: faostat_observations is loaded by the sync and the administrator's approval (/admin/faostat).\n" +
+      "Use --dry-run to check a CSV parses.",
+  );
+  process.exit(1);
 }
 
 main().catch((e) => {
