@@ -25,6 +25,8 @@ PAUSE="$(pg_stage "$ROOT/supabase/migrations/20260820100000_provider_paused_by_o
 LIFECYCLE="$(pg_stage "$ROOT/supabase/migrations/20260906090000_a_contract_is_an_agreement.sql" lifecycle.sql)"
 BOOKING="$(pg_stage "$ROOT/supabase/migrations/20261025220000_machinery_availability_and_group_booking.sql" booking.sql)"
 CLOSEDNAMES="$(pg_stage "$ROOT/supabase/migrations/20261025220100_machinery_closed_account_names.sql" closed-names.sql)"
+NOTIFYFN="$(pg_stage "$ROOT/scripts/notify-functions.fixture.sql" notify-functions.sql)"
+NOTICES="$(pg_stage "$ROOT/supabase/migrations/20261025220200_machinery_booking_notifications.sql" notices.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-tractor-booking.sql" checks.sql)"
 # The account-closure record, as 20261025140000_account_close.sql creates it (only what the hook reads).
 CLOSED="$(echo 'create table if not exists public.closed_accounts (user_id uuid primary key references auth.users(id), closed_at timestamptz not null default now());' | pg_write closed.sql)"
@@ -46,6 +48,7 @@ echo "── الإيقافُ الإداريّ"; pg_run_quiet "$ACTIVE"
 echo "── إيقافُ المقدّم";    pg_run_quiet "$PAUSE"
 echo "── دورةُ الحياة";      pg_run_quiet "$LIFECYCLE"
 echo "── الجرّار والحجز";    pg_run "$BOOKING" >/dev/null
+echo "── الإشعارات";        pg_run_quiet "$NOTIFYFN"; pg_run "$NOTICES" >/dev/null
 echo "── الحسابات المُغلَقة"; pg_run_quiet "$CLOSED"; pg_run "$CLOSEDNAMES" >/dev/null
 
 echo "── الفحوص"

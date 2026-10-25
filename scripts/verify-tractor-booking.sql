@@ -321,6 +321,10 @@ begin
                                                        current_date + 3, current_date + 10, 'مزارع ١'));
   perform _act_as('f2000000-0000-0000-0000-0000000000f2');
   perform machinery_booking_join(_id('B3'), '5a000000-0000-0000-0000-000000000002', 15, 'مزارع ٢');
+  -- One who joined and left before the decision is not told of it (the notices, below).
+  perform _act_as('f5000000-0000-0000-0000-0000000000f5');
+  perform machinery_booking_join(_id('B3'), '5a000000-0000-0000-0000-000000000005', 5, 'مزارع ٥');
+  perform machinery_booking_leave(_id('B3'));
   perform _act_as('f1000000-0000-0000-0000-0000000000f1');
   perform machinery_booking_request(_id('B3'));
   perform _act_as('bb000000-0000-0000-0000-0000000000bb');
@@ -359,6 +363,35 @@ begin
               'كلّ أسماء العضو في الحجوزات أُخفيت');
   perform _eq((select count(*)::int from machinery_booking_members where member_id <> m and display_name <> 'حساب مُغلَق'), others,
               'وأسماء غيره كما هي');
+end $$;
+
+\echo ''
+\echo 'الإشعارات: المنظّم بمن انضمّ، ومقدّم الخدمة بما أُرسل، والأعضاء بالقرار'
+do $$
+declare
+  f1 uuid := 'f1000000-0000-0000-0000-0000000000f1';
+  f2 uuid := 'f2000000-0000-0000-0000-0000000000f2';
+  bb uuid := 'bb000000-0000-0000-0000-0000000000bb';
+  -- Count one person's notifications of the booking whose title starts with this.
+  n_of constant text := 'select count(*)::int from notifications where kind = ''machinery_booking'' and recipient_id = $1 and title like $2';
+  n integer;
+begin
+  execute n_of into n using f1, 'انضمّ عضوٌ إلى حجزك%';
+  perform _eq(n, 4, 'المنظّم يُخبَر بكلّ من انضمّ إلى حجزه (ب١ وب٢ وب٣ مرّتين)');
+  execute n_of into n using f2, 'انضمّ عضوٌ إلى حجزك%';
+  perform _eq(n, 1, 'ومن انتقل إليه التنظيم يُخبَر بمن انضمّ بعده، لا بانضمامه هو');
+  execute n_of into n using bb, 'حجزٌ جماعيّ ينتظر قرارك%';
+  perform _eq(n, 2, 'ومقدّم الخدمة يُخبَر بكلّ حجزٍ أُرسل إليه');
+  execute n_of into n using f2, 'قُبل حجزك الجماعيّ%';
+  perform _eq(n, 1, 'والعضو يُخبَر بالقبول');
+  execute n_of into n using f1, 'اعتذر مقدّم الخدمة عن حجزك%';
+  perform _eq(n, 1, 'وبالاعتذار');
+  perform _eq((select count(*)::int from notifications where recipient_id = f2 and kind = 'machinery_booking'
+                 and title like 'اعتذر%' and body like '%الجرّار في صيانة هذا الأسبوع%'), 1, 'ومعه سببه');
+  perform _eq((select count(*)::int from notifications where kind = 'machinery_booking'
+                 and recipient_id = 'f5000000-0000-0000-0000-0000000000f5'), 0, 'ومن انسحب قبل القرار لا يُخبَر به');
+  perform _eq((select count(*)::int from notifications where kind = 'machinery_booking'), 11, 'ولا إشعار غير هذه');
+  perform _eq(has_function_privilege('authenticated', 'machinery_booking_notify()', 'execute'), false, 'ولا ينادي أحدٌ دالّة الإشعار');
 end $$;
 
 do $$
