@@ -406,6 +406,10 @@ export interface ServiceProvider {
    * takes the other away from the provider that legitimately needs it.
    */
   paused_by_owner: boolean;
+  /** Mechanisation only: available now, in the provider's own words (backlog 168). */
+  available: boolean;
+  /** When they last said it; stamped by the database, never typed. */
+  availability_confirmed_at: string | null;
   created_at: string;
 }
 

@@ -15,6 +15,7 @@ import type { ProviderService, ServiceProvider } from "@/types/database";
 import FilmPlayer from "@/components/FilmPlayer";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { AVAILABILITY_LABEL, availabilityState, confirmedLabel } from "@/lib/machinery";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -64,7 +65,7 @@ export default async function ServicesPage({
 
   const { data: providerRows } = await supabase
     .from("service_providers")
-    .select("id, name, kind, regions");
+    .select("id, name, kind, regions, available, availability_confirmed_at");
 
   const offers = (offerRows ?? []) as ProviderService[];
   const providers = new Map(
@@ -124,6 +125,19 @@ export default async function ServicesPage({
         </ul>
       </section>
 
+      <Link
+        href="/services/machinery"
+        className="mb-6 block rounded-2xl border border-primary/40 bg-primary/5 p-4 text-sm hover:border-primary"
+      >
+        <span className="font-bold text-primary">{t("احجز جرّاراً مع جيرانك ←", "Book a tractor with your neighbours →")}</span>
+        <span className="mt-1 block text-muted">
+          {t(
+            "الجرّار يأتي حين تجتمع أرضٌ تكفيه في محليّتك: احجز معاً على مقدّم ميكنةٍ أكّد توفّره، ولكلٍّ عقده باسمه.",
+            "The tractor comes when enough land gathers in your locality: book together on a provider who confirmed being available, each with a contract in their own name.",
+          )}
+        </span>
+      </Link>
+
       <nav className="mb-8 flex flex-wrap gap-2 text-sm">
         {(
           [
@@ -175,17 +189,37 @@ export default async function ServicesPage({
 
               {listed.length > 0 ? (
                 <ul className="mt-4 flex flex-col gap-2 border-t border-border pt-3 text-sm">
-                  {listed.map((offer) => (
+                  {listed.map((offer) => {
+                    const provider = providers.get(offer.provider_id);
+                    // Mechanisation says when it last confirmed being available; a confirmation weeks old is no promise.
+                    const state = provider?.kind === "mechanization"
+                      ? availabilityState(provider.available, provider.availability_confirmed_at)
+                      : null;
+                    return (
                     <li key={offer.id} className="flex justify-between gap-2">
-                      <span className="truncate" lang="ar" dir="auto">
-                        {providers.get(offer.provider_id)?.name ?? t("مزوّد", "Provider")}
+                      <span className="min-w-0">
+                        <span className="block truncate" lang="ar" dir="auto">
+                          {provider?.name ?? t("مزوّد", "Provider")}
+                        </span>
+                        {state && (
+                          <span className={`block text-xs ${state === "fresh" ? "text-primary" : "text-muted"}`}>
+                            {provider?.availability_confirmed_at
+                              ? t(
+                                  `آخر تأكيدٍ للتوفّر: ${confirmedLabel(provider.availability_confirmed_at, locale)}`,
+                                  `Last confirmed available: ${confirmedLabel(provider.availability_confirmed_at, locale)}`,
+                                )
+                              : t("لم يؤكّد توفّره بعد", "Has not confirmed availability yet")}
+                            {state !== "fresh" && ` — ${t(AVAILABILITY_LABEL[state].ar, AVAILABILITY_LABEL[state].en)}`}
+                          </span>
+                        )}
                       </span>
                       <span className="shrink-0 font-medium">
                         {n0(offer.price_per_unit)} /{" "}
                         {serviceUnitLabel(offer.unit, locale)}
                       </span>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="mt-4 border-t border-border pt-3 text-xs text-muted">
