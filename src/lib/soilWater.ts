@@ -91,6 +91,34 @@ export const ROOT_DEPTH_M: Record<string, number> = {
   sugarcane: 1.2,
   dates: 1.5,
   mango: 1.0,
+  /*
+   * المحاصيل المضافة في ٢٤ أكتوبر ٢٠٢٦ (البند ١٩٣). كلّ رقمٍ مقروءٌ من الجدول ٢٢ في FAO-56 على fao.org يوم ٢٥ أكتوبر
+   * (https://www.fao.org/4/x0490e/x0490e0e.htm)، وهو الطرف الأقصر من المدى كما فوق. الصفّ الذي ذُكر بجانبه:
+   *   faba_bean «Fababean – Dry/Seed» ٠٫٥–٠٫٧ · potato «Potato» ٠٫٤–٠٫٦ · cowpea «Green Gram and Cowpeas» ٠٫٦–١٫٠
+   *   barley «Barley» ١٫٠–١٫٥ · safflower «Safflower» ١٫٠–٢٫٠ · watermelon «Watermelon» ٠٫٨–١٫٥ · sweet_melon «Sweet Melons» ٠٫٨–١٫٥
+   *   cucumber «Cucumber – Fresh Market» ٠٫٧–١٫٢ · eggplant «Egg Plant» ٠٫٧–١٫٢ · sweet_pepper «Sweet Peppers (bell)» ٠٫٥–١٫٠
+   *   cabbage «Cabbage» ٠٫٥–٠٫٨ · carrot «Carrots» ٠٫٥–١٫٠ · zucchini «Squash, Zucchini» ٠٫٦–١٫٠ · sweet_potato «Sweet Potato» ١٫٠–١٫٥
+   *   citrus «Citrus – 70% canopy» ١٫٢–١٫٥ (الغطاء ٧٠٪ كما اعتُمد في Kc).
+   * عبّاد الشمس: صفّه في الجدول فقد اسمه عند نقله إلى النصّ، فأُخذ من صفحة FAO لمحصول عبّاد الشمس
+   * (land-water/databases-and-software/crop-information/sunflower): الجذور ٠٫٨–١٫٥ م و p = ٠٫٤٥ — وهو الصفّ نفسه.
+   * الأرز غائبٌ عمداً: p فيه (٠٫٢٠) نسبةٌ من التشبّع لا من الماء المتاح (حاشية الجدول)، وحقله مغمورٌ دائماً، فلا معنى لـ«كلّ كم يوماً».
+   */
+  faba_bean: 0.5,
+  potato: 0.4,
+  sunflower: 0.8,
+  safflower: 1.0,
+  barley: 1.0,
+  cowpea: 0.6,
+  watermelon: 0.8,
+  sweet_melon: 0.8,
+  cucumber: 0.7,
+  eggplant: 0.7,
+  sweet_pepper: 0.5,
+  cabbage: 0.5,
+  carrot: 0.5,
+  zucchini: 0.6,
+  sweet_potato: 1.0,
+  citrus: 1.2,
 };
 
 /**
@@ -100,8 +128,26 @@ export const ROOT_DEPTH_M: Record<string, number> = {
  */
 export const DEPLETION_FRACTION = 0.5;
 
-/** Shallow-rooted vegetables run dry sooner and get a stricter fraction. */
-const SHALLOW_P: Record<string, number> = { onion: 0.3, tomato: 0.4 };
+/**
+ * Crops whose FAO-56 Table 22 fraction is below the 0.5 default run dry sooner and get the stricter figure.
+ * Where the table gives 0.5 or more (cotton 0.65, sweet potato 0.65, wheat and barley 0.55…) the default 0.5 is
+ * kept: the shorter interval is the error that costs less, as with the root depth above.
+ * The October 2026 crops (backlog 193), each from its Table 22 row listed beside ROOT_DEPTH_M.
+ */
+export const SHALLOW_P: Record<string, number> = {
+  onion: 0.3,
+  tomato: 0.4,
+  faba_bean: 0.45,
+  potato: 0.35,
+  sunflower: 0.45,
+  cowpea: 0.45,
+  watermelon: 0.4,
+  sweet_melon: 0.4,
+  eggplant: 0.45,
+  sweet_pepper: 0.3,
+  cabbage: 0.45,
+  carrot: 0.35,
+};
 
 export interface IrrigationInterval {
   soil: string;

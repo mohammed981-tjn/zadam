@@ -84,14 +84,48 @@ const Map<String, double> rootDepthM = {
   'sugarcane': 1.2,
   'dates': 1.5,
   'mango': 1.0,
+  // المحاصيل المضافة في ٢٤ أكتوبر ٢٠٢٦ (البند ١٩٣): الأرقام نفسها في `ROOT_DEPTH_M` بـsrc/lib/soilWater.ts،
+  // ومعها صفّ الجدول ٢٢ الذي أُخذ كلٌّ منها. الأرز غائبٌ عمداً (p فيه نسبةٌ من التشبّع)؛ ثمّ إنّ الجدولين
+  // تقارنهما `scripts/verify-mobile-parity.ts` رقماً برقم.
+  'faba_bean': 0.5,
+  'potato': 0.4,
+  'sunflower': 0.8,
+  'safflower': 1.0,
+  'barley': 1.0,
+  'cowpea': 0.6,
+  'watermelon': 0.8,
+  'sweet_melon': 0.8,
+  'cucumber': 0.7,
+  'eggplant': 0.7,
+  'sweet_pepper': 0.5,
+  'cabbage': 0.5,
+  'carrot': 0.5,
+  'zucchini': 0.6,
+  'sweet_potato': 1.0,
+  'citrus': 1.2,
 };
 
 /// Depletion fraction p — the share of the reservoir a crop may use before it
 /// starts to suffer. 0.5 is the FAO-56 default and what most of these carry.
 const double depletionFraction = 0.5;
 
-/// Shallow-rooted vegetables run dry sooner and get a stricter fraction.
-const Map<String, double> _shallowP = {'onion': 0.3, 'tomato': 0.4};
+/// Crops whose FAO-56 Table 22 fraction is below the 0.5 default get the stricter
+/// figure; where the table gives 0.5 or more the default is kept (the shorter
+/// interval is the cheaper error). Same table as `SHALLOW_P` in the web engine.
+const Map<String, double> shallowP = {
+  'onion': 0.3,
+  'tomato': 0.4,
+  'faba_bean': 0.45,
+  'potato': 0.35,
+  'sunflower': 0.45,
+  'cowpea': 0.45,
+  'watermelon': 0.4,
+  'sweet_melon': 0.4,
+  'eggplant': 0.45,
+  'sweet_pepper': 0.3,
+  'cabbage': 0.45,
+  'carrot': 0.35,
+};
 
 class IrrigationInterval {
   const IrrigationInterval({
@@ -137,7 +171,7 @@ IrrigationInterval? irrigationInterval(
   final rootDepth = rootDepthM[crop.key];
   if (taw == null || rootDepth == null) return null;
 
-  final p = _shallowP[crop.key] ?? depletionFraction;
+  final p = shallowP[crop.key] ?? depletionFraction;
   final rawMm = taw * rootDepth * p;
 
   final req = waterRequirement(crop, station, plantingMonth, method);

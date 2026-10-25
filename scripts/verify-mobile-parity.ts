@@ -215,7 +215,7 @@ async function verifyTables() {
   console.log("C) mobile/lib/soil_water.dart — the tables themselves, side by side");
   console.log("=".repeat(78));
 
-  const { TAW_MM_PER_M, ROOT_DEPTH_M, DEPLETION_FRACTION } = await import(
+  const { TAW_MM_PER_M, ROOT_DEPTH_M, SHALLOW_P, DEPLETION_FRACTION } = await import(
     "../src/lib/soilWater"
   );
   const dart = await read("mobile/lib/soil_water.dart");
@@ -235,6 +235,7 @@ async function verifyTables() {
   for (const [name, web] of [
     ["tawMmPerM", TAW_MM_PER_M],
     ["rootDepthM", ROOT_DEPTH_M],
+    ["shallowP", SHALLOW_P],
   ] as const) {
     const port = table(name);
     const keys = new Set([...Object.keys(web), ...Object.keys(port)]);
@@ -260,12 +261,112 @@ async function verifyTables() {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * D) The crop table itself
+ * ------------------------------------------------------------------ */
+
+/**
+ * The golden cases above pin the *answers* for the crops they name. They say
+ * nothing about a crop nobody wrote a case for — a Kc mistyped in the Dart list,
+ * a crop in the web list the app never got, one the app has and the website
+ * dropped. So compare the two tables row by row: same crops, same order, same
+ * names, stage lengths and coefficients (البند ١٧٩).
+ */
+function dartCropTable() {
+  return read("mobile/lib/agronomy.dart").then((dart) => {
+    const at = dart.indexOf("const List<CropCoefficients> crops = [");
+    if (at === -1) throw new Error("no `crops` list in mobile/lib/agronomy.dart");
+    const end = dart.indexOf("\n];", at);
+    if (end === -1) throw new Error("unterminated `crops` list");
+    const blocks = dart.slice(at, end).split("CropCoefficients(").slice(1);
+    return blocks.map((b) => {
+      const text = (field: string) => {
+        const m = b.match(new RegExp(`${field}:\\s*'([^']*)'`));
+        if (!m) throw new Error(`crop block without ${field}: ${b.slice(0, 60)}`);
+        return m[1];
+      };
+      const number = (field: string) => {
+        const m = b.match(new RegExp(`${field}:\\s*([0-9.]+)\\s*,`));
+        if (!m) throw new Error(`crop block without ${field}: ${b.slice(0, 60)}`);
+        return Number(m[1]);
+      };
+      const st = b.match(/stages:\s*\[([0-9,\s]+)\]/);
+      if (!st) throw new Error(`crop block without stages: ${b.slice(0, 60)}`);
+      return {
+        key: text("key"),
+        name: text("name"),
+        stages: st[1].split(",").map((x) => Number(x.trim())),
+        kcInitial: number("kcInitial"),
+        kcMid: number("kcMid"),
+        kcEnd: number("kcEnd"),
+      };
+    });
+  });
+}
+
+async function verifyCropTable() {
+  console.log();
+  console.log("=".repeat(78));
+  console.log("D) mobile/lib/agronomy.dart `crops` — the table against CROPS, row by row");
+  console.log("=".repeat(78));
+
+  const dart = await dartCropTable();
+  const same = (label: string, ok: boolean, detail = "") => {
+    if (!ok) fail++;
+    console.log(`  ${ok ? "PASS" : "FAIL"}  ${label.padEnd(52)} ${detail}`);
+  };
+
+  same("same number of crops", dart.length === CROPS.length, `web ${CROPS.length}, app ${dart.length}`);
+  const webKeys = CROPS.map((c) => c.key);
+  const appKeys = dart.map((c) => c.key);
+  for (const k of webKeys) if (!appKeys.includes(k)) same(`${k} is in the app`, false, "missing from mobile/lib/agronomy.dart");
+  for (const k of appKeys) if (!webKeys.includes(k)) same(`${k} is on the website`, false, "only the app has it");
+  same("same order", webKeys.join() === appKeys.join(), "the picker lists them in this order");
+
+  for (const w of CROPS) {
+    const a = dart.find((x) => x.key === w.key);
+    if (!a) continue;
+    same(`${w.key} name`, a.name === w.name, `${a.name} / ${w.name}`);
+    same(`${w.key} stages`, a.stages.join() === w.stages.join(), `${a.stages.join("-")} / ${w.stages.join("-")}`);
+    check(`${w.key} kcInitial`, a.kcInitial, w.kcInitial, 0);
+    check(`${w.key} kcMid`, a.kcMid, w.kcMid, 0);
+    check(`${w.key} kcEnd`, a.kcEnd, w.kcEnd, 0);
+  }
+}
+
+/**
+ * E) Every crop the app offers has a pinned case, and its interval is there
+ * exactly when its root depth is.
+ */
+async function verifyCoverage() {
+  console.log();
+  console.log("=".repeat(78));
+  console.log("E) every crop pinned by a golden case; interval iff root depth");
+  console.log("=".repeat(78));
+
+  const cases = parseCalls(await read("mobile/test/agronomy_test.dart"), "_Case").map((a) => str(a[0]));
+  const { ROOT_DEPTH_M } = await import("../src/lib/soilWater");
+  const station0 = STATIONS[0];
+  for (const c of CROPS) {
+    const pinned = cases.includes(c.key);
+    if (!pinned) fail++;
+    console.log(`  ${pinned ? "PASS" : "FAIL"}  ${c.key.padEnd(52)} ${pinned ? "has a golden _Case" : "no _Case in mobile/test/agronomy_test.dart"}`);
+
+    const iv = irrigationInterval(c, station0, 6, "flood", "sandy loam");
+    const agrees = (iv === null) === (ROOT_DEPTH_M[c.key] === undefined);
+    if (!agrees) fail++;
+    console.log(`  ${agrees ? "PASS" : "FAIL"}  ${(c.key + " interval/root depth").padEnd(52)} ${iv === null ? "no interval" : "interval"}, depth ${ROOT_DEPTH_M[c.key] ?? "—"}`);
+  }
+}
+
 /* ------------------------------------------------------------------ */
 
 async function main() {
   await verifyAgronomy();
   await verifySoilWater();
   await verifyTables();
+  await verifyCropTable();
+  await verifyCoverage();
 
   console.log();
   if (fail > 0) {

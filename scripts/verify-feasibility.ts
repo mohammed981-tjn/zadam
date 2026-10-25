@@ -207,17 +207,21 @@ ok(
   mapped.every((k) => CROPS.some((c) => c.key === k)),
   "every mapped crop key exists in the crop table",
 );
-// The 17 crops added on 24 October (backlog 156) have no FAOSTAT item mapped yet: the yield and
-// price files are fetched per item by faostat-refresh.yml, so a mapping without its data would
-// point at nothing. Until that is done (backlog 178) they show no benchmark, as alfalfa does.
-const ADDED_24_OCT = [
-  "faba_bean", "potato", "sunflower", "safflower", "barley", "rice", "cowpea", "watermelon", "sweet_melon",
-  "cucumber", "eggplant", "sweet_pepper", "cabbage", "carrot", "zucchini", "sweet_potato", "citrus",
-];
+// Of the 17 crops added on 24 October (backlog 156), fifteen were mapped on the same day (backlog 178): the
+// yield and producer-price rows were already loaded. Alfalfa, barley and safflower are the crops without an
+// item, on purpose — FAOSTAT holds no Sudanese yield for them, and a crop with no reference says so.
+const NO_FAOSTAT_YIELD = ["alfalfa", "barley", "safflower"];
 ok(
-  CROPS.filter((c) => !mapped.includes(c.key)).every((c) => c.key === "alfalfa" || ADDED_24_OCT.includes(c.key)),
-  "alfalfa and the crops added on 24 October are the only crops without a FAOSTAT item, as documented",
+  CROPS.filter((c) => !mapped.includes(c.key)).every((c) => NO_FAOSTAT_YIELD.includes(c.key)),
+  "alfalfa, barley and safflower are the only crops without a FAOSTAT item, as documented",
 );
+ok(
+  NO_FAOSTAT_YIELD.every((k) => !mapped.includes(k)),
+  "and none of them is mapped by borrowing another crop's item",
+);
+const items = Object.values(FAOSTAT_ITEM);
+const shared = items.filter((i, idx) => items.indexOf(i) !== idx);
+ok(shared.length === 0, `no two crops answer to the same FAOSTAT item (${shared.length} shared)`);
 
 console.log("\n" + (fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`));
 process.exit(fail === 0 ? 0 : 1);
