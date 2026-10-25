@@ -122,7 +122,12 @@ export default async function GroupOrderPage({
         <Link href={`/suppliers/${o.supplier_id}`} className="text-primary underline" {...typed}>
           {o.supplier_name}
         </Link>{" "}
-        · {t("ينظّمه:", "Organised by:")} <bdi>{o.organiser_name}</bdi> · <span className={o.status === "open" ? "text-primary" : ""}>{lbl(ORDER_STATUS[o.status], locale)}</span>
+        {o.organiser_name && (
+          <>
+            · {t("ينظّمه:", "Organised by:")} <bdi>{o.organiser_name}</bdi>{" "}
+          </>
+        )}
+        · <span className={o.status === "open" ? "text-primary" : ""}>{lbl(ORDER_STATUS[o.status], locale)}</span>
       </p>
 
       <section className={`${card} mt-5`}>
@@ -142,7 +147,17 @@ export default async function GroupOrderPage({
           <div>
             <dt className="text-xs text-muted">{t("نقطة الاستلام", "Pickup point")}</dt>
             <dd>
-              <bdi>{o.pickup_name}</bdi> — <bdi>{o.pickup_locality}</bdi>، {stateName(o.pickup_state, locale)}
+              {o.pickup_name ? (
+                <>
+                  <bdi>{o.pickup_name}</bdi> —{" "}
+                </>
+              ) : null}
+              <bdi>{o.pickup_locality}</bdi>، {stateName(o.pickup_state, locale)}
+              {!o.pickup_name && (
+                <span className="block text-xs text-muted">
+                  {t("المكان الدقيق يظهر لمن انضمّ إلى الطلب.", "The exact place shows to those who have joined the order.")}
+                </span>
+              )}
               {o.pickup_lat !== null && o.pickup_lng !== null && (
                 <>
                   {" · "}

@@ -112,6 +112,11 @@ async function main() {
   console.error = quiet;
 
   ok(written.length > 0, `the run found figures (${written.length})`);
+  const keys = (r: Row) => Object.keys(r).sort().join(",");
+  ok(new Set(written.map(keys)).size === 1,
+    "every row carries the same columns — PostgREST would set a key missing from one row to NULL in the whole batch");
+  ok(written.every((r) => r.market !== null && r.market !== undefined && r.crop !== null && r.crop !== undefined),
+    "and market/crop are never NULL (they are NOT NULL in the table)");
   ok(written.every((r) => r.status === "held"), "every row it wrote is held — none published");
   ok(summary.published === 0, "and the summary counts none published");
   ok(written.some((r) => r.kind === "fx_bank"), "the bank's dollar was read");

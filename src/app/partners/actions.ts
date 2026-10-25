@@ -182,7 +182,7 @@ export async function setLandConsent(fd: FormData) {
     .maybeSingle();
   if (!land) back("/lands", "error", t("ليست لك هذه الأرض.", "This land is not yours."));
   // The soil at the land's own point, not the 160 km map cell's (backlog 180). A failed read keeps what is stored.
-  const estimate = open ? await recordSoilEstimate(supabase, landId, land.longitude, land.latitude) : null;
+  const estimate = open ? await recordSoilEstimate(user.id, landId, land.longitude, land.latitude) : null;
   const soil = estimate?.wrb ?? (land.soil_class as string | null) ?? null;
   // Closing to companies keeps the crops: investors read the same list on
   // /invest, and the close form sends none (backlog 129).

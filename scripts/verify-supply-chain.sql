@@ -221,6 +221,29 @@ do $$ begin
   perform _eq((select payee_account from group_order_detail(_id('o'))), null::text, 'ولا يرى حساب الدفع');
   perform _eq((select organiser_phone from group_order_detail(_id('o'))), null::text, 'ولا هاتف المنظّم');
   perform _eq((select count(*)::int from group_order_pledges), 0, 'ولا التعهّدات');
+  -- The owner, 25 October 2026: the pickup place «is seen only by those who ordered, and the administration».
+  perform _eq((select pickup_lat from group_order_detail(_id('o'))), null::numeric, 'ولا إحداثيّة الاستلام');
+  perform _eq((select pickup_name from group_order_detail(_id('o'))), null::text, 'ولا اسم مكان الاستلام');
+  perform _eq((select organiser_name from group_order_detail(_id('o'))), null::text, 'ولا اسم المنظّم');
+  perform _eq((select pickup_name from group_order_directory() where id = _id('o')), null::text, 'ولا اسم المكان في القائمة');
+  perform _eq((select pickup_locality from group_order_detail(_id('o'))), 'الحصاحيصا', 'ويرى المحليّة ليعرف أهو قريب');
+end $$;
+
+reset role;
+do $$ begin perform _act_as('e5000000-0000-0000-0000-0000000000e5'); end $$;
+set role authenticated;
+do $$ begin
+  perform _eq((select pickup_lat from group_order_detail(_id('o'))), null::numeric, 'والمسجَّل الذي لم ينضمّ لا يرى الإحداثيّة');
+end $$;
+
+reset role;
+do $$ begin perform _act_as('c3000000-0000-0000-0000-0000000000c3'); end $$;
+set role authenticated;
+do $$ begin
+  perform _eq((select pickup_lat from group_order_detail(_id('o'))), 14.7::numeric, 'والمتعهّدة ترى إحداثيّة الاستلام');
+  perform _eq((select pickup_name from group_order_detail(_id('o'))), 'مكتب القسم', 'واسم المكان');
+  perform _eq((select organiser_name from group_order_detail(_id('o'))), 'جمعية الحصاحيصا', 'واسم المنظّم');
+  perform _eq((select pickup_name from group_order_directory() where id = _id('o')), 'مكتب القسم', 'وفي القائمة');
 end $$;
 
 reset role;

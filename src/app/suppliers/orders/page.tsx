@@ -138,7 +138,7 @@ export default async function GroupOrdersPage({
                     {o.title}
                   </span>
                   <span className="text-xs text-muted">
-                    <bdi>{o.supplier_name}</bdi> → <bdi>{o.pickup_name}</bdi>، {stateName(o.pickup_state, locale)}
+                    <bdi>{o.supplier_name}</bdi> → <bdi>{o.pickup_name ?? o.pickup_locality}</bdi>، {stateName(o.pickup_state, locale)}
                   </span>
                   <span className="text-xs">
                     {t(`يوم التوصيل: ${dateLabel(o.drop_day, locale)}`, `Drop day: ${dateLabel(o.drop_day, locale)}`)} ·{" "}

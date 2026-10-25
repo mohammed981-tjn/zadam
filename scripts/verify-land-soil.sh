@@ -29,6 +29,7 @@ AGREEMENTS="$(pg_stage "$ROOT/supabase/migrations/20261021230000_partnership_agr
 TRUST="$(pg_stage "$ROOT/supabase/migrations/20261023010000_partnership_trust.sql" trust.sql)"
 ENTRY="$(pg_stage "$ROOT/supabase/migrations/20261023030000_entry_and_land_facts.sql" entry.sql)"
 SOIL="$(pg_stage "$ROOT/supabase/migrations/20261024100000_land_soil_estimate.sql" soil.sql)"
+SERVER="$(pg_stage "$ROOT/supabase/migrations/20261025150300_soil_estimate_server_only.sql" server.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-land-soil.sql" checks.sql)"
 
 # Supabase's own defaults, so that a revoke in a migration is what the checks
@@ -56,6 +57,7 @@ echo "── العقد";             pg_run "$AGREEMENTS" >/dev/null
 echo "── ما ينقص الشراكة";   pg_run "$TRUST" >/dev/null
 echo "── الدفعة صفر";        pg_run "$ENTRY" >/dev/null
 echo "── تربة الموقع";       pg_run "$SOIL" >/dev/null
+echo "── للخادم وحده";       pg_run "$SERVER" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"

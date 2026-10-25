@@ -58,6 +58,12 @@ insert into land_documents (land_id, kind, storage_path) values
 update lands set listed = true where id = '11000000-0000-0000-0000-000000000001';
 delete from notifications;
 
+
+-- The function is the server's alone now (review 198): the checks call it through this, as the server would,
+-- passing whoever is acting; that it is closed to everyone else is checked at the end.
+create or replace function _soil(p_land uuid, p_actor uuid, p_class text, p_pct integer) returns void
+language sql security definer as $$ select land_set_soil_estimate(p_land, p_actor, p_class, p_pct) $$;
+grant execute on function _soil(uuid, uuid, text, integer) to anon, authenticated;
 \echo ''
 \echo '=========================================================================='
 \echo 'أ) الدالّة تكتب الصنف والمصدر والاحتمال معاً، لصاحب الأرض وحده'
@@ -66,17 +72,17 @@ set role authenticated;
 do $$
 begin
   perform _act_as('c3000000-0000-0000-0000-0000000000c3');
-  perform _refuses($q$select land_set_soil_estimate('11000000-0000-0000-0000-000000000001', 'Fluvisols', 40)$q$, 'الغريب لا يكتب قراءة لأرض غيره');
+  perform _refuses($q$select _soil('11000000-0000-0000-0000-000000000001', auth.uid(), 'Fluvisols', 40)$q$, 'الغريب لا يكتب قراءة لأرض غيره');
 
   perform _act_as('a1000000-0000-0000-0000-0000000000a1');
   perform _eq((select soil_source from lands where id = '11000000-0000-0000-0000-000000000001'), null::text, 'الصنف القديم بلا مصدر');
-  perform land_set_soil_estimate('11000000-0000-0000-0000-000000000001', 'Fluvisols', 41);
+  perform _soil('11000000-0000-0000-0000-000000000001', auth.uid(), 'Fluvisols', 41);
   perform _eq((select soil_class from lands where id = '11000000-0000-0000-0000-000000000001'), 'Fluvisols', 'الصنف المقروء حلّ محلّ القديم');
   perform _eq((select soil_source from lands where id = '11000000-0000-0000-0000-000000000001'), 'point', 'بمصدره');
   perform _eq((select soil_pct::int from lands where id = '11000000-0000-0000-0000-000000000001'), 41, 'واحتماله');
-  perform _refuses($q$select land_set_soil_estimate('11000000-0000-0000-0000-000000000001', 'fluvisols', 41)$q$, 'اسمٌ بحرفٍ صغير يُرفض');
-  perform _refuses($q$select land_set_soil_estimate('11000000-0000-0000-0000-000000000001', 'Fluvisols', 101)$q$, 'احتمالٌ فوق ١٠٠ يُرفض');
-  perform _refuses($q$select land_set_soil_estimate('11000000-0000-0000-0000-000000000001', 'Fluvisols; drop', 50)$q$, 'ونصٌّ غير اسم يُرفض');
+  perform _refuses($q$select _soil('11000000-0000-0000-0000-000000000001', auth.uid(), 'fluvisols', 41)$q$, 'اسمٌ بحرفٍ صغير يُرفض');
+  perform _refuses($q$select _soil('11000000-0000-0000-0000-000000000001', auth.uid(), 'Fluvisols', 101)$q$, 'احتمالٌ فوق ١٠٠ يُرفض');
+  perform _refuses($q$select _soil('11000000-0000-0000-0000-000000000001', auth.uid(), 'Fluvisols; drop', 50)$q$, 'ونصٌّ غير اسم يُرفض');
 end $$;
 
 \echo ''
@@ -121,7 +127,7 @@ set role authenticated;
 do $$
 begin
   perform _act_as('a1000000-0000-0000-0000-0000000000a1');
-  perform land_set_soil_estimate('11000000-0000-0000-0000-000000000001', 'Vertisols', 74);
+  perform _soil('11000000-0000-0000-0000-000000000001', auth.uid(), 'Vertisols', 74);
   perform _eq((select soil_pct::int from lands where id = '11000000-0000-0000-0000-000000000001'), 74, 'قراءةٌ جديدة');
   update lands set latitude = 14.4000, longitude = 33.5000 where id = '11000000-0000-0000-0000-000000000001';
   perform _eq((select soil_class from lands where id = '11000000-0000-0000-0000-000000000001'), null::text, 'تحريك الأرض أسقط الصنف');
@@ -176,9 +182,26 @@ begin
   perform _eq(r.soil_class, 'Fluvisols', 'الزائر يقرأ صنف أرضٍ معروضة');
   perform _eq(r.soil_pct, 55, 'واحتماله');
   perform _eq((select count(*)::int from land_soil_estimates(array['22000000-0000-0000-0000-000000000002']::uuid[])), 0, 'ولا يقرأ شيئاً عن أرضٍ غير معروضة');
-  perform _refuses($q$select land_set_soil_estimate('11000000-0000-0000-0000-000000000001', 'Fluvisols', 55)$q$, 'والزائر لا يكتب');
+  perform _refuses($q$select _soil('11000000-0000-0000-0000-000000000001', auth.uid(), 'Fluvisols', 55)$q$, 'والزائر لا يكتب');
 end $$;
 reset role;
+
+\echo ''
+\echo 'ز) الكتابة للخادم وحده (مراجعة ١٩٨)'
+set role authenticated;
+do $$ begin
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _refuses($q$select land_set_soil_estimate('11000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000a1', 'Vertisols', 99)$q$,
+    'صاحب الأرض لا يكتب «قراءة القمر الصناعي» بيده');
+end $$;
+reset role;
+do $$ begin
+  perform _refuses($q$select _soil('11000000-0000-0000-0000-000000000001', 'c3000000-0000-0000-0000-0000000000c3', 'Vertisols', 99)$q$,
+    'والخادم لا يكتب لأرضٍ لا يملكها من طلب');
+  perform _eq(has_function_privilege('authenticated', 'land_set_soil_estimate(uuid,uuid,text,integer)', 'execute'), false, 'المسجَّل لا يملك تنفيذها');
+  perform _eq(has_function_privilege('anon', 'land_set_soil_estimate(uuid,uuid,text,integer)', 'execute'), false, 'ولا الزائر');
+  perform _eq(has_function_privilege('service_role', 'land_set_soil_estimate(uuid,uuid,text,integer)', 'execute'), true, 'ومفتاح الخادم يملكها');
+end $$;
 
 do $$
 declare n integer;

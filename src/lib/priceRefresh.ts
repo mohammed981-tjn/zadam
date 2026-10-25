@@ -234,11 +234,18 @@ export function disagreement(row: Row, q: FxQuote, sameDay: { q: FxQuote }[]): R
 
 export function fxRow(kind: "fx_bank" | "fx_parallel", q: FxQuote, link: string, lastSell: number | null): Row {
   const reason = q.buy > q.sell ? "سعر الشراء أعلى من البيع" : holdReason(q.sell, lastSell, 0.25, [500, 200_000]);
+  // Every row carries the same columns: PostgREST writes one batch with the union of the rows' keys and sets a
+  // missing one to NULL, not to the column's default — and `market`/`crop` are NOT NULL (found 25 October 2026:
+  // a run with a dollar and a crop figure wrote nothing).
   return {
     kind,
+    market: "",
+    crop: "",
+    unit: null,
     market_date: q.date,
     buy: q.buy,
     sell: q.sell,
+    price: null,
     source_url: link,
     quote: q.quote.slice(0, 600),
     status: "held",
@@ -256,6 +263,8 @@ export function cropRow(q: CropQuote, link: string, lastPrice: number | null, al
     crop: q.crop,
     unit: q.unit,
     market_date: q.date,
+    buy: null,
+    sell: null,
     price: q.price,
     source_url: link,
     quote: q.quote.slice(0, 600),

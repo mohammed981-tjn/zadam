@@ -22,6 +22,7 @@ BASE="$(pg_stage "$ROOT/scripts/base-schema.sql" base-schema.sql)"
 POLICIES="$(pg_stage "$ROOT/supabase/migrations/20260817120000_document_existing_policies_and_guards.sql" policies.sql)"
 NAFIR="$(pg_stage "$ROOT/supabase/migrations/20260925090000_nafir_values_at_work.sql" nafir.sql)"
 SUPPLY="$(pg_stage "$ROOT/supabase/migrations/20261012130000_supply_chain.sql" supply.sql)"
+PLACE="$(pg_stage "$ROOT/supabase/migrations/20261025150100_group_order_place_private.sql" place.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-supply-chain.sql" checks.sql)"
 
 # Supabase grants table privileges to anon and authenticated when a table is
@@ -37,6 +38,7 @@ echo "── السياسات";  pg_run_quiet "$POLICIES"
 echo "── النفير";    pg_run_quiet "$NAFIR"
 pg_run_quiet "$DEFAULTS"
 echo "── المدخلات";  pg_run "$SUPPLY" >/dev/null
+echo "── مكان الاستلام"; pg_run "$PLACE" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"

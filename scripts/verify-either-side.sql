@@ -131,10 +131,19 @@ begin
   perform _act_as('e2000000-0000-0000-0000-0000000000e2');
   perform _eq((select count(*)::int from investor_open_lands() where land_id = 'e1a00000-0000-0000-0000-00000000e1a0'), 1,
     'حسابُ «المزارع» يرى الأرض في فرص الاستثمار');
+  -- The owner, 25 October 2026: the exact area and the locality are the owner's; others see the state and the band.
+  perform _eq((select feddans from investor_open_lands() where land_id = 'e1a00000-0000-0000-0000-00000000e1a0'), null::numeric,
+    'لا يرى المساحة الدقيقة');
+  perform _eq((select locality from investor_open_lands() where land_id = 'e1a00000-0000-0000-0000-00000000e1a0'), null::text,
+    'ولا المحليّة');
+  perform _eq((select area_band is not null from investor_open_lands() where land_id = 'e1a00000-0000-0000-0000-00000000e1a0'), true,
+    'ويرى فئة المساحة');
   v := investor_express_interest('e1a00000-0000-0000-0000-00000000e1a0', 'sharecrop',
     'أنا مزارعٌ من الجزيرة وعندي مالٌ للموسم، وأريد المشاركة بالمحصول');
   perform _eq(v is not null, true, 'وطلب الشراكة');
   perform _act_as('e1000000-0000-0000-0000-0000000000e1');
+  perform _eq((select feddans is not null from investor_open_lands() where land_id = 'e1a00000-0000-0000-0000-00000000e1a0'), true,
+    'وصاحب الأرض يرى مساحتها في القائمة');
   perform land_investor_decide(v, true);
   perform _eq((select status::text from investor_interests where id = v), 'accepted',
     'وقبله صاحبُ الأرض — نوعُ الحساب لم يمنع أحداً منهما');
