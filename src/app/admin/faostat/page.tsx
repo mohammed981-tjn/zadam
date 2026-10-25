@@ -9,6 +9,8 @@ import { button, card, ghost } from "@/lib/ui";
 import { applyFaostat, discardFaostat, syncFaostatNow } from "./actions";
 
 export const metadata = { title: "بيانات الفاو | الإدارة | سوداقري" };
+// «افحص الآن» compares three files with the table and may stage tens of thousands of rows.
+export const maxDuration = 60;
 
 interface PendingRow {
   domain: Domain;

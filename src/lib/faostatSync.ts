@@ -146,7 +146,9 @@ export interface SyncSummary {
   files: Record<string, { rows: number; sha: string }>;
 }
 
-const BATCH = 500;
+// The first look after the yield slice arrived stages ~50,000 new rows (28 areas × 287 items × 8 years against the 26,114
+// the old exports held): 2,000 a request keeps that to 25 requests inside the daily check's minute.
+const BATCH = 2000;
 const PAGE = 1000;
 
 async function loadDb(admin: SupabaseClient, domain: Domain): Promise<Map<string, DbRow>> {
