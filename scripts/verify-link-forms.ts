@@ -5,8 +5,14 @@
  *   npx tsx scripts/verify-link-forms.ts
  */
 import {
+  attachReversals,
   counterNeedsAccount,
   investorStatement,
+  isLive,
+  isReversed,
+  parseReversalReason,
+  reversalAction,
+  type ReversalRow,
   linkProposalMessage,
   linkUsd,
   outstandingFinancing,
@@ -138,6 +144,59 @@ console.log("\nد) إلى أين يعود النموذج");
   ok(safeReturnTo("/admin/users") === "/books?r=links", "وصفحةٌ أخرى من الموقع");
   ok(safeReturnTo(`/invest/agreements/${id}/../../admin`) === "/books?r=links", "والتفافٌ بالنقطتين");
   ok(safeReturnTo("") === "/books?r=links", "والفراغ");
+}
+
+console.log("\nهـ) الإلغاء باتّفاق الطرفين لا يُحتسب بعد قبوله");
+{
+  const rev = (over: Partial<ReversalRow> & { link_id: string }): ReversalRow => ({
+    id: "r-" + over.link_id + "-" + (over.status ?? "pending"), mine: true, status: "pending", reason: "كُتب المبلغ خطأً",
+    reject_reason: null, created_at: "2026-10-01T10:00:00Z", resolved_at: null, ...over,
+  });
+  const fin = row({ id: "L-fin", kind: "input_finance", amount_minor: 300000, season_id: S1, entry_date: "2026-03-01" });
+  const share = row({ id: "L-share", kind: "harvest_share", amount_minor: 600000, principal_minor: 300000, season_id: S1, entry_date: "2026-09-01" });
+  const payout = row({ id: "L-pay", kind: "payout", amount_minor: 200000, entry_date: "2026-10-01" });
+  const links = [fin, share, payout];
+
+  // The same request seen from the two sides, and the best one chosen per entry.
+  const withR = attachReversals(links, [
+    rev({ link_id: "L-fin", status: "rejected", reject_reason: "تسلّمته", created_at: "2026-09-01T10:00:00Z" }),
+    rev({ link_id: "L-fin", status: "pending", created_at: "2026-09-02T10:00:00Z" }),
+    rev({ link_id: "L-pay", status: "withdrawn" }),
+    rev({ link_id: "L-pay", status: "rejected", created_at: "2026-10-05T10:00:00Z", reject_reason: "لا" }),
+  ]);
+  ok(withR[0].reversal?.status === "pending", "لقيدٍ طلبٌ مرفوض ثمّ معلّق: يُختار المعلّق");
+  ok(withR[1].reversal === null, "وقيدٌ بلا طلب: لا شيء");
+  ok(withR[2].reversal?.status === "rejected", "وبين مسحوبٍ ومرفوضٍ: الأحدث");
+  const acc = attachReversals(links, [rev({ link_id: "L-share", status: "accepted", resolved_at: "2026-10-02T10:00:00Z" }), rev({ link_id: "L-share", status: "rejected", reject_reason: "x", created_at: "2026-12-01T10:00:00Z" })]);
+  ok(acc[1].reversal?.status === "accepted", "والمقبول يغلب ولو جاء بعده مرفوض");
+  ok(isReversed(acc[1]) && !isReversed(acc[0]) && !isLive(acc[1]) && isLive(acc[0]), "المقبول مُلغى، وغيره حيّ");
+  ok(!isLive(row({ status: "pending" })) && !isLive(row({ status: "rejected" })), "والمعلّق والمرفوض ليسا حيَّين");
+
+  const before = investorStatement(links);
+  ok(before.invested === BigInt(300000) && before.recognised === BigInt(600000) && before.handedOver === BigInt(200000), "قبل الإلغاء: وظّف ٣٬٠٠٠ وأُقرّ ٦٬٠٠٠ وسُلّم ٢٬٠٠٠");
+  const cancelledPayout = investorStatement(attachReversals(links, [rev({ link_id: "L-pay", status: "accepted" })]));
+  ok(cancelledPayout.handedOver === BigInt(0) && cancelledPayout.due === BigInt(600000) && cancelledPayout.flows.length === 1, "إلغاء التسليم: يعود المستحقّ كاملاً ويسقط تدفّقه");
+  const cancelledFin = investorStatement(attachReversals(links, [rev({ link_id: "L-fin", status: "accepted" })]));
+  ok(cancelledFin.invested === BigInt(0) && cancelledFin.moicCash === null, "إلغاء التمويل: لا توظيف، ولا مضاعف");
+  const pendingOnly = investorStatement(attachReversals(links, [rev({ link_id: "L-pay", status: "pending" })]));
+  ok(pendingOnly.handedOver === BigInt(200000), "وطلبٌ معلّق لا يغيّر الكشف حتى يُقبل");
+
+  const out = outstandingFinancing(attachReversals(links, [rev({ link_id: "L-share", status: "accepted" })]), S1);
+  ok(out.USD === BigInt(300000), "إلغاء نصيب الحصاد يُرجع التمويل المستحقّ (٣٬٠٠٠$)");
+  ok(outstandingFinancing(attachReversals(links, [rev({ link_id: "L-fin", status: "accepted" })]), S1).USD === BigInt(0), "وإلغاء التمويل يُسقطه (ولا يصير سالباً)");
+
+  // What the reader may do.
+  ok(reversalAction(row({ status: "pending" })) === "none", "المعلّق يُلغى بالإلغاء العاديّ لا بهذا");
+  ok(reversalAction(row({ status: "confirmed" })) === "request", "المؤكَّد بلا طلب: يطلب");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "pending", mine: true }) })) === "withdraw", "وطلبي المعلّق: أسحبه");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "pending", mine: false }) })) === "answer", "وطلب شريكي المعلّق: أردّ عليه");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "accepted" }) })) === "none", "والمقبول: انتهى");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "rejected", reject_reason: "ل" }) })) === "request", "والمرفوض: يجوز أن يطلب ثانية");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "withdrawn" }) })) === "request", "والمسحوب كذلك");
+
+  ok(parseReversalReason("  كُتب خطأً  ") === "كُتب خطأً", "السبب يُقصّ");
+  ok(parseReversalReason("ab") === null && parseReversalReason("   ") === null && parseReversalReason("") === null, "والقصير والفارغ يُرفضان");
+  ok(parseReversalReason("س".repeat(300)) !== null && parseReversalReason("س".repeat(301)) === null, "والحدّ ٣٠٠ حرف");
 }
 
 if (failed) {

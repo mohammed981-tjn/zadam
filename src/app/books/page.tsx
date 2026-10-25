@@ -7,7 +7,8 @@ import { ledgerToday } from "@/lib/ledger/today";
 import { loadReport, pickBook } from "@/lib/ledger/load";
 import ActionNotice from "@/components/ActionNotice";
 import LinksPanel from "@/components/books/LinksPanel";
-import type { LinkRow } from "@/lib/ledgerLinks";
+import { reversalAction } from "@/lib/ledgerLinks";
+import { loadLinks } from "@/lib/ledgerLinksLoad";
 import { PAGE_SIZE, parseReportParams, reportHref, type ReportKey, type ReportParams } from "@/lib/ledger/reportParams";
 import { money } from "@/lib/ledger/reports";
 import type { ChartRow, ReportData } from "@/lib/ledger/reportData";
@@ -58,9 +59,8 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
 
   // What the partners in my agreements proposed to book in both books. It belongs to the person, not to a book:
   // a proposal can wait for someone whose book is not yet opened.
-  const { data: linkRows } = await supabase.rpc("ledger_links_list");
-  const links = (linkRows ?? []) as LinkRow[];
-  const waitingForMe = links.filter((l) => l.status === "pending" && !l.mine).length;
+  const links = await loadLinks(supabase);
+  const waitingForMe = links.filter((l) => (l.status === "pending" && !l.mine) || reversalAction(l) === "answer").length;
 
   if (!book && p.report !== "links") {
     return (

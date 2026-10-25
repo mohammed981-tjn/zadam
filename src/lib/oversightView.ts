@@ -48,3 +48,42 @@ export function inspectionState(i: { closed_at: string | null; expires_at: strin
   if (i.closed_at) return "closed";
   return new Date(i.expires_at).getTime() > now.getTime() ? "active" : "expired";
 }
+
+// ── ما تأخّر، وفرق الذمّتين (البند ١٩٢) ────────────────────────────────────────
+
+/** A row of `oversight_stale`: how many proposals or cancellation requests have waited past the limit. */
+export interface StaleRow {
+  what: "pending_link" | "pending_reversal";
+  items: number | null;
+  agreements: number | null;
+  oldest_days: number | null;
+  suppressed: boolean;
+}
+
+export const STALE_LABEL: Record<StaleRow["what"], string> = {
+  pending_link: "اقتراحات قيودٍ معلّقة",
+  pending_reversal: "طلبات إلغاءٍ معلّقة",
+};
+
+/** A row of `oversight_reconcile` (a single row): the two sides' balances on the partner accounts, in dollars' cents. */
+export interface ReconcileRow {
+  due_to_partner_minor: number | null;
+  due_from_farmer_minor: number | null;
+  difference_minor: number | null;
+  farm_books: number | null;
+  investor_books: number | null;
+  suppressed: boolean;
+}
+
+export type ReconcileVerdict =
+  | { kind: "withheld" }
+  | { kind: "match" }
+  /** farm_more: the farmers' books say they owe more than the investors' books say they are owed. */
+  | { kind: "differs"; difference: number; direction: "farm_more" | "investor_more" };
+
+/** Reads the figure the way the database gave it: a withheld figure stays withheld, and no figure is made up. */
+export function reconcileVerdict(r: ReconcileRow | undefined): ReconcileVerdict {
+  if (!r || r.suppressed || r.difference_minor === null) return { kind: "withheld" };
+  if (r.difference_minor === 0) return { kind: "match" };
+  return { kind: "differs", difference: Math.abs(r.difference_minor), direction: r.difference_minor > 0 ? "farm_more" : "investor_more" };
+}

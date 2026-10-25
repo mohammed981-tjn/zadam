@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import ActionNotice from "@/components/ActionNotice";
 import { ledgerToday } from "@/lib/ledger/today";
 import { money } from "@/lib/ledger/reports";
-import { inspectionState, lastMonths, pivotFlows, type FlowRow } from "@/lib/oversightView";
+import { inspectionState, lastMonths, pivotFlows, reconcileVerdict, STALE_LABEL, type FlowRow, type ReconcileRow, type StaleRow } from "@/lib/oversightView";
 import { LINK_KIND_LABEL, LINK_STATUS_LABEL, type LinkKind, type LinkStatus } from "@/lib/ledgerLinks";
 import { button, card, field, ghost, label } from "@/lib/ui";
 import { closeInspection, openInspection } from "./actions";
@@ -46,21 +46,25 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
   const months = lastMonths(today, 12);
   const from = months[0];
 
-  const [flowsRes, mixRes, linksRes, inspRes, peopleRes] = await Promise.all([
+  const [flowsRes, mixRes, linksRes, staleRes, reconRes, inspRes, peopleRes] = await Promise.all([
     supabase.rpc("oversight_flows", { p_from: from, p_to: today }),
     supabase.rpc("oversight_currency_mix", { p_from: months[months.length - 3], p_to: today }),
     supabase.rpc("oversight_links", { p_from: from, p_to: today }),
+    supabase.rpc("oversight_stale", { p_days: 7 }),
+    supabase.rpc("oversight_reconcile", { p_as_of: today }),
     supabase.rpc("ledger_inspections_list"),
     q ? supabase.rpc("admin_users_list", { p_limit: 10, p_offset: 0, p_q: q }) : Promise.resolve({ data: [] as Person[] }),
   ]);
   const flows = pivotFlows((flowsRes.data ?? []) as FlowRow[]);
   const mix = (mixRes.data ?? []) as Mix[];
   const linkAgg = (linksRes.data ?? []) as LinkAgg[];
+  const stale = (staleRes.data ?? []) as StaleRow[];
+  const verdict = reconcileVerdict(((reconRes.data ?? []) as ReconcileRow[])[0]);
   const inspections = (inspRes.data ?? []) as Insp[];
   const people = (peopleRes.data ?? []) as Person[];
   const now = new Date();
   const monthName = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("ar-EG", { timeZone: "UTC", month: "short", year: "2-digit" });
-  const firstError = flowsRes.error ?? mixRes.error ?? linksRes.error ?? inspRes.error;
+  const firstError = flowsRes.error ?? mixRes.error ?? linksRes.error ?? staleRes.error ?? reconRes.error ?? inspRes.error;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -154,6 +158,44 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-bold">٢ب · ما تأخّر، وفرق الذمّتين (بلا أسماء)</h2>
+        <div className={box}>
+          <table className="w-full text-sm">
+            <thead className="bg-card">
+              <tr><th className={th}>ما مضى عليه أكثر من أسبوع</th><th className={th}>العدد</th><th className={th}>العقود</th><th className={th}>أقدمها (أياماً)</th></tr>
+            </thead>
+            <tbody>
+              {stale.map((r) => (
+                <tr key={r.what} className="border-t border-border">
+                  <td className={td}>{STALE_LABEL[r.what] ?? r.what}</td>
+                  {r.suppressed ? (
+                    <td className={`${td} text-muted`} colSpan={3}>محجوب (أقلّ من ثلاثة عقود)</td>
+                  ) : (
+                    <>
+                      <td className={num}>{r.items}</td>
+                      <td className={num}>{r.agreements}</td>
+                      <td className={num}>{r.items ? r.oldest_days : ""}</td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-4 text-sm leading-7">
+          <span className="font-bold">فرق الذمّتين: </span>
+          {verdict.kind === "withheld" && <span className="text-muted">محجوب — الدفاتر قليلة في أحد الجانبين أو يغلب عليه دفترٌ واحد.</span>}
+          {verdict.kind === "match" && <span>ما تقوله دفاتر المزارعين أنّها مستحقّةٌ لشركائها يطابق ما تقوله دفاتر المستثمرين أنّها مستحقّةٌ لهم.</span>}
+          {verdict.kind === "differs" && (
+            <span>
+              {verdict.direction === "farm_more" ? "دفاتر المزارعين تُثبت مستحقّاً للشركاء أكثر مما تُثبته دفاتر المستثمرين" : "دفاتر المستثمرين تُثبت مستحقّاً لهم أكثر مما تُثبته دفاتر المزارعين"} بمقدار{" "}
+              <span className="font-bold tabular-nums">{money(verdict.difference)}</span>. القيود المتقابلة المؤكَّدة تتطابق دائماً، فهذا أثرُ عكسٍ جرى في دفترٍ واحد؛ ويُصلحه طلب إلغاءٍ باتّفاق الطرفين.
+            </span>
+          )}
+        </p>
       </section>
 
       <section className="mt-10">

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { explain, signedIn, str, translator } from "@/lib/supplyActions";
-import { linkProposalMessage, parseLinkProposal, safeReturnTo } from "@/lib/ledgerLinks";
+import { linkProposalMessage, parseLinkProposal, parseReversalReason, safeReturnTo } from "@/lib/ledgerLinks";
 
 /**
  * القيود المتقابلة: اقتراح وتأكيد واعتراض وإلغاء (البند ١٨٨ ج). Each is a database function that
@@ -93,4 +93,54 @@ export async function cancelLink(fd: FormData) {
     done(fd, "error", explain(locale, error));
   }
   done(fd, "ok", t("أُلغي اقتراحك.", "Your proposal was cancelled."));
+}
+
+// ── إلغاء قيدٍ مؤكَّد باتّفاق الطرفين (البند ١٩٢) ──────────────────────────────────────────────────────────
+
+export async function requestReversal(fd: FormData) {
+  const { supabase } = await signedIn();
+  const { locale, t } = await translator();
+  const reason = parseReversalReason(str(fd, "reason"));
+  if (!reason) done(fd, "error", t("اكتب سبب الإلغاء (٣ أحرفٍ فأكثر): يراه شريكك.", "Write the reason for cancelling (3 characters or more): your partner sees it."));
+  const { error } = await supabase.rpc("ledger_link_reversal_request", { p_link: str(fd, "link_id"), p_reason: reason });
+  if (error) {
+    console.error("requestReversal failed", { error });
+    done(fd, "error", explain(locale, error));
+  }
+  done(fd, "ok", t("أُرسل طلب الإلغاء إلى شريكك؛ لا يتغيّر شيء في أيّ دفتر حتى يوافق.", "The cancellation request was sent to your partner; nothing changes in any book until they agree."));
+}
+
+export async function acceptReversal(fd: FormData) {
+  const { supabase } = await signedIn();
+  const { locale, t } = await translator();
+  const { error } = await supabase.rpc("ledger_link_reversal_accept", { p_reversal: str(fd, "reversal_id") });
+  if (error) {
+    console.error("acceptReversal failed", { error });
+    done(fd, "error", explain(locale, error));
+  }
+  done(fd, "ok", t("أُلغي القيد: عُكس في دفترك ودفتر شريكك، والقيدان الأصليّان باقيان في السجلّ.", "The entry was cancelled: reversed in your book and your partner's, and both original entries stay on record."));
+}
+
+export async function rejectReversal(fd: FormData) {
+  const { supabase } = await signedIn();
+  const { locale, t } = await translator();
+  const reason = parseReversalReason(str(fd, "reason"));
+  if (!reason) done(fd, "error", t("اكتب سبب الرفض (٣ أحرفٍ فأكثر): يراه صاحب الطلب.", "Write the reason for refusing (3 characters or more): the requester sees it."));
+  const { error } = await supabase.rpc("ledger_link_reversal_reject", { p_reversal: str(fd, "reversal_id"), p_reason: reason });
+  if (error) {
+    console.error("rejectReversal failed", { error });
+    done(fd, "error", explain(locale, error));
+  }
+  done(fd, "ok", t("رُفض طلب الإلغاء وبقي القيدان كما هما.", "The cancellation request was refused and both entries stay as they are."));
+}
+
+export async function withdrawReversal(fd: FormData) {
+  const { supabase } = await signedIn();
+  const { locale, t } = await translator();
+  const { error } = await supabase.rpc("ledger_link_reversal_withdraw", { p_reversal: str(fd, "reversal_id") });
+  if (error) {
+    console.error("withdrawReversal failed", { error });
+    done(fd, "error", explain(locale, error));
+  }
+  done(fd, "ok", t("سحبتَ طلب الإلغاء.", "You withdrew the cancellation request."));
 }
