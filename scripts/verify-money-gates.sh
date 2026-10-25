@@ -20,12 +20,14 @@ BASE="$(pg_stage "$ROOT/scripts/base-schema.sql" base-schema.sql)"
 POLICIES="$(pg_stage "$ROOT/supabase/migrations/20260817120000_document_existing_policies_and_guards.sql" policies.sql)"
 AUDIT="$(pg_stage "$ROOT/supabase/migrations/20260904140000_investment_audit.sql" audit.sql)"
 GATES="$(pg_stage "$ROOT/supabase/migrations/20261024020000_close_direct_writes_money_and_opportunities.sql" gates.sql)"
+REVIEW="$(pg_stage "$ROOT/supabase/migrations/20261025200100_operator_record_and_investments.sql" review.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-money-gates.sql" checks.sql)"
 
 echo "── الأساس";           pg_run_quiet "$BASE"
 echo "── السياسات";         pg_run_quiet "$POLICIES"
 echo "── تدقيق الاستثمار";   pg_run_quiet "$AUDIT"
 echo "── الحرّاس الجديدة";   pg_run_quiet "$GATES"
+echo "── مراجعة ١٩٨ (د٤ د٥)"; pg_run "$REVIEW" >/dev/null
 
 echo "── الفحوص"
 pg_run "$CHECKS"

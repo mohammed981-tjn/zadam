@@ -75,7 +75,17 @@ insert into projects (id, slug, name, location, total_feddans, price_per_share, 
 create trigger seasons_operator_record after update on public.seasons
   for each row execute function public.refresh_operator_record();
 insert into seasons (id, owner_id, name, crop_key, station_key, irrigation, feddans, planting_date) values
-  ('5e000000-0000-0000-0000-000000000001', 'fa000000-0000-0000-0000-0000000000fa', 'موسم', 'sesame', 'wad_medani', 'canal', 5, date '2026-06-01');
+  ('5e000000-0000-0000-0000-000000000001', 'fa000000-0000-0000-0000-0000000000fa', 'موسم', 'sesame', 'wad_medani', 'canal', 5, date '2026-06-01'),
+  ('5e000000-0000-0000-0000-000000000002', 'fa000000-0000-0000-0000-0000000000fa', 'فارغ ١', 'sesame', 'wad_medani', 'canal', 5, date '2026-06-01'),
+  ('5e000000-0000-0000-0000-000000000003', 'fa000000-0000-0000-0000-0000000000fa', 'فارغ ٢', 'sesame', 'wad_medani', 'canal', 5, date '2026-06-01'),
+  ('5e000000-0000-0000-0000-000000000004', 'fa000000-0000-0000-0000-0000000000fa', 'بلا ملفّ', 'sesame', 'wad_medani', 'canal', 5, date '2026-06-01');
+-- The real season has a stage signed off with a file; the fourth a stage marked done with no file (as the seven
+-- test-season stages in production); the two between have nothing at all.
+insert into season_stages (id, season_id, stage_key, stage_order, planned_start, planned_end, completed, completed_at) values
+  ('51000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000001', 'land_prep', 1, date '2026-06-01', date '2026-06-10', true, now()),
+  ('54000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000004', 'land_prep', 1, date '2026-06-01', date '2026-06-10', true, now());
+insert into stage_evidence (stage_id, kind, storage_path, created_by) values
+  ('51000000-0000-0000-0000-000000000001', 'photo', 'fa000000-0000-0000-0000-0000000000fa/a.jpg', 'fa000000-0000-0000-0000-0000000000fa');
 
 grant usage on schema public, auth to anon, authenticated;
 grant select, insert, update, delete on all tables in schema public to anon, authenticated;
@@ -150,6 +160,15 @@ begin
   perform _eq((select shares_sold from projects where id = '90000000-0000-0000-0000-000000000001'), 2,
     'وتزيد المباع بحصّتين');
   perform _eq((select status::text from investments where id = inv), 'confirmed', 'ويصير الطلب مؤكَّداً');
+
+  -- البند ١٩٨ د٥: إرجاعه إلى الانتظار ثمّ تأكيده من جديد كان يعدّ حصصه مرّتين.
+  perform _refuses(format($q$update investments set status = 'pending' where id = %L$q$, inv),
+    'ولا يُرجَع استثمارٌ مؤكَّد إلى الانتظار بتحديثٍ مباشر (فيُؤكَّد ثانيةً وتُعدّ حصصه مرّتين)');
+  perform _refuses(format($q$update investments set status = 'cancelled' where id = %L$q$, inv),
+    'ولا يُلغى مؤكَّدٌ بتحديثٍ يُبقي حصصه في المباع');
+  perform _eq(confirm_investment(inv) <> 'confirmed', true, 'وتأكيده ثانيةً لا يمرّ');
+  perform _eq((select shares_sold from projects where id = '90000000-0000-0000-0000-000000000001'), 2,
+    'فيبقى المباع حصّتين');
 end $$;
 
 reset role;
@@ -236,6 +255,13 @@ begin
     'ويُقفل موسمَه كما يفعل التطبيق', 1);
   perform _eq((select completed_seasons::int from profiles where id = 'fa000000-0000-0000-0000-0000000000fa'), 1,
     'فتحسب المنصّةُ سجلّه: موسمٌ واحد');
+  -- البند ١٩٨ د٤: مواسم فارغة تُنشأ وتُقفل كانت ترفع السجلّ واحداً واحداً.
+  perform _works($q$update seasons set status = 'completed' where id in ('5e000000-0000-0000-0000-000000000002', '5e000000-0000-0000-0000-000000000003')$q$,
+    'ويُقفل موسمين فارغين', 2);
+  perform _works($q$update seasons set status = 'completed' where id = '5e000000-0000-0000-0000-000000000004'$q$,
+    'وموسماً مرحلته «معتمدة» بلا ملفّ', 1);
+  perform _eq((select completed_seasons::int from profiles where id = 'fa000000-0000-0000-0000-0000000000fa'), 1,
+    'فلا يُعدّ منها شيء: المكتمل ما اعتُمدت فيه مرحلةٌ بدليلٍ مرفوع');
 end $$;
 
 reset role;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { safePagePath } from "@/lib/feedback";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 
@@ -102,7 +103,17 @@ export async function POST(req: NextRequest) {
      * whole statement and reporting it as an RLS violation on a write that had
      * in fact succeeded.
      */
-    const { error } = await supabase
+    /*
+     * Written by the server, not as the visitor (backlog 198, D9): the public key no longer holds INSERT on feedback,
+     * so a script cannot fill the table's hourly ceiling and shut the form for everyone. The row is built above from
+     * five fields and the verified session — status, reply and publication keep their defaults.
+     */
+    const admin = createAdminClient();
+    if (!admin) {
+      console.error("feedback: SUPABASE_SERVICE_ROLE_KEY is not set");
+      return NextResponse.json({ ok: false, message: "تعذّر حفظ ملاحظتك الآن، حاول مرة أخرى." }, { status: 500 });
+    }
+    const { error } = await admin
       .from("feedback")
       .insert({ ...row, author_id: user?.id ?? null });
 

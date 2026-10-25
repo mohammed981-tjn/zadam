@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 import { alertRecipients, sendEmail } from "@/lib/email";
 
@@ -68,7 +68,16 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    const supabase = await createClient();
+    /*
+     * Written by the server, not as the visitor (backlog 198, D9). The public key no longer holds INSERT on leads: with
+     * it, one script posting straight to the API filled the table's hourly ceiling and shut this form for everyone.
+     * The per-address limit below is what stands between a visitor and the table now.
+     */
+    const supabase = createAdminClient();
+    if (!supabase) {
+      console.error("leads: SUPABASE_SERVICE_ROLE_KEY is not set");
+      return NextResponse.json({ ok: false, message: "تعذّر حفظ بياناتك الآن، حاول مرة أخرى." }, { status: 500 });
+    }
 
     // The leftmost x-forwarded-for entry is client-supplied and spoofable; the
     // last entry is the one Vercel's edge appends for the real connecting IP.

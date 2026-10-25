@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { currentFx } from "@/lib/livePrices";
 import { createClient } from "@/lib/supabase/server";
+import { loginTo } from "@/lib/authEntry";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
 import { nafirViewer } from "@/lib/nafirViewer";
@@ -241,7 +242,7 @@ export default async function GroupOrderPage({
 
       {!user && open && (
         <p className={`${card} mt-4 text-sm`}>
-          <Link href="/login" className="font-medium text-primary underline">
+          <Link href={loginTo(`/suppliers/orders/${o.id}`)} className="font-medium text-primary underline">
             {t("سجّل الدخول", "Sign in")}
           </Link>{" "}
           {t("لتتعهّد بكميّتك.", "to pledge your quantity.")}
