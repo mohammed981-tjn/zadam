@@ -303,9 +303,15 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
                         <td className={num}>{money(r.balance)}</td>
                       </tr>
                     ))}
+                    {data.sheet.retainedIncome !== BigInt(0) && (
+                      <tr className="border-t border-border">
+                        <td className={td}>{t("أرباح السنوات السابقة (محتجزة)", "Earnings of earlier years (retained)")}</td>
+                        <td className={num}>{money(data.sheet.retainedIncome)}</td>
+                      </tr>
+                    )}
                     <tr className="border-t border-border">
-                      <td className={td}>{t("صافي الدخل حتى هذا اليوم (لم يُقفل)", "Net income to date (not yet closed)")}</td>
-                      <td className={num}>{money(data.sheet.netIncome)}</td>
+                      <td className={td}>{t("ربح هذه السنة حتى اليوم", "This year's profit to date")}</td>
+                      <td className={num}>{money(data.sheet.currentIncome)}</td>
                     </tr>
                     <Total label={t("مجموع الملكيّة", "Total equity")} value={money(data.sheet.totalEquityWithIncome)} />
                     <Total label={t("الالتزامات + الملكيّة", "Liabilities + equity")} value={money(data.sheet.totalLiabilities + data.sheet.totalEquityWithIncome)} strong />

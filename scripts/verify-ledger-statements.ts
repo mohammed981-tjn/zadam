@@ -67,6 +67,16 @@ ok(!buildBalanceSheet(rows, BigInt(0)).balanced, "وبلا صافي الدخل �
 ok(!buildBalanceSheet([...rows, bal("1130", "wallet", "asset", 1)], is.netIncome).balanced, "وقرشٌ زائد يكسرها");
 ok(buildBalanceSheet([], BigInt(0)).balanced, "وميزانيّةٌ فارغة متوازنة");
 
+// فصل أرباح السنوات السابقة عن ربح السنة الجارية: لا قيد إقفال، ومجموعهما صافي الدخل دائماً.
+const split = buildBalanceSheet(rows, is.netIncome, BigInt(50000));
+ok(split.retainedIncome === BigInt(50000), "المحتجز = صافي الدخل حتى نهاية السنة السابقة");
+ok(split.currentIncome === is.netIncome - BigInt(50000), "وربح السنة = الباقي");
+ok(split.retainedIncome + split.currentIncome === split.netIncome, "ومجموعهما صافي الدخل");
+ok(split.balanced && split.totalEquityWithIncome === bs.totalEquityWithIncome, "والفصل لا يمسّ التوازن ولا مجموع الملكيّة");
+ok(bs.retainedIncome === BigInt(0) && bs.currentIncome === is.netIncome, "وبلا سنةٍ سابقة كلّ الربح للسنة الجارية");
+const lossYear = buildBalanceSheet(rows, is.netIncome, is.netIncome + BigInt(7000));
+ok(lossYear.currentIncome === BigInt(-7000) && lossYear.balanced, "وخسارة السنة الجارية بعد ربحٍ سابق تظهر سالبة ولا تكسر التوازن");
+
 console.log("\nج) التدفّقات النقديّة");
 const flow = [
   cf("operating", "4110", 60000),
