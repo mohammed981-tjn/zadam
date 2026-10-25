@@ -97,8 +97,9 @@ class _WaterScreenState extends State<WaterScreen> {
                   _Dropdown<CropCoefficients>(
                     label: 'المحصول',
                     value: _crop,
-                    items: crops,
-                    nameOf: (c) => c.name,
+                    items: allCrops,
+                    nameOf: (c) =>
+                        isNewCrop(c.key) ? '${c.name} — جديد على السودان' : c.name,
                     onChanged: (v) => setState(() => _crop = v),
                   ),
                   const SizedBox(height: 12),

@@ -79,13 +79,20 @@ const soilCases = <_SoilCase>[
       72.0000, 5.4483, 13.2152, 302.4000),
   _SoilCase('sweet_potato', 'gezira', 6, IrrigationMethod.flood, 'silt loam',
       100.0000, 9.3304, 10.7177, 420.0000),
+  // المحاصيل الجديدة على السودان (البند ١٩٤): p الافتراضيّ (فول الصويا) وp الأضيق (العنب ٠٫٣٥) وp الجدول ٠٫٦٥ مقصوصاً إلى ٠٫٥٠ (الزيتون).
+  _SoilCase('soybean', 'gezira', 6, IrrigationMethod.flood, 'clay loam',
+      63.0000, 6.8510, 9.1957, 264.6000),
+  _SoilCase('grapes', 'northern', 2, IrrigationMethod.drip, 'sandy loam',
+      42.0000, 7.6164, 5.5144, 176.4000),
+  _SoilCase('olive', 'khartoum', 0, IrrigationMethod.drip, 'loam',
+      108.0000, 5.5782, 19.3609, 453.6000),
 ];
 
 void main() {
   group('matches the web soil-water engine', () {
     for (final c in soilCases) {
       test('${c.crop} on ${c.soil} in ${c.station}', () {
-        final crop = crops.firstWhere((x) => x.key == c.crop);
+        final crop = allCrops.firstWhere((x) => x.key == c.crop);
         final station = stations.firstWhere((x) => x.key == c.station);
         final r = irrigationInterval(
           crop,
@@ -150,7 +157,7 @@ void main() {
       // guessed depth — and the screen says why instead of showing an empty
       // panel (water_screen.dart).
       final station = stations.first;
-      for (final crop in crops) {
+      for (final crop in allCrops) {
         final r = irrigationInterval(
           crop,
           station,
@@ -171,7 +178,7 @@ void main() {
       // row nobody can reach. `mango` is the one deliberate exception — the
       // web keeps its depth for the knowledge base while the water engine
       // has no Kc for it (see the note beside CROPS in agronomy.ts).
-      final keys = crops.map((c) => c.key).toSet();
+      final keys = allCrops.map((c) => c.key).toSet();
       for (final k in rootDepthM.keys) {
         if (k == 'mango') continue;
         expect(keys, contains(k), reason: 'root depth for unknown crop $k');

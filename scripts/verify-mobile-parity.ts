@@ -23,7 +23,9 @@
  */
 
 import {
+  ALL_CROPS,
   CROPS,
+  NEW_CROPS,
   STATIONS,
   waterRequirement,
   type IrrigationMethod,
@@ -99,7 +101,7 @@ const num = (v: string) => {
 const method = (v: string) => str(v).replace("IrrigationMethod.", "") as IrrigationMethod;
 
 const crop = (k: string) => {
-  const c = CROPS.find((x) => x.key === k);
+  const c = ALL_CROPS.find((x) => x.key === k);
   if (!c) throw new Error(`no crop ${k} in the web engine`);
   return c;
 };
@@ -272,12 +274,12 @@ async function verifyTables() {
  * dropped. So compare the two tables row by row: same crops, same order, same
  * names, stage lengths and coefficients (البند ١٧٩).
  */
-function dartCropTable() {
+function dartCropTable(list: "crops" | "newCrops") {
   return read("mobile/lib/agronomy.dart").then((dart) => {
-    const at = dart.indexOf("const List<CropCoefficients> crops = [");
-    if (at === -1) throw new Error("no `crops` list in mobile/lib/agronomy.dart");
+    const at = dart.indexOf(`const List<CropCoefficients> ${list} = [`);
+    if (at === -1) throw new Error(`no \`${list}\` list in mobile/lib/agronomy.dart`);
     const end = dart.indexOf("\n];", at);
-    if (end === -1) throw new Error("unterminated `crops` list");
+    if (end === -1) throw new Error(`unterminated \`${list}\` list`);
     const blocks = dart.slice(at, end).split("CropCoefficients(").slice(1);
     return blocks.map((b) => {
       const text = (field: string) => {
@@ -307,30 +309,36 @@ function dartCropTable() {
 async function verifyCropTable() {
   console.log();
   console.log("=".repeat(78));
-  console.log("D) mobile/lib/agronomy.dart `crops` — the table against CROPS, row by row");
+  console.log("D) mobile/lib/agronomy.dart `crops` and `newCrops` — the tables against CROPS and NEW_CROPS, row by row");
   console.log("=".repeat(78));
 
-  const dart = await dartCropTable();
   const same = (label: string, ok: boolean, detail = "") => {
     if (!ok) fail++;
     console.log(`  ${ok ? "PASS" : "FAIL"}  ${label.padEnd(52)} ${detail}`);
   };
 
-  same("same number of crops", dart.length === CROPS.length, `web ${CROPS.length}, app ${dart.length}`);
-  const webKeys = CROPS.map((c) => c.key);
-  const appKeys = dart.map((c) => c.key);
-  for (const k of webKeys) if (!appKeys.includes(k)) same(`${k} is in the app`, false, "missing from mobile/lib/agronomy.dart");
-  for (const k of appKeys) if (!webKeys.includes(k)) same(`${k} is on the website`, false, "only the app has it");
-  same("same order", webKeys.join() === appKeys.join(), "the picker lists them in this order");
+  // The Sudanese crops and the ones new to Sudan are two lists on each side, and a crop must not drift from one to the other.
+  for (const [list, web, tag] of [
+    ["crops", CROPS, "crops"],
+    ["newCrops", NEW_CROPS, "newCrops"],
+  ] as const) {
+    const dart = await dartCropTable(list);
+    same(`${tag}: same number of crops`, dart.length === web.length, `web ${web.length}, app ${dart.length}`);
+    const webKeys = web.map((c) => c.key);
+    const appKeys = dart.map((c) => c.key);
+    for (const k of webKeys) if (!appKeys.includes(k)) same(`${tag}: ${k} is in the app`, false, `missing from the app's ${list}`);
+    for (const k of appKeys) if (!webKeys.includes(k)) same(`${tag}: ${k} is on the website`, false, `only the app's ${list} has it`);
+    same(`${tag}: same order`, webKeys.join() === appKeys.join(), "the picker lists them in this order");
 
-  for (const w of CROPS) {
-    const a = dart.find((x) => x.key === w.key);
-    if (!a) continue;
-    same(`${w.key} name`, a.name === w.name, `${a.name} / ${w.name}`);
-    same(`${w.key} stages`, a.stages.join() === w.stages.join(), `${a.stages.join("-")} / ${w.stages.join("-")}`);
-    check(`${w.key} kcInitial`, a.kcInitial, w.kcInitial, 0);
-    check(`${w.key} kcMid`, a.kcMid, w.kcMid, 0);
-    check(`${w.key} kcEnd`, a.kcEnd, w.kcEnd, 0);
+    for (const w of web) {
+      const a = dart.find((x) => x.key === w.key);
+      if (!a) continue;
+      same(`${w.key} name`, a.name === w.name, `${a.name} / ${w.name}`);
+      same(`${w.key} stages`, a.stages.join() === w.stages.join(), `${a.stages.join("-")} / ${w.stages.join("-")}`);
+      check(`${w.key} kcInitial`, a.kcInitial, w.kcInitial, 0);
+      check(`${w.key} kcMid`, a.kcMid, w.kcMid, 0);
+      check(`${w.key} kcEnd`, a.kcEnd, w.kcEnd, 0);
+    }
   }
 }
 
@@ -347,7 +355,7 @@ async function verifyCoverage() {
   const cases = parseCalls(await read("mobile/test/agronomy_test.dart"), "_Case").map((a) => str(a[0]));
   const { ROOT_DEPTH_M } = await import("../src/lib/soilWater");
   const station0 = STATIONS[0];
-  for (const c of CROPS) {
+  for (const c of ALL_CROPS) {
     const pinned = cases.includes(c.key);
     if (!pinned) fail++;
     console.log(`  ${pinned ? "PASS" : "FAIL"}  ${c.key.padEnd(52)} ${pinned ? "has a golden _Case" : "no _Case in mobile/test/agronomy_test.dart"}`);

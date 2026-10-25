@@ -103,6 +103,11 @@ const Map<String, double> rootDepthM = {
   'zucchini': 0.6,
   'sweet_potato': 1.0,
   'citrus': 1.2,
+  // المحاصيل الجديدة على السودان (البند ١٩٤): الجدول ٢٢ — «Soybeans» ٠٫٦–١٫٣، «Grapes – Table or Raisin» ١٫٠–٢٫٠،
+  // «Olives (40 to 60% ground coverage)» ١٫٢–١٫٧؛ الطرف الأقصر.
+  'soybean': 0.6,
+  'grapes': 1.0,
+  'olive': 1.2,
 };
 
 /// Depletion fraction p — the share of the reservoir a crop may use before it
@@ -125,6 +130,7 @@ const Map<String, double> shallowP = {
   'sweet_pepper': 0.3,
   'cabbage': 0.45,
   'carrot': 0.35,
+  'grapes': 0.35,
 };
 
 class IrrigationInterval {

@@ -119,6 +119,13 @@ export const ROOT_DEPTH_M: Record<string, number> = {
   zucchini: 0.6,
   sweet_potato: 1.0,
   citrus: 1.2,
+  /*
+   * المحاصيل الجديدة على السودان (`NEW_CROPS`، البند ١٩٤)، من الجدول ٢٢ نفسه: soybean «Soybeans» ٠٫٦–١٫٣،
+   * grapes «Grapes – Table or Raisin» ١٫٠–٢٫٠، olive «Olives (40 to 60% ground coverage)» ١٫٢–١٫٧؛ الطرف الأقصر.
+   */
+  soybean: 0.6,
+  grapes: 1.0,
+  olive: 1.2,
 };
 
 /**
@@ -147,6 +154,7 @@ export const SHALLOW_P: Record<string, number> = {
   sweet_pepper: 0.3,
   cabbage: 0.45,
   carrot: 0.35,
+  grapes: 0.35,
 };
 
 export interface IrrigationInterval {

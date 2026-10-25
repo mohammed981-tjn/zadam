@@ -298,6 +298,41 @@ const List<CropCoefficients> crops = [
   ),
 ];
 
+/// محاصيل جديدة على السودان تستحق التجربة، مفصولة عن السودانية (البند ١٩٤): `NEW_CROPS` في src/lib/agronomy.ts
+/// بالقيم نفسها وبالترتيب نفسه، وتقارنها `scripts/verify-mobile-parity.ts` رقماً برقم. المصدر المنشور لكلّ رقمٍ
+/// (FAO-56 الجدولان ١١ و١٢) مكتوبٌ هناك.
+const List<CropCoefficients> newCrops = [
+  CropCoefficients(
+    key: 'soybean',
+    name: 'فول الصويا',
+    stages: [15, 15, 40, 15],
+    kcInitial: 0.4,
+    kcMid: 1.15,
+    kcEnd: 0.5,
+  ),
+  CropCoefficients(
+    key: 'grapes',
+    name: 'العنب',
+    stages: [20, 40, 120, 60],
+    kcInitial: 0.3,
+    kcMid: 0.85,
+    kcEnd: 0.45,
+  ),
+  CropCoefficients(
+    key: 'olive',
+    name: 'الزيتون',
+    stages: [30, 90, 60, 90],
+    kcInitial: 0.65,
+    kcMid: 0.7,
+    kcEnd: 0.7,
+  ),
+];
+
+/// كلّ ما يحسبه المحرّك: السودانية أولاً ثمّ الجديدة، كما في `ALL_CROPS` بالويب.
+const List<CropCoefficients> allCrops = [...crops, ...newCrops];
+
+bool isNewCrop(String key) => newCrops.any((c) => c.key == key);
+
 class StationClimate {
   const StationClimate({
     required this.key,
