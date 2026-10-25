@@ -15,6 +15,8 @@ export type BookKind = (typeof BOOK_KINDS)[number];
 export interface ReportParams {
   report: ReportKey;
   kind: BookKind | null;
+  /** One book by its id: the administrator reading the book an inspection opened. Without it, the reader's own book. */
+  bookId: string | null;
   from: string;
   to: string;
   asOf: string;
@@ -53,10 +55,25 @@ export function parseReportParams(sp: Record<string, string | undefined>, today:
   const asOf = isIsoDate(sp.as_of) ? sp.as_of : today;
 
   const account = sp.a && UUID.test(sp.a) ? sp.a.toLowerCase() : null;
+  const bookId = sp.id && UUID.test(sp.id) ? sp.id.toLowerCase() : null;
   const n = Number(sp.p);
   const page = Number.isInteger(n) && n >= 1 && n <= MAX_PAGE ? n : 1;
 
-  return { report: report === "account" && !account ? "chart" : report, kind, from, to, asOf, account, page };
+  return { report: report === "account" && !account ? "chart" : report, kind, bookId, from, to, asOf, account, page };
+}
+
+/**
+ * The heading of a book: whose it is, said plainly. A book the reader does not own is one an inspection opened —
+ * read-only, and never called "yours" (review 198 B2).
+ */
+export function bookHeading(book: { kind: BookKind; owner_id: string | null }, me: string): { ar: string; en: string } {
+  if (book.kind === "platform") return { ar: "دفتر المنصّة", en: "The platform's book" };
+  if (book.owner_id === me) {
+    return book.kind === "farm" ? { ar: "دفتر مزرعتك", en: "Your farm book" } : { ar: "دفتر المستثمر", en: "Investor book" };
+  }
+  return book.kind === "farm"
+    ? { ar: "دفتر مزرعة تحت الفحص — قراءة فقط، وليس دفترك", en: "A farm book under inspection — read only, not yours" }
+    : { ar: "دفتر مستثمر تحت الفحص — قراءة فقط، وليس دفترك", en: "An investor book under inspection — read only, not yours" };
 }
 
 /** The query string of a report, for links and for the export — only what differs from the default is written. */
@@ -64,6 +81,7 @@ export function reportHref(base: string, p: Partial<ReportParams> & { report: Re
   const q = new URLSearchParams();
   q.set("r", p.report);
   if (p.kind) q.set("book", p.kind);
+  if (p.bookId) q.set("id", p.bookId);
   if (p.from && p.from !== `${today.slice(0, 4)}-01-01`) q.set("from", p.from);
   if (p.to && p.to !== today) q.set("to", p.to);
   if (p.asOf && p.asOf !== today) q.set("as_of", p.asOf);

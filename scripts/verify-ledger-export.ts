@@ -62,7 +62,7 @@ function fakeDb(tables: Record<string, Row[]>, rpcs: Record<string, Row[]>) {
   return { client: client as unknown as SupabaseClient, count: () => requests };
 }
 
-const book: BookRef = { id: "book-1", kind: "farm", closed_through: null };
+const book: BookRef = { id: "book-1", kind: "farm", closed_through: null, owner_id: "u-1" };
 const accounts: Row[] = [
   { id: "acc-cash", book_id: "book-1", code: "1110", parent_code: "11", name_ar: "النقد", name_en: "Cash", type: "asset", postable: true, active: true },
   { id: "acc-seeds", book_id: "book-1", code: "5110", parent_code: "51", name_ar: "بذور", name_en: "Seeds", type: "expense", postable: true, active: true },

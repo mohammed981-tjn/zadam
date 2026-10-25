@@ -22,17 +22,31 @@ export interface BookRef {
   id: string;
   kind: BookKind;
   closed_through: string | null;
+  owner_id: string | null;
 }
 
+const BOOK_COLUMNS = "id, kind, closed_through, owner_id";
+
 /**
- * The reader's own book of the kind asked for — the farm book by default, else the investor's. For an
- * administrator `platform` is the platform's. The policy decides: asking for a book that is not yours
- * returns nothing, and so does a kind nobody has opened yet.
+ * With `bookId`, that one book, if the policy lets the reader see it — the book an administrator's inspection opened,
+ * and no other. Without it, the reader's **own** book of the kind asked for (the farm book by default, else the
+ * investor's; `platform` is the platform's, which has no owner). Picking by kind alone took whichever book the policy
+ * showed first, and an administrator inspecting one farm, or farming himself, could be shown another (review 198 B2).
  */
-export async function pickBook(supabase: SupabaseClient, want: BookKind | null): Promise<BookRef | null> {
+export async function pickBook(
+  supabase: SupabaseClient,
+  want: BookKind | null,
+  me: string,
+  bookId: string | null = null,
+): Promise<BookRef | null> {
+  if (bookId) {
+    const { data } = await supabase.from("ledger_books").select(BOOK_COLUMNS).eq("id", bookId).maybeSingle();
+    return (data as BookRef | null) ?? null;
+  }
   const kinds: BookKind[] = want ? [want] : ["farm", "investor"];
   for (const kind of kinds) {
-    const { data } = await supabase.from("ledger_books").select("id, kind, closed_through").eq("kind", kind).limit(1).maybeSingle();
+    const q = supabase.from("ledger_books").select(BOOK_COLUMNS).eq("kind", kind);
+    const { data } = await (kind === "platform" ? q.is("owner_id", null) : q.eq("owner_id", me)).limit(1).maybeSingle();
     if (data) return data as BookRef;
   }
   return null;
@@ -76,6 +90,7 @@ export async function loadReport(
       return {
         kind: "balance",
         sheet: buildBalanceSheet(rows, buildIncomeStatement(income).netIncome, buildIncomeStatement(prior).netIncome),
+        asOf: p.asOf,
       };
     }
     case "cash": {

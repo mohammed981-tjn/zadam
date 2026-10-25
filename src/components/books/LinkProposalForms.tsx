@@ -49,10 +49,10 @@ export default function LinkProposalForms({
     rent_payment: t("دفعتُ أجرة الأرض", "I paid the land rent"),
   };
 
-  // What each season still has financed and not yet settled by a share, to guide the "settles" figure.
+  // What each season still has financed and not yet settled by a share — in dollars at the booked rates — to guide the "settles" figure.
   const financed = (s: Season) => {
     const o = outstandingFinancing(links, s.id);
-    return [o.USD > BigInt(0) ? formatMoney(o.USD, "USD") : null, o.SDG > BigInt(0) ? formatMoney(o.SDG, "SDG") : null].filter(Boolean).join(" + ");
+    return o > BigInt(0) ? formatMoney(o, "USD") : "";
   };
 
   const idem = (k: string) => `${k}-${globalThis.crypto.randomUUID()}`;

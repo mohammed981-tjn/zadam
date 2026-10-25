@@ -43,6 +43,36 @@ export function lastMonths(today: string, n = 12): string[] {
   return out;
 }
 
+/**
+ * The `n` month starts ending with the month before `today`'s: the months that are over, the only ones the
+ * statistics count (migration 20261025160000 — a month under way has no figure until it ends).
+ */
+export function lastClosedMonths(today: string, n = 12): string[] {
+  const [y, m] = today.split("-").map(Number);
+  return lastMonths(new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 10), n);
+}
+
+/** The last day of the last month that is over: the day the reconciliation of the two dues is read at. */
+export function closedMonthEnd(today: string): string {
+  const [y, m] = today.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, 0)).toISOString().slice(0, 10);
+}
+
+/**
+ * Why an agreements cell is withheld. The rule is both halves, as in `oversight_links` and `oversight_stale`: too few
+ * agreements behind it, or one of them most of it — the page used to name the first only (review 198 B4).
+ */
+export const agreementsWithheld = (floorWord: string) => `محجوب (أقلّ من ${floorWord} عقود، أو يغلب عليه عقدٌ واحد)`;
+
+/**
+ * What a difference between the two dues means and who can mend it (review 198 B5). Confirmed linked entries match
+ * by construction, so a difference is an entry on one side only: a hand-made entry on a partner account, or an old
+ * reversal of a linked entry in one book. A cancellation by agreement reverses both books, so it leaves the
+ * difference where it was; the owner of the book with the stray entry mends it, and an inspection finds which book.
+ */
+export const RECONCILE_REMEDY =
+  "القيود المتقابلة المؤكَّدة تتطابق دائماً، فالفرق قيدٌ في جانبٍ واحد: قيدٌ يدويٌّ على حساب الشريك (٢١٣٠ في دفتر المزرعة أو ١٢٣٠ في دفتر المستثمر)، أو عكسٌ قديم لقيدٍ متقابل في دفترٍ واحد. طلب الإلغاء باتّفاق الطرفين لا يصلحه (يعكس الدفترين معاً فيبقى الفرق)؛ يصلحه صاحب الدفتر بعكس قيده اليدويّ، ويُعرف الدفتر بفحصٍ تكتب سببه.";
+
 /** What an inspection is, for the list: running, ended by time, or closed by the administrator. */
 export function inspectionState(i: { closed_at: string | null; expires_at: string }, now: Date): "active" | "expired" | "closed" {
   if (i.closed_at) return "closed";

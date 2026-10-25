@@ -12,6 +12,7 @@ import {
   isReversed,
   parseReversalReason,
   reversalAction,
+  returnSentence,
   type ReversalRow,
   linkProposalMessage,
   linkUsd,
@@ -92,9 +93,32 @@ console.log("\nب) كشف حساب المستثمر");
   ok(st.recognised === BigInt(600000) && st.handedOver === BigInt(600000) && st.due === BigInt(0), "المقرّ به ٦٬٠٠٠$ وسُلّم ٦٬٠٠٠$ وصفرٌ باقٍ (والمرفوض لا يُحتسب)");
   ok(st.settled, "فالحساب مُصفّى");
   ok(st.moicCash === 2 && st.moicRecognised === 2, "ضعف رأس المال");
-  const expected = Math.pow(2, 365 / 214) - 1;
-  ok(st.xirr !== null && Math.abs(st.xirr - expected) < 1e-9, `والعائد السنويّ من تاريخَي الحركة (${expected.toFixed(4)})`);
+  // 214 days: under a year, so no yearly rate — the plain return over the span instead (review 198 B3).
+  ok(st.xirr === null && st.spanDays === 214 && st.cashReturn === 1, "٢١٤ يوماً: لا عائد سنويّ، والعائد على المدّة ١٠٠٪");
   ok(st.flows.length === 2 && st.flows[0].amount === -3000 && st.flows[1].amount === 6000, "وتدفّقان: −٣٬٠٠٠ و+٦٬٠٠٠");
+  const year = investorStatement([
+    row({ kind: "input_finance", amount_minor: 300000, entry_date: "2025-03-01" }),
+    row({ kind: "harvest_share", amount_minor: 600000, principal_minor: 300000, entry_date: "2026-02-01" }),
+    row({ kind: "payout", amount_minor: 600000, entry_date: "2026-03-01" }),
+  ]);
+  const expected = Math.pow(2, 365 / 365) - 1;
+  ok(year.spanDays === 365 && year.xirr !== null && Math.abs(year.xirr - expected) < 1e-9, `وسنةٌ كاملة: العائد السنويّ من تاريخَي الحركة (${expected.toFixed(4)})`);
+  // The case the review found: in and out within days gives an absurd yearly rate; none is shown.
+  const quick = investorStatement([
+    row({ kind: "input_finance", amount_minor: 100000, entry_date: "2026-03-01" }),
+    row({ kind: "payout", amount_minor: 102000, entry_date: "2026-03-02" }),
+  ]);
+  ok(quick.xirr === null && quick.cashReturn !== null && Math.abs(quick.cashReturn - 0.02) < 1e-12, "يومٌ واحد بربح ٢٪: لا عائد سنويّ (كان يظهر ١٣٧٬٠٠٠٪)، والعائد ٢٪");
+  const same = investorStatement([
+    row({ kind: "input_finance", amount_minor: 100000, entry_date: "2026-03-01" }),
+    row({ kind: "payout", amount_minor: 100100, entry_date: "2026-03-01" }),
+  ]);
+  ok(same.xirr === null && same.spanDays === 0, "واليوم نفسه: لا عائد سنويّ");
+  const say = (st2: Parameters<typeof returnSentence>[0]) => returnSentence(st2, (a) => a);
+  ok(say(quick).includes("2.0%") && say(quick).includes("خلال 1 يوماً") && say(quick).includes("لا يُحسب عائدٌ سنويّ"),
+     "والجملة تقول العائد على المدّة وأيّامها وأنّه لا عائد سنويّ");
+  ok(say(year).startsWith("العائد السنويّ") && say(year).includes("100.0%"), "وفي السنة الكاملة تقول العائد السنويّ");
+  ok(!say(quick).includes("السنويّ على"), "ولا تقول «سنويّ» لمدّةٍ قصيرة");
 
   const partial = investorStatement([
     row({ kind: "input_finance", amount_minor: 300000 }),
@@ -103,7 +127,7 @@ console.log("\nب) كشف حساب المستثمر");
   ]);
   ok(partial.due === BigInt(400000) && !partial.settled, "وتسليمٌ جزئيّ: يبقى ٤٬٠٠٠$ مستحقّة");
   ok(partial.moicCash !== null && Math.abs(partial.moicCash - 2 / 3) < 1e-9 && partial.moicRecognised === 2, "المضاعف المقبوض ٠٫٦٧ والمقرّ به ٢");
-  ok(partial.xirr !== null && partial.xirr < 0, "والعائد المقبوض سالبٌ ما لم يُسلَّم الباقي");
+  ok(partial.cashReturn !== null && partial.cashReturn < 0, "والعائد المقبوض سالبٌ ما لم يُسلَّم الباقي");
 
   const none = investorStatement([]);
   ok(none.invested === BigInt(0) && none.moicCash === null && none.xirr === null && none.settled, "وبلا قيود: لا مضاعف ولا عائد");
@@ -124,12 +148,22 @@ console.log("\nج) ما بقي من التمويل لكلّ موسم");
     row({ kind: "harvest_share", amount_minor: 600000, principal_minor: 300000, season_id: S1 }),
     row({ kind: "input_finance", amount_minor: 777700, season_id: S1, status: "pending" }),
   ];
-  const a = outstandingFinancing(rows, S1);
-  ok(a.USD === BigInt(0) && a.SDG === BigInt(245050000), "الموسم الأوّل: الدولار أُطفئ والجنيه باقٍ");
-  ok(outstandingFinancing(rows, S2).USD === BigInt(100000), "والثاني ١٠٠٠$ باقية");
-  ok(outstandingFinancing(rows, "x").USD === BigInt(0), "وموسمٌ لا قيد له صفر");
+  ok(outstandingFinancing(rows, S1) === BigInt(100000), "الموسم الأوّل: ٣٬٠٠٠$ + ٢٬٤٥٠٬٥٠٠ جنيه (١٬٠٠٠$) − أصلٌ أُطفئ ٣٬٠٠٠$ = ١٬٠٠٠$ باقية، رقمٌ واحد بالدولار");
+  ok(outstandingFinancing(rows, S2) === BigInt(100000), "والثاني ١٠٠٠$ باقية");
+  ok(outstandingFinancing(rows, "x") === BigInt(0), "وموسمٌ لا قيد له صفر");
   const over = outstandingFinancing([row({ kind: "input_finance", amount_minor: 100 }), row({ kind: "harvest_share", amount_minor: 500, principal_minor: 900 })], S1);
-  ok(over.USD === BigInt(0), "وما زاد على الأصل لا يصير سالباً");
+  ok(over === BigInt(0), "وما زاد على الأصل لا يصير سالباً");
+  // Review 198 B9: financing in pounds, settled by a share in dollars, is settled — it used to stay "left" in pounds.
+  const crossed = outstandingFinancing([
+    row({ kind: "input_finance", currency: "SDG", amount_minor: 245050000, fx_rate: "2450.500000" }),
+    row({ kind: "harvest_share", currency: "USD", amount_minor: 150000, principal_minor: 100000 }),
+  ], S1);
+  ok(crossed === BigInt(0), "تمويلٌ بالجنيه أطفأه أصلٌ بالدولار: لا شيء باقٍ");
+  const crossedBack = outstandingFinancing([
+    row({ kind: "input_finance", amount_minor: 200000 }),
+    row({ kind: "harvest_share", currency: "SDG", amount_minor: 490100000, principal_minor: 245050000, fx_rate: "2450.500000" }),
+  ], S1);
+  ok(crossedBack === BigInt(100000), "وتمويلٌ بالدولار أطفأ نصفَه أصلٌ بالجنيه: ١٬٠٠٠$ باقية");
 }
 
 console.log("\nد) إلى أين يعود النموذج");
@@ -182,8 +216,8 @@ console.log("\nهـ) الإلغاء باتّفاق الطرفين لا يُحت�
   ok(pendingOnly.handedOver === BigInt(200000), "وطلبٌ معلّق لا يغيّر الكشف حتى يُقبل");
 
   const out = outstandingFinancing(attachReversals(links, [rev({ link_id: "L-share", status: "accepted" })]), S1);
-  ok(out.USD === BigInt(300000), "إلغاء نصيب الحصاد يُرجع التمويل المستحقّ (٣٬٠٠٠$)");
-  ok(outstandingFinancing(attachReversals(links, [rev({ link_id: "L-fin", status: "accepted" })]), S1).USD === BigInt(0), "وإلغاء التمويل يُسقطه (ولا يصير سالباً)");
+  ok(out === BigInt(300000), "إلغاء نصيب الحصاد يُرجع التمويل المستحقّ (٣٬٠٠٠$)");
+  ok(outstandingFinancing(attachReversals(links, [rev({ link_id: "L-fin", status: "accepted" })]), S1) === BigInt(0), "وإلغاء التمويل يُسقطه (ولا يصير سالباً)");
 
   // What the reader may do.
   ok(reversalAction(row({ status: "pending" })) === "none", "المعلّق يُلغى بالإلغاء العاديّ لا بهذا");

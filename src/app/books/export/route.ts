@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const today = ledgerToday();
   const params = parseReportParams(Object.fromEntries(req.nextUrl.searchParams.entries()), today);
   if (params.report === "links") return new NextResponse("Not exportable", { status: 400 });
-  const book = await pickBook(supabase, params.kind);
+  const book = await pickBook(supabase, params.kind, user.id, params.bookId);
   if (!book) return new NextResponse("No book", { status: 404 });
 
   let csv: string;
