@@ -15,7 +15,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AWAITING_REASON } from "../src/lib/priceFreshness";
-import { cropRow, disagreement, fxRow, refreshPrices, type Row } from "../src/lib/priceRefresh";
+import { apartFrom, cropRow, disagreement, fxRow, refreshPrices, type Row } from "../src/lib/priceRefresh";
 import type { CropQuote, FxQuote } from "../src/lib/priceFeeds";
 
 let failed = 0;
@@ -43,6 +43,12 @@ ok(agree(10300).reason === AWAITING_REASON, "two sources within 5% of each other
 ok(agree(12000).reason !== AWAITING_REASON && String(agree(12000).reason).includes("12000"), "two sources 17% apart leave it to a person, with both figures in the reason");
 ok(disagreement(fxRow("fx_parallel", { ...fx, sell: 20000 }, "https://x.example/1", 10105), fx, [{ q: { ...fx, sell: 12000 } }]).reason?.toString().startsWith("تغيّر") === true,
   "a row already held for another reason keeps that reason");
+// Buying is judged too (backlog 198 C4): «شراء الدولار 9.6 ألف» once read as 9.6 passed under the approvable reason.
+ok(fxRow("fx_parallel", { ...fx, buy: 9.6 }, "https://x.example/1", 10105).reason !== AWAITING_REASON, "a buying price of 9.6 beside selling 10,250 waits under its own reason");
+ok(fxRow("fx_parallel", { ...fx, buy: 5000 }, "https://x.example/1", 10105).reason !== AWAITING_REASON, "buying half of selling waits under its own reason");
+ok(fxRow("fx_parallel", fx, "https://x.example/1", 10105, 6000).reason !== AWAITING_REASON, "buying 61% above the last buying price waits under its own reason");
+ok(fxRow("fx_parallel", fx, "https://x.example/1", 10105, 9500).reason === AWAITING_REASON, "buying within a day's movement keeps the one click");
+ok(apartFrom(10250, [{ q: { sell: 12000 } }]) === 12000 && apartFrom(10250, [{ q: { sell: 10300 } }]) === null, "apartFrom finds the source more than 5% away");
 const crop: CropQuote = { market: "obeid", crop: "millet", unit: "ardeb", date: "2026-10-14", price: 1575000, quote: "…" };
 ok(cropRow(crop, "https://x.example/2", 1500000, false).status === "held", "a crop figure is held too");
 ok(cropRow(crop, "https://x.example/2", 1500000, false).reason === AWAITING_REASON, "within half its last price it waits for the one click");
@@ -84,32 +90,64 @@ async function main() {
     return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
   }) as typeof fetch;
 
-  const written: Row[] = [];
-  // A database that answers "nothing yet" to every question and remembers every row it is given.
-  const chain = (): Record<string, unknown> => {
-    const c: Record<string, unknown> = {
-      select: () => c,
-      eq: () => c,
-      order: () => c,
-      limit: () => c,
-      insert: () => c,
-      update: () => c,
-      maybeSingle: async () => ({ data: null }),
-      single: async () => ({ data: { id: "run-1" } }),
-      upsert: (rows: Row[]) => {
-        written.push(...rows);
-        return { select: async () => ({ data: rows.map((r) => ({ status: r.status })), error: null }) };
-      },
-      then: (resolve: (v: unknown) => void) => resolve({ data: null, error: null }),
+  type Stored = { kind: string; market_date: string; sell: number; source_url: string; status: string; reason: string };
+  // A database that answers "nothing yet" to every question but the rows it is given as already stored, and remembers
+  // every row it is asked to write and every update.
+  const fakeDb = (stored: Stored[]) => {
+    const written: Row[] = [];
+    const updates: { table: string; set: Record<string, unknown>; where: Record<string, unknown> }[] = [];
+    const chain = (table: string): Record<string, unknown> => {
+      const where: Record<string, unknown> = {};
+      const not: Record<string, unknown> = {};
+      let set: Record<string, unknown> | null = null;
+      const c: Record<string, unknown> = {
+        select: () => c,
+        eq: (k: string, v: unknown) => ((where[k] = v), c),
+        neq: (k: string, v: unknown) => ((not[k] = v), c),
+        order: () => c,
+        limit: () => c,
+        insert: () => c,
+        update: (v: Record<string, unknown>) => ((set = v), c),
+        maybeSingle: async () => ({ data: null }),
+        single: async () => ({ data: { id: "run-1" } }),
+        upsert: (rows: Row[]) => {
+          written.push(...rows);
+          return { select: async () => ({ data: rows.map((r) => ({ status: r.status })), error: null }) };
+        },
+        then: (resolve: (v: unknown) => void) => {
+          if (set) {
+            updates.push({ table, set, where: { ...where } });
+            for (const r of stored) {
+              if (Object.entries(where).every(([k, v]) => (r as Record<string, unknown>)[k] === v)) Object.assign(r, set);
+            }
+            return resolve({ data: null, error: null });
+          }
+          // Only the same-day question names a market_date without a status: it gets the stored rows.
+          if (table === "market_quotes" && "market_date" in where && !("status" in where)) {
+            const data = stored.filter((r) =>
+              Object.entries(where).every(([k, v]) => (r as Record<string, unknown>)[k] === v) &&
+              Object.entries(not).every(([k, v]) => (r as Record<string, unknown>)[k] !== v));
+            return resolve({ data, error: null });
+          }
+          return resolve({ data: null, error: null });
+        },
+      };
+      return c;
     };
-    return c;
+    return { written, updates, admin: { from: (t: string) => chain(t) } as unknown as Parameters<typeof refreshPrices>[0] };
   };
-  const admin = { from: () => chain() } as unknown as Parameters<typeof refreshPrices>[0];
+  const run = async (stored: Stored[]) => {
+    const db = fakeDb(stored);
+    const quiet = console.error;
+    console.error = () => {};
+    try {
+      return { ...db, summary: await refreshPrices(db.admin, "cron") };
+    } finally {
+      console.error = quiet;
+    }
+  };
 
-  const quiet = console.error;
-  console.error = () => {};
-  const summary = await refreshPrices(admin, "cron");
-  console.error = quiet;
+  const { written, summary } = await run([]);
 
   ok(written.length > 0, `the run found figures (${written.length})`);
   const keys = (r: Row) => Object.keys(r).sort().join(",");
@@ -131,6 +169,30 @@ async function main() {
   );
   ok(written.filter((r) => r.market === "gedaref").every((r) => r.reason !== AWAITING_REASON), "free prose from Gedaref is held under its own reason");
   ok(written.every((r) => typeof r.source_url === "string" && String(r.source_url).startsWith("https://") && String(r.quote).length > 0), "every row carries its source link and the words it was read from");
+
+
+  console.log("\nA disagreement found on a later run (backlog 198 C6)");
+  // Another source read 23 October as 12,000 on an earlier run; that row still waits for the one click.
+  const earlier: Stored = {
+    kind: "fx_parallel", market_date: "2026-10-23", sell: 12000, source_url: "https://other.example/23",
+    status: "held", reason: AWAITING_REASON,
+  };
+  const later = await run([earlier]);
+  const today = later.written.find((r) => r.kind === "fx_parallel");
+  ok(today !== undefined && today.reason !== AWAITING_REASON && String(today.reason).includes("12000"),
+    "today's 10,250 for the same day leaves the one click, with both figures in the reason");
+  ok(earlier.reason !== AWAITING_REASON && earlier.status === "held",
+    "and the row stored on the earlier run leaves it too — still held, under the disagreement");
+  ok(later.updates.some((u) => u.where.status === "held" && u.where.reason === AWAITING_REASON && u.where.market_date === "2026-10-23"),
+    "the update touches only that day's held rows still waiting for the one click");
+  // The same source's own row already stored (scenario A: the insert is ignored as a duplicate).
+  const same: Stored = { ...earlier, sell: 10250, source_url: "https://alghadalsudani.com/34920/", reason: AWAITING_REASON };
+  const other: Stored = { ...earlier, source_url: "https://other.example/23b", reason: AWAITING_REASON };
+  await run([same, other]);
+  ok(same.reason !== AWAITING_REASON, "a row of the same source already stored, whose insert is ignored, leaves the one click too");
+  const agreeing: Stored = { ...earlier, sell: 10300, reason: AWAITING_REASON };
+  const calm = await run([agreeing]);
+  ok(agreeing.reason === AWAITING_REASON && calm.updates.every((u) => u.table !== "market_quotes"), "a stored row within 5% changes nothing");
 
   console.log("");
   if (failed) {

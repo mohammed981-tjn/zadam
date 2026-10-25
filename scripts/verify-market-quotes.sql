@@ -240,6 +240,42 @@ do $$ begin
 end $$;
 
 \echo ''
+\echo 'هـ) مفتاح الخدمة يكتب محجوزاً، ولا يعدّل محفوظاً (البند ١٩٨ ج٧)'
+
+insert into market_quotes (kind, market_date, buy, sell, source_url, quote, status, reason) values
+  ('fx_parallel', '2026-10-27', 9700, 10200, 'https://bajnews.net/g/', 'جملة', 'held', 'قراءة موثوقة تنتظر اعتماد الإدارة'),
+  ('fx_parallel', '2026-10-28', 9700, 10200, 'https://bajnews.net/h/', 'جملة', 'held', 'قفزة عن آخر رقم — يُراجَع');
+set role service_role;
+do $$ begin
+  insert into market_quotes (kind, market_date, buy, sell, source_url, quote, status, reason)
+  values ('fx_bank', '2026-10-27', 4900, 4950, 'https://bajnews.net/s1/', 'جملة', 'held', 'قراءة موثوقة تنتظر اعتماد الإدارة');
+  perform _pass('مفتاح الخدمة يكتب رقماً محجوزاً');
+  perform _refuses($q$insert into market_quotes (kind, market_date, buy, sell, source_url, status) values ('fx_bank', '2026-10-28', 4900, 4950, 'https://bajnews.net/s2/', 'published')$q$,
+    'ولا يكتبه منشوراً');
+  perform _refuses($q$insert into market_quotes (kind, market_date, buy, sell, source_url, status, reviewed_at) values ('fx_bank', '2026-10-29', 4900, 4950, 'https://bajnews.net/s3/', 'held', now())$q$,
+    'ولا بختم مراجعة');
+  perform _refuses($q$update market_quotes set buy = 9000, sell = 9999 where status = 'published' and kind = 'fx_bank' and market_date = '2026-10-21'$q$,
+    'ولا يغيّر رقماً منشوراً');
+  perform _refuses($q$update market_quotes set status = 'published' where source_url = 'https://bajnews.net/g/'$q$,
+    'ولا ينشر محجوزاً');
+  perform _refuses($q$update market_quotes set sell = 10900 where source_url = 'https://bajnews.net/g/'$q$,
+    'ولا يغيّر رقم محجوز');
+  perform _refuses($q$update market_quotes set reason = 'قراءة موثوقة تنتظر اعتماد الإدارة' where source_url = 'https://bajnews.net/h/'$q$,
+    'ولا يُدخل محجوزاً شاذّاً في النقرة الواحدة');
+  perform _refuses($q$update market_quotes set reason = null where source_url = 'https://bajnews.net/g/'$q$,
+    'ولا يمحو سبب الحجز');
+  update market_quotes set reason = 'المصادر تختلف في هذا اليوم — يُراجَع' where source_url = 'https://bajnews.net/g/';
+  perform _pass('ويُخرج محجوزاً من النقرة الواحدة حين تختلف المصادر');
+end $$;
+reset role;
+do $$ begin
+  perform _eq((select reason from market_quotes where source_url = 'https://bajnews.net/g/'), 'المصادر تختلف في هذا اليوم — يُراجَع', 'فصار سببه الاختلاف');
+  perform _eq((select sell from market_quotes where kind = 'fx_bank' and market_date = '2026-10-21'), 4886.38::numeric, 'والمنشور بقي كما هو');
+  perform _eq((select count(*)::int from market_quotes where source_url like 'https://bajnews.net/s_/' and status = 'published'), 0, 'ولم يُنشر شيءٌ بمفتاح الخدمة');
+  perform _eq(has_function_privilege('service_role', 'market_quotes_service_guard()', 'execute'), false, 'والحارس لا يستدعيه مفتاح الخدمة');
+end $$;
+
+\echo ''
 \echo '=========================================================================='
 
 do $$
