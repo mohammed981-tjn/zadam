@@ -21,6 +21,7 @@ export default function InspectionPhotoUpload({ inspectionId }: { inspectionId: 
       kinds={[{ value: "photo", label: t("صورة من الأرض", "Photo from the land") }]}
       folder="inspections"
       label={t("أضف صورة", "Add a photo")}
+      offline={{ key: `inspection:${inspectionId}`, label: t("صورة معاينة", "Inspection photo") }}
       onUploaded={async ({ storagePath, caption, metadata }) => {
         const result = await addInspectionPhoto({ inspectionId, storagePath, caption, metadata });
         if (result.ok) router.refresh();

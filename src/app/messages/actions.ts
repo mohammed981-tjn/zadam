@@ -102,6 +102,11 @@ export async function attachToConversation(args: {
   if (!(await evidenceFileExists(supabase, args.storagePath))) {
     return { ok: false, message: t("لم نجد الملفّ المرفوع. ارفعه من جديد.", "We could not find the uploaded file. Upload it again.") };
   }
+  // A file kept on the phone with no network is sent again if the reply to its first send was lost (backlog 185):
+  // a message already in the thread with this file is that send, not a second one.
+  const { data: thread } = await supabase.rpc("conversation_view", { p_conv: args.conversationId });
+  const sent = (thread as { messages?: { attachment_path?: string | null }[] } | null)?.messages ?? [];
+  if (sent.some((m) => m.attachment_path === args.storagePath)) return { ok: true };
   const { error } = await supabase.rpc("conversation_send", {
     p_conv: args.conversationId,
     p_body: args.caption ?? "",

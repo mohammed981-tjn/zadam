@@ -124,7 +124,9 @@ export async function addInspectionPhoto(args: {
     p_latitude: photo.latitude,
     p_longitude: photo.longitude,
   });
-  if (error) return { ok: false, message: explain(locale, error) };
+  // A photo kept on the phone with no network is sent again if the reply to its first send was lost (backlog 185).
+  // Its path is unique in the report, so a second record of the same file is the one already there.
+  if (error && error.code !== "23505") return { ok: false, message: explain(locale, error) };
   revalidatePath(page(args.inspectionId));
   return { ok: true };
 }

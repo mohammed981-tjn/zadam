@@ -24,6 +24,7 @@ export default function MessageAttachment({ conversationId }: { conversationId: 
       ]}
       folder="messages"
       label={t("📎 أرفق صورةً أو مستنداً", "📎 Attach a photo or a document")}
+      offline={{ key: `message:${conversationId}`, label: t("مرفق رسالة", "Message attachment") }}
       onUploaded={async ({ kind, storagePath, caption }) => {
         const result = await attachToConversation({ conversationId, storagePath, caption, kind });
         if (result.ok) router.refresh();

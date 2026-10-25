@@ -425,6 +425,17 @@ export async function addMilestoneEvidence(args: {
     };
   }
 
+  // A proof kept on the phone with no network is sent again if the reply to its first send was lost (backlog 185):
+  // the same file on the same phase is the proof already recorded, not a second one.
+  const { data: already } = await supabase
+    .from("milestone_evidence")
+    .select("id")
+    .eq("milestone_id", args.milestoneId)
+    .eq("storage_path", args.storagePath)
+    .limit(1)
+    .maybeSingle();
+  if (already) return { ok: true };
+
   const { sanitisePhotoMetadata } = await import("@/lib/exif");
   const photo = sanitisePhotoMetadata(args.metadata);
 
