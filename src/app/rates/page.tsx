@@ -123,8 +123,8 @@ export default async function RatesPage() {
         <h2 className="text-base font-semibold text-foreground">{t("من أين تأتي الأسعار", "Where the rates come from")}</h2>
         <p className="leading-relaxed">
           {t(
-            `نشرة بنك السودان المركزي على موقعه متوقّفة منذ ${day(CBOS_NOTE.lastBulletin)}، وفي ${day(CBOS_NOTE.liberalised)} حرّر البنك سعر الصرف وترك لكلّ مصرف أن يعلن سعره (المنشور ${CBOS_NOTE.circular}). لذلك نعرض سعر بنك الخرطوم، أكبر المصارف، وسعر السوق الموازي، ونحدّثهما يومياً من مصادر منشورة نذكرها بجانب كلّ رقم. ولا نعرض رقماً قديماً على أنّه سعر اليوم.`,
-            `The Central Bank of Sudan's bulletin on its website has not been updated since ${day(CBOS_NOTE.lastBulletin)}, and on ${day(CBOS_NOTE.liberalised)} the bank freed the exchange rate and left each bank to announce its own (circular ${CBOS_NOTE.circular}). So we show the rate of the Bank of Khartoum, the largest bank, and the parallel market, updated daily from published sources named beside each figure. We never show an old figure as today's rate.`,
+            `نشرة بنك السودان المركزي على موقعه متوقّفة منذ ${day(CBOS_NOTE.lastBulletin)}، وفي ${day(CBOS_NOTE.liberalised)} حرّر البنك سعر الصرف وترك لكلّ مصرف أن يعلن سعره (المنشور ${CBOS_NOTE.circular}). لذلك نعرض سعر بنك الخرطوم، أكبر المصارف، وسعر السوق الموازي، ونحدّثهما بعد مراجعة كلّ رقمٍ، من مصادر منشورة نذكرها بجانب كلّ رقم. ولا نعرض رقماً قديماً على أنّه سعر اليوم.`,
+            `The Central Bank of Sudan's bulletin on its website has not been updated since ${day(CBOS_NOTE.lastBulletin)}, and on ${day(CBOS_NOTE.liberalised)} the bank freed the exchange rate and left each bank to announce its own (circular ${CBOS_NOTE.circular}). So we show the rate of the Bank of Khartoum, the largest bank, and the parallel market, updated after each figure is reviewed, from published sources named beside it. We never show an old figure as today's rate.`,
           )}{" "}
           <a href={CBOS_NOTE.liberalisedSource} className="text-primary underline" target="_blank" rel="noopener noreferrer">
             {t("خبر التحرير", "The liberalisation")}
