@@ -23,8 +23,10 @@ CHECKS="$(pg_stage "$ROOT/scripts/verify-market-quotes.sql" checks.sql)"
 
 # Supabase's own defaults, so that a revoke in a migration is what the checks meet.
 DEFAULTS="$(printf '%s\n' \
-  'alter default privileges in schema public grant all on tables to anon, authenticated;' \
+  'alter default privileges in schema public grant all on tables to anon, authenticated, service_role;' \
   'alter default privileges in schema public grant execute on functions to public;' \
+  'alter role service_role bypassrls;' \
+  'grant usage on schema public to service_role;' \
   | pg_write defaults.sql)"
 
 echo "── الأساس";       pg_run_quiet "$BASE"

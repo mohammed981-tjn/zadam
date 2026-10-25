@@ -94,6 +94,40 @@ eq(sellFirst && [2600, 2660, 184, 193, 2730, 2790].some((n) => n === sellFirst.b
   "the Saudi riyal, Egyptian pound and dirham beside the dollar are not taken");
 eq(readBank(fixture("alghadalsudani-34920.json")), null, "the parallel market's article is not the Bank of Khartoum's");
 
+console.log("\nWhat the readers must not take (backlog 198: C3, C4, C5, D7)");
+const parallelLine = (line: string): WpPost => ({
+  id: 9,
+  date: "2026-10-24T10:00:00",
+  link: "https://bajnews.net/x/",
+  title: { rendered: "" },
+  content: { rendered: `<p>أسعار السوق الموازية اليوم</p><p>${line}</p>` },
+});
+const bankLine = (line: string): WpPost => ({ ...parallelLine(line), content: { rendered: `<p>${line}</p>` } });
+eq(readParallelMarket(parallelLine("بلغ سعر شراء الدولار 9,600 جنيه، فيما بلغ سعر شراء اليورو 10,900 جنيه وسعر بيع 11,300 جنيه")), null,
+  "C3: the euro's selling price is not the dollar's");
+eq(readParallelMarket(parallelLine("بلغ سعر بيع الدولار 10,250 جنيه وسعر بيع الريال 2,700 جنيه، مقابل 9,670 جنيه للشراء")), null,
+  "C3: nor the riyal's, selling first");
+const scaled = readParallelMarket(parallelLine("بلغ سعر شراء الدولار 9.6 ألف جنيه، وسعر البيع 10,250"));
+eq(scaled && { buy: scaled.buy, sell: scaled.sell }, { buy: 9600, sell: 10250 }, "C4: «9.6 ألف» is 9,600, not 9.6");
+const scaledSell = readParallelMarket(parallelLine("بلغ سعر شراء الدولار 9,600 جنيه، وسعر البيع 10.25 ألف جنيه"));
+eq(scaledSell && scaledSell.sell, 10250, "C4: and «10.25 ألف» after the selling word is 10,250");
+const sellFirstScaled = readParallelMarket(parallelLine("إذ بلغ سعر بيع الدولار 10.25 ألف جنيه، مقابل 9,670 جنيها للشراء"));
+eq(sellFirstScaled && { buy: sellFirstScaled.buy, sell: sellFirstScaled.sell }, { buy: 9670, sell: 10250 }, "C4: «ألف» in the sell-first sentence too");
+eq(readBankOfKhartoumSentence(bankLine("استقر الجنيه في بنك الخرطوم ليُسجل سعر شراء الدولار 4,850 جنيهًا، مقابل 4,886 جنيهًا للبيع، دون تغيير عن 20 أكتوبر 2026"))?.date,
+  "2026-10-24", "C5: a date the sentence compares with is not the day of its figures — the post's day is");
+eq(readBankOfKhartoumSentence(bankLine("اليوم الخميس 23 أكتوبر 2026 سجّل بنك الخرطوم سعر شراء الدولار 4,850 جنيهًا، مقابل 4,886 جنيهًا للبيع"))?.date,
+  "2026-10-23", "C5: a date the sentence calls today is taken");
+eq(marketDay("الأحد 26 أكتوبر 2026", "2026-10-24T09:00:00"), "2026-10-24", "C5: and no market day after the post's own");
+eq(readBankOfKhartoumSentence(bankLine("بعيداً عن بنك الخرطوم بلغ في السوق الموازية سعر شراء الدولار 9,500 جنيه، مقابل 10,105 جنيه للبيع")), null,
+  "D7: a sentence that names the bank only to set it aside, then gives the parallel market, is not the bank's");
+eq(readBankOfKhartoumSentence(bankLine("في بنك الخرطوم سجّل سعر شراء الدولار 9,500 جنيه، مقابل 10,105 جنيه للبيع في السوق الموازية")), null,
+  "D7: nor one that turns out, after its figures, to be about the parallel market");
+eq(readBankOfKhartoumSentence(bankLine("في بنك الخرطوم وبنك النيل سجّل سعر شراء الدولار 6,400 جنيهًا، مقابل 6,448 جنيهًا للبيع")), null,
+  "D7: nor one that names another bank between the bank and its figures");
+const decimals = readBankOfKhartoumSentence(bankLine("في بنك الخرطوم ليُسجل سعر شراء الدولار 4,850.00 جنيهًا، مقابل 4,886.38 جنيهًا للبيع"));
+eq(decimals && { buy: decimals.buy, sell: decimals.sell }, { buy: 4850, sell: 4886.38 }, "D7: the bank's sentence with decimals («4,886.38») is read");
+eq(parseAmount("4,886.38"), 4886.38, "comma thousands with decimals");
+
 console.log("\nEl Obeid — sudafax, 14 October 2026");
 const obeid = readObeidList(fixture("sudafax-585058.json"));
 eq(

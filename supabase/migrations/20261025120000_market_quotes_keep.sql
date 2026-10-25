@@ -58,6 +58,41 @@ create trigger market_quote_erasures_no_truncate
 -- Nobody holds the privilege either; the trigger is the second lock, not the only one.
 revoke delete, truncate on public.market_quotes from anon, authenticated, service_role;
 
+-- ── مفتاح الخدمة يكتب محجوزاً، ولا يعدّل محفوظاً (البند ١٩٨ ج٧) ────────────
+--
+-- كان «النظام لا ينشر بنفسه» و«لا يُعدَّل المحفوظ» في شيفرة TypeScript وحدها: مفتاح الخدمة يملك INSERT وUPDATE على
+-- الجدول، فينشر رقماً أو يغيّر رقماً منشوراً بلا لقطة. الآن القاعدة تقول ذلك: ما يكتبه مفتاح الخدمة يدخل محجوزاً
+-- بلا مراجِع، ولا يغيّر صفّاً إلا ليُخرج محجوزاً من النقرة الواحدة (حين تختلف المصادر في يومه) — لا العكس، ولا شيئاً
+-- غير السبب. والمدير يقرّر بدوالّه (التي تعمل بصاحب الجدول) كما كان.
+create function public.market_quotes_service_guard()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if current_user <> 'service_role' then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    if new.status <> 'held' or new.reviewed_by is not null or new.reviewed_at is not null then
+      raise exception 'مفتاح الخدمة يكتب الرقم محجوزاً وحده؛ النشر للإدارة';
+    end if;
+    return new;
+  end if;
+  if old.status = 'held' and new.status = 'held'
+     and old.reason = 'قراءة موثوقة تنتظر اعتماد الإدارة'
+     and new.reason is not null and new.reason <> 'قراءة موثوقة تنتظر اعتماد الإدارة'
+     and (to_jsonb(new) - 'reason') = (to_jsonb(old) - 'reason') then
+    return new;
+  end if;
+  raise exception 'مفتاح الخدمة لا يعدّل رقماً محفوظاً (إلا إخراج المحجوز من النقرة الواحدة)';
+end $$;
+
+create trigger market_quotes_service_guard
+  before insert or update on public.market_quotes
+  for each row execute function public.market_quotes_service_guard();
+revoke execute on function public.market_quotes_service_guard() from public, anon, authenticated, service_role;
+
 -- ── المحو: للمدير وحده، بسببٍ، ولقطةٍ محفوظة ───────────────────────────────
 
 create function public.market_quote_erase(p_id uuid, p_reason text)
