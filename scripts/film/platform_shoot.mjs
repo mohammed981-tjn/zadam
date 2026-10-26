@@ -29,6 +29,10 @@ const SITE = process.env.FILM_SITE || "https://zadam-khaki.vercel.app";
 // The address shown in the film: the live site's, even when the pictures are taken from a local copy.
 const HOST = process.env.FILM_HOST || SITE.replace(/^https?:\/\//, "");
 const W = 1280, H = 720;
+// FILM_LANG=en: the English cut (the owner, 26 October: «ترجم»). The site is read in English (its «lang» cookie, the
+// ع / EN switch) and the words drawn over it are English, left to right.
+const EN = process.env.FILM_LANG === "en";
+const inEnglish = async (ctx) => { if (EN) await ctx.addCookies([{ name: "lang", value: "en", url: SITE }]); };
 mkdirSync(work, { recursive: true });
 
 const scenes = JSON.parse(readFileSync(`${film}/scenes.json`, "utf-8"));
@@ -37,7 +41,8 @@ const logo = "data:image/webp;base64," + readFileSync("public/sudagri-logo.webp"
 const browser = await chromium.launch();
 
 // ── the pages ────────────────────────────────────────────────────────────────
-const site = await browser.newContext({ viewport: { width: W, height: H }, locale: "ar", colorScheme: "light" });
+const site = await browser.newContext({ viewport: { width: W, height: H }, locale: EN ? "en" : "ar", colorScheme: "light" });
+await inEnglish(site);
 // The splash plays once per visitor; the film starts after it.
 await site.addInitScript(() => {
   try { for (const v of ["v3", "v4"]) localStorage.setItem(`sudagri:splash:${v}`, "1"); } catch {}
@@ -85,7 +90,8 @@ const DEMO_PHONE = process.env.FILM_DEMO_PHONE || "7700900123";
 const DEMO_PASSWORD = process.env.FILM_DEMO_PASSWORD;
 const behind = scenes.filter((s) => s.path && s.auth);
 if (behind.length && DEMO_PASSWORD) {
-  const inside = await browser.newContext({ viewport: { width: W, height: H }, locale: "ar", colorScheme: "light" });
+  const inside = await browser.newContext({ viewport: { width: W, height: H }, locale: EN ? "en" : "ar", colorScheme: "light" });
+  await inEnglish(inside);
   await inside.addInitScript(() => {
     try { for (const v of ["v3", "v4"]) localStorage.setItem(`sudagri:splash:${v}`, "1"); } catch {}
   });
@@ -102,7 +108,7 @@ if (behind.length && DEMO_PASSWORD) {
   let inNow = await signIn();
   if (!inNow && (await page.locator('input[name="full_name"]').count())) {
     // No account yet: the screen has turned to «create»; the same number and password make it.
-    await page.fill('input[name="full_name"]', "حسابٌ تجريبيّ للفيلم");
+    await page.fill('input[name="full_name"]', EN ? "Film test account" : "حسابٌ تجريبيّ للفيلم");
     await page.check('input[name="role"][value="farmer"]');
     await page.fill('input[name="password"]', DEMO_PASSWORD);
     await page.click('button[type="submit"]');
@@ -137,10 +143,10 @@ async function draw(html, path, clear) {
 for (const s of scenes.filter((s) => s.path)) {
   const where = HOST + (s.path === "/" ? "" : s.path);
   await draw(
-    `<div style="position:absolute;right:40px;bottom:40px;max-width:760px;padding:18px 28px 16px;border-radius:18px;
-       background:rgba(10,45,34,.88);color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.25);border-right:8px solid #f28c28">
-       <div style="font-size:44px;font-weight:900;line-height:1.25">${s.title}</div>
-       <div style="font-size:22px;font-weight:500;opacity:.8;direction:ltr;text-align:right;margin-top:4px">${where}</div>
+    `<div style="position:absolute;${EN ? "left" : "right"}:40px;bottom:40px;max-width:760px;padding:18px 28px 16px;border-radius:18px;
+       background:rgba(10,45,34,.88);color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.25);border-${EN ? "left" : "right"}:8px solid #f28c28;direction:${EN ? "ltr" : "rtl"}">
+       <div style="font-size:44px;font-weight:900;line-height:1.25">${EN ? s.title_en || s.title : s.title}</div>
+       <div style="font-size:22px;font-weight:500;opacity:.8;direction:ltr;text-align:${EN ? "left" : "right"};margin-top:4px">${where}</div>
      </div>`,
     `${work}/cap-${s.id}.png`, true);
 }
@@ -148,11 +154,11 @@ for (const s of scenes.filter((s) => s.path)) {
 const ground = `position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
   background:radial-gradient(circle at 50% 40%,#16523f 0%,#0a2d22 70%);color:#fff;text-align:center`;
 await draw(
-  `<div style="${ground}"><img src="${logo}" style="width:300px"><div style="font-size:64px;font-weight:900">سوداقري</div>
-   <div style="font-size:34px;font-weight:500;opacity:.9">للمستثمر: جولةٌ في المنصّة كلّها</div></div>`,
+  `<div style="${ground}"><img src="${logo}" style="width:300px"><div style="font-size:64px;font-weight:900">${EN ? "Sudagri" : "سوداقري"}</div>
+   <div style="font-size:34px;font-weight:500;opacity:.9">${EN ? "For investors: a tour of the whole platform" : "للمستثمر: جولةٌ في المنصّة كلّها"}</div></div>`,
   `${work}/intro.png`, false);
 await draw(
-  `<div style="${ground}"><img src="${logo}" style="width:300px"><div style="font-size:46px;font-weight:700">سجّل اليوم مجّاناً</div>
+  `<div style="${ground}"><img src="${logo}" style="width:300px"><div style="font-size:46px;font-weight:700">${EN ? "Sign up today, for free" : "سجّل اليوم مجّاناً"}</div>
    <div style="font-size:36px;font-weight:500;color:#f6b26b;direction:ltr">${HOST}</div></div>`,
   `${work}/outro.png`, false);
 await browser.close();

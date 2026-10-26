@@ -99,6 +99,9 @@ jobs:
         run: |
           command -v ffmpeg >/dev/null || { sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg fonts-dejavu-core >/dev/null; }
           python3 scripts/film/assemble.py film/investors out
+          # The English cut (the owner, 26 October: «ترجم»): Kokoro's lines in tts/en and the cards drawn in English;
+          # left out until both are there.
+          FILM_LANG=en python3 scripts/film/assemble.py film/investors out
 
       # For the owner alone, now that the repository is public: locked, sent in the conversation
       # (.github/delivery/lock.sh): only a locked file reaches the «owner-delivery» pre-release, and leaves it once sent.
@@ -108,4 +111,4 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           ls out/*.mp4 >/dev/null 2>&1 || { echo "### Film: not ready yet" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
-          .github/delivery/lock.sh film-investors-${{ github.run_number }} out/investors-wide.mp4 out/investors-portrait.mp4
+          .github/delivery/lock.sh film-investors-${{ github.run_number }} out/investors-*

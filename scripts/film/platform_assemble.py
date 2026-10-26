@@ -38,6 +38,11 @@ MUSIC = "film/investors/music.wav"
 LOGO = "public/sudagri-logo.webp"
 
 scenes = json.load(open(f"{film}/scenes.json", encoding="utf-8"))
+# FILM_LANG=en: the English cut (the owner, 26 October: «ترجم»), spoken by Kokoro into voice-en (tts-en.yml), with
+# pages photographed in English (platform_shoot.mjs); its files end in -en.
+LANG = os.environ.get("FILM_LANG", "ar")
+VOICE = "voice-en" if LANG == "en" else "voice"
+SUFFIX = "-en" if LANG == "en" else ""
 # A scene behind the sign-in is shot only when the film's test account could sign in (platform_shoot.mjs); without its
 # picture it is left out, not shown as a sign-in page.
 scenes = [s for s in scenes if not (s.get("auth") and not os.path.exists(f"{work}/shot-{s['id']}.jpg"))]
@@ -53,7 +58,7 @@ def run(args):
     subprocess.run(["ffmpeg", "-v", "error", "-y", *args], check=True)
 
 
-missing = [s["line"] for s in scenes if not os.path.exists(f"{film}/voice/{s['line']}.wav")]
+missing = [s["line"] for s in scenes if not os.path.exists(f"{film}/{VOICE}/{s['line']}.wav")]
 missing += [s["id"] for s in scenes if s.get("path") and not os.path.exists(f"{work}/shot-{s['id']}.jpg")]
 if missing:
     print("not ready — missing:", ", ".join(missing))
@@ -70,7 +75,7 @@ lengths.append(INTRO)
 voices.append(None)
 
 for s in scenes:
-    voice = f"{film}/voice/{s['line']}.wav"
+    voice = f"{film}/{VOICE}/{s['line']}.wav"
     d = round(max(SHORTEST, LEAD + duration(voice) + BREATH + FADE), 2)
     clip = f"{work}/clip-{s['id']}.mp4"
     if s.get("card"):
@@ -131,7 +136,7 @@ parts.append("[voice][music]amix=inputs=2:normalize=0,alimiter=limit=0.95[a]")
 run([*ins, "-filter_complex", ";".join(parts), "-map", "[a]", "-t", str(total),
      "-c:a", "pcm_s16le", f"{work}/sound.wav"])
 
-wide = f"{out}/platform-wide.mp4"
+wide = f"{out}/platform-wide{SUFFIX}.mp4"
 run(["-i", f"{work}/picture.mp4", "-i", f"{work}/sound.wav", "-map", "0:v", "-map", "1:a",
      "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", wide])
 
@@ -142,11 +147,11 @@ run(["-i", wide, "-loop", "1", "-i", LOGO, "-filter_complex",
      f"color=c=0x0a2d22:s={PW}x{PH}:r={FPS}[g];[0:v]scale={PW}:{vh}[v];[1:v]scale=230:-1[l];"
      f"[g][l]overlay=(W-w)/2:110:shortest=1[gl];[gl][v]overlay=0:{(PH - vh) // 2 + 70}:shortest=1,format=yuv420p[p]",
      "-map", "[p]", "-map", "0:a", "-t", str(total), "-c:v", "libx264", "-crf", "21", "-preset", "medium",
-     "-c:a", "copy", "-movflags", "+faststart", f"{out}/platform-portrait.mp4"])
+     "-c:a", "copy", "-movflags", "+faststart", f"{out}/platform-portrait{SUFFIX}.mp4"])
 
 # One frame from the middle of each scene, side by side.
 for i, (st, d) in enumerate(zip(starts, lengths)):
     run(["-ss", f"{st + d * 0.6:.2f}", "-i", wide, "-frames:v", "1", "-vf", "scale=384:216", f"{work}/sheet-{i:02d}.jpg"])
 run(["-framerate", "1", "-i", f"{work}/sheet-%02d.jpg", "-vf", "tile=4x7:padding=4:color=white",
-     "-frames:v", "1", f"{out}/platform-sheet.jpg"])
+     "-frames:v", "1", f"{out}/platform-sheet{SUFFIX}.jpg"])
 print("film:", wide, total, "s")

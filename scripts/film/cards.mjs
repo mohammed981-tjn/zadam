@@ -45,7 +45,12 @@ const CARDS = {
 };
 
 const shots = JSON.parse(readFileSync(`${film}/shots.json`, "utf8"));
-const lines = Object.fromEntries(JSON.parse(readFileSync("tts/lines.json", "utf8")).map((l) => [l.id, l.text]));
+// FILM_LANG=en draws the English cut's cards (the owner, 26 October: «ترجم»): cards-en.html, timed to Kokoro's lines in
+// tts/en, into clips/<id>-en.mp4 and frames/en-<frame>. assemble.py takes them with the same FILM_LANG.
+const EN = process.env.FILM_LANG === "en";
+const lines = Object.fromEntries(
+  JSON.parse(readFileSync(EN ? "tts/lines-en.json" : "tts/lines.json", "utf8")).map((l) => [l.id, l.text]),
+);
 
 const letters = (s) => s.replace(/[ً-ْٰـ]/g, "").replace(/[^\p{L}]/gu, "").length;
 
@@ -71,7 +76,7 @@ function pauses(path) {
 
 /** When each phrase of a line begins, in seconds into its wav. */
 function phraseStarts(text, wav) {
-  const phrases = text.split(/[:،…!.؟]+/).map((p) => p.trim()).filter(Boolean);
+  const phrases = text.split(EN ? /[:,;…!.?]+/ : /[:،…!.؟]+/).map((p) => p.trim()).filter(Boolean);
   const weights = phrases.map(letters);
   const PAUSE = 3; // a pause at punctuation is worth about three letters
   if (!wav) {
@@ -120,7 +125,7 @@ function fontFaces() {
   );
 }
 
-const html = readFileSync("scripts/film/cards.html", "utf8").replace("</head>", `${fontFaces()}\n</head>`);
+const html = readFileSync(EN ? "scripts/film/cards-en.html" : "scripts/film/cards.html", "utf8").replace("</head>", `${fontFaces()}\n</head>`);
 const work = join(tmpdir(), `cards-${process.pid}`);
 mkdirSync(work, { recursive: true });
 const page_ = join(work, "cards.html");
@@ -135,7 +140,7 @@ for (const shot of shots.filter((s) => s.card)) {
     console.log(`${shot.id}: no drawing for this card`);
     continue;
   }
-  const wavPath = `tts/fusha/${shot.line}.wav`;
+  const wavPath = `${EN ? "tts/en" : "tts/fusha"}/${shot.line}.wav`;
   const wav = existsSync(wavPath) ? wavPath : null;
   const { phrases, starts, length, gaps } = phraseStarts(lines[shot.line], wav);
   const cues = spec.cues.map((p) => Math.max(0.15, LEAD + (starts[p] ?? starts[starts.length - 1]) - 0.1));
@@ -151,7 +156,7 @@ for (const shot of shots.filter((s) => s.card)) {
 
   mkdirSync(`${film}/clips`, { recursive: true });
   mkdirSync(`${film}/frames`, { recursive: true });
-  const clip = `${film}/clips/${shot.id}.mp4`;
+  const clip = `${film}/clips/${shot.id}${EN ? "-en" : ""}.mp4`;
   const ff = spawn(
     "ffmpeg",
     ["-v", "error", "-y", "-f", "image2pipe", "-c:v", "png", "-framerate", `${FPS}`, "-i", "-",
@@ -169,8 +174,8 @@ for (const shot of shots.filter((s) => s.card)) {
   await new Promise((r, j) => ff.on("close", (code) => (code === 0 ? r() : j(new Error(`ffmpeg ${code}`)))));
   const png = join(work, `${shot.id}.png`);
   writeFileSync(png, last);
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-i", png, "-c:v", "libwebp", "-quality", "90", `${film}/frames/${shot.frame}`]);
-  console.log(`   → ${clip} (${dur.toFixed(2)} s) and ${film}/frames/${shot.frame}`);
+  execFileSync("ffmpeg", ["-v", "error", "-y", "-i", png, "-c:v", "libwebp", "-quality", "90", `${film}/frames/${EN ? "en-" : ""}${shot.frame}`]);
+  console.log(`   → ${clip} (${dur.toFixed(2)} s) and ${film}/frames/${EN ? "en-" : ""}${shot.frame}`);
 }
 
 await browser.close();

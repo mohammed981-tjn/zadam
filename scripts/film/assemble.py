@@ -32,6 +32,13 @@ film = sys.argv[1].rstrip("/")
 out = sys.argv[2].rstrip("/") if len(sys.argv) > 2 else "out"
 name = os.path.basename(film)
 shots = json.load(open(f"{film}/shots.json", encoding="utf-8"))
+# FILM_LANG=en: the English cut (the owner, 26 October: «ترجم»): Kokoro's lines in tts/en (tts-en.yml), the cards
+# drawn in English as clips/<id>-en.mp4 (cards.mjs), and files ending in -en.
+LANG = os.environ.get("FILM_LANG", "ar")
+VOICES = "tts/en" if LANG == "en" else "tts/fusha"
+SUFFIX = "-en" if LANG == "en" else ""
+def clip_of(s):
+    return f"{film}/clips/{s['id']}{SUFFIX}.mp4" if s.get("card") else f"{film}/clips/{s['id']}.mp4"
 os.makedirs(out, exist_ok=True)
 
 W, H, FPS = 1280, 720, 24
@@ -48,8 +55,8 @@ def duration(path):
         ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path]).strip())
 
 
-missing = [s["id"] for s in shots if not os.path.exists(f"{film}/clips/{s['id']}.mp4")]
-missing += [f"line {s['line']}" for s in shots if not os.path.exists(f"tts/fusha/{s['line']}.wav")]
+missing = [s["id"] for s in shots if not os.path.exists(clip_of(s))]
+missing += [f"line {s['line']}" for s in shots if not os.path.exists(f"{VOICES}/{s['line']}.wav")]
 if missing:
     print("not ready — missing:", ", ".join(missing))
     sys.exit(0)
@@ -63,7 +70,7 @@ SLOW = 1.8
 
 inputs, filters, lengths = [], [], []
 for i, s in enumerate(shots):
-    clip, line = f"{film}/clips/{s['id']}.mp4", f"tts/fusha/{s['line']}.wav"
+    clip, line = clip_of(s), f"{VOICES}/{s['line']}.wav"
     c, l = duration(clip), duration(line)
     d = max(c, LEAD + l + BREATH)
     f = 1.0 if s.get("card") else min(d / c, SLOW)
@@ -110,7 +117,7 @@ for i in range(1, n + 1):
 # The lines, each delayed to its shot.
 audio_base = n + 1
 for i, s in enumerate(shots):
-    inputs += ["-i", f"tts/fusha/{s['line']}.wav"]
+    inputs += ["-i", f"{VOICES}/{s['line']}.wav"]
     ms = int((starts[i] + LEAD) * 1000)
     filters.append(f"[{audio_base + i}:a]aresample=48000,adelay={ms}|{ms},apad=whole_dur={total:.3f}[a{i}]")
 MUSIC = f"{film}/music.wav"
@@ -129,14 +136,14 @@ else:
     filters.append("".join(f"[a{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,alimiter=limit=0.89:level=false,"
                    f"atrim=duration={total:.3f},afade=t=out:st={total - 1.2:.3f}:d=1.2[aout]")
 
-wide = f"{out}/{name}-wide.mp4"
+wide = f"{out}/{name}-wide{SUFFIX}.mp4"
 subprocess.check_call(
     ["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", ";".join(filters),
      "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-preset", "slow", "-crf", "20",
      "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", wide])
 
 # 4:5 for a phone's feed, cut from the middle of the same picture.
-portrait = f"{out}/{name}-portrait.mp4"
+portrait = f"{out}/{name}-portrait{SUFFIX}.mp4"
 subprocess.check_call(
     ["ffmpeg", "-v", "error", "-y", "-i", wide, "-vf", f"crop={H * 4 // 5}:{H},scale=864:1080,setsar=1",
      "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-c:a", "copy", "-movflags", "+faststart", portrait])
