@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps<"/library/[id]">) {
  * عملٌ منشور في المكتبة (البند ٢٠٢): ملخّصه ومن كتبه، والملفّ برابطٍ موقَّعٍ لساعة، أو رابطه، وطريقة الاستشهاد به.
  *
  * The bucket is private; a signed link is made here, for a work the table has just said is published, and lasts an
- * hour. The service key makes it (the sixth caller in lib/supabase/admin.ts) because no reader holds a storage policy.
+ * hour. The service key makes it (caller 5 in lib/supabase/admin.ts) because no reader holds a storage policy.
  */
 export default async function LibraryItemPage({ params }: PageProps<"/library/[id]">) {
   const locale = await getLocale();
