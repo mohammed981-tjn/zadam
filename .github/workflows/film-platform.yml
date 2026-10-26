@@ -86,6 +86,8 @@ jobs:
 
   film:
     needs: speak
+    # A stuck install (apt, the browser) once held this job for 35 minutes and every later run waited behind it.
+    timeout-minutes: 30
     if: always()
     runs-on: ubuntu-latest
     permissions:
@@ -97,6 +99,7 @@ jobs:
           git fetch -q --depth=1 origin "${GITHUB_REF_NAME}"
           git reset -q --hard FETCH_HEAD
       - name: Tools
+        timeout-minutes: 12
         run: |
           sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg >/dev/null
           pip install -q pillow
