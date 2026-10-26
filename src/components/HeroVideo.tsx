@@ -80,8 +80,9 @@ const FILMS: Film[] = [
   // October): the clips that came in random order, set in order — the crops,
   // then the herds, then the ideas that develop farming, and the closing.
   { key: "sudagri2", label: "ثرواتٌ وأفكار — من الحقل إلى المستقبل", en: "Wealth and ideas — from the field to the future", short: "ثرواتٌ وأفكار", shortEn: "Wealth and ideas" },
-  // The investors' film, here and on /invest (backlog 140; the owner, 26 October: «ضعه في الرئيسيّة وصفحة الاستثمار»).
-  { key: "investors", label: "شارِكْ في أرض السودان — للمستثمر", en: "Partner in Sudan's land — for investors", short: "للمستثمر", shortEn: "For investors" },
+  // The investors' film, here and on /invest (backlog 140; the owner, 26 October: «ضعه في الرئيسيّة وصفحة الاستثمار»),
+  // with its English cut (the owner: «ترجم»): English narration and English cards, so a whole copy, not a voice alone.
+  { key: "investors", label: "شارِكْ في أرض السودان — للمستثمر", en: "Partner in Sudan's land — for investors", short: "للمستثمر", shortEn: "For investors", enAudio: true },
 ];
 /** A film's files without the extension: `.webm`, `.mp4`, and `.jpg` for the poster. */
 const filmBase = (f: Film, cut: "tall" | "wide") => (cut === "wide" && f.wide) || `/video/${f.key}-${cut}`;
