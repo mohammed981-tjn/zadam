@@ -110,7 +110,7 @@ if (behind.length && DEMO_PASSWORD) {
   if (!inNow && (await page.locator('input[name="full_name"]').count())) {
     // No account yet: the screen has turned to «create»; the same number and password make it.
     await page.fill('input[name="full_name"]', EN ? "Film test account" : "حسابٌ تجريبيّ للفيلم");
-    await page.check('input[name="role"][value="farmer"]');
+    await page.check('input[type="radio"][name="role"][value="farmer"]'); // the provider buttons carry a hidden «role» too
     await page.fill('input[name="password"]', DEMO_PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForTimeout(6000);
