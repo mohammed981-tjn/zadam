@@ -38,7 +38,8 @@ mkdirSync(work, { recursive: true });
 const scenes = JSON.parse(readFileSync(`${film}/scenes.json`, "utf-8"));
 const logo = "data:image/webp;base64," + readFileSync("public/sudagri-logo.webp").toString("base64");
 
-const browser = await chromium.launch();
+// In Actions, the runner's own Chrome (FILM_CHROME, film-platform.yml); elsewhere Playwright's.
+const browser = await chromium.launch(process.env.FILM_CHROME ? { executablePath: process.env.FILM_CHROME } : {});
 
 // ── the pages ────────────────────────────────────────────────────────────────
 const site = await browser.newContext({ viewport: { width: W, height: H }, locale: EN ? "en" : "ar", colorScheme: "light" });
