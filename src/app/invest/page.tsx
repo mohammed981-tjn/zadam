@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import PageHeader from "@/components/PageHeader";
+import FilmPlayer from "@/components/FilmPlayer";
 import ActionNotice from "@/components/ActionNotice";
 import InvestTabs from "@/components/invest/InvestTabs";
 import ProjectCard from "@/components/ProjectCard";
@@ -74,6 +75,23 @@ export default async function InvestPage({
 
       <InvestTabs active="/invest" locale={locale} />
       <ActionNotice ok={sp.ok} error={sp.error} />
+
+      {/* فيلم المستثمرين «شارِكْ في أرض السودان» (البند ١٤٠؛ المالك، 26 أكتوبر: «ضعه في الرئيسيّة وصفحة الاستثمار»):
+          المقطع العريض على الشاشة العريضة، والطوليّ على الجوّال. */}
+      <figure className="mb-10">
+        <FilmPlayer
+          base="/video/investors-wide"
+          poster="/video/investors-wide.jpg"
+          label={t("فيلم سوداقري للمستثمر: شارِكْ في أرض السودان", "A Sudagri film for investors: partner in Sudan's land")}
+          className="hidden aspect-video w-full rounded-xl border border-border bg-black object-cover sm:block"
+        />
+        <FilmPlayer
+          base="/video/investors-tall"
+          poster="/video/investors-tall.jpg"
+          label={t("فيلم سوداقري للمستثمر: شارِكْ في أرض السودان", "A Sudagri film for investors: partner in Sudan's land")}
+          className="mx-auto aspect-[4/5] w-full max-w-sm rounded-xl border border-border bg-black object-cover sm:hidden"
+        />
+      </figure>
 
       {/* ── كيف تبدأ ───────────────────────────────────────────────── */}
       {/* The owner, 24 October: «كيف حيسجّل المستثمر، وكيف الشراكات حتتمّ؟» —
