@@ -1,8 +1,12 @@
 name: Clear the locked delivery
 
 # The assistant runs this after it has downloaded the locked files from the «owner-delivery» pre-release and sent them
-# to the owner (.github/delivery/lock.sh).
+# to the owner (.github/delivery/lock.sh): by adding a line to .github/delivery/delivered.txt, since a workflow that is
+# not on the default branch cannot be started by hand.
 on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: [".github/delivery/delivered.txt"]
   workflow_dispatch:
 
 jobs:

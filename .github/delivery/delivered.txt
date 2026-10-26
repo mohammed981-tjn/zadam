@@ -1,0 +1,1 @@
+# ما سُلِّم للمالك في المحادثة، ثمّ حُذف من إصدار owner-delivery (clear-delivery.yml).
