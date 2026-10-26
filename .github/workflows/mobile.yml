@@ -117,21 +117,17 @@ jobs:
             --dart-define=SITE_URL="$SITE_URL"
 
       # The APK used to go to the «app-latest» release. The repository is public now and the owner chose to keep the
-      # build to himself (26 October): it is locked, kept a day, and sent in the conversation
-      # (.github/delivery/lock.sh). A day's retention keeps it off the storage quota that filled twice before.
+      # build to himself (26 October): it is locked and sent in the conversation
+      # (.github/delivery/lock.sh).
       - name: Lock the APK for the owner
         if: github.event_name == 'workflow_dispatch'
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk sudagri.apk
           ../.github/delivery/lock.sh sudagri-app-${{ github.run_number }} sudagri.apk
-      - uses: actions/upload-artifact@v4
-        if: github.event_name == 'workflow_dispatch'
-        continue-on-error: true
-        with:
-          name: sudagri-app-locked
-          path: mobile/delivery/
-          retention-days: 1
 
       # Without these a crash report from an obfuscated build is unreadable
       # noise. They are only useful next to the exact APK they came from, hence

@@ -1,0 +1,21 @@
+name: Clear the locked delivery
+
+# The assistant runs this after it has downloaded the locked files from the «owner-delivery» pre-release and sent them
+# to the owner (.github/delivery/lock.sh).
+on:
+  workflow_dispatch:
+
+jobs:
+  clear:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: |
+          if gh release view owner-delivery >/dev/null 2>&1; then
+            gh release delete owner-delivery --cleanup-tag --yes
+          fi
+          gh release list

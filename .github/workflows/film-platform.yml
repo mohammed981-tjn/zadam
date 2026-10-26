@@ -108,17 +108,12 @@ jobs:
         run: node scripts/film/platform_shoot.mjs film/platform work
       - name: Put the film together
         run: python3 scripts/film/platform_assemble.py film/platform work out
-      # For the owner alone, now that the repository is public: locked, kept a day, sent in the conversation
-      # (.github/delivery/lock.sh). No release.
+      # For the owner alone, now that the repository is public: locked, sent in the conversation
+      # (.github/delivery/lock.sh): only a locked file reaches the «owner-delivery» pre-release, and leaves it once sent.
       - name: Lock the film for the owner
-        id: lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           ls out/*.mp4 >/dev/null 2>&1 || { echo "### Film: not ready yet (lines still to speak)" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
           .github/delivery/lock.sh film-platform-${{ github.run_number }} out/platform-wide.mp4 out/platform-portrait.mp4 out/platform-sheet.jpg
-          echo "locked=true" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
-        if: steps.lock.outputs.locked == 'true'
-        with:
-          name: film-platform-locked
-          path: delivery/
-          retention-days: 1

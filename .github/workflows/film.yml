@@ -100,17 +100,12 @@ jobs:
           command -v ffmpeg >/dev/null || { sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg fonts-dejavu-core >/dev/null; }
           python3 scripts/film/assemble.py film/investors out
 
-      # For the owner alone, now that the repository is public: locked, kept a day, sent in the conversation
-      # (.github/delivery/lock.sh). No release.
+      # For the owner alone, now that the repository is public: locked, sent in the conversation
+      # (.github/delivery/lock.sh): only a locked file reaches the «owner-delivery» pre-release, and leaves it once sent.
       - name: Lock the film for the owner
-        id: lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           ls out/*.mp4 >/dev/null 2>&1 || { echo "### Film: not ready yet" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
           .github/delivery/lock.sh film-investors-${{ github.run_number }} out/investors-wide.mp4 out/investors-portrait.mp4
-          echo "locked=true" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
-        if: steps.lock.outputs.locked == 'true'
-        with:
-          name: film-investors-locked
-          path: delivery/
-          retention-days: 1
