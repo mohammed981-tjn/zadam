@@ -126,6 +126,17 @@ const SPECS: Spec[] = [
     row: (r) => ({ id: r.id, title: r.title, meta: null, at: r.created_at }),
   },
   {
+    key: "password_resets",
+    title: { ar: "طلبات استعادة كلمة مرور", en: "Password recovery requests" },
+    what: { ar: "اتّصل بالرقم المسجَّل وتأكّد، ثمّ أصدر كلمةً مؤقّتة أو ردّ بالسبب.", en: "Call the account's number and check, then issue a temporary password or refuse with a reason." },
+    href: "/admin/resets",
+    table: "password_reset_requests",
+    select: "id, given_name, created_at",
+    filter: (q) => q.eq("status", "open"),
+    order: "created_at",
+    row: (r) => ({ id: r.id, title: r.given_name, meta: null, at: r.created_at }),
+  },
+  {
     key: "forward_disputes",
     title: { ar: "نزاعاتٌ على عقودٍ آجلة", en: "Disputed forward contracts" },
     what: { ar: "اسمع الطرفين، ثمّ افصل من صفحة العقد بسببٍ يقرآنه.", en: "Hear both sides, then decide on the contract page with a reason they both read." },

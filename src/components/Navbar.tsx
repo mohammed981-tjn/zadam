@@ -287,6 +287,7 @@ export default async function Navbar() {
         { href: "/admin/inspections", label: t("تقارير المعاينة", "Inspection reports") },
         { href: "/admin/prices", label: t("الأسعار التلقائيّة", "Automatic prices") },
         { href: "/admin/accounts", label: t("إغلاق الحسابات", "Closing accounts") },
+        { href: "/admin/resets", label: t("استعادة كلمات المرور", "Password recovery") },
         { href: "/admin/faostat", label: t("بيانات الفاو (غلّة وأسعار منتجين)", "FAOSTAT data (yields, producer prices)") },
         { href: "/admin/land-groups", label: t("فهرس مجموعات المزارع", "Farm groups index") },
         { href: "/admin/feedback", label: t("ملاحظات الزوّار", "Visitor feedback") },

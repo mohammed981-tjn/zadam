@@ -45,6 +45,11 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *      private bucket, and the pages make hour-long download links — for a
  *      published work, or for the administrator reviewing one.
  *
+ *   6. A temporary password for a phone account that forgot its own (/admin/resets; AUTH-05, backlog 141). Only
+ *      the admin API sets another account's password. The action is behind `requireAdmin` — the database's answer,
+ *      second factor included — and a request the database holds open; the password is set with a flag that sends
+ *      its owner to change it at the first sign-in, and is never written anywhere else.
+ *
  * A further caller is a decision, not a detail. Add it to this list.
  */
 

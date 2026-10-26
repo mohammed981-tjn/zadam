@@ -650,17 +650,18 @@ export default async function GuidePage() {
           <Note title={t("فرق مهم بين الطريقتين", "An important difference between the two")} tone="flag">
             {en ? (
               <p>
-                An email account can be recovered if you forget its password. A
-                phone account{" "}
-                <strong>cannot be recovered yet</strong> — there is no text
-                message carrying a code and no email to receive a link. So if
-                you will be running the platform, use an email account.
+                An email account recovers its password by a link in the inbox. A
+                phone account has no inbox and no text messages yet, so it is{" "}
+                <strong>recovered by the administration</strong>: from «Forgot
+                your password», they call the number on the account, then read
+                you a temporary password that you change when you sign in.
               </p>
             ) : (
               <p>
-                حساب البريد يمكن استرجاعه إن نسيت كلمة مروره. حساب الجوال{" "}
-                <strong>لا يمكن استرجاعه بعد</strong> — لا رسالة نصية تحمل رمزاً
-                ولا بريد يصله رابط. فإن كنت ستدير المنصة، اجعل حسابك بالبريد.
+                حساب البريد يستعيد كلمة مروره برابطٍ في بريده. وحساب الجوال لا بريد
+                له ولا رسائل نصيّة بعد، فـ<strong>تستعيدها له الإدارة</strong>: من
+                «نسيت كلمة المرور» تتّصل بالرقم المسجَّل في الحساب، ثمّ تقرأ لك
+                كلمةً مؤقّتة تغيّرها حين تدخل.
               </p>
             )}
           </Note>

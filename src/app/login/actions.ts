@@ -40,6 +40,23 @@ function readPhone(formData: FormData, locale: Locale) {
   return toE164(str(formData, "dial_code"), str(formData, "phone"), locale);
 }
 
+/**
+ * A password the administration issued over the phone (AUTH-05) is for one sign-in: the account changes it before going
+ * anywhere else, wherever it was headed.
+ */
+const CHANGE_PASSWORD = "/account/password";
+function mustChangePassword(user: { user_metadata?: Record<string, unknown> }): boolean {
+  return user.user_metadata?.must_change_password === true;
+}
+async function afterAuth(next: string | null): Promise<string> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user && mustChangePassword(user)) return CHANGE_PASSWORD;
+  return next ?? (await homeAfterAuth());
+}
+
 async function translator() {
   const locale = await getLocale();
   return { locale, t: (ar: string, en: string) => tr(locale, ar, en) };
@@ -69,6 +86,7 @@ async function homeAfterAuth(): Promise<string> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return "/dashboard";
+  if (mustChangePassword(user)) return CHANGE_PASSWORD;
 
   const { data } = await supabase
     .from("profiles")
@@ -392,7 +410,7 @@ export async function enter(_prev: EntryState, formData: FormData): Promise<Entr
 
   if (!creating) {
     const { error } = await supabase.auth.signInWithPassword({ email: who.address, password });
-    if (!error) redirect(next ?? (await homeAfterAuth()));
+    if (!error) redirect(await afterAuth(next));
 
     if (error.message !== "Invalid login credentials") {
       return { kind: "error", message: translateAuthError(error.message, who.kind, locale) };
@@ -488,7 +506,7 @@ export async function enter(_prev: EntryState, formData: FormData): Promise<Entr
         ),
       };
     }
-    redirect(next ?? (await homeAfterAuth()));
+    redirect(await afterAuth(next));
   }
 
   const admin = createAdminClient();
@@ -529,7 +547,7 @@ export async function enter(_prev: EntryState, formData: FormData): Promise<Entr
       message: t("أُنشئ حسابك. ادخل برقمك وكلمة مرورك.", "Your account was created. Sign in with your number and password."),
     };
   }
-  redirect(next ?? (await homeAfterAuth()));
+  redirect(await afterAuth(next));
 }
 
 export async function logout() {
@@ -663,6 +681,61 @@ export async function requestPasswordReset(formData: FormData) {
       ),
     )}`,
   );
+}
+
+/**
+ * «نسيت كلمة المرور» لحساب الجوال (AUTH-05). The number is folded into the account's address and handed to the
+ * database, which records a request only if that account exists and has none open, and tells the administration. The
+ * answer is the same either way, so the page tells no one which numbers have accounts.
+ */
+export async function requestPhoneReset(formData: FormData) {
+  await throttleAuth("/reset");
+  const { locale, t } = await translator();
+  const phone = readPhone(formData, locale);
+  if (!phone.ok) redirect(`/reset?error=${encodeURIComponent(phone.message)}`);
+  const name = str(formData, "full_name");
+  if (name.length < 2) {
+    redirect(`/reset?error=${encodeURIComponent(t("اكتب اسمك كما في حسابك.", "Enter your name as it is on your account."))}`);
+  }
+  const admin = createAdminClient();
+  if (admin) {
+    const { error } = await admin.rpc("password_reset_request", { p_email: phoneToEmail(phone.e164), p_given_name: name });
+    if (error) console.error("requestPhoneReset:", error.message);
+  } else {
+    console.error("requestPhoneReset: SUPABASE_SERVICE_ROLE_KEY is not set for this deployment.");
+  }
+  redirect(
+    `/reset?message=${encodeURIComponent(
+      t(
+        "وصل طلبك إن كان لهذا الرقم حساب. تتّصل بك الإدارة على الرقم نفسه لتتأكّد أنّك صاحبه، ثمّ تقرأ لك كلمة مرورٍ مؤقّتة تدخل بها وتغيّرها.",
+        "Your request has arrived if this number has an account. The administration will call that same number to make sure it is yours, then read you a temporary password to sign in with and change.",
+      ),
+    )}`,
+  );
+}
+
+/**
+ * «غيّر كلمة مرورك» for whoever is signed in — and the one place a temporary password from the administration leads.
+ * Changing it clears the flag that sends every sign-in here.
+ */
+export async function changeOwnPassword(formData: FormData) {
+  await throttleAuth(CHANGE_PASSWORD);
+  const { t } = await translator();
+  const password = str(formData, "password");
+  const confirm = str(formData, "confirm");
+  const back = (m: string): never => redirect(`${CHANGE_PASSWORD}?error=${encodeURIComponent(m)}`);
+  if (password.length < MIN_PASSWORD) {
+    back(t(`كلمة المرور يجب أن تكون ${MIN_PASSWORD} أحرف على الأقل.`, `The password must be at least ${MIN_PASSWORD} characters.`));
+  }
+  if (password !== confirm) back(t("كلمتا المرور غير متطابقتين.", "The two passwords do not match."));
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=${CHANGE_PASSWORD}`);
+  const { error } = await supabase.auth.updateUser({ password, data: { must_change_password: false } });
+  if (error) back(t("تعذّر تغييرها. اختر كلمةً غير المؤقّتة وأعد المحاولة.", "It could not be changed. Choose one other than the temporary password and try again."));
+  redirect(await homeAfterAuth());
 }
 
 /**
