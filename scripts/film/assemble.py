@@ -137,15 +137,30 @@ else:
                    f"atrim=duration={total:.3f},afade=t=out:st={total - 1.2:.3f}:d=1.2[aout]")
 
 wide = f"{out}/{name}-wide{SUFFIX}.mp4"
-subprocess.check_call(
-    ["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", ";".join(filters),
-     "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-preset", "slow", "-crf", "20",
-     "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", wide])
+# --portrait-only: the 16:9 cut is already in out/; make the 4:5 from it again (as on 26 October, when the cards came
+# out cut on a phone) without encoding the whole film anew.
+if "--portrait-only" not in sys.argv:
+    subprocess.check_call(
+        ["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", ";".join(filters),
+         "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-preset", "slow", "-crf", "20",
+         "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", wide])
 
-# 4:5 for a phone's feed, cut from the middle of the same picture.
+# 4:5 for a phone's feed, cut from the middle of the same picture — except the cards. A card is laid out across the
+# whole 16:9 frame, and cut to its middle it lost both ends of every line (the owner, 26 October: «يظهر ناقص»). While a
+# card is on, the 4:5 shows it whole across its width, over its own picture blurred to fill the rest.
+PW, PH = 864, 1080
+spans = [(starts[i], starts[i] + lengths[i]) for i, s in enumerate(shots) if s.get("card")]
+whole = "+".join(f"between(t,{a:.3f},{b:.3f})" for a, b in spans) or "0"
 portrait = f"{out}/{name}-portrait{SUFFIX}.mp4"
 subprocess.check_call(
-    ["ffmpeg", "-v", "error", "-y", "-i", wide, "-vf", f"crop={H * 4 // 5}:{H},scale=864:1080,setsar=1",
-     "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-c:a", "copy", "-movflags", "+faststart", portrait])
+    ["ffmpeg", "-v", "error", "-y", "-i", wide, "-filter_complex",
+     f"[0:v]split=3[c][g][f];"
+     f"[c]crop={H * 4 // 5}:{H},scale={PW}:{PH},setsar=1[cut];"
+     f"[g]scale={PW}:{PH}:force_original_aspect_ratio=increase,crop={PW}:{PH},boxblur=24:2,eq=brightness=-0.18,setsar=1[blur];"
+     f"[f]scale={PW}:-2,setsar=1[fit];"
+     f"[blur][fit]overlay=0:(H-h)/2[card];"
+     f"[cut][card]overlay=0:0:enable='{whole}',format=yuv420p[v]",
+     "-map", "[v]", "-map", "0:a", "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-c:a", "copy",
+     "-movflags", "+faststart", portrait])
 
 print(f"{wide} and {portrait}: {total:.1f} s")
