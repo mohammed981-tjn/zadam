@@ -111,6 +111,8 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/market",
   "/market/offers",
   "/market/offers/new",
+  "/market/forward",
+  "/market/forward/*",
   "/mining/registry/*",
 ];
 

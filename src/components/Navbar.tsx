@@ -108,6 +108,7 @@ export default async function Navbar() {
       items: [
         { href: "/market", label: t("سوق المحاصيل اليوم", "Crop market today") },
         { href: "/market/offers", label: t("عروض البيع والشراء", "Buy and sell offers") },
+        { href: "/market/forward", label: t("العقود الآجلة: سعرٌ قبل الحصاد", "Forward contracts: a price before harvest") },
         { href: "/market/inputs", label: t("أين السماد والجازولين وبكم", "Where fertiliser and diesel are, and at what price") },
         { href: "/rates", label: t("أسعار العملات", "Exchange rates") },
       ],

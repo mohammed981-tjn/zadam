@@ -126,6 +126,17 @@ const SPECS: Spec[] = [
     row: (r) => ({ id: r.id, title: r.title, meta: null, at: r.created_at }),
   },
   {
+    key: "forward_disputes",
+    title: { ar: "نزاعاتٌ على عقودٍ آجلة", en: "Disputed forward contracts" },
+    what: { ar: "اسمع الطرفين، ثمّ افصل من صفحة العقد بسببٍ يقرآنه.", en: "Hear both sides, then decide on the contract page with a reason they both read." },
+    href: "/market/forward",
+    table: "forward_contracts",
+    select: "id, ref, crop, updated_at",
+    filter: (q) => q.eq("status", "disputed"),
+    order: "updated_at",
+    row: (r) => ({ id: r.id, title: `${r.ref} · ${r.crop}`, meta: null, at: r.updated_at }),
+  },
+  {
     key: "partners",
     title: { ar: "شركات شريكة تنتظر التوثيق", en: "Partner companies awaiting verification" },
     what: { ar: "وثّقها أو ردّها بالسبب.", en: "Verify or return with a reason." },

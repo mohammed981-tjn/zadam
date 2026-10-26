@@ -196,6 +196,15 @@ export default async function OffersPage({
                         {t("💬 راسل صاحب العرض", "💬 Message the poster")}
                       </Link>
                     ))}
+                  {/* البند ١٧٠: من العرض إلى عقدٍ آجل، تُملأ شروطه منه ويُعرف الطرف الآخر بصاحبه. */}
+                  {!mineIds.has(o.id) && (
+                    <Link
+                      href={user ? `/market/forward/new?offer=${o.id}` : loginTo(`/market/forward/new?offer=${o.id}`)}
+                      className="rounded-full border border-border px-3 py-1.5 font-bold"
+                    >
+                      {t("📝 اقترح عقداً آجلاً", "📝 Propose a forward contract")}
+                    </Link>
+                  )}
                   <span className="text-xs text-muted">
                     {t("نُشر", "Posted")} {day(o.created_at)} · {t("ينتهي", "Expires")} {day(o.expires_at)}
                   </span>
