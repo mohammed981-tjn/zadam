@@ -10,7 +10,7 @@ export async function generateMetadata() {
   return { title: tr(locale, "سجّل أرضك | سوداقري", "Register your land | Sudagri") };
 }
 
-export default async function NewLandPage() {
+export default async function NewLandPage({ searchParams }: PageProps<"/lands/new">) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,10 +20,30 @@ export default async function NewLandPage() {
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 
+  // وضع الوكيل (البند ١٦٩): «?for=» names a farmer who authorised this company for lands. Anything else is ignored and
+  // the form registers the caller's own land; the database is what refuses a land in someone else's name.
+  const forId = (await searchParams).for;
+  let farmer: { farmer_id: string; full_name: string | null } | null = null;
+  if (typeof forId === "string") {
+    const { data } = await supabase.rpc("agent_my_farmers");
+    farmer =
+      ((data ?? []) as { farmer_id: string | null; full_name: string | null; status: string; scopes: string[] }[])
+        .filter((m) => m.status === "active" && m.farmer_id === forId && m.scopes.includes("lands"))
+        .map((m) => ({ farmer_id: m.farmer_id as string, full_name: m.full_name }))[0] ?? null;
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
+      {farmer && (
+        <p className="mb-4 rounded-xl bg-primary/10 p-3 text-sm font-medium text-primary">
+          {t(
+            `تسجّل هذه الأرض باسم «${farmer.full_name ?? ""}» بالإذن الذي أعطاك. تُسجَّل له لا لك، ويُخبَر بها.`,
+            `You are registering this land in the name of «${farmer.full_name ?? ""}», under the permission they gave you. It is registered as theirs, not yours, and they are told.`,
+          )}
+        </p>
+      )}
       <h1 className="text-2xl font-bold">
-        {t("سجّل أرضك", "Register your land")}
+        {farmer ? t("سجّل أرضاً لمزارعك", "Register a land for your farmer") : t("سجّل أرضك", "Register your land")}
       </h1>
       <p className="mb-8 mt-2 text-sm text-muted">
         {t(
@@ -69,7 +89,7 @@ export default async function NewLandPage() {
         </ul>
       </section>
 
-      <LandForm />
+      <LandForm forFarmer={farmer?.farmer_id} />
     </div>
   );
 }

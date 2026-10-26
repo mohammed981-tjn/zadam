@@ -46,6 +46,7 @@ export default async function NewContractPage({
   const { data: herdRows } = await supabase
     .from("herds")
     .select("id, name, head_count, start_date, end_date")
+    .eq("owner_id", user.id)
     .eq("status", "active")
     .order("start_date", { ascending: false });
 

@@ -76,8 +76,13 @@ export async function registerLand(
   const problem = locationProblem(lat, lng);
   if (problem) return { ok: false, message: locationMessage(problem, t) };
 
+  // وضع الوكيل (البند ١٦٩): a company registers the land in its farmer's name. The policy admits the row only under an
+  // active mandate that covers lands, and the database logs it and tells the farmer; here it only names the owner.
+  const forFarmer = str(formData, "for_farmer");
+  const owner = /^[0-9a-f-]{36}$/.test(forFarmer) ? forFarmer : user.id;
+
   const { error } = await supabase.from("lands").insert({
-    owner_id: user.id,
+    owner_id: owner,
     name,
     state,
     locality: str(formData, "locality") || null,
@@ -106,6 +111,16 @@ export async function registerLand(
   }
 
   revalidatePath("/lands");
+  if (owner !== user.id) {
+    revalidatePath(`/agent/${owner}`);
+    return {
+      ok: true,
+      message: t(
+        "سُجّلت الأرض باسم المزارع، وأُخبر بها. ارفع مستنداتها من صفحته في «مزارعيّ»، ولن تظهر لأحدٍ حتى تعتمدها الإدارة.",
+        "The land is registered in the farmer's name, and they have been told. Upload its documents from their page under «My farmers»; no one sees it until the administrators approve it.",
+      ),
+    };
+  }
   return {
     ok: true,
     message: t(

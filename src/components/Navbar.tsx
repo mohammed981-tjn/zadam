@@ -142,6 +142,7 @@ export default async function Navbar() {
               { href: "/contracts", label: t("عقودي", "My contracts") },
               { href: "/services/mine", label: t("جهتي كمقدّم خدمة", "My provider profile") },
               { href: "/partners/mine", label: t("شركتي الشريكة", "My partner company") },
+              { href: "/agent", label: t("مزارعيّ: وضع الوكيل", "My farmers: agent mode") },
             ]
           : []),
       ],
@@ -188,6 +189,7 @@ export default async function Navbar() {
         { href: "/books", label: t("دفتر حساباتي", "My books") },
         { href: "/my-project", label: t("مشروعي — قائمة المدخلات", "My project — input list") },
         { href: "/herds", label: t("دورات الإنتاج الحيواني", "Livestock production cycles") },
+        { href: "/account/agents", label: t("وكلائي: من يعمل عنّي", "My agents: who acts for me") },
         { href: "/opportunities/new", label: t("ارفع فرصة", "Post an opportunity") },
         { href: "/export/offers", label: t("عروضي للتصدير", "My export offers") },
       ],

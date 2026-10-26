@@ -76,6 +76,8 @@ async function main() {
     partnership_agreements: many(2, (i) => ({ id: id("g", i), owner_id: ME, investor_id: OTHER })),
     partnership_signatures: many(2, (i) => ({ id: id("sig", i), signer_id: ME })),
     investments: many(1000, (i) => ({ id: id("inv", i), investor_id: ME })),
+    agent_mandates: [{ id: "m-1", farmer_id: ME }, { id: "m-x", farmer_id: OTHER }],
+    agent_actions: many(1001, (i) => ({ id: id("act", i), farmer_id: ME })).concat([{ id: "act-x", farmer_id: OTHER }]),
   };
 
   console.log("\nأ) ما زاد على ١٠٠٠ صفّ يصل كلّه");
@@ -89,6 +91,7 @@ async function main() {
   ok(new Set((f.ledger.lines as Row[]).map((r) => r.id)).size === 5003, "بلا تكرار");
   ok(!(f.ledger.lines as Row[]).some((r) => r.book_id === "book-x"), "ولا شيء من دفتر غيره");
   ok(f.account.full_name === "أنا" && f.account.email === "me@x", "وبيانات الحساب");
+  ok(f.agents.mandates.length === 1 && f.agents.actions.length === 1001, "وأذونات الوكلاء وسجلّ ما كتبوه باسمه، كلّه وله وحده");
 
   console.log("\nب) جدولٌ تعذّرت قراءته يوقف الملفّ");
   let threw = false;
