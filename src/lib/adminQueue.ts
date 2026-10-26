@@ -137,6 +137,17 @@ const SPECS: Spec[] = [
     row: (r) => ({ id: r.id, title: r.given_name, meta: null, at: r.created_at }),
   },
   {
+    key: "managed_farmers",
+    title: { ar: "مزارعون بلا جوّال سجّلتهم جمعيّاتهم", en: "Farmers without a phone, registered by their cooperative" },
+    what: { ar: "افتح ورقة الموافقة والصورة، ثمّ اعتمد أو ردّ بالسبب.", en: "Open the consent paper and photo, then approve or refuse with a reason." },
+    href: "/admin/managed",
+    table: "managed_farmers",
+    select: "user_id, full_name, created_at",
+    filter: (q) => q.eq("status", "pending"),
+    order: "created_at",
+    row: (r) => ({ id: r.user_id, title: r.full_name, meta: null, at: r.created_at }),
+  },
+  {
     key: "forward_disputes",
     title: { ar: "نزاعاتٌ على عقودٍ آجلة", en: "Disputed forward contracts" },
     what: { ar: "اسمع الطرفين، ثمّ افصل من صفحة العقد بسببٍ يقرآنه.", en: "Hear both sides, then decide on the contract page with a reason they both read." },

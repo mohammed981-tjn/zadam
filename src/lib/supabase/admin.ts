@@ -50,6 +50,13 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *      second factor included — and a request the database holds open; the password is set with a flag that sends
  *      its owner to change it at the first sign-in, and is never written anywhere else.
  *
+ *   7. A farmer without a phone, registered by their cooperative (/agent, /admin/managed; backlog 169). The account is
+ *      made already confirmed under an internal `@managed.invalid` address with a random password that is never stored
+ *      or shown, so nobody signs into it; the database then decides whether the company may register it, and the
+ *      account is deleted if it refuses. When the farmer gets a phone, the administrator — behind `requireAdmin` —
+ *      moves the account to the phone's address with a temporary password, as in 6, and puts it back if the database
+ *      refuses the link.
+ *
  * A further caller is a decision, not a detail. Add it to this list.
  */
 

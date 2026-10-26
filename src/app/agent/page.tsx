@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import PageHeader from "@/components/PageHeader";
+import PhotoField from "@/components/supply/PhotoField";
 import { button, card, field, ghost, label } from "@/lib/ui";
 import {
   AGENT_SCOPES,
@@ -12,7 +13,7 @@ import {
   MANDATE_STATUS_LABEL,
   type AgentFarmerRow,
 } from "@/lib/agent";
-import { endMandate, requestMandate } from "./actions";
+import { endMandate, registerManagedFarmer, requestMandate } from "./actions";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -126,6 +127,75 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
             </form>
           </section>
 
+          <details className={`${card} mt-4`}>
+            <summary className="cursor-pointer font-bold">{t("سجّل مزارعاً بلا جوّال", "Register a farmer who has no phone")}</summary>
+            <p className="mt-2 text-sm leading-7 text-muted">
+              {t(
+                "لمن لا يملك جوّالاً. اقرأ عليه ورقة الموافقة بلغته، ودعه يوقّعها أو يبصم عليها، ثمّ صوّرها وصوّره. تراجع الإدارة الورقة والصورة قبل أن تعمل عنه. وحين يصير له جوّال تربطه الإدارة بحسابه فيصير له. عشرة مزارعين في اليوم حدُّ الجهة.",
+                "For a farmer without a phone. Read the consent paper to them in their language, have them sign or thumb-print it, then photograph it and them. The administrators review the paper and photo before you act for them. When they get a phone, the administrators link it to the account and it becomes theirs. Ten farmers a day is the limit.",
+              )}
+            </p>
+            <div className="mt-3 rounded-xl bg-background p-3 text-sm leading-7">
+              <p className="font-medium">{t("نصّ ورقة الموافقة (اكتبه بخطّ اليد أو اطبعه):", "The consent paper (handwrite or print it):")}</p>
+              <p>
+                {t(
+                  `أنا ……… من قرية ……… أوافق أن تعمل «${company.name}» عنّي في منصّة سوداقري: تسجّل أرضي وأوراقها وتتابع مواسمي وقطيعي، ولا تبيع شيئاً ولا تنقل ملكيّة شيءٍ باسمي. وأعرف أنّي أُنهي هذا متى شئت. التاريخ ……… التوقيع أو البصمة ………`,
+                  `I, ……… of the village of ………, agree that «${company.name}» act for me on Sudagri: register my land and its papers and follow my seasons and herds, without selling anything or transferring anything in my name. I know I can end this whenever I like. Date ……… Signature or thumbprint ………`,
+                )}
+              </p>
+            </div>
+            <form action={registerManagedFarmer} className="mt-4 grid gap-4">
+              <label className={label}>
+                {t("اسم المزارع الرباعيّ", "The farmer's full name")}
+                <input name="full_name" required minLength={3} maxLength={120} className={field} />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className={label}>
+                  {t("الولاية", "State")}
+                  <input name="state" required minLength={2} maxLength={60} className={field} />
+                </label>
+                <label className={label}>
+                  {t("المحلّيّة (إن عُرفت)", "Locality (if known)")}
+                  <input name="locality" maxLength={80} className={field} />
+                </label>
+                <label className={label}>
+                  {t("القرية", "Village")}
+                  <input name="village" required minLength={2} maxLength={80} className={field} />
+                </label>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={label}>
+                  {t("الرقم الوطنيّ (إن وُجد)", "National ID number (if any)")}
+                  <input name="national_id" maxLength={30} pattern="[0-9A-Za-z\-]{5,30}" dir="ltr" className={field} />
+                </label>
+                <label className={label}>
+                  {t("جوّال قريبٍ أو جارٍ يُتّصل به عنه (إن وُجد)", "A relative's or neighbour's phone to reach them (if any)")}
+                  <input name="contact_phone" inputMode="tel" maxLength={20} dir="ltr" className={field} />
+                </label>
+              </div>
+              <PhotoField name="consent_path" folder="managed" suffix="-consent" required label={t("صورة ورقة الموافقة موقَّعة", "Photo of the signed consent paper")} />
+              <PhotoField name="photo_path" folder="managed" suffix="-photo" required label={t("صورة المزارع", "Photo of the farmer")} />
+              <fieldset className="grid gap-2 text-sm">
+                <legend className="mb-1 font-medium">{t("ما تعمل فيه عنه", "What you will act for them in")}</legend>
+                {AGENT_SCOPES.map((s) => (
+                  <label key={s} className="flex items-start gap-2">
+                    <input type="checkbox" name={`scope_${s}`} defaultChecked={s === "lands"} className="mt-1" />
+                    <span>{tr(locale, ...AGENT_SCOPE_LABEL[s])}</span>
+                  </label>
+                ))}
+              </fieldset>
+              <label className={label}>
+                {t("ما اتّفقتم عليه، تقرؤه الإدارة", "What you agreed, for the administrators to read")}
+                <textarea name="note" required minLength={10} maxLength={300} rows={2} className={field} />
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" name="consent_read" required className="mt-1" />
+                <span>{t("قرأتُ الورقة على المزارع ووقّعها أو بصم عليها أمامي.", "I read the paper to the farmer and they signed or thumb-printed it in front of me.")}</span>
+              </label>
+              <button className={button}>{t("سجّل المزارع", "Register the farmer")}</button>
+            </form>
+          </details>
+
           <section className="mt-8">
             <h2 className="font-bold">{t("من أذن لك", "Who has authorised you")}</h2>
             {active.length === 0 ? (
@@ -163,7 +233,12 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
                 {pending.map((m) => (
                   <li key={m.id} className={`${card} flex flex-wrap items-center justify-between gap-3 text-sm`}>
                     <span>
-                      <span dir="ltr">…{m.phone_tail}</span> · {scopes(m)} · {date(m.requested_at)}
+                      {m.phone_tail === "0000" ? (
+                        t("مزارعٌ بلا جوّال، ينتظر اعتماد الإدارة", "A farmer without a phone, awaiting the administrators")
+                      ) : (
+                        <span dir="ltr">…{m.phone_tail}</span>
+                      )}{" "}
+                      · {scopes(m)} · {date(m.requested_at)}
                     </span>
                     <form action={endMandate}>
                       <input type="hidden" name="id" value={m.id} />
