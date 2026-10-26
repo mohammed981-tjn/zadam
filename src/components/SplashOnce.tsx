@@ -8,7 +8,6 @@ import { useLocale } from "./LocaleProvider";
 import {
   SPLASH_FADE_MS,
   SPLASH_MAX_MS,
-  SPLASH_SLIDE_MS,
   SPLASH_VIDEO_MAX_MS,
   SPLASH_VIDEO_START_MS,
   splashEndsAt,
@@ -16,7 +15,13 @@ import {
 import { SLIDES } from "@/lib/introSlides";
 
 /**
- * شاشةُ البداية — مرّةً واحدةً لكلّ زائر، ولا تحجب شيئاً.
+ * شاشةُ البداية — في كلّ تحميل، وشاشاتُ التعريف ثابتةٌ حتى يلمسها الزائر.
+ *
+ * The owner, 26 October 2026: «السبلاشات لم ارها، تجعلها ثابتة في البداية: ثابتة بمعنى تظهر في كلّ تحميل، وثابتة
+ * بمعنى لا تتغيّر تلقائيّاً إلّا بعد الضغط عليها». So the intro no longer remembers that it was seen, and its four
+ * screens no longer turn every three seconds: a tap (or a key) moves to the next, the last tap opens the site, and
+ * «تخطَّ» or Escape closes it at any point. The clip and the logo before them still run by themselves. What follows
+ * is the reasoning of the once-per-visitor version, kept for the record of what it weighed.
  *
  * WHAT THE OWNER ASKED FOR, AND WHAT THIS IS INSTEAD
  *
@@ -59,21 +64,6 @@ import { SLIDES } from "@/lib/introSlides";
  * jurisdiction that asks. The browser is the only party that needs to know.
  */
 
-/**
- * مفتاحُ التذكّر. تغييرُه يُعيد الشاشةَ لكلّ زائرٍ مرّةً واحدة.
- *
- * رُفع إلى `v2` لأنّ من «رآها» تحت `v1` لم يرَ شيئاً: مستطيلٌ كريميٌّ فارغٌ
- * بينما الصورةُ على الشبكة. فمتصفّحُه يحملُ الآن أنّه رآها، ولن تُعرض له
- * المصلَحةُ أبداً. ورفعُ المفتاح يمنحه إيّاها مرّةً واحدة — وهو بالضبط ما وُجد
- * المفتاحُ له.
- *
- * ثمّ `v3` (25 سبتمبر): صارت المقدّمةُ فيديو المزارع ثمّ الشعار، فيراها كلُّ
- * زائرٍ مرّةً واحدةً بشكلها الجديد.
- *
- * ثمّ `v4` (البند ٢٠٠): أُضيفت بعد الشعار أربعُ شاشاتٍ تعرّف بالمنصّة، ومن رأى
- * المقدّمة قبلها لم يرَها؛ فتُعرض له مرّةً واحدة.
- */
-const SEEN_KEY = "sudagri:splash:v4";
 
 /**
  * التوقيتُ يتبع الصورةَ لا العكس.
@@ -131,26 +121,11 @@ export default function SplashOnce() {
     const el = ref.current;
     if (!el) return;
 
-    let seen = true;
-    try {
-      seen = window.localStorage.getItem(SEEN_KEY) === "1";
-    } catch {
-      // نافذةٌ خاصّةٌ أو تخزينٌ محجوب: تُعامَل كأنّها رأت، فلا تُعرض الشاشةُ
-      // في كلّ مرّةٍ لمن لا يستطيع متصفّحُه تذكُّرَها.
-      seen = true;
-    }
-
+    // From 26 October the intro is shown on every load (the owner); only a reader who asked for less motion skips
+    // the clip and starts at the logo.
     const calm =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (seen || calm) return;
-
-    try {
-      window.localStorage.setItem(SEEN_KEY, "1");
-    } catch {
-      /* لا يمنع العرضَ — يمنع تذكُّرَه فقط. */
-    }
 
     let hold = 0;
     let done = 0;
@@ -177,13 +152,15 @@ export default function SplashOnce() {
 
     let shown = 0;
     let sliding = false;
+    let current = -1;
 
     /*
-     * من الشعار إلى شاشات التعريف (البند ٢٠٠): كلُّ شاشةٍ `SPLASH_SLIDE_MS`، ثمّ
-     * التالية، وبعد الأخيرة تنتهي المقدّمة. ولمسةٌ أو مفتاحٌ ينهيها كلَّها كما كان.
+     * من الشعار إلى شاشات التعريف (البند ٢٠٠): كلُّ شاشةٍ ثابتةٌ حتى يلمسها الزائر (المالك، 26 أكتوبر)، فتأتي التالية،
+     * وبعد الأخيرة تنتهي المقدّمة.
      */
     const slides = slidesRef.current;
     const showSlide = (i: number) => {
+      current = i;
       slides?.querySelectorAll<HTMLElement>("[data-slide]").forEach((n) => {
         n.classList.toggle("opacity-0", Number(n.dataset.slide) !== i);
       });
@@ -191,7 +168,6 @@ export default function SplashOnce() {
         n.classList.toggle("bg-white", Number(n.dataset.dot) === i);
         n.classList.toggle("bg-white/35", Number(n.dataset.dot) !== i);
       });
-      hold = window.setTimeout(() => (i + 1 < SLIDES.length ? showSlide(i + 1) : end()), SPLASH_SLIDE_MS);
     };
     const toSlides = () => {
       if (ending || sliding) return;
@@ -237,7 +213,7 @@ export default function SplashOnce() {
     document.documentElement.dataset.intro = "1";
     el.hidden = false;
 
-    if (video) {
+    if (video && !calm) {
       video.addEventListener("ended", toLogo);
       video.addEventListener("error", toLogo, true);
       video.addEventListener("playing", () => window.clearTimeout(started), { once: true });
@@ -248,21 +224,25 @@ export default function SplashOnce() {
       toLogo();
     }
 
-    el.addEventListener("pointerdown", end);
-    window.addEventListener("keydown", end);
+    /** A tap or a key: the clip to the logo, the logo to the first screen, each screen to the next, the last away. */
+    const advance = () => {
+      if (ending) return;
+      if (!shown) toLogo();
+      else if (!sliding) toSlides();
+      else if (current + 1 < SLIDES.length) showSlide(current + 1);
+      else end();
+    };
+    const onTap = (e: PointerEvent) => {
+      if ((e.target as HTMLElement | null)?.closest("[data-skip]")) end();
+      else advance();
+    };
+    const onKey = (e: KeyboardEvent) => (e.key === "Escape" ? end() : advance());
+    el.addEventListener("pointerdown", onTap);
+    window.addEventListener("keydown", onKey);
 
     return () => {
-      // تفكيكٌ قبل أن تنتهي المقدّمة (وهو ما يفعله React في وضع التطوير
-      // الصارم: أثرٌ، فتفكيك، فأثرٌ من جديد): تُخفى ويُمحى أنّها رُئيت، فيعرضها
-      // الأثرُ التالي من أوّلها بدل أن يجدها «مرئيّة» ويتركها عالقة.
-      if (!ending) {
-        el.hidden = true;
-        try {
-          window.localStorage.removeItem(SEEN_KEY);
-        } catch {
-          /* لا شيء يُفعل. */
-        }
-      }
+      // تفكيكٌ قبل أن تنتهي المقدّمة (وهو ما يفعله React في وضع التطوير الصارم): تُخفى، فيعرضها الأثرُ التالي من أوّلها.
+      if (!ending) el.hidden = true;
       announce.current = null;
       window.clearTimeout(hold);
       window.clearTimeout(started);
@@ -270,8 +250,8 @@ export default function SplashOnce() {
       video?.removeEventListener("ended", toLogo);
       video?.removeEventListener("error", toLogo, true);
       window.clearTimeout(done);
-      el.removeEventListener("pointerdown", end);
-      window.removeEventListener("keydown", end);
+      el.removeEventListener("pointerdown", onTap);
+      window.removeEventListener("keydown", onKey);
     };
   }, []);
 
@@ -325,7 +305,7 @@ export default function SplashOnce() {
         </p>
       </div>
 
-      {/* المرحلةُ الثالثة: أربعُ شاشاتٍ تعرّف بالمنصّة، ثلاثُ ثوانٍ لكلٍّ. */}
+      {/* المرحلةُ الثالثة: أربعُ شاشاتٍ تعرّف بالمنصّة، كلٌّ ثابتةٌ حتى اللمس. */}
       <div ref={slidesRef} className="absolute inset-0 opacity-0 transition-opacity duration-500">
         {SLIDES.map((s, i) => (
           <div
@@ -352,8 +332,15 @@ export default function SplashOnce() {
       </div>
 
       <span className="absolute top-5 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-xs text-white">
-        {tr(locale, "المس الشاشة للتخطّي", "Tap the screen to skip")}
+        {tr(locale, "المس الشاشة للتالي", "Tap the screen for the next")}
       </span>
+      <button
+        type="button"
+        data-skip
+        className="absolute top-4 end-4 rounded-full bg-black/50 px-4 py-1.5 text-sm font-bold text-white"
+      >
+        {tr(locale, "تخطَّ ✕", "Skip ✕")}
+      </button>
     </div>
   );
 }

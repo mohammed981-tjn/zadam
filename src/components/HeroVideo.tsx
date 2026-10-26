@@ -5,7 +5,6 @@ import { tr } from "@/lib/i18n";
 import { useLocale } from "./LocaleProvider";
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
 import { SUDAGRI_LOGO } from "@/lib/brand";
-import { INTRO_WAIT_MAX_MS } from "@/lib/splash";
 
 /**
  * واجهةُ الرئيسيّة: أفلامُ سوداقري، رزمةَ بطاقاتٍ متدرّجةً نحو اليمين.
@@ -154,9 +153,7 @@ export default function HeroVideo() {
 
   // Start the programme: now, or once the full-screen intro has finished.
   useEffect(() => {
-    let cap = 0;
     const start = () => {
-      window.clearTimeout(cap);
       const v = ref.current;
       if (!v) return;
       if (prefersCalm()) {
@@ -175,15 +172,14 @@ export default function HeroVideo() {
     // After every mount effect has run, so SplashOnce has set `data-intro`.
     const t = window.setTimeout(() => {
       if (document.documentElement.dataset.intro === "1") {
+        // The intro's screens wait for taps (26 October), so the film waits for the intro, with no clock.
         window.addEventListener("sudagri:intro-done", start, { once: true });
-        cap = window.setTimeout(start, INTRO_WAIT_MAX_MS);
       } else {
         start();
       }
     }, 0);
     return () => {
       window.clearTimeout(t);
-      window.clearTimeout(cap);
       window.removeEventListener("sudagri:intro-done", start);
     };
   }, []);

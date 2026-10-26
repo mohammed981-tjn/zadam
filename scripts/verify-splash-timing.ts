@@ -28,14 +28,12 @@
  * A ceiling asserted only in a comment is not a ceiling.
  */
 
+import { readFileSync } from "node:fs";
 import {
   SPLASH_AFTER_LOAD_MS,
   SPLASH_FADE_MS,
   SPLASH_MAX_MS,
   SPLASH_MIN_MS,
-  INTRO_WAIT_MAX_MS,
-  SPLASH_INTRO_WORST_MS,
-  SPLASH_SLIDE_MS,
   SPLASH_SLIDES,
   SPLASH_VIDEO_MAX_MS,
   SPLASH_VIDEO_START_MS,
@@ -122,18 +120,15 @@ ok(
   SPLASH_VIDEO_START_MS + SPLASH_MAX_MS + SPLASH_FADE_MS < 5000,
   "فشبكةٌ لا تحمل الفيديو لا تُبقي الزائر أكثر من خمس ثوانٍ",
 );
-section("ز) شاشاتُ التعريف بعد الشعار — ثلاثُ ثوانٍ لكلٍّ، كما طلب المالك");
+section("ز) شاشاتُ التعريف بعد الشعار — ثابتةٌ حتى يلمسها الزائر (المالك، 26 أكتوبر)");
 
-ok(SPLASH_SLIDE_MS === 3000, `كلُّ شاشةٍ ${SPLASH_SLIDE_MS}ms`);
 ok(SPLASH_SLIDES >= 3 && SPLASH_SLIDES <= 4, `وعددُها ${SPLASH_SLIDES} — «ثلاث او أربعة»`);
 ok(SPLASH_SLIDES === SLIDES.length, `والنصوصُ المكتوبة ${SLIDES.length} بعدد الشاشات`);
-ok(
-  SPLASH_INTRO_WORST_MS ===
-    SPLASH_VIDEO_MAX_MS + SPLASH_MAX_MS + SPLASH_SLIDES * SPLASH_SLIDE_MS + SPLASH_FADE_MS &&
-    SPLASH_INTRO_WORST_MS < 25_000,
-  `وأسوأُ المقدّمة كلّها ${SPLASH_INTRO_WORST_MS}ms — مرّةً واحدةً لكلّ زائر، وتُتخطّى بلمسة`,
-);
-ok(INTRO_WAIT_MAX_MS > SPLASH_INTRO_WORST_MS, `وأفلامُ الرئيسيّة تنتظرها كلَّها (${INTRO_WAIT_MAX_MS}ms)`);
+const component = readFileSync("src/components/SplashOnce.tsx", "utf8");
+ok(!/localStorage\.(get|set)Item/.test(component), "وتظهر في كلّ تحميل: لا تتذكّر أنّها رُئيت");
+ok(!/showSlide\(i \+ 1\)/.test(component) && /current \+ 1 < SLIDES\.length\) showSlide\(current \+ 1\)/.test(component),
+   "ولا تتغيّر الشاشة وحدها: اللمسةُ تأتي بالتالية");
+ok(/data-skip/.test(component) && /e\.key === "Escape" \? end\(\)/.test(component), "و«تخطَّ» أو Escape تغلقها في أيّ لحظة");
 
 section(fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`);
 process.exit(fail === 0 ? 0 : 1);
