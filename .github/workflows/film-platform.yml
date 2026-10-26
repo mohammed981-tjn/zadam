@@ -98,16 +98,24 @@ jobs:
         run: |
           git fetch -q --depth=1 origin "${GITHUB_REF_NAME}"
           git reset -q --hard FETCH_HEAD
-      - name: Tools
-        timeout-minutes: 12
-        # No apt: it hung twice for the whole twelve minutes (26 October). The runner already has ffmpeg and Google
-        # Chrome; Playwright drives that Chrome (FILM_CHROME) instead of downloading its own with its system packages.
+      # No apt where it can be helped: the one «Tools» step hung for its whole twelve minutes three times on 26 October,
+      # silently. Each tool is its own step now, with its own limit and its output shown, so a hang names itself. The
+      # runner already has ffmpeg and Google Chrome; Playwright drives that Chrome (FILM_CHROME).
+      - name: ffmpeg
+        timeout-minutes: 6
         run: |
-          command -v ffmpeg >/dev/null || { sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg >/dev/null; }
-          pip install -q pillow
+          if command -v ffmpeg >/dev/null; then ffmpeg -version | head -1; else sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+      - name: Pillow
+        timeout-minutes: 4
+        run: python3 -m pip install --disable-pip-version-check --progress-bar off pillow
+      - name: Playwright, on the runner's Chrome
+        timeout-minutes: 5
+        run: |
           mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i -s playwright@1.49.1
-          echo "FILM_CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)" >> "$GITHUB_ENV"
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i --no-audit --no-fund --loglevel=http playwright@1.49.1
+          chrome=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)
+          echo "chrome: ${chrome:-none}"
+          echo "FILM_CHROME=$chrome" >> "$GITHUB_ENV"
       # The pages behind a sign-in are photographed through the film's test account (platform_shoot.mjs). Its
       # password is derived here from a secret this repository already holds, so it is written nowhere, and masked.
       - name: Photograph the live site and draw the words
