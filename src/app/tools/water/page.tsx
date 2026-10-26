@@ -29,14 +29,17 @@ export default async function WaterToolPage() {
             How much water does your crop really need? The calculator applies the internationally recognised{" "}
             FAO-56 standard: it computes reference evapotranspiration from your region&apos;s latitude and
             temperatures, multiplies it by the crop coefficient across the growth stages, subtracts the effective
-            rain, and divides by the efficiency of the irrigation method.
+            rain, and divides by the efficiency of the irrigation method. It reads the long-term climate of your
+            region month by month, so it differs from «Air demand» on the map, which is the coming week&apos;s
+            forecast.
           </>
         ) : (
           <>
             كم يحتاج محصولك من الماء فعلاً؟ الحاسبة تطبّق معيار{" "}
             <span dir="ltr">FAO-56</span> المعتمد دولياً: تحسب البخر-نتح المرجعي من
             خط عرض منطقتك ودرجات حرارتها، ثم تضربه في معامل المحصول عبر مراحل نموّه،
-            وتخصم المطر الفعّال، وتقسم على كفاءة طريقة الري.
+            وتخصم المطر الفعّال، وتقسم على كفاءة طريقة الري. وهي تقرأ مناخ منطقتك المعتاد
+            شهراً شهراً، فتختلف عن «حاجة الجوّ» في الخريطة، وهي توقّع الأسبوع القادم.
           </>
         )}
       </p>

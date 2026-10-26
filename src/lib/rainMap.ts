@@ -365,7 +365,7 @@ export const LAYERS: Layer[] = [
   {
     key: "et0",
     title: "حاجة الجوّ",
-    note: "ما يأخذه الجوّ من حقلٍ معشوشب في الأيام السبعة (البخر-نتح المرجعي)",
+    note: "ما يأخذه الجوّ من حقلٍ معشوشب في الأيام السبعة القادمة (البخر-نتح المرجعي، توقّعٌ لا المعدّل الذي تقرؤه حاسبة الماء)",
     unit: "مم في ٧ أيام",
     bands: [
       { min: -99, label: "أقلّ من ٢٥", fill: "#f6ecd9", ink: "#3d2508" },
@@ -412,7 +412,7 @@ const LAYER_EN: Record<LayerKey, { title: string; note: string; unit: string; ba
   },
   et0: {
     title: "Air demand",
-    note: "What the air draws from a grass field over seven days (reference evapotranspiration)",
+    note: "What the air draws from a grass field over the coming seven days (reference evapotranspiration; a forecast, not the long-term average the water calculator reads)",
     unit: "mm in 7 days",
     bands: ["< 25", "25–35", "35–45", "45–55", "55–65", "65+"],
   },
