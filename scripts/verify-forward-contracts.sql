@@ -3,6 +3,10 @@
 \set ON_ERROR_STOP on
 \set QUIET on
 
+-- «اليوم» في القاعدة يوم الخرطوم، فـcurrent_date في الفحوص يومُ الخرطوم أيضاً. بتوقيت الخادم (UTC) كان «غداً» بعد
+-- التاسعة مساءً هو يوم الخرطوم نفسه، فسقط فحص «لا تسليم في يومٍ لم يأتِ» كلّ ليلة (26 أكتوبر، 22:02 UTC).
+set timezone to 'Africa/Khartoum';
+
 create table if not exists _score (fails integer not null default 0);
 delete from _score;
 insert into _score values (0);
