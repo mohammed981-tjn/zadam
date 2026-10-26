@@ -102,10 +102,20 @@ jobs:
           pip install -q pillow
           mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i -s playwright@1.49.1
           npx --prefix /tmp/pw playwright install --with-deps chromium >/dev/null
+      # The pages behind a sign-in are photographed through the film's test account (platform_shoot.mjs). Its
+      # password is derived here from a secret this repository already holds, so it is written nowhere, and masked.
       - name: Photograph the live site and draw the words
         env:
           NODE_PATH: /tmp/pw/node_modules
-        run: node scripts/film/platform_shoot.mjs film/platform work
+          SEED: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -n "$SEED" ]; then
+            FILM_DEMO_PASSWORD=$(printf 'sudagri-film-demo:%s' "$SEED" | sha256sum | cut -c1-32)
+            echo "::add-mask::$FILM_DEMO_PASSWORD"
+            export FILM_DEMO_PASSWORD
+          fi
+          unset SEED
+          node scripts/film/platform_shoot.mjs film/platform work
       - name: Put the film together
         run: python3 scripts/film/platform_assemble.py film/platform work out
       # For the owner alone, now that the repository is public: locked, sent in the conversation

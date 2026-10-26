@@ -38,6 +38,9 @@ MUSIC = "film/investors/music.wav"
 LOGO = "public/sudagri-logo.webp"
 
 scenes = json.load(open(f"{film}/scenes.json", encoding="utf-8"))
+# A scene behind the sign-in is shot only when the film's test account could sign in (platform_shoot.mjs); without its
+# picture it is left out, not shown as a sign-in page.
+scenes = [s for s in scenes if not (s.get("auth") and not os.path.exists(f"{work}/shot-{s['id']}.jpg"))]
 meta = json.load(open(f"{work}/shots.json", encoding="utf-8"))
 
 

@@ -24,6 +24,13 @@
   "path": "/projects"
  },
  {
+  "id": "19b",
+  "line": "19b",
+  "title": "مواسمي",
+  "path": "/seasons",
+  "auth": true
+ },
+ {
   "id": "16",
   "line": "16",
   "title": "العقد والتنفيذ بالدليل",
@@ -49,6 +56,13 @@
   "line": "03b",
   "title": "التسجيل بالجوّال",
   "path": "/signup"
+ },
+ {
+  "id": "03c",
+  "line": "03c",
+  "title": "أراضيّ",
+  "path": "/lands",
+  "auth": true
  },
  {
   "id": "04",
@@ -145,6 +159,13 @@
   "line": "20",
   "title": "الثروة الحيوانية",
   "path": "/export/market"
+ },
+ {
+  "id": "20b",
+  "line": "20b",
+  "title": "قطيعي",
+  "path": "/herds",
+  "auth": true
  },
  {
   "id": "21",

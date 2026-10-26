@@ -42,37 +42,78 @@ const site = await browser.newContext({ viewport: { width: W, height: H }, local
 await site.addInitScript(() => {
   try { for (const v of ["v3", "v4"]) localStorage.setItem(`sudagri:splash:${v}`, "1"); } catch {}
 });
-const page = await site.newPage();
 const meta = {};
-for (const s of scenes.filter((s) => s.path)) {
-  // A copy with no network draws no map; FILM_STILLS puts the site's own still of Sudan in its place.
-  const path = process.env.FILM_STILLS && s.still ? s.still : s.path;
-  await page.goto(SITE + path, { waitUntil: process.env.FILM_WAIT_UNTIL || "networkidle", timeout: 90000 }).catch(() => {});
-  await page.waitForTimeout(s.wait ?? 3500); // maps draw their tiles after the network settles
-  // What is fixed to the screen would sit in one place on a page the film scrolls through, so the whole-page
-  // picture leaves it out: the side menu of a wide screen, the assistant's button, and the badge `next dev` adds.
-  await page
-    .addStyleTag({
-      content:
-        "nextjs-portal,aside.fixed,[class*='z-[100]']{display:none!important}" +
-        "@media (min-width:1024px){body{padding-inline-start:0!important}}",
-    })
-    .catch(() => {});
-  const y0 = s.anchor
-    ? await page.evaluate((a) => {
-        // `#id` names a section; anything else, the start of a heading's words.
-        const el = a.startsWith("#")
-          ? document.getElementById(a.slice(1))
-          : [...document.querySelectorAll("h1,h2,h3,h4,dt,strong")].find((e) => e.textContent.trim().startsWith(a));
-        return el ? Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - 90)) : 0;
-      }, s.anchor)
-    : 0;
-  const height = await page.evaluate(() => document.documentElement.scrollHeight);
-  await page.screenshot({ path: `${work}/shot-${s.id}.jpg`, fullPage: true, type: "jpeg", quality: 90 });
-  meta[s.id] = { height, y0, url: page.url() };
-  console.log("shot", s.id, s.path, height, y0, page.url());
+async function shoot(page, list) {
+  for (const s of list) {
+    // A copy with no network draws no map; FILM_STILLS puts the site's own still of Sudan in its place.
+    const path = process.env.FILM_STILLS && s.still ? s.still : s.path;
+    await page.goto(SITE + path, { waitUntil: process.env.FILM_WAIT_UNTIL || "networkidle", timeout: 90000 }).catch(() => {});
+    await page.waitForTimeout(s.wait ?? 3500); // maps draw their tiles after the network settles
+    // What is fixed to the screen would sit in one place on a page the film scrolls through, so the whole-page
+    // picture leaves it out: the side menu of a wide screen, the assistant's button, and the badge `next dev` adds.
+    await page
+      .addStyleTag({
+        content:
+          "nextjs-portal,aside.fixed,[class*='z-[100]']{display:none!important}" +
+          "@media (min-width:1024px){body{padding-inline-start:0!important}}",
+      })
+      .catch(() => {});
+    const y0 = s.anchor
+      ? await page.evaluate((a) => {
+          // `#id` names a section; anything else, the start of a heading's words.
+          const el = a.startsWith("#")
+            ? document.getElementById(a.slice(1))
+            : [...document.querySelectorAll("h1,h2,h3,h4,dt,strong")].find((e) => e.textContent.trim().startsWith(a));
+          return el ? Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - 90)) : 0;
+        }, s.anchor)
+      : 0;
+    const height = await page.evaluate(() => document.documentElement.scrollHeight);
+    await page.screenshot({ path: `${work}/shot-${s.id}.jpg`, fullPage: true, type: "jpeg", quality: 90 });
+    meta[s.id] = { height, y0, url: page.url() };
+    console.log("shot", s.id, s.path, height, y0, page.url());
+  }
 }
+await shoot(await site.newPage(), scenes.filter((s) => s.path && !s.auth));
 await site.close();
+
+// ── the pages behind a sign-in (أراضيّ، مواسمي، قطيعي) ─────────────────────────
+// Through the film's test account and nobody else's: a number from the block Britain keeps for drama
+// (07700 900000–900999, Ofcom), so it is no one's phone, and a password the workflow derives from a secret it already
+// holds, so it is written nowhere. The first run makes the account; what is in it is test data only. Without the
+// password these scenes are left out of the film rather than shown as a sign-in page.
+const DEMO_PHONE = process.env.FILM_DEMO_PHONE || "7700900123";
+const DEMO_PASSWORD = process.env.FILM_DEMO_PASSWORD;
+const behind = scenes.filter((s) => s.path && s.auth);
+if (behind.length && DEMO_PASSWORD) {
+  const inside = await browser.newContext({ viewport: { width: W, height: H }, locale: "ar", colorScheme: "light" });
+  await inside.addInitScript(() => {
+    try { for (const v of ["v3", "v4"]) localStorage.setItem(`sudagri:splash:${v}`, "1"); } catch {}
+  });
+  const page = await inside.newPage();
+  const signIn = async () => {
+    await page.goto(SITE + "/login", { waitUntil: "networkidle", timeout: 90000 }).catch(() => {});
+    await page.selectOption('select[name="dial_code"]', "44");
+    await page.fill('input[name="ident"]', DEMO_PHONE);
+    await page.fill('input[name="password"]', DEMO_PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(5000);
+    return !new URL(page.url()).pathname.startsWith("/login");
+  };
+  let inNow = await signIn();
+  if (!inNow && (await page.locator('input[name="full_name"]').count())) {
+    // No account yet: the screen has turned to «create»; the same number and password make it.
+    await page.fill('input[name="full_name"]', "حسابٌ تجريبيّ للفيلم");
+    await page.check('input[name="role"][value="farmer"]');
+    await page.fill('input[name="password"]', DEMO_PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(6000);
+    inNow = !new URL(page.url()).pathname.startsWith("/login");
+  }
+  console.log(inNow ? "signed in as the film's test account" : "could not sign in; the signed-in scenes are left out");
+  if (inNow) await shoot(page, behind);
+  await inside.close();
+}
+
 
 // ── the words ────────────────────────────────────────────────────────────────
 // Tajawal from Google Fonts, or — where they cannot be reached — from the CSS `next dev` wrote for the site's own
