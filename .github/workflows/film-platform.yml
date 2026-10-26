@@ -98,13 +98,13 @@ jobs:
         run: |
           git fetch -q --depth=1 origin "${GITHUB_REF_NAME}"
           git reset -q --hard FETCH_HEAD
-      # No apt where it can be helped: the one «Tools» step hung for its whole twelve minutes three times on 26 October,
-      # silently. Each tool is its own step now, with its own limit and its output shown, so a hang names itself. The
-      # runner already has ffmpeg and Google Chrome; Playwright drives that Chrome (FILM_CHROME).
+      # No apt: the one «Tools» step hung for its whole twelve minutes three times on 26 October, and split into steps the
+      # hang was apt installing ffmpeg. Each tool is its own step with its own limit. Playwright drives the runner's own
+      # Google Chrome (FILM_CHROME).
+      # Not on the runner after all, and apt is what hung: a static build (ffmpeg and ffprobe) from the action's release.
       - name: ffmpeg
         timeout-minutes: 6
-        run: |
-          if command -v ffmpeg >/dev/null; then ffmpeg -version | head -1; else sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+        uses: FedericoCarboni/setup-ffmpeg@v3
       - name: Pillow
         timeout-minutes: 4
         run: python3 -m pip install --disable-pip-version-check --progress-bar off pillow
