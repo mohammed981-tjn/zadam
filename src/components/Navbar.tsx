@@ -237,6 +237,7 @@ export default async function Navbar() {
     icon: "book",
     items: [
       { href: "/studies", label: t("كلّ الدراسات", "All studies") },
+      { href: "/library", label: t("مكتبة الدراسات والبحوث", "Studies and research library") },
       { href: "/studies/exchange-rate", label: t("أزمة سعر الصرف والتضخم", "The exchange-rate and inflation crisis") },
       { href: "/arc-canal", label: t("القناة القوسية", "The Arc Canal") },
       { href: "/export", label: t("ممرّ الصادر السوداني", "Sudan's export corridor") },
@@ -286,6 +287,7 @@ export default async function Navbar() {
         { href: "/admin/faostat", label: t("بيانات الفاو (غلّة وأسعار منتجين)", "FAOSTAT data (yields, producer prices)") },
         { href: "/admin/land-groups", label: t("فهرس مجموعات المزارع", "Farm groups index") },
         { href: "/admin/feedback", label: t("ملاحظات الزوّار", "Visitor feedback") },
+        { href: "/admin/library", label: t("مكتبة الدراسات: المراجعة", "Library: review") },
         { href: "/admin/leads", label: t("العملاء المحتملون", "Leads") },
         { href: "/admin/canal-images", label: t("صور القناة", "Canal images") },
       ],

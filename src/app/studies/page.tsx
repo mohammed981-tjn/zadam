@@ -25,6 +25,18 @@ export async function generateMetadata() {
  */
 const STUDIES = [
   {
+    href: "/library",
+    title: "مكتبة الدراسات والبحوث",
+    titleEn: "The studies and research library",
+    note: "دراسات جدوى وبحوثٌ ورسائل جامعيّة وتقارير يرسلها الباحثون والمزارعون والزوّار، وتُنشر بعد المراجعة. شارك دراستك.",
+    noteEn: "Feasibility studies, research, theses and reports sent by researchers, farmers and visitors, published after review. Share yours.",
+    kind: "يرسلها الناس — تُراجَع ثمّ تُنشر",
+    kindEn: "Sent by people — reviewed, then published",
+    photo: PHOTOS.grainSoil,
+    alt: "كفّان تغرفان حبّاً من جوال، وعيّنة تربة ودفتر على الطاولة",
+    altEn: "Two hands scooping grain from a sack, with a soil sample and a notebook on the table",
+  },
+  {
     href: "/studies/exchange-rate",
     title: "أزمة سعر الصرف والتضخم: دراسة وبرنامج عمل",
     titleEn: "The exchange-rate and inflation crisis: a study and a programme of action",

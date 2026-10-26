@@ -113,6 +113,18 @@ const SPECS: Spec[] = [
     order: "created_at",
     row: (r) => ({ id: r.id, title: r.name, meta: r.kind, at: r.created_at }),
   },
+  // مكتبة الدراسات (البند ٢٠٢): عملٌ أرسله زائرٌ أو عضو، لا يُنشر حتى يُراجَع.
+  {
+    key: "research",
+    title: { ar: "دراسات وبحوث تنتظر المراجعة", en: "Studies and research awaiting review" },
+    what: { ar: "انشرها في المكتبة أو ردّها بالسبب.", en: "Publish in the library or return with a reason." },
+    href: "/admin/library",
+    table: "research_items",
+    select: "id, title, kind, created_at",
+    filter: (q) => q.eq("status", "pending"),
+    order: "created_at",
+    row: (r) => ({ id: r.id, title: r.title, meta: null, at: r.created_at }),
+  },
   {
     key: "partners",
     title: { ar: "شركات شريكة تنتظر التوثيق", en: "Partner companies awaiting verification" },

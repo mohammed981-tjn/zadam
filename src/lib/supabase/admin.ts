@@ -38,6 +38,13 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *      script cannot fill their hourly ceiling and shut the forms for everyone;
  *      the routes limit each address first and build the row from a few fields.
  *
+ *   5. The studies and research library (/api/research, /library/[id],
+ *      /admin/library; backlog 202). Anyone may send a work, so the public key
+ *      holds no INSERT on the table: the route limits each address and writes
+ *      the row pending; it also makes the one-path upload link into the
+ *      private bucket, and the pages make hour-long download links — for a
+ *      published work, or for the administrator reviewing one.
+ *
  * A further caller is a decision, not a detail. Add it to this list.
  */
 
