@@ -11,7 +11,7 @@ name: Film — the platform
 on:
   push:
     branches: [claude/project-review-analysis-dt7lsy]
-    paths: ["film/platform/lines.json", "film/platform/lines-en.json", "film/platform/scenes.json", "scripts/film/platform_*", ".github/workflows/film-platform.yml"]
+    paths: ["film/platform/lines.json", "film/platform/scenes.json", "scripts/film/platform_*", ".github/workflows/film-platform.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -132,22 +132,8 @@ jobs:
           node scripts/film/platform_shoot.mjs film/platform work
       - name: Put the film together
         run: python3 scripts/film/platform_assemble.py film/platform work out
-      # The English cut (the owner, 26 October: «ترجم»): the site read in English and Kokoro's voice (tts-en.yml, into
-      # film/platform/voice-en). Until every English line is spoken it is left out, and the Arabic film goes alone.
-      - name: The English cut
-        env:
-          NODE_PATH: /tmp/pw/node_modules
-          SEED: ${{ secrets.CRON_SECRET }}
-          FILM_LANG: en
-        run: |
-          if [ -n "$SEED" ]; then
-            FILM_DEMO_PASSWORD=$(printf 'sudagri-film-demo:%s' "$SEED" | sha256sum | cut -c1-32)
-            echo "::add-mask::$FILM_DEMO_PASSWORD"
-            export FILM_DEMO_PASSWORD
-          fi
-          unset SEED
-          node scripts/film/platform_shoot.mjs film/platform work-en
-          python3 scripts/film/platform_assemble.py film/platform work-en out
+      # No English cut of this film: the owner, 26 October, «لا تبني فلم المنصّة بالإنجليزيّة، اتركه». The scripts still
+      # take FILM_LANG=en, and the English lines and voice stay in film/platform, should that change.
       # For the owner alone, now that the repository is public: locked, sent in the conversation
       # (.github/delivery/lock.sh): only a locked file reaches the «owner-delivery» pre-release, and leaves it once sent.
       - name: Lock the film for the owner
