@@ -45,10 +45,32 @@
   "anchor": "#lands"
  },
  {
+  "id": "03b",
+  "line": "03b",
+  "title": "التسجيل بالجوّال",
+  "path": "/signup"
+ },
+ {
   "id": "04",
   "line": "04",
   "title": "الخريطة الكاملة",
   "path": "/map",
+  "still": "/photos/irrigated-plain.webp"
+ },
+ {
+  "id": "04b",
+  "line": "04b",
+  "title": "طبقات الخريطة: الارتفاع والتربة",
+  "path": "/map?layer=elev",
+  "wait": 6000,
+  "still": "/photos/irrigated-plain.webp"
+ },
+ {
+  "id": "04c",
+  "line": "04c",
+  "title": "القناة والمعادن والطرق والكهرباء",
+  "path": "/map?layer=none&over=canal,minerals,infra",
+  "wait": 6000,
   "still": "/photos/irrigated-plain.webp"
  },
  {
