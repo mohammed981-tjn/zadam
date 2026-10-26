@@ -16,8 +16,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { MEMBER_COLUMNS, VISITOR_COLUMNS } from "../src/lib/visitorColumns";
 
-// The later migration narrows what a member reads of projects and suppliers (backlog 181); its grant is the one that stands.
-const sql = ["20261022050000_visitor_columns.sql", "20261025230000_projects_suppliers_private_ids.sql"]
+// The later migrations narrow what a member reads of projects, suppliers and partner companies (backlog 181); their
+// grants are the ones that stand.
+const sql = [
+  "20261022050000_visitor_columns.sql",
+  "20261025230000_projects_suppliers_private_ids.sql",
+  "20261025230100_partner_companies_private_ids.sql",
+]
   .map((f) => readFileSync(join(__dirname, "../supabase/migrations", f), "utf8"))
   .join("\n");
 
@@ -83,6 +88,7 @@ check(!split(MEMBER_COLUMNS.feedback).includes("contact"), "a member does not re
 for (const [table, col] of [
   ["suppliers", "owner_id"], ["suppliers", "licence_doc_path"], ["suppliers", "verified_by"],
   ["projects", "created_by"], ["projects", "review_note"], ["projects", "land_id"],
+  ["partner_companies", "owner_id"], ["partner_companies", "verified_by"],
 ] as const) {
   check(!split(MEMBER_COLUMNS[table]).includes(col), `a member does not read ${table}.${col}`, "it is in the list");
 }

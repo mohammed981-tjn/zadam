@@ -12,7 +12,8 @@
  * columns are the owner's and the administration's alone: review notes through
  * `review_notes()`, and since backlog 181 the account ids and the licence path of
  * suppliers and projects through `supplier_private()` and `project_private()`
- * (supabase/migrations/20261025230000_projects_suppliers_private_ids.sql).
+ * (supabase/migrations/20261025230000_projects_suppliers_private_ids.sql), and
+ * those of partner companies through `partner_company_private()` (230100).
  *
  * scripts/verify-visitor-columns.ts holds these strings to the migration's
  * grants: add a column to one, add it to the other.
@@ -59,9 +60,7 @@ export const VISITOR_COLUMNS = {
 export const MEMBER_COLUMNS = {
   suppliers: VISITOR_COLUMNS.suppliers,
   projects: VISITOR_COLUMNS.projects,
-  partner_companies:
-    "id, owner_id, name, commercial_registration_no, kinds, states, contact_name, phone, whatsapp, bio, " +
-    "verified_at, verified_by, active, created_at, updated_at",
+  partner_companies: VISITOR_COLUMNS.partner_companies,
   feedback:
     "id, author_id, display_name, page_path, kind, body, status, admin_reply, replied_at, replied_by, published, " +
     "created_at, ai_reply, ai_replied_at, ai_reply_engine",

@@ -157,7 +157,8 @@ declare r record;
 begin
   for r in select * from (values
     ('suppliers','owner_id'), ('suppliers','licence_doc_path'), ('suppliers','verified_by'), ('suppliers','review_note'),
-    ('projects','created_by'), ('projects','review_note'), ('projects','land_id')
+    ('projects','created_by'), ('projects','review_note'), ('projects','land_id'),
+    ('partner_companies','owner_id'), ('partner_companies','verified_by'), ('partner_companies','review_note')
   ) as t(tbl, col) loop
     perform _eq(has_column_privilege('authenticated', format('public.%I', r.tbl), r.col, 'SELECT'), false,
                 format('العضو لا يقرأ %s.%s', r.tbl, r.col));
@@ -173,6 +174,8 @@ do $$ begin
   perform _refuses($q$select licence_doc_path from suppliers$q$, 'ومسار مستند الترخيص يُرفض');
   perform _refuses($q$select land_id from projects$q$, 'وأرض المشروع تُرفض من الجدول');
   perform _refuses($q$select * from projects$q$, 'و«كلّ الأعمدة» من المشاريع تُرفض للعضو');
+  perform _runs($q$select id, name, commercial_registration_no, kinds, states, contact_name, phone, whatsapp, bio, verified_at, active, created_at, updated_at from partner_companies$q$, 'وما تطلبه صفحات الشركات الشريكة يُقرأ');
+  perform _refuses($q$select owner_id from partner_companies$q$, 'وصاحب الشركة الشريكة يُرفض للعضو');
 end $$;
 
 \echo ''
@@ -182,6 +185,13 @@ do $$ begin
   perform _act_as('c3000000-0000-0000-0000-0000000000c3');
   perform _eq((select count(*)::int from supplier_private()), 0, 'عضوٌ آخر: لا صفّ من الموردين');
   perform _eq((select count(*)::int from project_private()), 0, 'ولا من المشاريع');
+  perform _eq((select count(*)::int from partner_company_private()), 0, 'ولا من الشركات الشريكة');
+
+  perform _act_as('b3000000-0000-0000-0000-0000000000b3');
+  perform _eq((select count(*)::int from partner_company_private()), 1, 'صاحب الشركة يرى صفّها وحده');
+  perform _eq((select owner_id from partner_company_private()), 'b3000000-0000-0000-0000-0000000000b3'::uuid, 'بمعرّفه');
+  perform _eq((select count(*)::int from partner_company_private(array['6a000000-0000-0000-0000-00000000006a'::uuid])), 0,
+              'ولا يرى شركة غيره ولو سمّاها');
 
   perform _act_as('a1000000-0000-0000-0000-0000000000a1');
   perform _eq((select count(*)::int from supplier_private()), 1, 'المورد يرى صفّه وحده');
@@ -195,6 +205,7 @@ do $$ begin
   perform _act_as('f6000000-0000-0000-0000-0000000000f6');
   perform _eq((select count(*)::int from supplier_private()), 2, 'والمدير يرى الموردين كلّهم');
   perform _eq((select count(*)::int from project_private()), 2, 'والمشاريع كلّها');
+  perform _eq((select count(*)::int from partner_company_private()), 2, 'والشركات الشريكة كلّها');
 end $$;
 
 \echo ''
@@ -215,7 +226,8 @@ reset role;
 do $$ begin
   perform _eq(has_function_privilege('anon', 'project_open_land(uuid)', 'execute')
               or has_function_privilege('anon', 'supplier_private(uuid[])', 'execute')
-              or has_function_privilege('anon', 'project_private(uuid[])', 'execute'), false, 'والزائر لا ينادي الدوالّ الثلاث');
+              or has_function_privilege('anon', 'project_private(uuid[])', 'execute')
+              or has_function_privilege('anon', 'partner_company_private(uuid[])', 'execute'), false, 'والزائر لا ينادي الدوالّ الأربع');
 end $$;
 
 do $$

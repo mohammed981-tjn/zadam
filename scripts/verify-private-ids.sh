@@ -37,6 +37,7 @@ INVESTORS="$(pg_stage "$M/20261021210000_investor_partnerships.sql" investors.sq
 COLUMNS_FIXTURE="$(pg_stage "$ROOT/scripts/visitor-columns.fixture.sql" columns-fixture.sql)"
 VISITOR="$(pg_stage "$M/20261022050000_visitor_columns.sql" visitor.sql)"
 PRIVATE="$(pg_stage "$M/20261025230000_projects_suppliers_private_ids.sql" private.sql)"
+PARTNERIDS="$(pg_stage "$M/20261025230100_partner_companies_private_ids.sql" partner-ids.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-private-ids.sql" checks.sql)"
 # Production grants members SELECT on the whole projects table (checked 25 October 2026); the harness base does not.
 PRODGRANT="$(echo 'grant select on public.projects to authenticated;' | pg_write prod-grant.sql)"
@@ -64,7 +65,7 @@ echo "── الشراكة";           pg_run_quiet "$INVESTORS"
 echo "── أعمدة الإنتاج";     pg_run_quiet "$COLUMNS_FIXTURE"
 echo "── ما يقرؤه الزائر";   pg_run_quiet "$VISITOR"
 echo "── كما في الإنتاج"; pg_run_quiet "$PRODGRANT"
-echo "── معرّفات الحسابات"; pg_run "$PRIVATE" >/dev/null
+echo "── معرّفات الحسابات"; pg_run "$PRIVATE" >/dev/null; pg_run "$PARTNERIDS" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"
