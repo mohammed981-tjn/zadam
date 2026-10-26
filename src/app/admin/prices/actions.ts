@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { explain, signedIn, str, translator } from "@/lib/supplyActions";
+import { adminState } from "@/lib/adminGuard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { refreshPrices } from "@/lib/priceRefresh";
 
@@ -61,8 +62,9 @@ export async function runPricesNow() {
   const { supabase, user } = await signedIn();
   const { t } = await translator();
   // The run writes as the project, so the caller must be an administrator first.
-  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if ((me as { role: string } | null)?.role !== "admin") back("error", t("للإدارة وحدها.", "Administrators only."));
+  if ((await adminState(supabase, user.id)) !== "ok") {
+    back("error", t("للإدارة وحدها، بالرمز الثاني.", "Administrators only, with the second factor."));
+  }
   const admin = createAdminClient();
   if (!admin) back("error", t("مفتاح الخادم غير مضبوط على هذا النشر.", "The server key is not set on this deployment."));
   const s = await refreshPrices(admin, "admin");

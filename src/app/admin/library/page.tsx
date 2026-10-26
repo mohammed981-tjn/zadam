@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminState } from "@/lib/adminGuard";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { RESEARCH_KIND_LABEL, type ResearchKind } from "@/lib/research";
@@ -38,8 +39,8 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/admin/library");
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
+  // The database's answer, second factor included; the layout asks for it when it is missing.
+  if ((await adminState(supabase, user.id)) !== "ok") redirect("/admin");
 
   const { data, error } = await supabase.rpc("research_pending");
   if (error) console.error("admin/library: pending failed", error.message);

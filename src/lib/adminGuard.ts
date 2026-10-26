@@ -1,5 +1,20 @@
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+
+export type AdminState = "ok" | "needs_second_factor" | "not_admin";
+
+/**
+ * What the database says this session is (AUTH-04, backlog 141): an administrator only with the second factor in the
+ * session, unless the administration switched that off. Before the migration that added it reaches a database, the
+ * role alone answers, as it did.
+ */
+export async function adminState(supabase: SupabaseClient, userId: string): Promise<AdminState> {
+  const { data, error } = await supabase.rpc("admin_session_state");
+  if (!error && typeof data === "string") return data as AdminState;
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+  return (profile as { role?: string } | null)?.role === "admin" ? "ok" : "not_admin";
+}
 
 /**
  * The administrator check, in one place.
@@ -33,15 +48,10 @@ export async function requireAdmin() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if ((profile as { role?: string } | null)?.role !== "admin") {
-    redirect("/dashboard");
-  }
+  const state = await adminState(supabase, user.id);
+  if (state === "not_admin") redirect("/dashboard");
+  // The admin pages ask for the second factor themselves (app/admin/layout.tsx).
+  if (state === "needs_second_factor") redirect("/admin");
 
   return { supabase, user };
 }

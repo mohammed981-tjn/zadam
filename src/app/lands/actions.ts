@@ -4,6 +4,7 @@ import { dbText } from "@/lib/dbText";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { adminState } from "@/lib/adminGuard";
 import { STATIONS } from "@/lib/agronomy";
 import { WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
 import { getLocale } from "@/lib/locale";
@@ -229,12 +230,11 @@ export async function rejectLand(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if ((profile as { role: string } | null)?.role !== "admin") return;
+  // The database's answer, second factor included (AUTH-04): without it the update below would match no row and
+  // say nothing.
+  const state = await adminState(supabase, user.id);
+  if (state === "needs_second_factor") redirect("/admin");
+  if (state !== "ok") return;
 
   const id = str(formData, "id");
   const note = str(formData, "verification_note");
@@ -268,12 +268,11 @@ export async function verifyLand(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if ((profile as { role: string } | null)?.role !== "admin") return;
+  // The database's answer, second factor included (AUTH-04): without it the update below would match no row and
+  // say nothing.
+  const state = await adminState(supabase, user.id);
+  if (state === "needs_second_factor") redirect("/admin");
+  if (state !== "ok") return;
 
   const id = str(formData, "id");
   const documents = num(formData, "documents_on_file");

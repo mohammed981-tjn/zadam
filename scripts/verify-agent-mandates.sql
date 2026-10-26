@@ -170,6 +170,8 @@ do $$ begin
           'a1000000-0000-0000-0000-0000000000a1');
   perform _eq((select count(*)::int from land_documents), 1, 'ويرفع مستنداتها');
 
+  perform _refuses($q$update lands set verification = 'verified' where id = '1d110000-0000-0000-0000-0000000001d1'$q$,
+                   'ولا يوثّق أرض موكِّله: التوثيق للإدارة');
   perform _refuses($q$update lands set owner_id = 'd3000000-0000-0000-0000-0000000000d3'
                       where id = '1d110000-0000-0000-0000-0000000001d1'$q$,
                    'ولا ينقل الأرض إلى مزارعٍ آخر');
