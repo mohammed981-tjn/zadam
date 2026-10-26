@@ -41,19 +41,22 @@
   "id": "03",
   "line": "03",
   "title": "سجّل أرضك مجّاناً",
-  "path": "/lands"
+  "path": "/guide",
+  "anchor": "#lands"
  },
  {
   "id": "04",
   "line": "04",
   "title": "الخريطة الكاملة",
-  "path": "/map"
+  "path": "/map",
+  "still": "/photos/irrigated-plain.webp"
  },
  {
   "id": "05",
   "line": "05",
   "title": "توقّعات المطر",
-  "path": "/rain"
+  "path": "/rain",
+  "still": "/photos/gezira-farmer.webp"
  },
  {
   "id": "06",
@@ -119,7 +122,7 @@
   "id": "20",
   "line": "20",
   "title": "الثروة الحيوانية",
-  "path": "/herds"
+  "path": "/export/market"
  },
  {
   "id": "21",

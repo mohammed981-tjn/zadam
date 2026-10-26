@@ -26,7 +26,8 @@ const { chromium } = require("playwright");
 const film = (process.argv[2] || "film/platform").replace(/\/$/, "");
 const work = (process.argv[3] || "work").replace(/\/$/, "");
 const SITE = process.env.FILM_SITE || "https://zadam-khaki.vercel.app";
-const HOST = SITE.replace(/^https?:\/\//, "");
+// The address shown in the film: the live site's, even when the pictures are taken from a local copy.
+const HOST = process.env.FILM_HOST || SITE.replace(/^https?:\/\//, "");
 const W = 1280, H = 720;
 mkdirSync(work, { recursive: true });
 
@@ -44,11 +45,25 @@ await site.addInitScript(() => {
 const page = await site.newPage();
 const meta = {};
 for (const s of scenes.filter((s) => s.path)) {
-  await page.goto(SITE + s.path, { waitUntil: "networkidle", timeout: 90000 }).catch(() => {});
+  // A copy with no network draws no map; FILM_STILLS puts the site's own still of Sudan in its place.
+  const path = process.env.FILM_STILLS && s.still ? s.still : s.path;
+  await page.goto(SITE + path, { waitUntil: process.env.FILM_WAIT_UNTIL || "networkidle", timeout: 90000 }).catch(() => {});
   await page.waitForTimeout(s.wait ?? 3500); // maps draw their tiles after the network settles
+  // What is fixed to the screen would sit in one place on a page the film scrolls through, so the whole-page
+  // picture leaves it out: the side menu of a wide screen, the assistant's button, and the badge `next dev` adds.
+  await page
+    .addStyleTag({
+      content:
+        "nextjs-portal,aside.fixed,[class*='z-[100]']{display:none!important}" +
+        "@media (min-width:1024px){body{padding-inline-start:0!important}}",
+    })
+    .catch(() => {});
   const y0 = s.anchor
     ? await page.evaluate((a) => {
-        const el = [...document.querySelectorAll("h1,h2,h3,h4,dt,strong")].find((e) => e.textContent.trim().startsWith(a));
+        // `#id` names a section; anything else, the start of a heading's words.
+        const el = a.startsWith("#")
+          ? document.getElementById(a.slice(1))
+          : [...document.querySelectorAll("h1,h2,h3,h4,dt,strong")].find((e) => e.textContent.trim().startsWith(a));
         return el ? Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - 90)) : 0;
       }, s.anchor)
     : 0;
@@ -60,7 +75,13 @@ for (const s of scenes.filter((s) => s.path)) {
 await site.close();
 
 // ── the words ────────────────────────────────────────────────────────────────
-const FONT = `<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=block" rel="stylesheet">`;
+// Tajawal from Google Fonts, or — where they cannot be reached — from the CSS `next dev` wrote for the site's own
+// copy (FILM_FONT_CSS), its files inlined.
+const fontCss = process.env.FILM_FONT_CSS;
+const FONT = fontCss
+  ? `<style>${readFileSync(fontCss, "utf-8").replace(/url\("\.\.\/media\/([^"]+)"\)/g, (_, f) =>
+      `url(data:font/woff2;base64,${readFileSync(join(fontCss, "../../media", f)).toString("base64")})`)}</style>`
+  : `<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=block" rel="stylesheet">`;
 const base = `*{margin:0;box-sizing:border-box}html,body{width:${W}px;height:${H}px;background:transparent;font-family:Tajawal,sans-serif;direction:rtl}`;
 
 const ink = await browser.newContext({ viewport: { width: W, height: H } });
