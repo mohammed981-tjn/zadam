@@ -283,6 +283,42 @@ do $$ begin
 end $$;
 
 \echo ''
+\echo 'هـ٢) «اشترِ لأهلك»: المشتري يكتب من يستلم عنه، وهو من الشروط'
+
+insert into market_offers (id, kind, crop, quantity, unit, state, locality, contact_phone, created_by)
+values ('0ff00000-0000-0000-0000-000000000ff2', 'sell', 'ذرة', 40, 'sack', 'سنار', 'سنجة', '249912000002',
+        'f1000000-0000-0000-0000-0000000000f1');
+set role authenticated;
+do $$ begin
+  perform _act_as('f1000000-0000-0000-0000-0000000000f1');
+  perform _refuses($q$select forward_contract_propose('farmer', '0911000001', null, 'ذرة', 'ذرة نظيفة جافّة', 10, 'sack', 5,
+                        50000, 'SDG', current_date + 5, current_date + 20, 'بيت الأهل في سنجة', 'عند التسليم', null, null, null,
+                        'أمّ المشتري', '0912333444')$q$, 'المزارع لا يكتب من يستلم عن المشتري');
+  perform _act_as('b1000000-0000-0000-0000-0000000000b1');
+  perform _refuses($q$select forward_contract_propose('buyer', null, '0ff00000-0000-0000-0000-000000000ff2', 'ذرة',
+                        'ذرة نظيفة جافّة', 10, 'sack', 5, 50000, 'SDG', current_date + 5, current_date + 20,
+                        'بيت الأهل في سنجة', 'عند التسليم', null, null, null, 'أمّ المشتري', null)$q$,
+                   'ولا اسمٌ بلا جوّال');
+  insert into _c values (5, forward_contract_propose('buyer', null, '0ff00000-0000-0000-0000-000000000ff2', 'ذرة',
+                        'ذرة نظيفة جافّة', 10, 'sack', 5, 50000, 'SDG', current_date + 5, current_date + 20,
+                        'بيت الأهل في سنجة', 'يحوّل المشتري من الخارج عند التسليم', null, null, null,
+                        'أمّ المشتري', '+249 912-333-444'));
+  perform _eq((select consignee_phone from forward_contracts where id = (select id from _c where n = 5)), '+249912333444',
+              'المغترب يشتري من عرض بيعٍ لأهله، ويُحفظ جوّال من يستلم');
+  perform _eq((select farmer_id from forward_contracts where id = (select id from _c where n = 5)),
+              'f1000000-0000-0000-0000-0000000000f1'::uuid, 'والمزارع صاحب العرض');
+  perform _act_as('f1000000-0000-0000-0000-0000000000f1');
+  perform forward_contract_answer((select id from _c where n = 5), true);
+end $$;
+reset role;
+do $$ begin
+  perform _eq((select count(*)::int from notifications where recipient_id = 'f1000000-0000-0000-0000-0000000000f1'
+                 and body like '%إلى أمّ المشتري عن المشتري%'), 1, 'والمزارع يعرف إلى من يسلّم');
+  perform _refuses(format('update forward_contracts set consignee_phone = %L where id = %L', '0999999999',
+                          (select id from _c where n = 5)), 'ومن يستلم لا يتغيّر بعد التوقيع');
+end $$;
+
+\echo ''
 \echo 'و) السحب قبل الجواب، وحدّ اليوم'
 
 set role authenticated;
@@ -313,7 +349,7 @@ end $$;
 reset role;
 do $$ begin
   perform _eq(has_function_privilege('anon',
-                'forward_contract_propose(text,text,uuid,text,text,numeric,text,numeric,numeric,text,date,date,text,text,numeric,uuid,text)',
+                'forward_contract_propose(text,text,uuid,text,text,numeric,text,numeric,numeric,text,date,date,text,text,numeric,uuid,text,text,text)',
                 'execute'), false, 'والزائر لا ينادي الاقتراح');
   perform _eq(has_function_privilege('authenticated', 'forward_contract_lock(uuid)', 'execute'), false,
               'ولا ينادي أحدٌ أداة القفل وحدها');

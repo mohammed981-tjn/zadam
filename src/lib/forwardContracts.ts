@@ -34,6 +34,9 @@ export interface ForwardContract {
   notes: string | null;
   season_id: string | null;
   offer_id: string | null;
+  /** «اشترِ لأهلك» (backlog 172): who receives for the buyer. */
+  consignee_name: string | null;
+  consignee_phone: string | null;
   status: ForwardStatus;
   proposed_at: string;
   signed_at: string | null;

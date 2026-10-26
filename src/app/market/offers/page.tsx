@@ -205,6 +205,15 @@ export default async function OffersPage({
                       {t("📝 اقترح عقداً آجلاً", "📝 Propose a forward contract")}
                     </Link>
                   )}
+                  {/* البند ١٧٢: المغترب يشتري من عرض بيعٍ قريبٍ من أهله ويُسلَّم إليهم. */}
+                  {!mineIds.has(o.id) && o.kind === "sell" && (
+                    <Link
+                      href={user ? `/market/forward/new?offer=${o.id}&family=1` : loginTo(`/market/forward/new?offer=${o.id}&family=1`)}
+                      className="rounded-full border border-border px-3 py-1.5 font-bold"
+                    >
+                      {t("🎁 اشترِ لأهلك", "🎁 Buy for your family")}
+                    </Link>
+                  )}
                   <span className="text-xs text-muted">
                     {t("نُشر", "Posted")} {day(o.created_at)} · {t("ينتهي", "Expires")} {day(o.expires_at)}
                   </span>

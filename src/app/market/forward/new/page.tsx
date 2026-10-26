@@ -20,6 +20,8 @@ export async function generateMetadata() {
 export default async function NewForwardPage({ searchParams }: PageProps<"/market/forward/new">) {
   const sp = await searchParams;
   const offerId = typeof sp.offer === "string" && /^[0-9a-f-]{36}$/.test(sp.offer) ? sp.offer : null;
+  // «اشترِ لأهلك» (البند ١٧٢): the buyer is abroad and names who receives for them.
+  const family = sp.family === "1";
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,7 +40,7 @@ export default async function NewForwardPage({ searchParams }: PageProps<"/marke
     "id" | "kind" | "crop" | "quantity" | "unit" | "grade" | "price_sdg" | "price_usd" | "state" | "locality"
   > | null;
   // A notice to buy is answered by a farmer, a notice to sell by a buyer.
-  const side = offer ? (offer.kind === "buy" ? "farmer" : "buyer") : null;
+  const side = offer ? (offer.kind === "buy" ? "farmer" : "buyer") : family ? "buyer" : null;
   const { data: seasonRows } = await supabase
     .from("seasons")
     .select("id, name, planting_date")
@@ -54,8 +56,16 @@ export default async function NewForwardPage({ searchParams }: PageProps<"/marke
         {t("→ العقود الآجلة", "← Forward contracts")}
       </Link>
       <h1 className="mt-4 font-black" style={{ fontSize: "var(--text-title)" }}>
-        {t("اقترح عقداً آجلاً", "Propose a forward contract")}
+        {family ? t("اشترِ حصاداً لأهلك", "Buy a harvest for your family") : t("اقترح عقداً آجلاً", "Propose a forward contract")}
       </h1>
+      {family && (
+        <p className="mt-2 rounded-xl bg-primary/10 p-3 text-sm leading-7">
+          {t(
+            "تشتري من مزارعٍ قريبٍ من أهلك، ويُسلَّم إليهم في موعده. شراءٌ لا استثمار ولا عائد، وتدفع للمزارع مباشرةً كما تتّفقان (تحويلٌ عند التسليم مثلاً). أهلك يستلمون، وأنت تسجّل الاستلام حين يخبرونك.",
+            "You buy from a farmer near your family, and it is delivered to them on time. A purchase, not an investment and no return; you pay the farmer directly as you agree (a transfer on delivery, say). Your family receives it, and you record the delivery when they tell you.",
+          )}
+        </p>
+      )}
       <p className="mt-2 text-sm leading-7 text-muted">
         {t(
           "اكتب الشروط كما اتّفقتما. اقتراحك توقيعك عليه، ولا تتغيّر شروطه بعد إرساله؛ وإن أخطأت فاسحبه قبل أن يوقّعه الآخر واقترح غيره.",
@@ -79,10 +89,17 @@ export default async function NewForwardPage({ searchParams }: PageProps<"/marke
       )}
 
       <form action={proposeForward} className="mt-6 grid gap-4">
-        {offer ? (
+        {family && <input type="hidden" name="family" value="1" />}
+        {offer || family ? (
           <>
-            <input type="hidden" name="offer_id" value={offer.id} />
+            {offer && <input type="hidden" name="offer_id" value={offer.id} />}
             <input type="hidden" name="side" value={side!} />
+            {!offer && (
+              <label className={label}>
+                {t("رقم جوّال المزارع (له حسابٌ برقمه)", "The farmer's phone number (they have an account under it)")}
+                <input name="phone" required inputMode="tel" placeholder="09xxxxxxxx" className={field} />
+              </label>
+            )}
           </>
         ) : (
           <>
@@ -165,6 +182,26 @@ export default async function NewForwardPage({ searchParams }: PageProps<"/marke
             <input name="delivery_to" type="date" required min={today} className={field} />
           </label>
         </div>
+        {side === "buyer" && (
+          <fieldset className={`${card} grid gap-3`}>
+            <legend className="px-1 text-sm font-bold">
+              {t("من يستلم عنك (إن كنت تشتري لأهلك)", "Who receives for you (if you are buying for your family)")}
+            </legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className={label}>
+                {t("اسمه", "Name")}
+                <input name="consignee_name" required={family} minLength={2} maxLength={120} className={field} />
+              </label>
+              <label className={label}>
+                {t("جوّاله", "Phone")}
+                <input name="consignee_phone" required={family} inputMode="tel" maxLength={20} className={field} />
+              </label>
+            </div>
+            <p className="text-xs text-muted">
+              {t("يراه المزارع في العقد ليتّصل به عند التسليم، ولا يراه غيره.", "The farmer sees it in the contract to call them at delivery; no one else does.")}
+            </p>
+          </fieldset>
+        )}
         <label className={label}>
           {t("مكان التسليم", "Place of delivery")}
           <input name="delivery_place" required minLength={3} maxLength={200} placeholder={t("مثلاً: مخزن المشتري في القضارف", "e.g. the buyer's store in Gedaref")} className={field} />

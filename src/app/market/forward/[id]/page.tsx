@@ -137,6 +137,16 @@ export default async function ForwardContractPage({ params, searchParams }: Page
             {c.payment_terms}
             {c.advance_percent != null && c.advance_percent > 0 && t(`، ومقدَّمٌ ${c.advance_percent}٪ عند التوقيع.`, `, with a ${c.advance_percent}% advance on signing.`)}
           </li>
+          {c.consignee_name && (
+            <li>
+              {t("يستلم عن المشتري: ", "Received for the buyer by: ")}
+              <b>{c.consignee_name}</b>{" "}
+              <span dir="ltr" className="text-muted">
+                ({c.consignee_phone})
+              </span>
+              {t("، ويسجّل المشتري الاستلام حين يخبره.", "; the buyer records the delivery when told.")}
+            </li>
+          )}
           {c.notes && <li>{c.notes}</li>}
           <li>
             {t(

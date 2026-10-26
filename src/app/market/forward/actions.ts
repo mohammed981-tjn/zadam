@@ -17,7 +17,8 @@ export async function proposeForward(fd: FormData) {
   const { supabase } = await signedIn();
   const { locale, t } = await translator();
   const offer = str(fd, "offer_id");
-  const from = offer ? `/market/forward/new?offer=${offer}&` : "/market/forward/new?";
+  const family = str(fd, "family") === "1" ? "family=1&" : "";
+  const from = offer ? `/market/forward/new?offer=${offer}&${family}` : `/market/forward/new?${family}`;
   const fail = (m: string): never => redirect(`${from}error=${encodeURIComponent(m)}`);
   const quantity = numOrNull(fd, "quantity");
   const price = numOrNull(fd, "price");
@@ -42,6 +43,8 @@ export async function proposeForward(fd: FormData) {
     p_advance_percent: numOrNull(fd, "advance_percent"),
     p_season: str(fd, "season_id") || null,
     p_notes: str(fd, "notes") || null,
+    p_consignee_name: str(fd, "consignee_name") || null,
+    p_consignee_phone: str(fd, "consignee_phone") || null,
   });
   if (error) fail(explain(locale, error));
   back(

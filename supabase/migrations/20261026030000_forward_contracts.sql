@@ -9,6 +9,9 @@
 --   بعد التوقيع: يسجّل المشتري ما استلم (الكميّة والتاريخ وهل طابقت الدرجة) → يؤكّده المزارع فيُقفل العقد، أو ينازع؛
 --   وفي أيّ وقتٍ بعد التوقيع: يطلب أحدهما الإلغاء فيقبله الآخر أو يرفضه، أو يرفع نزاعاً تفصل فيه الإدارة.
 -- لا يلغي أحدٌ عقداً موقّعاً وحده، ولا تتغيّر شروطه بعد اقتراحها (يُسحب ويُقترح من جديد)، وكلّ خطوةٍ في سجلٍّ لا يُعدَّل.
+--
+-- ومنه «اشترِ لأهلك» (البند ١٧٢، الغنيمة ١٠ من CrowdFarming): المغترب يشتري حصاد مزارعٍ قريبٍ من أهله ويُسلَّم إليهم،
+-- فيكتب في العقد من يستلم (اسمه وجوّاله). شراءٌ لا عائد، والدفع بين المغترب والمزارع خارج المنصّة كأيّ عقدٍ آجل.
 
 -- ── نوع الإشعار ─────────────────────────────────────────────────────────────
 
@@ -80,6 +83,9 @@ create table public.forward_contracts (
   notes               text check (notes is null or length(btrim(notes)) between 2 and 1000),
   season_id           uuid references public.seasons(id) on delete set null,
   offer_id            uuid references public.market_offers(id) on delete set null,
+  -- من يستلم عن المشتري، حين يشتري لأهله (البند ١٧٢). يكتبه المشتري وحده، وهو من الشروط.
+  consignee_name      text check (consignee_name is null or length(btrim(consignee_name)) between 2 and 120),
+  consignee_phone     text check (consignee_phone is null or consignee_phone ~ '^\+?[0-9]{7,15}$'),
 
   status              text not null default 'proposed'
                       check (status in ('proposed', 'declined', 'withdrawn', 'signed', 'delivered', 'completed',
@@ -101,6 +107,8 @@ create table public.forward_contracts (
 
   check (buyer_id <> farmer_id),
   check (proposed_by in (buyer_id, farmer_id)),
+  check ((consignee_name is null) = (consignee_phone is null)),
+  check (consignee_name is null or proposed_by = buyer_id),
   check (delivery_to >= delivery_from),
   check ((signed_at is null) = (status in ('proposed', 'declined', 'withdrawn'))),
   check ((delivered_on is null) = (delivered_quantity is null)),
@@ -127,11 +135,13 @@ as $$
 begin
   if (new.buyer_id, new.farmer_id, new.proposed_by, new.crop, new.grade, new.quantity, new.unit, new.tolerance_percent,
       new.price, new.currency, new.delivery_from, new.delivery_to, new.delivery_place, new.payment_terms,
-      new.advance_percent, new.notes, new.season_id, new.offer_id, new.proposed_at, new.ref)
+      new.advance_percent, new.notes, new.season_id, new.offer_id, new.consignee_name, new.consignee_phone,
+      new.proposed_at, new.ref)
      is distinct from
      (old.buyer_id, old.farmer_id, old.proposed_by, old.crop, old.grade, old.quantity, old.unit, old.tolerance_percent,
       old.price, old.currency, old.delivery_from, old.delivery_to, old.delivery_place, old.payment_terms,
-      old.advance_percent, old.notes, old.season_id, old.offer_id, old.proposed_at, old.ref) then
+      old.advance_percent, old.notes, old.season_id, old.offer_id, old.consignee_name, old.consignee_phone,
+      old.proposed_at, old.ref) then
     raise exception 'شروط العقد لا تتغيّر بعد اقتراحها: اسحبه واقترح غيره.';
   end if;
   new.updated_at := now();
@@ -232,7 +242,8 @@ create function public.forward_contract_propose(
   p_side text, p_phone text, p_offer uuid,
   p_crop text, p_grade text, p_quantity numeric, p_unit text, p_tolerance_percent numeric,
   p_price numeric, p_currency text, p_delivery_from date, p_delivery_to date, p_delivery_place text,
-  p_payment_terms text, p_advance_percent numeric, p_season uuid, p_notes text)
+  p_payment_terms text, p_advance_percent numeric, p_season uuid, p_notes text,
+  p_consignee_name text default null, p_consignee_phone text default null)
 returns uuid
 language plpgsql
 security definer
@@ -293,26 +304,37 @@ begin
        or not exists (select 1 from seasons where id = p_season and owner_id = v_me)) then
     raise exception 'يُربط بالعقد موسمٌ للمزارع نفسه.';
   end if;
+  if nullif(btrim(p_consignee_name), '') is not null and p_side <> 'buyer' then
+    raise exception 'من يستلم عن المشتري يكتبه المشتري.';
+  end if;
+  if (nullif(btrim(p_consignee_name), '') is null) <> (nullif(btrim(p_consignee_phone), '') is null) then
+    raise exception 'اكتب اسم من يستلم وجوّاله معاً.';
+  end if;
   if (select count(*) from forward_contracts where proposed_by = v_me and proposed_at > now() - interval '1 day') >= 20 then
     raise exception 'عشرون اقتراحاً في اليوم حدّ الحساب. أكمل غداً.';
   end if;
 
   insert into forward_contracts (
     buyer_id, farmer_id, proposed_by, phone_tail, crop, grade, quantity, unit, tolerance_percent, price, currency,
-    delivery_from, delivery_to, delivery_place, payment_terms, advance_percent, notes, season_id, offer_id)
+    delivery_from, delivery_to, delivery_place, payment_terms, advance_percent, notes, season_id, offer_id,
+    consignee_name, consignee_phone)
   values (
     case p_side when 'buyer' then v_me else v_other end,
     case p_side when 'farmer' then v_me else v_other end,
     v_me, right(v_key, 4), btrim(p_crop), btrim(p_grade), p_quantity, p_unit, coalesce(p_tolerance_percent, 5),
     p_price, p_currency, p_delivery_from, p_delivery_to, btrim(p_delivery_place), btrim(p_payment_terms),
-    p_advance_percent, nullif(btrim(p_notes), ''), p_season, p_offer)
+    p_advance_percent, nullif(btrim(p_notes), ''), p_season, p_offer,
+    nullif(btrim(p_consignee_name), ''), nullif(regexp_replace(coalesce(p_consignee_phone, ''), '[\s-]', '', 'g'), ''))
   returning id, ref into v_id, v_ref;
 
   insert into forward_contract_events (contract_id, actor_id, event) values (v_id, v_me, 'proposed');
   perform public.notify_user(
     v_other, 'forward_contract', 'عقدٌ آجلٌ يُقترح عليك (' || v_ref || ')',
     btrim(p_crop) || '، ' || p_quantity || ' ' || public.forward_unit_ar(p_unit) || ' بسعر ' || p_price || ' ' || p_currency
-      || ' للوحدة، تسليمٌ بين ' || p_delivery_from || ' و' || p_delivery_to || '. اقرأه ووقّعه أو اعتذر.',
+      || ' للوحدة، تسليمٌ بين ' || p_delivery_from || ' و' || p_delivery_to
+      || case when nullif(btrim(p_consignee_name), '') is not null
+              then ' إلى ' || btrim(p_consignee_name) || ' عن المشتري' else '' end
+      || '. اقرأه ووقّعه أو اعتذر.',
     '/market/forward/' || v_id);
   return v_id;
 end $$;
@@ -544,7 +566,7 @@ do $$
 declare f text;
 begin
   foreach f in array array[
-    'forward_contract_propose(text, text, uuid, text, text, numeric, text, numeric, numeric, text, date, date, text, text, numeric, uuid, text)',
+    'forward_contract_propose(text, text, uuid, text, text, numeric, text, numeric, numeric, text, date, date, text, text, numeric, uuid, text, text, text)',
     'forward_contract_answer(uuid, boolean)', 'forward_contract_withdraw(uuid)',
     'forward_contract_deliver(uuid, numeric, date, boolean, text)', 'forward_contract_confirm(uuid)',
     'forward_contract_cancel_request(uuid, text)', 'forward_contract_cancel_answer(uuid, boolean)',
