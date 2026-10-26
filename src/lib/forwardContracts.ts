@@ -37,6 +37,13 @@ export interface ForwardContract {
   /** «اشترِ لأهلك» (backlog 172): who receives for the buyer. */
   consignee_name: string | null;
   consignee_phone: string | null;
+  /** The penalty clause (owner, 26 Oct 2026), as shares of the contract's value. */
+  late_penalty_pct_week: number;
+  late_penalty_cap_pct: number;
+  breach_penalty_pct: number;
+  force_majeure: boolean;
+  penalty_awarded: number | null;
+  penalty_payer: "buyer" | "farmer" | null;
   status: ForwardStatus;
   proposed_at: string;
   signed_at: string | null;

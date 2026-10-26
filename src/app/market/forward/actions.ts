@@ -45,6 +45,10 @@ export async function proposeForward(fd: FormData) {
     p_notes: str(fd, "notes") || null,
     p_consignee_name: str(fd, "consignee_name") || null,
     p_consignee_phone: str(fd, "consignee_phone") || null,
+    p_late_pct_week: numOrNull(fd, "late_pct_week"),
+    p_late_cap_pct: numOrNull(fd, "late_cap_pct"),
+    p_breach_pct: numOrNull(fd, "breach_pct"),
+    p_force_majeure: fd.get("force_majeure") === "on",
   });
   if (error) fail(explain(locale, error));
   back(
@@ -62,6 +66,9 @@ export async function forwardStep(fd: FormData) {
   const page = `/market/forward/${id}`;
   const step = str(fd, "step");
   const reason = str(fd, "reason");
+  // A penalty the administration awards in a dispute, within the contract's clause; the database checks the ceiling.
+  const amount = numOrNull(fd, "penalty");
+  const penalty = amount ? { p_penalty: amount, p_penalty_payer: str(fd, "penalty_payer") || null } : {};
   const calls: Record<string, () => PromiseLike<{ error: { code?: string; message?: string } | null }>> = {
     sign: () => supabase.rpc("forward_contract_answer", { p_id: id, p_sign: true }),
     decline: () => supabase.rpc("forward_contract_answer", { p_id: id, p_sign: false }),
@@ -79,9 +86,9 @@ export async function forwardStep(fd: FormData) {
     cancel_yes: () => supabase.rpc("forward_contract_cancel_answer", { p_id: id, p_agree: true }),
     cancel_no: () => supabase.rpc("forward_contract_cancel_answer", { p_id: id, p_agree: false }),
     dispute: () => supabase.rpc("forward_contract_dispute", { p_id: id, p_reason: reason }),
-    resume: () => supabase.rpc("forward_contract_resolve", { p_id: id, p_outcome: "resume", p_note: reason }),
-    close_done: () => supabase.rpc("forward_contract_resolve", { p_id: id, p_outcome: "completed", p_note: reason }),
-    close_cancel: () => supabase.rpc("forward_contract_resolve", { p_id: id, p_outcome: "cancelled", p_note: reason }),
+    resume: () => supabase.rpc("forward_contract_resolve", { p_id: id, p_outcome: "resume", p_note: reason, ...penalty }),
+    close_done: () => supabase.rpc("forward_contract_resolve", { p_id: id, p_outcome: "completed", p_note: reason, ...penalty }),
+    close_cancel: () => supabase.rpc("forward_contract_resolve", { p_id: id, p_outcome: "cancelled", p_note: reason, ...penalty }),
   };
   const call = calls[step];
   if (!call) back(page, "error", t("خطوةٌ غير معروفة.", "Unknown step."));

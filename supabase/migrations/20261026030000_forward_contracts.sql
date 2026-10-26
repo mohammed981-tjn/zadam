@@ -10,6 +10,11 @@
 --   وفي أيّ وقتٍ بعد التوقيع: يطلب أحدهما الإلغاء فيقبله الآخر أو يرفضه، أو يرفع نزاعاً تفصل فيه الإدارة.
 -- لا يلغي أحدٌ عقداً موقّعاً وحده، ولا تتغيّر شروطه بعد اقتراحها (يُسحب ويُقترح من جديد)، وكلّ خطوةٍ في سجلٍّ لا يُعدَّل.
 --
+-- والشرط الجزائيّ (قرار المالك، 26 أكتوبر 2026: «نعم»): من شروط العقد، بنسبٍ يتّفقان عليها في حدود سقفٍ معقول —
+-- غرامة تأخيرٍ عن كلّ أسبوعٍ بعد آخر موعد التسليم حتى سقفها، وغرامة إخلالٍ على من يمتنع عن التسليم أو الاستلام —
+-- وتُعفى القوّة القاهرة (حربٌ، أو سيلٌ، أو جراد، أو إغلاقُ طريق) إن اختاراها. لا تحسبها المنصّة ولا تحصّلها: تفصل الإدارة
+-- في النزاع فتكتب المبلغ ومن يدفعه في السجلّ، ويدفعه الطرف للآخر مباشرةً.
+--
 -- ومنه «اشترِ لأهلك» (البند ١٧٢، الغنيمة ١٠ من CrowdFarming): المغترب يشتري حصاد مزارعٍ قريبٍ من أهله ويُسلَّم إليهم،
 -- فيكتب في العقد من يستلم (اسمه وجوّاله). شراءٌ لا عائد، والدفع بين المغترب والمزارع خارج المنصّة كأيّ عقدٍ آجل.
 
@@ -80,6 +85,14 @@ create table public.forward_contracts (
   payment_terms       text not null check (length(btrim(payment_terms)) between 5 and 500),
   -- ما يدفعه المشتري مقدّماً للمزارع مباشرةً، إن اتّفقا؛ المنصّة لا تمسّه.
   advance_percent     numeric(4,1) check (advance_percent is null or advance_percent between 0 and 100),
+  -- الشرط الجزائيّ: نسبٌ من قيمة العقد.
+  late_penalty_pct_week numeric(4,1) not null default 1 check (late_penalty_pct_week between 0 and 5),
+  late_penalty_cap_pct  numeric(4,1) not null default 10 check (late_penalty_cap_pct between 0 and 30),
+  breach_penalty_pct    numeric(4,1) not null default 10 check (breach_penalty_pct between 0 and 30),
+  force_majeure         boolean not null default true,
+  -- ما حكمت به الإدارة في نزاع، ومن يدفعه للآخر.
+  penalty_awarded     numeric(16,2) check (penalty_awarded is null or penalty_awarded > 0),
+  penalty_payer       text check (penalty_payer is null or penalty_payer in ('buyer', 'farmer')),
   notes               text check (notes is null or length(btrim(notes)) between 2 and 1000),
   season_id           uuid references public.seasons(id) on delete set null,
   offer_id            uuid references public.market_offers(id) on delete set null,
@@ -108,6 +121,7 @@ create table public.forward_contracts (
   check (buyer_id <> farmer_id),
   check (proposed_by in (buyer_id, farmer_id)),
   check ((consignee_name is null) = (consignee_phone is null)),
+  check ((penalty_awarded is null) = (penalty_payer is null)),
   check (consignee_name is null or proposed_by = buyer_id),
   check (delivery_to >= delivery_from),
   check ((signed_at is null) = (status in ('proposed', 'declined', 'withdrawn'))),
@@ -136,11 +150,13 @@ begin
   if (new.buyer_id, new.farmer_id, new.proposed_by, new.crop, new.grade, new.quantity, new.unit, new.tolerance_percent,
       new.price, new.currency, new.delivery_from, new.delivery_to, new.delivery_place, new.payment_terms,
       new.advance_percent, new.notes, new.season_id, new.offer_id, new.consignee_name, new.consignee_phone,
+      new.late_penalty_pct_week, new.late_penalty_cap_pct, new.breach_penalty_pct, new.force_majeure,
       new.proposed_at, new.ref)
      is distinct from
      (old.buyer_id, old.farmer_id, old.proposed_by, old.crop, old.grade, old.quantity, old.unit, old.tolerance_percent,
       old.price, old.currency, old.delivery_from, old.delivery_to, old.delivery_place, old.payment_terms,
       old.advance_percent, old.notes, old.season_id, old.offer_id, old.consignee_name, old.consignee_phone,
+      old.late_penalty_pct_week, old.late_penalty_cap_pct, old.breach_penalty_pct, old.force_majeure,
       old.proposed_at, old.ref) then
     raise exception 'شروط العقد لا تتغيّر بعد اقتراحها: اسحبه واقترح غيره.';
   end if;
@@ -243,7 +259,9 @@ create function public.forward_contract_propose(
   p_crop text, p_grade text, p_quantity numeric, p_unit text, p_tolerance_percent numeric,
   p_price numeric, p_currency text, p_delivery_from date, p_delivery_to date, p_delivery_place text,
   p_payment_terms text, p_advance_percent numeric, p_season uuid, p_notes text,
-  p_consignee_name text default null, p_consignee_phone text default null)
+  p_consignee_name text default null, p_consignee_phone text default null,
+  p_late_pct_week numeric default null, p_late_cap_pct numeric default null, p_breach_pct numeric default null,
+  p_force_majeure boolean default null)
 returns uuid
 language plpgsql
 security definer
@@ -317,14 +335,15 @@ begin
   insert into forward_contracts (
     buyer_id, farmer_id, proposed_by, phone_tail, crop, grade, quantity, unit, tolerance_percent, price, currency,
     delivery_from, delivery_to, delivery_place, payment_terms, advance_percent, notes, season_id, offer_id,
-    consignee_name, consignee_phone)
+    consignee_name, consignee_phone, late_penalty_pct_week, late_penalty_cap_pct, breach_penalty_pct, force_majeure)
   values (
     case p_side when 'buyer' then v_me else v_other end,
     case p_side when 'farmer' then v_me else v_other end,
     v_me, right(v_key, 4), btrim(p_crop), btrim(p_grade), p_quantity, p_unit, coalesce(p_tolerance_percent, 5),
     p_price, p_currency, p_delivery_from, p_delivery_to, btrim(p_delivery_place), btrim(p_payment_terms),
     p_advance_percent, nullif(btrim(p_notes), ''), p_season, p_offer,
-    nullif(btrim(p_consignee_name), ''), nullif(regexp_replace(coalesce(p_consignee_phone, ''), '[\s-]', '', 'g'), ''))
+    nullif(btrim(p_consignee_name), ''), nullif(regexp_replace(coalesce(p_consignee_phone, ''), '[\s-]', '', 'g'), ''),
+    coalesce(p_late_pct_week, 1), coalesce(p_late_cap_pct, 10), coalesce(p_breach_pct, 10), coalesce(p_force_majeure, true))
   returning id, ref into v_id, v_ref;
 
   insert into forward_contract_events (contract_id, actor_id, event) values (v_id, v_me, 'proposed');
@@ -505,7 +524,8 @@ begin
 end $$;
 
 -- The administration settles a dispute: the contract stands where it was, is closed as done, or is cancelled.
-create function public.forward_contract_resolve(p_id uuid, p_outcome text, p_note text)
+create function public.forward_contract_resolve(
+  p_id uuid, p_outcome text, p_note text, p_penalty numeric default null, p_penalty_payer text default null)
 returns void
 language plpgsql
 security definer
@@ -526,13 +546,29 @@ begin
   if length(btrim(coalesce(p_note, ''))) < 10 then
     raise exception 'اكتب ما فصلت به وسببه؛ يقرؤه الطرفان.';
   end if;
+  -- The penalty the contract allows, and no more: the larger of its two clauses, as a share of the contract's value.
+  if p_penalty is not null then
+    if p_penalty <= 0 or p_penalty_payer not in ('buyer', 'farmer') then
+      raise exception 'الغرامة مبلغٌ موجب، ومعه من يدفعها: المشتري أو المزارع.';
+    end if;
+    if p_penalty > round(c.price * c.quantity * greatest(c.late_penalty_cap_pct, c.breach_penalty_pct) / 100, 2) then
+      raise exception 'الغرامة أكبر ممّا يسمح به الشرط الجزائيّ في العقد.';
+    end if;
+    update forward_contracts set penalty_awarded = p_penalty, penalty_payer = p_penalty_payer where id = p_id;
+  elsif p_penalty_payer is not null then
+    raise exception 'اكتب مبلغ الغرامة.';
+  end if;
   if p_outcome = 'resume' then
     update forward_contracts set status = c.status_before, status_before = null where id = p_id;
   else
     update forward_contracts set status = p_outcome, closed_at = now() where id = p_id;
   end if;
   insert into forward_contract_events (contract_id, actor_id, event, note)
-  values (p_id, auth.uid(), 'resolved', p_outcome || ': ' || btrim(p_note));
+  values (p_id, auth.uid(), 'resolved', p_outcome || ': ' || btrim(p_note)
+          || case when p_penalty is not null
+                  then ' — غرامة ' || p_penalty || ' ' || c.currency || ' يدفعها '
+                       || case p_penalty_payer when 'buyer' then 'المشتري' else 'المزارع' end || ' للآخر مباشرةً'
+                  else '' end);
   perform public.notify_user(r, 'forward_contract', 'فصلت الإدارة في نزاع العقد (' || c.ref || ')', btrim(p_note),
                              '/market/forward/' || c.id)
      from unnest(array[c.buyer_id, c.farmer_id]) r;
@@ -566,11 +602,11 @@ do $$
 declare f text;
 begin
   foreach f in array array[
-    'forward_contract_propose(text, text, uuid, text, text, numeric, text, numeric, numeric, text, date, date, text, text, numeric, uuid, text, text, text)',
+    'forward_contract_propose(text, text, uuid, text, text, numeric, text, numeric, numeric, text, date, date, text, text, numeric, uuid, text, text, text, numeric, numeric, numeric, boolean)',
     'forward_contract_answer(uuid, boolean)', 'forward_contract_withdraw(uuid)',
     'forward_contract_deliver(uuid, numeric, date, boolean, text)', 'forward_contract_confirm(uuid)',
     'forward_contract_cancel_request(uuid, text)', 'forward_contract_cancel_answer(uuid, boolean)',
-    'forward_contract_dispute(uuid, text)', 'forward_contract_resolve(uuid, text, text)',
+    'forward_contract_dispute(uuid, text)', 'forward_contract_resolve(uuid, text, text, numeric, text)',
     'forward_contract_parties(uuid)'
   ] loop
     execute format('revoke execute on function public.%s from public, anon', f);

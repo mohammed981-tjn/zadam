@@ -223,6 +223,39 @@ export default async function NewForwardPage({ searchParams }: PageProps<"/marke
             <input name="advance_percent" inputMode="decimal" className={field} />
           </label>
         </div>
+        {/* الشرط الجزائيّ (قرار المالك، 26 أكتوبر): نسبٌ من قيمة العقد يتّفقان عليها، والقاعدة تحدّ سقفها. */}
+        <fieldset className={`${card} grid gap-3`}>
+          <legend className="px-1 text-sm font-bold">{t("الشرط الجزائيّ", "Penalty clause")}</legend>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className={label}>
+              {t("غرامة التأخير ٪ لكلّ أسبوع", "Late delivery % per week")}
+              <input name="late_pct_week" inputMode="decimal" defaultValue="1" className={field} />
+            </label>
+            <label className={label}>
+              {t("سقف غرامة التأخير ٪", "Late penalty cap %")}
+              <input name="late_cap_pct" inputMode="decimal" defaultValue="10" className={field} />
+            </label>
+            <label className={label}>
+              {t("غرامة الإخلال ٪", "Breach penalty %")}
+              <input name="breach_pct" inputMode="decimal" defaultValue="10" className={field} />
+            </label>
+          </div>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="force_majeure" defaultChecked className="mt-1" />
+            <span>
+              {t(
+                "تُعفى القوّة القاهرة: حربٌ، أو سيلٌ، أو جراد، أو إغلاقُ طريق.",
+                "Force majeure is exempt: war, flood, locusts, or a closed road.",
+              )}
+            </span>
+          </label>
+          <p className="text-xs leading-6 text-muted">
+            {t(
+              "نسبٌ من قيمة العقد: غرامة التأخير حتى ٥٪ أسبوعيّاً وسقفها حتى ٣٠٪، وغرامة الإخلال حتى ٣٠٪ على من يمتنع عن التسليم أو الاستلام. لا تحسبها المنصّة ولا تحصّلها: إن اختلفتما تفصل الإدارة وتكتب المبلغ ومن يدفعه، ويدفعه الطرف للآخر مباشرةً.",
+              "Shares of the contract's value: late delivery up to 5% a week, capped at up to 30%, and up to 30% on whoever refuses to deliver or take delivery. The platform neither computes nor collects it: if you disagree, the administration decides and writes the amount and who pays it, and that side pays the other directly.",
+            )}
+          </p>
+        </fieldset>
         {seasons.length > 0 && side !== "buyer" && (
           <label className={label}>
             {t("موسمك الذي يأتي منه المحصول (اختياريّ، للمزارع)", "Your season the crop comes from (optional, for the farmer)")}

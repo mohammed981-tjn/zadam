@@ -147,6 +147,15 @@ export default async function ForwardContractPage({ params, searchParams }: Page
               {t("، ويسجّل المشتري الاستلام حين يخبره.", "; the buyer records the delivery when told.")}
             </li>
           )}
+          <li>
+            {t("الشرط الجزائيّ: ", "Penalty clause: ")}
+            {t(
+              `على من يتأخّر في التسليم ${c.late_penalty_pct_week}٪ من قيمة العقد عن كلّ أسبوعٍ بعد آخر موعد، حتى ${c.late_penalty_cap_pct}٪؛ وعلى من يمتنع عن التسليم أو الاستلام ${c.breach_penalty_pct}٪ من قيمة العقد للطرف الآخر.`,
+              `whoever delivers late owes ${c.late_penalty_pct_week}% of the contract's value for each week past the last delivery date, up to ${c.late_penalty_cap_pct}%; whoever refuses to deliver or take delivery owes the other side ${c.breach_penalty_pct}% of its value.`,
+            )}
+            {c.force_majeure &&
+              t(" وتُعفى القوّة القاهرة: حربٌ، أو سيلٌ، أو جراد، أو إغلاقُ طريق.", " Force majeure is exempt: war, flood, locusts, or a closed road.")}
+          </li>
           {c.notes && <li>{c.notes}</li>}
           <li>
             {t(
@@ -168,6 +177,15 @@ export default async function ForwardContractPage({ params, searchParams }: Page
         </p>
       </section>
 
+      {c.penalty_awarded != null && (
+        <p className="mt-4 rounded-xl bg-accent/10 p-3 text-sm">
+          {t("حكمت الإدارة بغرامة ", "The administration awarded a penalty of ")}
+          <b dir="ltr">
+            {money(c.penalty_awarded)} {c.currency}
+          </b>{" "}
+          {c.penalty_payer === "farmer" ? t("يدفعها المزارع للمشتري مباشرةً.", "paid by the farmer to the buyer directly.") : t("يدفعها المشتري للمزارع مباشرةً.", "paid by the buyer to the farmer directly.")}
+        </p>
+      )}
       {c.delivered_on && (
         <section className={`${card} mt-4 text-sm`}>
           <p className="font-bold">{t("التسليم كما سجّله المشتري", "The delivery as the buyer recorded it")}</p>
@@ -270,6 +288,23 @@ export default async function ForwardContractPage({ params, searchParams }: Page
             <input type="hidden" name="id" value={c.id} />
             <p className="font-bold">{t("الفصل في النزاع", "Decide the dispute")}</p>
             <div className="mt-2">{reasonBox(t("ما فصلت به وسببه: يقرؤه الطرفان", "Your decision and why: both sides read it"))}</div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className={label}>
+                {t(
+                  `غرامة بحسب الشرط الجزائيّ (اختياريّ، حتى ${money((c.price * c.quantity * Math.max(c.late_penalty_cap_pct, c.breach_penalty_pct)) / 100)} ${c.currency})`,
+                  `Penalty under the clause (optional, up to ${money((c.price * c.quantity * Math.max(c.late_penalty_cap_pct, c.breach_penalty_pct)) / 100)} ${c.currency})`,
+                )}
+                <input name="penalty" inputMode="decimal" className={field} />
+              </label>
+              <label className={label}>
+                {t("يدفعها", "Paid by")}
+                <select name="penalty_payer" defaultValue="" className={field}>
+                  <option value="">—</option>
+                  <option value="farmer">{t("المزارع", "The farmer")}</option>
+                  <option value="buyer">{t("المشتري", "The buyer")}</option>
+                </select>
+              </label>
+            </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {step("resume", t("يستمرّ العقد", "The contract continues"))}
               {step("close_done", t("أقفله تامّاً", "Close it as done"), ghost)}

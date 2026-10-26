@@ -269,12 +269,31 @@ do $$ begin
   perform forward_contract_cancel_request((select id from _c where n = 3), 'لم يبقَ عندي محصول');
   perform forward_contract_dispute((select id from _c where n = 3), 'المشتري لا يجيب طلب الإلغاء منذ شهر');
   perform _act_as('f9000000-0000-0000-0000-0000000000f9');
-  perform forward_contract_resolve((select id from _c where n = 3), 'cancelled', 'ثبت تلف المحصول بالسيل؛ يُلغى بلا شيء');
+  perform _refuses(format('select forward_contract_resolve(%L, %L, %L, %s, %L)', (select id from _c where n = 3), 'cancelled',
+                          'امتنع المزارع عن التسليم بلا عذر', 2000000, 'farmer'),
+                   'ولا غرامة فوق ما يسمح به الشرط الجزائيّ (١٠٪ من قيمة العقد)');
+  perform _refuses(format('select forward_contract_resolve(%L, %L, %L, %s, %L)', (select id from _c where n = 3), 'cancelled',
+                          'امتنع المزارع عن التسليم بلا عذر', 600000, 'nobody'), 'ولا غرامة بلا من يدفعها');
+  perform forward_contract_resolve((select id from _c where n = 3), 'cancelled', 'امتنع المزارع عن التسليم بلا عذر؛ يُلغى وعليه غرامة الإخلال',
+                                   600000, 'farmer');
 end $$;
 reset role;
 do $$ begin
   perform _eq((select status from forward_contracts where id = (select id from _c where n = 3)), 'cancelled',
               'ثمّ ألغته بعد نزاعٍ ثانٍ');
+  perform _eq((select penalty_awarded || ':' || penalty_payer from forward_contracts where id = (select id from _c where n = 3)),
+              '600000.00:farmer', 'وكتبت الغرامة ومن يدفعها');
+  perform _eq((select late_penalty_pct_week || '/' || late_penalty_cap_pct || '/' || breach_penalty_pct || '/' || force_majeure
+                 from forward_contracts where id = (select id from _c where n = 3)), '1.0/10.0/10.0/true',
+              'والشرط الجزائيّ الافتراضيّ: ١٪ أسبوعيّاً حتى ١٠٪، و١٠٪ للإخلال، والقوّة القاهرة معفاة');
+  perform _refuses(format('update forward_contracts set breach_penalty_pct = 0 where id = %L', (select id from _c where n = 1)),
+                   'والشرط الجزائيّ لا يتغيّر بعد الاقتراح');
+  perform _refuses($q$insert into forward_contracts (buyer_id, farmer_id, proposed_by, phone_tail, crop, grade, quantity, unit,
+                        price, currency, delivery_from, delivery_to, delivery_place, payment_terms, breach_penalty_pct)
+                      values ('b1000000-0000-0000-0000-0000000000b1', 'f1000000-0000-0000-0000-0000000000f1',
+                              'b1000000-0000-0000-0000-0000000000b1', '0002', 'سمسم', 'أبيض نقيّ', 1, 'qintar', 1,
+                              'SDG', current_date, current_date, 'هنا', 'نقداً', 50)$q$,
+                   'ولا غرامة إخلالٍ فوق ٣٠٪');
   perform _eq((select count(*)::int from notifications where kind = 'forward_contract'
                  and recipient_id = 'f9000000-0000-0000-0000-0000000000f9' and title like 'نزاعٌ على عقدٍ آجل%'), 2,
               'والإدارة تُخبَر بكلّ نزاع');
@@ -349,7 +368,7 @@ end $$;
 reset role;
 do $$ begin
   perform _eq(has_function_privilege('anon',
-                'forward_contract_propose(text,text,uuid,text,text,numeric,text,numeric,numeric,text,date,date,text,text,numeric,uuid,text,text,text)',
+                'forward_contract_propose(text,text,uuid,text,text,numeric,text,numeric,numeric,text,date,date,text,text,numeric,uuid,text,text,text,numeric,numeric,numeric,boolean)',
                 'execute'), false, 'والزائر لا ينادي الاقتراح');
   perform _eq(has_function_privilege('authenticated', 'forward_contract_lock(uuid)', 'execute'), false,
               'ولا ينادي أحدٌ أداة القفل وحدها');
