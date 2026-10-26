@@ -108,17 +108,17 @@ jobs:
         run: node scripts/film/platform_shoot.mjs film/platform work
       - name: Put the film together
         run: python3 scripts/film/platform_assemble.py film/platform work out
-      - name: Attach it to the pre-release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+      # For the owner alone, now that the repository is public: locked, kept a day, sent in the conversation
+      # (.github/delivery/lock.sh). No release.
+      - name: Lock the film for the owner
+        id: lock
         run: |
           ls out/*.mp4 >/dev/null 2>&1 || { echo "### Film: not ready yet (lines still to speak)" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
-          notes="جولةٌ في منصّة سوداقري بصور صفحاتها — البناء رقم ${{ github.run_number }} من ${GITHUB_SHA::7}. platform-wide.mp4 بمقاس ١٦:٩، وplatform-portrait.mp4 للهاتف، وplatform-sheet.jpg لقطةٌ من كلّ مشهد. للمالك وحده، لا يُنشر في الموقع قبل أن يختار."
-          if gh release view film-platform >/dev/null 2>&1; then
-            gh release edit film-platform --notes "$notes"
-          else
-            gh release create film-platform --title "فيلم المنصّة" --notes "$notes" --prerelease --target "$GITHUB_SHA"
-          fi
-          gh release upload film-platform out/platform-wide.mp4 out/platform-portrait.mp4 out/platform-sheet.jpg --clobber
-          echo "### Film: https://github.com/${{ github.repository }}/releases/tag/film-platform" >> "$GITHUB_STEP_SUMMARY"
+          .github/delivery/lock.sh film-platform-${{ github.run_number }} out/platform-wide.mp4 out/platform-portrait.mp4 out/platform-sheet.jpg
+          echo "locked=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: steps.lock.outputs.locked == 'true'
+        with:
+          name: film-platform-locked
+          path: delivery/
+          retention-days: 1

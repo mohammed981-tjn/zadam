@@ -100,18 +100,17 @@ jobs:
           command -v ffmpeg >/dev/null || { sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg fonts-dejavu-core >/dev/null; }
           python3 scripts/film/assemble.py film/investors out
 
-      - name: Publish the film
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+      # For the owner alone, now that the repository is public: locked, kept a day, sent in the conversation
+      # (.github/delivery/lock.sh). No release.
+      - name: Lock the film for the owner
+        id: lock
         run: |
           ls out/*.mp4 >/dev/null 2>&1 || { echo "### Film: not ready yet" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
-          notes="فيلم «شارِكْ في أرض السودان» للمستثمرين — البناء رقم ${{ github.run_number }} من ${GITHUB_SHA::7}. investors-wide.mp4 للموقع ويوتيوب، وinvestors-portrait.mp4 للهاتف."
-          if gh release view film-investors >/dev/null 2>&1; then
-            gh release edit film-investors --notes "$notes"
-          else
-            gh release create film-investors --title "فيلم المستثمرين" --notes "$notes" --prerelease --target "$GITHUB_SHA"
-          fi
-          gh release upload film-investors out/investors-wide.mp4 out/investors-portrait.mp4 --clobber
-          echo "### Film: https://github.com/${{ github.repository }}/releases/download/film-investors/investors-wide.mp4" >> "$GITHUB_STEP_SUMMARY"
+          .github/delivery/lock.sh film-investors-${{ github.run_number }} out/investors-wide.mp4 out/investors-portrait.mp4
+          echo "locked=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: steps.lock.outputs.locked == 'true'
+        with:
+          name: film-investors-locked
+          path: delivery/
+          retention-days: 1

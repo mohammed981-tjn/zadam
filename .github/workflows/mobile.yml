@@ -116,31 +116,22 @@ jobs:
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
             --dart-define=SITE_URL="$SITE_URL"
 
-      # The APK goes to a GitHub release, not an artifact. Artifacts count
-      # against the account's storage quota, which filled twice (24 September,
-      # and again on 3 October, when the build passed and the APK never
-      # appeared: "Artifact storage quota has been hit"). A release asset does
-      # not count against it, and «app-latest» is one fixed address the owner
-      # can open on the phone every time: the newest build replaces the file.
-      # And a publish that fails does not fail the build: by this step the app
-      # has been analysed, tested and assembled, which is what this workflow
-      # proves. The file is a convenience for installing it by hand.
-      - name: Publish the APK
+      # The APK used to go to the «app-latest» release. The repository is public now and the owner chose to keep the
+      # build to himself (26 October): it is locked, kept a day, and sent in the conversation
+      # (.github/delivery/lock.sh). A day's retention keeps it off the storage quota that filled twice before.
+      - name: Lock the APK for the owner
         if: github.event_name == 'workflow_dispatch'
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk sudagri.apk
-          notes="آخر نسخة من تطبيق سوداقري — البناء رقم ${{ github.run_number }} من ${GITHUB_SHA::7}. نزّل sudagri.apk وثبّته على هاتف أندرويد."
-          if gh release view app-latest >/dev/null 2>&1; then
-            gh release edit app-latest --notes "$notes"
-          else
-            gh release create app-latest --title "تطبيق سوداقري — آخر نسخة" --notes "$notes" --prerelease --target "$GITHUB_SHA"
-          fi
-          gh release upload app-latest sudagri.apk --clobber
-          echo "### APK: https://github.com/${{ github.repository }}/releases/download/app-latest/sudagri.apk" >> "$GITHUB_STEP_SUMMARY"
+          ../.github/delivery/lock.sh sudagri-app-${{ github.run_number }} sudagri.apk
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        with:
+          name: sudagri-app-locked
+          path: mobile/delivery/
+          retention-days: 1
 
       # Without these a crash report from an obfuscated build is unreadable
       # noise. They are only useful next to the exact APK they came from, hence
