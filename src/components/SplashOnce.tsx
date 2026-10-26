@@ -19,8 +19,9 @@ import { SLIDES } from "@/lib/introSlides";
  *
  * The owner, 26 October 2026: «السبلاشات لم ارها، تجعلها ثابتة في البداية: ثابتة بمعنى تظهر في كلّ تحميل، وثابتة
  * بمعنى لا تتغيّر تلقائيّاً إلّا بعد الضغط عليها». So the intro no longer remembers that it was seen, and its four
- * screens no longer turn every three seconds: a tap (or a key) moves to the next, the last tap opens the site, and
- * «تخطَّ» or Escape closes it at any point. The clip and the logo before them still run by themselves. What follows
+ * screens no longer turn every three seconds: a tap (or a key) moves to the next, and only the last tap opens the site.
+ * «تخطَّ» or Escape skips the clip and the logo, not the screens («ولا يتخطى إلا بعدما يكمل باللمس»), and the button
+ * goes once they show. The clip and the logo before them still run by themselves. What follows
  * is the reasoning of the once-per-visitor version, kept for the record of what it weighed.
  *
  * WHAT THE OWNER ASKED FOR, AND WHAT THIS IS INSTEAD
@@ -100,6 +101,7 @@ export default function SplashOnce() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
+  const skipRef = useRef<HTMLButtonElement>(null);
 
   /*
    * جسرٌ بين `onLoad` والمؤقّت.
@@ -174,6 +176,7 @@ export default function SplashOnce() {
       sliding = true;
       window.clearTimeout(hold);
       if (!slides) return end();
+      skipRef.current?.classList.add("hidden");
       logo?.classList.add("opacity-0");
       slides.classList.remove("opacity-0");
       showSlide(0);
@@ -232,17 +235,28 @@ export default function SplashOnce() {
       else if (current + 1 < SLIDES.length) showSlide(current + 1);
       else end();
     };
+    /*
+     * «تخطَّ» أو Escape تتخطّى المقطعَ والشعارَ إلى شاشات التعريف، لا الشاشاتِ نفسَها (المالك، 26 أكتوبر: «اريد الاسبلاس
+     * ثابت ولا يتخطى إلا بعدما يكمل باللمس»). ويختفي الزرّ حين تظهر الأولى.
+     */
+    const skip = () => {
+      if (ending || sliding) return;
+      if (!shown) toLogo();
+      toSlides();
+    };
     const onTap = (e: PointerEvent) => {
-      if ((e.target as HTMLElement | null)?.closest("[data-skip]")) end();
+      if ((e.target as HTMLElement | null)?.closest("[data-skip]")) skip();
       else advance();
     };
-    const onKey = (e: KeyboardEvent) => (e.key === "Escape" ? end() : advance());
+    const onKey = (e: KeyboardEvent) => (e.key === "Escape" ? skip() : advance());
     el.addEventListener("pointerdown", onTap);
     window.addEventListener("keydown", onKey);
 
     return () => {
       // تفكيكٌ قبل أن تنتهي المقدّمة (وهو ما يفعله React في وضع التطوير الصارم): تُخفى، فيعرضها الأثرُ التالي من أوّلها.
       if (!ending) el.hidden = true;
+      // ولا يعمل بعدها شيءٌ من هذا الأثر: رفضُ `play()` قد يصل بعد التفكيك فيقلب الشاشات تحت الأثر التالي.
+      ending = true;
       announce.current = null;
       window.clearTimeout(hold);
       window.clearTimeout(started);
@@ -335,6 +349,7 @@ export default function SplashOnce() {
         {tr(locale, "المس الشاشة للتالي", "Tap the screen for the next")}
       </span>
       <button
+        ref={skipRef}
         type="button"
         data-skip
         className="absolute top-4 end-4 rounded-full bg-black/50 px-4 py-1.5 text-sm font-bold text-white"

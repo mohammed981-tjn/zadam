@@ -128,7 +128,10 @@ const component = readFileSync("src/components/SplashOnce.tsx", "utf8");
 ok(!/localStorage\.(get|set)Item/.test(component), "وتظهر في كلّ تحميل: لا تتذكّر أنّها رُئيت");
 ok(!/showSlide\(i \+ 1\)/.test(component) && /current \+ 1 < SLIDES\.length\) showSlide\(current \+ 1\)/.test(component),
    "ولا تتغيّر الشاشة وحدها: اللمسةُ تأتي بالتالية");
-ok(/data-skip/.test(component) && /e\.key === "Escape" \? end\(\)/.test(component), "و«تخطَّ» أو Escape تغلقها في أيّ لحظة");
+ok(/data-skip/.test(component) && /e\.key === "Escape" \? skip\(\)/.test(component) && /closest\("\[data-skip\]"\)\) skip\(\)/.test(component),
+   "و«تخطَّ» أو Escape تتخطّى المقطعَ والشعار فقط");
+ok(/const skip = \(\) => \{\s*if \(ending \|\| sliding\) return;/.test(component) && /skipRef\.current\?\.classList\.add\("hidden"\)/.test(component),
+   "ولا تتخطّى شاشاتِ التعريف: لا تُغلق إلا بعد الأخيرة باللمس (المالك: «ولا يتخطى إلا بعدما يكمل باللمس»)");
 
 section(fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`);
 process.exit(fail === 0 ? 0 : 1);

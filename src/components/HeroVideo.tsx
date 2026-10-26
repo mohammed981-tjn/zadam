@@ -293,6 +293,29 @@ export default function HeroVideo() {
     setMuted(v.muted);
   };
 
+  /*
+   * Full screen (the owner, 26 October: «اجعل لها مربع تكبير الشاشة فل»). The frame goes full screen rather than the
+   * video, so the sound and pause buttons go with it. An iPhone can only take a video full screen, in its own player.
+   */
+  const frameRef = useRef<HTMLElement>(null);
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    const on = () => setFull(document.fullscreenElement === frameRef.current && !!frameRef.current);
+    document.addEventListener("fullscreenchange", on);
+    return () => document.removeEventListener("fullscreenchange", on);
+  }, []);
+  const toggleFull = () => {
+    const f = frameRef.current;
+    const v = ref.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+    if (!f || !v) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+      return;
+    }
+    if (typeof f.requestFullscreen === "function") f.requestFullscreen().catch(() => v.webkitEnterFullscreen?.());
+    else v.webkitEnterFullscreen?.();
+  };
+
   /** «فيلمان» for two, as Arabic counts them; a number with «أفلام» beyond. */
   const filmCount = N === 1 ? t("فيلم", "1 film") : N === 2 ? t("فيلمان", "2 films") : t(`${N} أفلام`, `${N} films`);
 
@@ -300,6 +323,8 @@ export default function HeroVideo() {
     <div>
       <style>{`
         @media (prefers-reduced-motion: reduce) { .sudagri-anim { animation: none !important; transition: none !important } }
+        .sudagri-frame:fullscreen { transform: none !important; border-radius: 0; background: #000; display: flex; align-items: center; justify-content: center }
+        .sudagri-frame:fullscreen video { aspect-ratio: auto; width: 100%; height: 100%; object-fit: contain }
       `}</style>
 
       <div className="mb-4 flex items-start gap-2">
@@ -314,6 +339,7 @@ export default function HeroVideo() {
       <div className="relative" style={{ clipPath: "inset(-40px 0 -60px 0)", perspective: "1400px", perspectiveOrigin: "30% 40%" }}>
         <div className="relative z-10" style={{ perspective: "1100px", perspectiveOrigin: "100% 50%" }}>
         <figure
+          ref={frameRef}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -323,7 +349,7 @@ export default function HeroVideo() {
             setEasing("transform 520ms cubic-bezier(.3,1.6,.5,1)");
             setPose(REST);
           }}
-          className={`relative select-none overflow-hidden rounded-[1.75rem] bg-card shadow-float ring-[3px] ring-primary ${deck ? "cursor-grab touch-pan-y active:cursor-grabbing" : ""}`}
+          className={`sudagri-frame relative select-none overflow-hidden rounded-[1.75rem] bg-card shadow-float ring-[3px] ring-primary ${deck ? "cursor-grab touch-pan-y active:cursor-grabbing" : ""}`}
           style={{
             transform: `translate(${pose.x * dir}%, ${pose.y}%) rotateY(${pose.ry * dir}deg) scale(${pose.s})`,
             transformOrigin: dir === 1 ? "0% 50%" : "100% 50%",
@@ -417,7 +443,25 @@ export default function HeroVideo() {
             >
               {muted ? t("🔊 بالصوت", "🔊 Sound on") : t("🔇 بلا صوت", "🔇 Mute")}
             </button>
+            <button
+              type="button"
+              onClick={toggleFull}
+              aria-label={full ? t("خروج من ملء الشاشة", "Exit full screen") : t("ملء الشاشة", "Full screen")}
+              title={full ? t("خروج من ملء الشاشة", "Exit full screen") : t("ملء الشاشة", "Full screen")}
+              className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white shadow-card backdrop-blur-sm transition hover:bg-black/60"
+            >
+              {full ? (
+                <svg aria-hidden viewBox="0 0 16 16" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" strokeLinecap="round">
+                  <path d="M6 1v5H1M10 1v5h5M6 15v-5H1M10 15v-5h5" />
+                </svg>
+              ) : (
+                <svg aria-hidden viewBox="0 0 16 16" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" strokeLinecap="round">
+                  <path d="M1 6V1h5M15 6V1h-5M1 10v5h5M15 10v5h-5" />
+                </svg>
+              )}
+            </button>
           </div>
+
 
           {/* Less motion asked for: the logo until a film is chosen. */}
           <div
