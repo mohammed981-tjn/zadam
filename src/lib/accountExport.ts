@@ -34,6 +34,8 @@ export interface AccountFile {
   investments: unknown[];
   /** وضع الوكيل (البند ١٦٩): من أذن له صاحب الحساب أن يعمل عنه، وما كتبه باسمه. */
   agents: { mandates: unknown[]; actions: unknown[] };
+  /** مزارعٌ سجّلته جمعيّته بلا جوّال (البند ١٦٩): سجلّ تسجيله، أو null لمن فتح حسابه بنفسه. */
+  managed_registration: Record<string, unknown> | null;
 }
 
 /** Everything the reader may read that is theirs, as the reader: what the row policies keep from them stays out. */
@@ -55,7 +57,8 @@ export async function buildAccountFile(
   );
   const seasonIds = seasons.map((s) => s.id);
 
-  const [profile, lands, seasonEntries, entries, lines, accounts, links, agreements, signatures, investments, mandates, agentActions] = await Promise.all([
+  const [managed, profile, lands, seasonEntries, entries, lines, accounts, links, agreements, signatures, investments, mandates, agentActions] = await Promise.all([
+    supabase.rpc("managed_farmer_mine"),
     supabase.from("profiles").select("full_name, phone, country, created_at").eq("id", me).maybeSingle(),
     readAll("lands", (a, z) => supabase.from("lands").select("*").eq("owner_id", me).order("id").range(a, z)),
     seasonIds.length
@@ -78,6 +81,7 @@ export async function buildAccountFile(
     readAll("agent_actions", (a, z) => supabase.from("agent_actions").select("*").eq("farmer_id", me).order("id").range(a, z)),
   ]);
   if (profile.error) throw new Error(`profiles: ${profile.error.message}`);
+  if (managed.error) throw new Error(`managed_farmer_mine: ${managed.error.message}`);
 
   return {
     exported_at: new Date().toISOString(),
@@ -89,5 +93,6 @@ export async function buildAccountFile(
     partnership: { agreements, signatures },
     investments,
     agents: { mandates, actions: agentActions },
+    managed_registration: (managed.data as Record<string, unknown> | null) ?? null,
   };
 }

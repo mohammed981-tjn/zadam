@@ -23,6 +23,7 @@ PARTNERS="$(pg_stage "$ROOT/supabase/migrations/20261017120000_partner_companies
 NOTIFY="$(pg_stage "$ROOT/scripts/notify-functions.fixture.sql" notify.sql)"
 AGENTS="$(pg_stage "$ROOT/supabase/migrations/20261026020000_agent_mandates.sql" agents.sql)"
 MANAGED="$(pg_stage "$ROOT/supabase/migrations/20261026060000_managed_farmers.sql" managed.sql)"
+OWN="$(pg_stage "$ROOT/supabase/migrations/20261028010000_managed_farmer_own_record.sql" own.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-managed-farmers.sql" checks.sql)"
 
 # Supabase's defaults, on the base tables too; the phone on auth.users that phone sign-in fills; and the closed accounts of backlog 195, in the
@@ -46,6 +47,7 @@ echo "── الشركاء";       pg_run_quiet "$PARTNERS"
 echo "── الإشعارات";     pg_run_quiet "$NOTIFY"
 echo "── الوكيل";        pg_run "$AGENTS" >/dev/null
 echo "── المزارع المُدار"; pg_run "$MANAGED" >/dev/null
+echo "── سجلّه في ملفّ بياناته"; pg_run "$OWN" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"

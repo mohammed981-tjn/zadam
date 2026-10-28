@@ -54,7 +54,12 @@ function fakeDb(tables: Record<string, Row[]>, broken: string[] = []) {
     };
     return b;
   };
-  return { from: (t: string) => query(t) } as unknown as SupabaseClient;
+  // An RPC answers with the row a table of its name holds for the caller, or null.
+  const rpc = (name: string) =>
+    Promise.resolve(
+      broken.includes(name) ? { data: null, error: { message: "boom" } } : { data: tables[name]?.[0] ?? null, error: null },
+    );
+  return { from: (t: string) => query(t), rpc } as unknown as SupabaseClient;
 }
 
 const ME = "user-me";
@@ -93,6 +98,13 @@ async function main() {
   ok(f.account.full_name === "أنا" && f.account.email === "me@x", "وبيانات الحساب");
   ok(f.agents.mandates.length === 1 && f.agents.actions.length === 1001, "وأذونات الوكلاء وسجلّ ما كتبوه باسمه، كلّه وله وحده");
 
+  ok(f.managed_registration === null, "ومن فتح حسابه بنفسه: لا سجلّ تسجيلٍ من جمعيّة");
+  const managed = await buildAccountFile(
+    fakeDb({ ...tables, managed_farmer_mine: [{ full_name: "حاج أحمد", national_id: "1990-12345", registered_by: "جمعيّة" }] }),
+    { id: ME },
+  );
+  ok(managed.managed_registration?.national_id === "1990-12345", "والمزارع الذي سجّلته جمعيّته يجد سجلّ تسجيله (البند ١٦٩)");
+
   console.log("\nب) جدولٌ تعذّرت قراءته يوقف الملفّ");
   let threw = false;
   try {
@@ -101,6 +113,13 @@ async function main() {
     threw = e instanceof Error && e.message.includes("journal_lines");
   }
   ok(threw, "لا ملفّ ناقصٌ بصمت: يتوقّف ويقول أيّ جدول");
+  let rpcThrew = false;
+  try {
+    await buildAccountFile(fakeDb(tables, ["managed_farmer_mine"]), { id: ME });
+  } catch (e) {
+    rpcThrew = e instanceof Error && e.message.includes("managed_farmer_mine");
+  }
+  ok(rpcThrew, "ولا يُسقط سجلَّ التسجيل بصمت إن تعذّرت قراءته");
 
   console.log("\nج) readAll وحده");
   const rows = await readAll<Row>("t", (a, z) => fakeDb({ t: many(3000, (i) => ({ id: id("t", i) })) }).from("t").select("*").order("id").range(a, z));

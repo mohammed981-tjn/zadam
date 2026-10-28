@@ -172,6 +172,34 @@ do $$ begin
 end $$;
 
 \echo ''
+\echo 'ج٢) «نزّل بياناتي»: سجلّ تسجيله له وحده، بلا معرّفات غيره'
+
+set role authenticated;
+do $$
+declare r jsonb;
+begin
+  perform _act_as('e1000000-0000-0000-0000-0000000000e1');
+  r := managed_farmer_mine();
+  perform _eq(r ->> 'national_id', '1990-12345', 'يجد المزارع رقمه الوطنيّ في ملفّه');
+  perform _eq(r ->> 'registered_by', 'جمعيّة مزارعي القرية', 'واسم الجمعيّة التي سجّلته');
+  perform _eq(r ->> 'status', 'claimed', 'وأنّه تسلّم حسابه');
+  perform _eq((r ? 'created_by') or (r ? 'reviewed_by') or (r ? 'company_id') or (r::text ~ 'a1000000|f9000000'), false,
+              'ولا معرّفَ لحساب من سجّله أو راجعه');
+  perform _eq((r::text ~ '/managed/'), false, 'ولا مسارَ لصورتيه في مجلّد الجمعيّة');
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _eq(managed_farmer_mine(), null::jsonb, 'والجمعيّة لا تقرأ به سجلَّ مزارعها');
+  perform _act_as('f9000000-0000-0000-0000-0000000000f9');
+  perform _eq(managed_farmer_mine(), null::jsonb, 'ولا المدير (له قائمته)');
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  perform _act_as(null);
+  perform _refuses($q$select managed_farmer_mine()$q$, 'والزائر لا يستدعيها');
+end $$;
+reset role;
+
+\echo ''
 \echo 'د) حدّ اليوم، والزائر'
 
 insert into auth.users (id, email, raw_user_meta_data) select ('e9000000-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid,
