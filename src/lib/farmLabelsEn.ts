@@ -5,7 +5,7 @@ import {
   IRRIGATION_LABEL,
   type IrrigationMethod,
 } from "./agronomy";
-import { WATER_SOURCE_LABEL, type WaterSource } from "./risk";
+import { WATER_SOURCE_LABEL, WATER_SOURCE_LABEL_EN, type WaterSource } from "./risk";
 import {
   LEDGER_LABEL,
   STAGE_TEMPLATES,
@@ -69,12 +69,7 @@ const STATION_EN: Record<string, string> = {
   sennar: "Sennar",
 };
 
-const WATER_SOURCE_EN: Record<WaterSource, string> = {
-  canal: "Canal from a reservoir or river",
-  river_pump: "Pumped directly from the river",
-  borehole: "Boreholes (groundwater)",
-  rainfed: "Fully rainfed",
-};
+const WATER_SOURCE_EN = WATER_SOURCE_LABEL_EN;
 
 const IRRIGATION_EN: Record<IrrigationMethod, string> = {
   flood: "Flood irrigation",

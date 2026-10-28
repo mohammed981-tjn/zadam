@@ -14,6 +14,8 @@
  * flattering guess or a punishing zero — both of which would be lies.
  */
 
+import type { Locale } from "./i18n";
+
 export interface SeasonRecord {
   status: "active" | "completed" | "abandoned";
   feddans: number;
@@ -74,11 +76,11 @@ export interface TrustScore {
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
-const BAND_LABEL: Record<TrustScore["band"], string> = {
-  new: "لا سجل بعد",
-  building: "سجل قيد البناء",
-  established: "سجل ثابت",
-  trusted: "سجل موثوق",
+const BAND_LABEL: Record<TrustScore["band"], [string, string]> = {
+  new: ["لا سجل بعد", "No record yet"],
+  building: ["سجل قيد البناء", "Record still building"],
+  established: ["سجل ثابت", "Established record"],
+  trusted: ["سجل موثوق", "Trusted record"],
 };
 
 /**
@@ -88,7 +90,10 @@ const BAND_LABEL: Record<TrustScore["band"], string> = {
  */
 const FULL_CONFIDENCE_SEASONS = 3;
 
-export function computeTrust(seasons: SeasonRecord[]): TrustScore {
+/** In English for an English reader (backlog 94); the Arabic is the record's own language and the default. */
+export function computeTrust(seasons: SeasonRecord[], locale: Locale = "ar"): TrustScore {
+  const t = (ar: string, en: string) => (locale === "en" ? en : ar);
+  const bandLabel = (b: TrustScore["band"]) => t(...BAND_LABEL[b]);
   const completed = seasons.filter((s) => s.status === "completed");
   const abandoned = seasons.filter((s) => s.status === "abandoned");
   const totalFeddans = seasons.reduce((sum, s) => sum + s.feddans, 0);
@@ -97,14 +102,17 @@ export function computeTrust(seasons: SeasonRecord[]): TrustScore {
     return {
       score: null,
       band: "new",
-      bandLabel: BAND_LABEL.new,
+      bandLabel: bandLabel("new"),
       factors: [],
       completedSeasons: 0,
       totalFeddansManaged: totalFeddans,
       summary:
         seasons.length === 0
-          ? "لم يسجّل هذا المنفّذ أي موسم على المنصة بعد."
-          : `لديه ${seasons.length} موسماً جارياً ولم يُكمل أياً منها بعد، فلا سجل يُقاس عليه.`,
+          ? t("لم يسجّل هذا المنفّذ أي موسم على المنصة بعد.", "This operator has not recorded any season on the platform yet.")
+          : t(
+              `لديه ${seasons.length} موسماً جارياً ولم يُكمل أياً منها بعد، فلا سجل يُقاس عليه.`,
+              `${seasons.length} season(s) under way and none completed yet, so there is no record to measure.`,
+            ),
     };
   }
 
@@ -115,10 +123,13 @@ export function computeTrust(seasons: SeasonRecord[]): TrustScore {
   const experience = clamp01(completed.length / 5);
   factors.push({
     key: "experience",
-    label: "الخبرة على المنصة",
+    label: t("الخبرة على المنصة", "Experience on the platform"),
     weight: 20,
     score: experience,
-    detail: `${completed.length} موسماً مكتملاً على ${Math.round(totalFeddans)} فدان إجمالاً.`,
+    detail: t(
+      `${completed.length} موسماً مكتملاً على ${Math.round(totalFeddans)} فدان إجمالاً.`,
+      `${completed.length} completed season(s) over ${Math.round(totalFeddans)} feddans in all.`,
+    ),
   });
 
   // 2. Evidence discipline — did they document, or just tick boxes?
@@ -131,13 +142,16 @@ export function computeTrust(seasons: SeasonRecord[]): TrustScore {
   const evidenceRate = stagesTotal > 0 ? withEvidence / stagesTotal : 0;
   factors.push({
     key: "evidence",
-    label: "الانضباط في التوثيق",
+    label: t("الانضباط في التوثيق", "Evidence discipline"),
     weight: 25,
     score: stagesTotal > 0 ? clamp01(evidenceRate) : null,
     detail:
       stagesTotal > 0
-        ? `${withEvidence} من ${stagesTotal} مرحلة موثّقة بملفّ مرفوع (${Math.round(evidenceRate * 100)}%).`
-        : "لا مراحلَ مسجّلةً في المواسم المكتملة.",
+        ? t(
+            `${withEvidence} من ${stagesTotal} مرحلة موثّقة بملفّ مرفوع (${Math.round(evidenceRate * 100)}%).`,
+            `${withEvidence} of ${stagesTotal} stages documented with an uploaded file (${Math.round(evidenceRate * 100)}%).`,
+          )
+        : t("لا مراحلَ مسجّلةً في المواسم المكتملة.", "No stages recorded in the completed seasons."),
   });
 
   // 3. Did the work land when it was planned to?
@@ -152,16 +166,22 @@ export function computeTrust(seasons: SeasonRecord[]): TrustScore {
   const punctuality = dated > 0 ? onTime / dated : 0;
   factors.push({
     key: "punctuality",
-    label: "الالتزام بالمواعيد",
+    label: t("الالتزام بالمواعيد", "Keeping to schedule"),
     weight: 20,
     score: dated > 0 ? clamp01(punctuality) : null,
     detail:
       dated > 0
-        ? `${onTime} من ${dated} مرحلة أُنجزت في موعدها المخطط (${Math.round(punctuality * 100)}%)` +
+        ? t(
+            `${onTime} من ${dated} مرحلة أُنجزت في موعدها المخطط (${Math.round(punctuality * 100)}%)`,
+            `${onTime} of ${dated} stages finished by their planned date (${Math.round(punctuality * 100)}%)`,
+          ) +
           (undated > 0
-            ? `، و${undated} مرحلة بلا تاريخٍ مسجّل فلم تدخل الحساب.`
+            ? t(`، و${undated} مرحلة بلا تاريخٍ مسجّل فلم تدخل الحساب.`, `; ${undated} stage(s) with no recorded date were left out.`)
             : ".")
-        : "لا مرحلةَ تحمل تاريخاً مخطّطاً ومنجَزاً معاً، فلا التزامَ يُقاس.",
+        : t(
+            "لا مرحلةَ تحمل تاريخاً مخطّطاً ومنجَزاً معاً، فلا التزامَ يُقاس.",
+            "No stage carries both a planned and a finished date, so punctuality cannot be measured.",
+          ),
   });
 
   // 4. Budget control. Coming in under budget is fine; the penalty is for
@@ -176,13 +196,16 @@ export function computeTrust(seasons: SeasonRecord[]): TrustScore {
   const budgetScore = overrun <= 1 ? 1 : clamp01(1 - (overrun - 1) / 0.5);
   factors.push({
     key: "budget",
-    label: "ضبط الميزانية",
+    label: t("ضبط الميزانية", "Budget control"),
     weight: 15,
     score: plannedTotal > 0 ? budgetScore : null,
     detail:
       plannedTotal > 0
-        ? `أنفق ${Math.round(overrun * 100)}% من الميزانية المخططة عبر مواسمه.`
-        : "لا توجد ميزانية مخططة مسجّلة للمقارنة.",
+        ? t(
+            `أنفق ${Math.round(overrun * 100)}% من الميزانية المخططة عبر مواسمه.`,
+            `Spent ${Math.round(overrun * 100)}% of the planned budget across their seasons.`,
+          )
+        : t("لا توجد ميزانية مخططة مسجّلة للمقارنة.", "No planned budget was recorded to compare against."),
   });
 
   // 5. Did the seasons actually make money? Abandoned seasons count against.
@@ -198,15 +221,17 @@ export function computeTrust(seasons: SeasonRecord[]): TrustScore {
   const unpriced = completed.length - priced.length;
   factors.push({
     key: "outcome",
-    label: "نتيجة المواسم",
+    label: t("نتيجة المواسم", "Season results"),
     weight: 20,
     score: outcomeBase > 0 ? clamp01(outcome) : null,
     detail:
       outcomeBase > 0
-        ? `${profitable} من ${priced.length} موسماً أُغلق برِبح` +
-          (abandoned.length > 0 ? `، و${abandoned.length} موسماً توقّف` : "") +
-          (unpriced > 0 ? `، و${unpriced} بلا سجلٍّ ماليّ فلم يدخل الحساب.` : ".")
-        : "لا موسمَ يحمل سجلاً ماليّاً، فلا نتيجةَ تُقاس.",
+        ? t(`${profitable} من ${priced.length} موسماً أُغلق برِبح`, `${profitable} of ${priced.length} season(s) closed at a profit`) +
+          (abandoned.length > 0 ? t(`، و${abandoned.length} موسماً توقّف`, `; ${abandoned.length} abandoned`) : "") +
+          (unpriced > 0
+            ? t(`، و${unpriced} بلا سجلٍّ ماليّ فلم يدخل الحساب.`, `; ${unpriced} with no financial record were left out.`)
+            : ".")
+        : t("لا موسمَ يحمل سجلاً ماليّاً، فلا نتيجةَ تُقاس.", "No season carries a financial record, so results cannot be measured."),
   });
 
   /*
@@ -279,7 +304,7 @@ export function computeTrust(seasons: SeasonRecord[]): TrustScore {
   return {
     score,
     band,
-    bandLabel: BAND_LABEL[band],
+    bandLabel: bandLabel(band),
     factors,
     completedSeasons: completed.length,
     totalFeddansManaged: totalFeddans,
@@ -296,11 +321,18 @@ export function computeTrust(seasons: SeasonRecord[]): TrustScore {
       // blaming a short history for a gap in the record would send the farmer
       // to wait for another season when what is missing is a budget line.
       (depth < 1
-        ? `الدرجة مبنية على ${completed.length} موسماً فقط، فهي مسحوبة نحو المنتصف حتى يكتمل السجل.`
-        : `الدرجة مبنية على ${completed.length} مواسم مكتملة.`) +
+        ? t(
+            `الدرجة مبنية على ${completed.length} موسماً فقط، فهي مسحوبة نحو المنتصف حتى يكتمل السجل.`,
+            `The score rests on only ${completed.length} season(s), so it is pulled toward the middle until the record fills in.`,
+          )
+        : t(`الدرجة مبنية على ${completed.length} مواسم مكتملة.`, `The score rests on ${completed.length} completed seasons.`)) +
       (unmeasured.length > 0
-        ? ` ولم يدخلها ${unmeasured.join(" ولا ")} — لا سجلَّ يقيسها،` +
-          ` فوزنُها وُزّع على ما سواها والدرجةُ مشدودةٌ نحو المنتصف بقدر ما نقص.`
+        ? t(
+            ` ولم يدخلها ${unmeasured.join(" ولا ")} — لا سجلَّ يقيسها،` +
+              ` فوزنُها وُزّع على ما سواها والدرجةُ مشدودةٌ نحو المنتصف بقدر ما نقص.`,
+            ` ${unmeasured.join(" and ")} did not enter it — nothing on record measures them —` +
+              ` so their weight went to the rest, and the score is pulled toward the middle by as much as is missing.`,
+          )
         : ""),
   };
 }

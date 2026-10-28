@@ -120,7 +120,7 @@ export async function submitOpportunity(
     };
   }
 
-  const assessment = assessProject(facts);
+  const assessment = assessProject(facts, locale);
 
   if (assessment.blockers.length > 0) {
     return {

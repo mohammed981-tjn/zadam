@@ -166,7 +166,7 @@ export default async function FarmerPage({
 
   const lands = (landRows ?? []) as VerifiedLand[];
 
-  const trust = computeTrust(records);
+  const trust = computeTrust(records, locale);
 
   const bandTone =
     trust.band === "trusted"
@@ -212,10 +212,10 @@ export default async function FarmerPage({
                 <span className="text-lg text-muted">/100</span>
               </p>
             )}
-            <p className={`text-sm font-medium ${bandTone}`} {...arText}>
+            <p className={`text-sm font-medium ${bandTone}`}>
               {trust.bandLabel}
             </p>
-            <p className="mt-2 text-sm text-muted" {...arText}>{trust.summary}</p>
+            <p className="mt-2 text-sm text-muted">{trust.summary}</p>
           </>
         )}
 
@@ -224,7 +224,7 @@ export default async function FarmerPage({
             {trust.factors.map((f) => (
               <div key={f.key}>
                 <div className="flex items-baseline justify-between text-sm">
-                  <span className="font-medium" {...arText}>{f.label}</span>
+                  <span className="font-medium">{f.label}</span>
                   {/* «—» لا صفر: الصفرُ حكمٌ، والشرطةُ اعترافٌ بأنّ لا سجلَّ
                       يُحكم به. وشريطٌ فارغٌ يُقرأ صفراً، فلا شريطَ أصلاً. */}
                   <span className="text-xs text-muted">
@@ -241,7 +241,7 @@ export default async function FarmerPage({
                     />
                   </div>
                 )}
-                <p className="mt-1 text-xs text-muted" {...arText}>{f.detail}</p>
+                <p className="mt-1 text-xs text-muted">{f.detail}</p>
               </div>
             ))}
           </div>

@@ -177,6 +177,21 @@ ok(
   "unknown crop returns null rather than a made-up number",
 );
 
+console.log("\n  an English reader (backlog 94):");
+const ARABIC = /[\u0600-\u06FF]/;
+for (const [facts, name] of [
+  [base, "a sound project"],
+  [{ ...base, declaredWaterPerFeddan: 1200, documentsOnFile: 1, operatorSeasons: 0 }, "a blocked one"],
+  [{ ...base, cropKey: "no-such-crop" }, "an unknown crop"],
+] as [ProjectFacts, string][]) {
+  const en = assessProject(facts, "en");
+  const text = [...en.factors.flatMap((f) => [f.label, f.detail]), ...en.blockers].join(" ");
+  ok(!ARABIC.test(text), `${name}: labels, details and blockers carry no Arabic letter`);
+  const ar = assessProject(facts);
+  ok(en.score === ar.score && en.blockers.length === ar.blockers.length, `${name}: the same score and blockers in both languages`);
+}
+ok(ARABIC.test(assessProject(base).factors[0].label), "and Arabic stays the default");
+
 console.log(
   "\n" + (fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`),
 );
