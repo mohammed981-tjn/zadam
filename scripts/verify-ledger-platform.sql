@@ -393,6 +393,61 @@ begin
 end $$;
 reset role;
 
+\echo ''
+\echo 'هـ) العقود القائمة في الحسابات النظاميّة (٩١١٠/٩١٢٠): العقد الموقَّع بمبلغٍ معلَن، مرّةً واحدة'
+
+insert into partnership_agreements (id, ref, owner_id, investor_id, model, status, terms, signed_at) values
+  ('a9100000-0000-0000-0000-000000000001', 'AG-1', 'f1000000-0000-0000-0000-0000000000f1', 'b1000000-0000-0000-0000-0000000000b1',
+   'lease', 'signed', '{"rent_amount": 1200, "currency": "USD"}', now() - interval '3 days'),
+  ('a9100000-0000-0000-0000-000000000002', 'AG-2', 'f1000000-0000-0000-0000-0000000000f1', 'b1000000-0000-0000-0000-0000000000b1',
+   'finance', 'signed', '{"finance_amount": 250000, "currency": "SDG"}', now() - interval '1 day'),
+  ('a9100000-0000-0000-0000-000000000003', 'AG-3', 'f1000000-0000-0000-0000-0000000000f1', 'b1000000-0000-0000-0000-0000000000b1',
+   'sharecrop', 'signed', '{"owner_share": 60, "investor_share": 40}', now() - interval '2 days'),
+  ('a9100000-0000-0000-0000-000000000004', 'AG-4', 'f1000000-0000-0000-0000-0000000000f1', 'b1000000-0000-0000-0000-0000000000b1',
+   'lease', 'draft', '{"rent_amount": 999, "currency": "USD"}', null),
+  -- بالجنيه قبل أيّ سعرٍ منشور: يبقى للغد ولا يُقيَّد بلا سعر.
+  ('a9100000-0000-0000-0000-000000000005', 'AG-5', 'f1000000-0000-0000-0000-0000000000f1', 'b1000000-0000-0000-0000-0000000000b1',
+   'lease', 'signed', '{"rent_amount": 5000, "currency": "SDG"}', now() - interval '400 days');
+
+do $$
+declare r record;
+begin
+  -- As the daily bookkeeping runs it: the service role, no user.
+  perform _act_as(null);
+  select * into r from agreement_memo_sync();
+  perform _eq(r.posted, 2, 'يُقيَّد العقدان الموقَّعان بمبلغ: الإيجار بالدولار والتمويل بالجنيه بسعر يومه');
+  perform _eq(r.without_amount, 1, 'والمزارعة بلا مبلغٍ تُعدّ ولا تُقيَّد قيمةً');
+  perform _eq(r.skipped, 1, 'وعقدٌ بالجنيه بلا سعرٍ منشور ليومه يبقى للغد');
+  perform _eq(_net(null, 'platform', 'memo_agreements'), 120000 + round(250000 * 100 / 2500.0)::bigint,
+              'رصيد ٩١١٠ = ١٬٢٠٠$ + ٢٥٠٬٠٠٠ ج بسعر ٢٬٥٠٠ = ١٬٣٠٠$');
+  perform _eq(-_net(null, 'platform', 'memo_contra'), _net(null, 'platform', 'memo_agreements'), 'ومقابله ٩١٢٠ دائنٌ بالقيمة نفسها');
+  perform _eq((select count(*)::int from journal_entries where source_type = 'agreement_memo'
+                  and source_id = 'a9100000-0000-0000-0000-000000000004'), 0, 'والمسوّدة لا تُقيَّد');
+  perform _eq((select count(*)::int from journal_entries e join ledger_books b on b.id = e.book_id
+                where e.source_type = 'agreement_memo' and b.kind <> 'platform'), 0, 'ولا يُكتب حرفٌ في دفتر أحد');
+
+  select * into r from agreement_memo_sync();
+  perform _eq(r.posted, 0, 'وتشغيله ثانيةً لا يكرّر شيئاً');
+  perform _eq((select count(*)::int from journal_entries where source_type = 'agreement_memo'), 2, 'قيدان لا أكثر');
+end $$;
+
+set role authenticated;
+do $$ begin
+  perform _act_as('f1000000-0000-0000-0000-0000000000f1');
+  perform _refuses('select agreement_memo_sync()', 'للإدارة وحدها', 'والمستخدم لا يشغّله');
+  perform _act_as('ad000000-0000-0000-0000-0000000000ad');
+  perform _refuses(format('select ledger_reverse(%L, %L)',
+                          (select id from journal_entries where source_type = 'agreement_memo' limit 1), 'تجربة عكس'),
+                   'قيدٌ نظاميّ', 'ولا يعكس المدير قيد العقد يدويّاً');
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  perform _act_as(null);
+  perform _refuses('select agreement_memo_sync()', 'permission denied', 'والزائر لا يستدعيه');
+end $$;
+reset role;
+
 do $$
 declare n integer;
 begin

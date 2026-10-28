@@ -27,6 +27,7 @@ FIVE="$(pg_stage "$ROOT/supabase/migrations/20261025110000_oversight_min_books_5
 FIXES="$(pg_stage "$ROOT/supabase/migrations/20261025160000_ledger_review_fixes.sql" fixes.sql)"
 FEES="$(pg_stage "$ROOT/supabase/migrations/20261025210000_platform_fees.sql" fees.sql)"
 STATEMENTS="$(pg_stage "$ROOT/supabase/migrations/20261025210100_ledger_statements.sql" statements.sql)"
+MEMO="$(pg_stage "$ROOT/supabase/migrations/20261028020000_agreement_memo_accounts.sql" memo.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-ledger-platform.sql" checks.sql)"
 
 # Supabase's own defaults, so that a revoke in a migration is what the checks meet.
@@ -70,7 +71,8 @@ create trigger ledger_entries_history_gate
   for each row execute function public.ledger_entries_history_gate();
 create table partnership_agreements (
   id uuid primary key default gen_random_uuid(),
-  ref text, owner_id uuid not null, investor_id uuid not null, model text not null, status text not null default 'draft'
+  ref text, owner_id uuid not null, investor_id uuid not null, model text not null, status text not null default 'draft',
+  terms jsonb not null default '{}'::jsonb, signed_at timestamptz
 );
 alter table seasons add column if not exists partnership_id uuid;
 create or replace function public.notify_user(p_recipient uuid, p_kind text, p_title text, p_body text, p_link text)
@@ -97,6 +99,7 @@ echo "── خمسة دفاتر";      pg_run_quiet "$FIVE"
 echo "── إصلاحات المراجعة"; pg_run_quiet "$FIXES"
 echo "── رسوم المنصّة";     pg_run "$FEES" >/dev/null
 echo "── كشوف المزوّدين";   pg_run "$STATEMENTS" >/dev/null
+echo "── العقود القائمة";   pg_run "$MEMO" >/dev/null
 
 echo "── الفحوص"
 pg_run "$CHECKS"

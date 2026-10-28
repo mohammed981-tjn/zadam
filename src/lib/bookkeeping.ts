@@ -8,6 +8,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *   2. `farm_book_reconcile` — يطابق الدفترين؛ كلُّ صفٍّ فيه فرقٌ يُسجَّل في السجلّ (error) ليراه من يراقب.
  *   3. `oversight_snapshot` — يسجّل مجاميع الشبكة غير المحجوبة (الشهر الماضي والحاليّ) في الحسابات الإحصائيّة
  *      في دفتر المنصّة. لا يسجّل إلا الفرق عمّا سُجّل، فتكراره في اليوم بلا أثر.
+ *   4. `agreement_memo_sync` — يقيّد في الحسابات النظاميّة للمنصّة (٩١١٠/٩١٢٠) كلَّ عقد شراكةٍ وُقِّع بمبلغٍ معلَن ولم
+ *      يُقيَّد بعد (البند ١٨٩). عقدٌ بالجنيه بلا سعر صرفٍ منشور ليومه يبقى للغد.
  *
  * Each step is its own try: one that fails is logged and the next still runs. Nothing here throws, and the
  * health check that calls it goes on whatever happens.
@@ -20,12 +22,14 @@ export interface BookkeepingRun {
   mismatched: number | null;
   /** Entries posted into the platform's statistical accounts. */
   snapshot: number | null;
+  /** Signed agreements posted into the memorandum accounts; left for another day (no rate); with no amount to post. */
+  agreements: { posted: number; skipped: number; withoutAmount: number } | null;
 }
 
 const count = (data: unknown): number | null => (typeof data === "number" && Number.isFinite(data) ? data : null);
 
 export async function runBookkeeping(admin: SupabaseClient): Promise<BookkeepingRun> {
-  const run: BookkeepingRun = { synced: null, mismatched: null, snapshot: null };
+  const run: BookkeepingRun = { synced: null, mismatched: null, snapshot: null, agreements: null };
 
   try {
     const { data, error } = await admin.rpc("farm_book_sync");
@@ -52,6 +56,18 @@ export async function runBookkeeping(admin: SupabaseClient): Promise<Bookkeeping
     else run.snapshot = count(data);
   } catch (e) {
     console.error("bookkeeping: snapshot failed", e);
+  }
+
+  try {
+    const { data, error } = await admin.rpc("agreement_memo_sync");
+    const row = Array.isArray(data) ? (data[0] as Record<string, unknown> | undefined) : undefined;
+    const posted = count(row?.posted);
+    const skipped = count(row?.skipped);
+    const withoutAmount = count(row?.without_amount);
+    if (error) console.error("bookkeeping: agreements", error);
+    else if (posted !== null && skipped !== null && withoutAmount !== null) run.agreements = { posted, skipped, withoutAmount };
+  } catch (e) {
+    console.error("bookkeeping: agreements failed", e);
   }
 
   return run;
