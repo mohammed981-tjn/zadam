@@ -26,6 +26,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
+import 'land_shape.dart';
 
 /// The country codes the website's phone field offers, in its order
 /// (src/lib/phone.ts, COUNTRIES). scripts/verify-app-account.ts holds the two
@@ -159,6 +160,28 @@ class MyLand {
         openToInvestors: j['open_to_investors'] as bool? ?? false,
         openToPartners: j['open_to_partners'] as bool? ?? false,
       );
+}
+
+/// What the site answers when a land is saved from the app.
+class LandSaved {
+  const LandSaved({required this.id, required this.feddans, required this.message, this.soilName, this.soilProbability});
+
+  final String id;
+  final num feddans;
+  final String message;
+  final String? soilName;
+  final num? soilProbability;
+
+  factory LandSaved.fromJson(Map<String, dynamic> j) {
+    final soil = j['soil'] as Map<String, dynamic>?;
+    return LandSaved(
+      id: j['id'] as String? ?? '',
+      feddans: j['feddans'] as num? ?? 0,
+      message: j['message'] as String? ?? '',
+      soilName: soil?['name'] as String?,
+      soilProbability: soil?['probability'] as num?,
+    );
+  }
 }
 
 class ReviewItem {
@@ -590,6 +613,33 @@ class AccountController extends ValueNotifier<Session?> {
     if (res.statusCode != 200) {
       throw ApiException(_json(res)['error'] as String? ?? 'تعذّر تعليمها مقروءة.');
     }
+  }
+
+  // ── «حدّد أرضك» (البند ١٣٤) ────────────────────────────────────────────────
+
+  /// Saves a land from its corners. The site works out the area and the centre from them, as the website saves a
+  /// land: submitted, unlisted, as this person. Then it reads the soil at the centre and sends it back.
+  Future<LandSaved> registerLand({
+    required String name,
+    required String state,
+    String? locality,
+    required String waterSource,
+    required String tenure,
+    required List<Corner> corners,
+  }) async {
+    final res = await _authed('POST', '/api/app/lands', body: {
+      'name': name,
+      'state': state,
+      if (locality != null && locality.isNotEmpty) 'locality': locality,
+      'water_source': waterSource,
+      'tenure': tenure,
+      'boundary': [for (final c in thin(corners)) c.toJson()],
+    });
+    final body = _json(res);
+    if (res.statusCode != 200) {
+      throw ApiException(body['error'] as String? ?? 'تعذّر تسجيل الأرض (${res.statusCode}).');
+    }
+    return LandSaved.fromJson(body);
   }
 
   // ── صندوق الرسائل (البند ١٤٤) ────────────────────────────────────────────

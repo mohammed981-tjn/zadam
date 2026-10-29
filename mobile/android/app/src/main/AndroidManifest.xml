@@ -10,6 +10,9 @@
       permission to open a socket at all.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- «حدّد أرضك» (البند ١٣٤): المشي حول الأرض بالـGPS، والتطبيق مفتوح فقط. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="سوداقري"
         android:name="${applicationName}"

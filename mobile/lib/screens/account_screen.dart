@@ -19,6 +19,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../account.dart';
 import '../api.dart';
 import '../theme.dart';
+import 'land_map_screen.dart';
 import 'messages_screen.dart';
 
 /// Opens a page of the website in the phone's browser.
@@ -441,7 +442,7 @@ class _SignedInState extends State<_SignedIn> {
               const SizedBox(height: 16),
               _NoticesCard(account: a, onChanged: _reload),
               const SizedBox(height: 16),
-              _LandsCard(account: a),
+              _LandsCard(account: a, onChanged: _reload),
             ],
           );
         },
@@ -656,8 +657,9 @@ class _MessagesCard extends StatelessWidget {
 }
 
 class _LandsCard extends StatelessWidget {
-  const _LandsCard({required this.account});
+  const _LandsCard({required this.account, required this.onChanged});
   final Account account;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -688,10 +690,15 @@ class _LandsCard extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            OutlinedButton.icon(
-              onPressed: () => openOnSite(context, '/lands'),
+            // «حدّد أرضك» (البند ١٣٤): بالمشي حولها أو بالنقر على الخريطة، في التطبيق نفسه.
+            FilledButton.icon(
+              onPressed: () async {
+                final saved = await Navigator.of(context)
+                    .push<bool>(MaterialPageRoute(builder: (_) => const LandMapScreen()));
+                if (saved == true) onChanged();
+              },
               icon: const Icon(Icons.add_location_alt, size: 18),
-              label: const Text('سجّل أرضاً'),
+              label: const Text('حدّد أرضك على الخريطة'),
             ),
             OutlinedButton.icon(
               onPressed: () => openOnSite(context, '/invest'),

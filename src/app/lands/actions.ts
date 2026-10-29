@@ -5,12 +5,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { adminState } from "@/lib/adminGuard";
-import { STATIONS } from "@/lib/agronomy";
-import { WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
+import { type WaterSource } from "@/lib/risk";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { locationMessage, locationProblem, parseCoordinates } from "@/lib/landLocation";
 import { testProblem } from "@/lib/landTests";
+import { landInputProblem } from "@/lib/landInput";
 import { recordSoilEstimate } from "@/lib/landSoil";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
 
@@ -27,8 +27,6 @@ export interface LandResult {
   ok: boolean;
   message: string;
 }
-
-const TENURES = ["owned", "leased", "communal", "unspecified"];
 
 /**
  * Registers a plot. It is stored unverified and unlisted whatever the form
@@ -56,26 +54,13 @@ export async function registerLand(
   const waterSource = str(formData, "water_source");
   const tenure = str(formData, "tenure");
 
-  if (!name || !state) {
-    return { ok: false, message: t("اسم الأرض والولاية مطلوبان.", "The land name and state are required.") };
-  }
-  if (!Number.isFinite(feddans) || feddans <= 0) {
-    return { ok: false, message: t("أدخل مساحة صحيحة بالفدان.", "Enter a valid area in feddans.") };
-  }
-  if (!STATIONS.some((s) => s.key === stationKey)) {
-    return { ok: false, message: t("منطقة مناخية غير معروفة.", "Unknown climate zone.") };
-  }
-  if (!(waterSource in WATER_SOURCE_LABEL)) {
-    return { ok: false, message: t("مصدر مياه غير معروف.", "Unknown water source.") };
-  }
-  if (!TENURES.includes(tenure)) {
-    return { ok: false, message: t("نوع حيازة غير معروف.", "Unknown tenure type.") };
-  }
-
   const lat = optNum(formData, "latitude");
   const lng = optNum(formData, "longitude");
-  const problem = locationProblem(lat, lng);
-  if (problem) return { ok: false, message: locationMessage(problem, t) };
+  const problem = landInputProblem(
+    { name, state, feddans, stationKey, waterSource, tenure, latitude: lat, longitude: lng },
+    t,
+  );
+  if (problem) return { ok: false, message: problem };
 
   // وضع الوكيل (البند ١٦٩): a company registers the land in its farmer's name. The policy admits the row only under an
   // active mandate that covers lands, and the database logs it and tells the farmer; here it only names the owner.
