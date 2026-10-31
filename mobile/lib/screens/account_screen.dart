@@ -452,7 +452,7 @@ class _SignedInState extends State<_SignedIn> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
             children: [
-              _WhoCard(account: a),
+              _WhoCard(account: a, onChanged: _reload),
               if (a.isAdmin) ...[
                 const SizedBox(height: 16),
                 _ReviewCard(account: a),
@@ -472,8 +472,9 @@ class _SignedInState extends State<_SignedIn> {
 }
 
 class _WhoCard extends StatelessWidget {
-  const _WhoCard({required this.account});
+  const _WhoCard({required this.account, required this.onChanged});
   final Account account;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -497,7 +498,29 @@ class _WhoCard extends StatelessWidget {
                   Text('أنت داخل بحساب', style: TextStyle(fontSize: 12, color: mutedOn(context))),
                   Text(account.name.isEmpty ? 'بلا اسم' : account.name,
                       style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-                  if (label.isNotEmpty)
+                  // «أرضي · استثماري» (البند ١٧٣): حسابٌ واحدٌ للجانبين، كما في قائمة الموقع.
+                  if (account.role == 'farmer' || account.role == 'investor') ...[
+                    const SizedBox(height: 8),
+                    SegmentedButton<String>(
+                      key: const Key('side-switch'),
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(value: 'farmer', label: Text('أرضي'), icon: Icon(Icons.grass, size: 18)),
+                        ButtonSegment(value: 'investor', label: Text('استثماري'), icon: Icon(Icons.trending_up, size: 18)),
+                      ],
+                      selected: {account.role!},
+                      onSelectionChanged: (s) async {
+                        try {
+                          await accountController.switchSide(s.first);
+                          onChanged();
+                        } on ApiException catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                          }
+                        }
+                      },
+                    ),
+                  ] else if (label.isNotEmpty)
                     Text(label, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
                 ],
               ),

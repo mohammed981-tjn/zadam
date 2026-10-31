@@ -675,6 +675,14 @@ class AccountController extends ValueNotifier<Session?> {
     }
   }
 
+  /// «أرضي · استثماري» (البند ١٧٣): which side of the one account the person is on now, as the website's switch.
+  Future<void> switchSide(String side) async {
+    final res = await _authed('POST', '/api/app/side', body: {'side': side});
+    if (res.statusCode != 200) {
+      throw ApiException(_json(res)['error'] as String? ?? 'تعذّر تغيير الجانب (${res.statusCode}).');
+    }
+  }
+
   // ── «حدّد أرضك» (البند ١٣٤) ────────────────────────────────────────────────
 
   /// Saves a land from its corners. The site works out the area and the centre from them, as the website saves a
