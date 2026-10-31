@@ -10,9 +10,10 @@ import { wrbShort } from "@/lib/soilClasses";
  *
  * The farmer walks round the field with the phone's GPS, or taps its corners on the satellite map, and the app sends
  * the corners. The area and the centre are worked out here from them (`boundaryOf`), the climate station is the
- * nearest one, and the land is saved as the website's form saves it: as the signed-in person, through row-level
- * security, submitted and unlisted, checked by the same `landInputProblem`. Then the soil at its centre is read from
- * the satellites, as the website does when a land is given its place, and returned for the app to show.
+ * nearest one, and the land is saved with its corners (`boundary`) as the website's form saves it: as the signed-in
+ * person, through row-level security, submitted and unlisted, checked by the same `landInputProblem`. Then the soil
+ * at its centre is read from the satellites, as the website does when a land is given its place, and returned for
+ * the app to show.
  */
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
@@ -64,6 +65,8 @@ export async function POST(req: Request) {
       village: text("village", 80) || null,
       latitude,
       longitude,
+      // The corners as drawn, to a decimetre (20261031010000): the review compares the area with what they enclose.
+      boundary: corners.map((c) => [Math.round(c.lat * 1e6) / 1e6, Math.round(c.lng * 1e6) / 1e6]),
       feddans,
       station_key: stationKey,
       water_source: waterSource,

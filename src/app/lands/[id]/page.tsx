@@ -10,6 +10,8 @@ import { card, ghost } from "@/lib/ui";
 import { FAO29_TABLE1, cropsAtSoilSalinity, phNormal, waterSalinity, type LandTest } from "@/lib/landTests";
 import type { Land, Season } from "@/types/database";
 import { deleteLandTest } from "../actions";
+import LandBoundaryMap from "@/components/map/LandBoundaryMap";
+import { boundaryOf } from "@/lib/landInput";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -56,6 +58,10 @@ export default async function FieldCardPage({ params }: { params: Promise<{ id: 
   const latestSoil = tests.find((x) => x.kind === "soil" && x.ec_dsm !== null);
   const soilCrops = latestSoil?.ec_dsm != null ? cropsAtSoilSalinity(Number(latestSoil.ec_dsm)) : null;
 
+  // The boundary drawn in the app (backlog 134), and the area it encloses beside the area on record.
+  const drawn = land.boundary && land.boundary.length >= 3 ? land.boundary : null;
+  const enclosed = drawn ? boundaryOf(drawn.map(([lat, lng]) => ({ lat, lng }))) : null;
+
   const statusText = { active: t("جارٍ", "Running"), completed: t("مُقفل", "Closed"), abandoned: t("متروك", "Abandoned") };
 
   return (
@@ -93,6 +99,19 @@ export default async function FieldCardPage({ params }: { params: Promise<{ id: 
             </div>
           ))}
         </dl>
+        {drawn && (
+          <div className="mt-4">
+            <LandBoundaryMap boundary={drawn} label={land.name} />
+            {enclosed && (
+              <p className="mt-2 text-xs text-muted">
+                {t(
+                  `الحدود كما رُسمت في التطبيق (${drawn.length} ركناً) تحيط بـ ${enclosed.feddans.toFixed(2)} فدان.`,
+                  `The boundary as drawn in the app (${drawn.length} corners) encloses ${enclosed.feddans.toFixed(2)} feddans.`,
+                )}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="mt-8">

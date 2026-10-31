@@ -94,6 +94,8 @@ export interface Land {
   village: string | null;
   latitude: number | null;
   longitude: number | null;
+  /** Corners as drawn in the app, [lat, lng] in order round the field (20261031010000); null when never drawn. */
+  boundary?: [number, number][] | null;
   feddans: number;
   station_key: string;
   water_source: string;

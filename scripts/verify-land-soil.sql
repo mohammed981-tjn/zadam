@@ -203,6 +203,63 @@ do $$ begin
   perform _eq(has_function_privilege('service_role', 'land_set_soil_estimate(uuid,uuid,text,integer)', 'execute'), true, 'ومفتاح الخادم يملكها');
 end $$;
 
+\echo ''
+\echo '=========================================================================='
+\echo 'ح) حدود الأرض (البند ١٣٤): أركانٌ صحيحة، وتغييرها في أرضٍ موثّقة يُعيدها إلى المراجعة'
+\echo '=========================================================================='
+reset role;
+do $$ begin perform _act_as(null); end $$;
+insert into lands (id, owner_id, name, state, locality, village, latitude, longitude, feddans, station_key,
+                   water_source, verification, documents_on_file, listed)
+values ('11000000-0000-0000-0000-0000000000b1', 'a1000000-0000-0000-0000-0000000000a1', 'الحوّاشة المرسومة', 'الجزيرة',
+        'ود مدني', 'القرية', 14.4005, 33.5205, 2.38, 'khartoum', 'canal', 'verified', 3, false);
+insert into land_documents (land_id, kind, storage_path) values
+  ('11000000-0000-0000-0000-0000000000b1', 'tenure', 'b/tenure.jpg'),
+  ('11000000-0000-0000-0000-0000000000b1', 'photo', 'b/photo.jpg'),
+  ('11000000-0000-0000-0000-0000000000b1', 'permit', 'b/permit.jpg');
+update lands set listed = true where id = '11000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$
+declare sq jsonb := '[[14.4, 33.52], [14.4, 33.521], [14.401, 33.521], [14.401, 33.52]]';
+begin
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _refuses($q$update lands set boundary = '[[14.4, 33.52], [14.4, 33.521]]' where id = '11000000-0000-0000-0000-0000000000b1'$q$,
+                   'ركنان لا يكفيان');
+  perform _refuses($q$update lands set boundary = '[[14.4, 33.52], [14.4, 33.521], [95, 33.5]]' where id = '11000000-0000-0000-0000-0000000000b1'$q$,
+                   'ولا ركنٌ خارج العالم');
+  perform _refuses($q$update lands set boundary = '[[14.4, 33.52], [14.4, 33.521], ["x", 33.5]]' where id = '11000000-0000-0000-0000-0000000000b1'$q$,
+                   'ولا ركنٌ ليس رقماً');
+  perform _refuses($q$update lands set boundary = '[[14.4, 33.52, 1], [14.4, 33.521], [14.401, 33.5]]' where id = '11000000-0000-0000-0000-0000000000b1'$q$,
+                   'ولا ركنٌ بثلاثة أرقام');
+  perform _refuses($q$update lands set boundary = '{"a": 1}' where id = '11000000-0000-0000-0000-0000000000b1'$q$,
+                   'ولا ما ليس قائمة');
+  perform _eq((select verification from lands where id = '11000000-0000-0000-0000-0000000000b1'), 'verified',
+              'والرفض لم يمسّ الأرض الموثّقة');
+
+  update lands set boundary = sq where id = '11000000-0000-0000-0000-0000000000b1';
+  perform _eq((select verification from lands where id = '11000000-0000-0000-0000-0000000000b1'), 'submitted',
+              'رسمُ حدودٍ لأرضٍ موثّقة يُعيدها إلى المراجعة');
+  perform _eq((select verification_note like '%الحدود%' from lands where id = '11000000-0000-0000-0000-0000000000b1'), true,
+              'وتقول الملاحظة إنّ الحدود تغيّرت');
+  perform _eq((select listed from lands where id = '11000000-0000-0000-0000-0000000000b1'), false, 'وتُرفع من العرض');
+end $$;
+reset role;
+-- The administrators verify it again; then they may correct the boundary themselves without reopening it.
+do $$ begin perform _act_as(null); end $$;
+update lands set verification = 'verified', listed = true where id = '11000000-0000-0000-0000-0000000000b1';
+set role authenticated;
+do $$ begin
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  update lands set boundary = '[[14.4, 33.52], [14.4, 33.5212], [14.401, 33.5212], [14.401, 33.52]]'
+   where id = '11000000-0000-0000-0000-0000000000b1';
+  perform _eq((select verification from lands where id = '11000000-0000-0000-0000-0000000000b1'), 'verified',
+              'وتصحيح الإدارة للحدود لا يُعيدها');
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _eq((select count(*)::int from lands where id = '11000000-0000-0000-0000-0000000000b1'), 0,
+              'ولا يقرأ الحدودَ غيرُ صاحبها والإدارة');
+end $$;
+reset role;
+
 do $$
 declare n integer;
 begin
