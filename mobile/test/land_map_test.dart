@@ -13,8 +13,10 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sudagri/account.dart';
 import 'package:sudagri/api.dart';
+import 'package:sudagri/agronomy.dart';
 import 'package:sudagri/land_shape.dart';
 import 'package:sudagri/screens/land_map_screen.dart';
+import 'package:sudagri/screens/water_screen.dart';
 
 // The fixtures of scripts/verify-land-input.ts: a 100 m square near Wad Madani, and an L of three of them.
 const lat0 = 14.4;
@@ -164,6 +166,18 @@ void main() {
     await tester.tap(find.text('تراجع'));
     await tester.pump();
     expect(find.textContaining('الأركان: 2'), findsOneWidget);
+  });
+
+  testWidgets('«احسب ماءها» opens the calculator on the land\'s station and area', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: WaterScreen(stationKey: 'gezira', feddans: 2.38)));
+    expect(find.textContaining(stations.firstWhere((s) => s.key == 'gezira').name), findsWidgets);
+    expect(find.textContaining('المساحة: 2.4 فدان'), findsOneWidget);
+  });
+
+  test('the saved land carries its station', () {
+    final l = LandSaved.fromJson({'id': 'x', 'feddans': 2.38, 'station': 'gezira', 'message': 'م'});
+    expect(l.station, 'gezira');
+    expect(stations.any((s) => s.key == l.station), isTrue);
   });
 
   test('the lists match the website\'s', () {

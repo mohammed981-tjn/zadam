@@ -164,10 +164,20 @@ class MyLand {
 
 /// What the site answers when a land is saved from the app.
 class LandSaved {
-  const LandSaved({required this.id, required this.feddans, required this.message, this.soilName, this.soilProbability});
+  const LandSaved({
+    required this.id,
+    required this.feddans,
+    required this.message,
+    this.station,
+    this.soilName,
+    this.soilProbability,
+  });
 
   final String id;
   final num feddans;
+
+  /// The climate station nearest the land's centre (the key in agronomy.dart's `stations`).
+  final String? station;
   final String message;
   final String? soilName;
   final num? soilProbability;
@@ -178,6 +188,7 @@ class LandSaved {
       id: j['id'] as String? ?? '',
       feddans: j['feddans'] as num? ?? 0,
       message: j['message'] as String? ?? '',
+      station: j['station'] as String?,
       soilName: soil?['name'] as String?,
       soilProbability: soil?['probability'] as num?,
     );

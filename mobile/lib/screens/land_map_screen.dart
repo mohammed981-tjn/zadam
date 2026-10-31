@@ -8,7 +8,9 @@ import 'package:latlong2/latlong.dart';
 import '../account.dart';
 import '../api.dart';
 import '../land_shape.dart';
+import '../agronomy.dart';
 import '../theme.dart';
+import 'water_screen.dart';
 
 /// «حدّد أرضك» (البند ١٣٤؛ اختار المالك المشي والنقر معاً، 28 أكتوبر 2026).
 ///
@@ -144,19 +146,39 @@ class _LandMapScreenState extends State<LandMapScreen> {
       await _walk?.cancel();
       _walk = null;
       if (!mounted) return;
-      await showDialog<void>(
+      final station = stations.where((s) => s.key == saved.station).firstOrNull;
+      final rain = station?.rainfall.fold<double>(0, (a, b) => a + b);
+      final water = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('سُجّلت الأرض'),
-          content: Text([
-            'المساحة: ${saved.feddans} فدان.',
-            if (saved.soilName != null)
-              'التربة في وسطها من الأقمار: ${saved.soilName} (احتمال ${saved.soilProbability}٪). هذا تقدير لا فحص.',
-            saved.message,
-          ].join('\n\n')),
-          actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('حسناً'))],
+          content: SingleChildScrollView(
+            child: Text([
+              'المساحة: ${saved.feddans} فدان.',
+              if (station != null)
+                'أقرب محطّة مناخ: ${station.name}، ومطرها المعتاد نحو ${rain!.round()} مم في السنة.',
+              if (saved.soilName != null)
+                'التربة في وسطها من الأقمار: ${saved.soilName} (احتمال ${saved.soilProbability}٪). هذا تقدير لا فحص.',
+              saved.message,
+            ].join('\n\n')),
+          ),
+          actions: [
+            if (station != null)
+              TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('احسب ماءها')),
+            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('حسناً')),
+          ],
         ),
       );
+      if (!mounted) return;
+      if (water == true) {
+        // The water calculator for this field: its station and its area, in place of this screen.
+        // `result: true` still tells «أراضيّ» that a land was saved, so it reloads behind.
+        await Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => WaterScreen(stationKey: saved.station, feddans: saved.feddans.toDouble())),
+          result: true,
+        );
+        return;
+      }
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       setState(() => _error = e.message);

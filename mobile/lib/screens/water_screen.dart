@@ -13,7 +13,11 @@ import '../soil_water.dart';
 import '../theme.dart';
 
 class WaterScreen extends StatefulWidget {
-  const WaterScreen({super.key});
+  /// Opened from a land just saved (backlog 134): its climate station and its area, so the answer is for that field.
+  const WaterScreen({super.key, this.stationKey, this.feddans});
+
+  final String? stationKey;
+  final double? feddans;
 
   @override
   State<WaterScreen> createState() => _WaterScreenState();
@@ -33,6 +37,14 @@ class _WaterScreenState extends State<WaterScreen> {
   /// mid-range and the comparison panel below shows the whole spread, which
   /// makes the cost of leaving it wrong visible instead of hiding it.
   String _soil = 'sandy loam';
+
+  @override
+  void initState() {
+    super.initState();
+    _station = stations.firstWhere((s) => s.key == widget.stationKey, orElse: () => stations.first);
+    // The slider runs from one feddan to five hundred.
+    if (widget.feddans != null) _feddans = widget.feddans!.clamp(1, 500).toDouble();
+  }
 
   WaterRequirement get _result =>
       waterRequirement(_crop, _station, _plantingMonth, _method);
