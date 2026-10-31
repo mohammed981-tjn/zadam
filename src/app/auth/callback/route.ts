@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
 import { homeFor } from "@/lib/authEntry";
+import { CHALLENGE, sealSession } from "@/lib/appHandoff";
 
 /**
  * حيث تهبط روابط البريد — وكانت غائبة.
@@ -162,6 +163,32 @@ export async function GET(request: NextRequest) {
       const made = new Date(exchanged.user.created_at).getTime();
       if (Date.now() - made < 10 * 60_000) {
         await supabase.from("profiles").update({ role: side }).eq("id", exchanged.user.id).in("role", ["farmer", "investor"]);
+      }
+      // Started from the phone app (backlog 173): the session goes back to the app sealed, openable only with the
+      // secret the app kept (lib/appHandoff), and the browser is done.
+      const challenge = searchParams.get("app");
+      if (challenge !== null) {
+        const s = exchanged.session;
+        const sealed =
+          s && CHALLENGE.test(challenge)
+            ? sealSession(
+                {
+                  access_token: s.access_token,
+                  refresh_token: s.refresh_token,
+                  expires_at: s.expires_at ?? Math.floor(Date.now() / 1000) + (s.expires_in ?? 3600),
+                },
+                challenge,
+              )
+            : null;
+        if (!sealed) {
+          console.error("auth/callback: could not seal the session for the app");
+          return NextResponse.redirect(
+            `${origin}/login?error=${encodeURIComponent(
+              t("لم يكتمل الدخول إلى التطبيق. جرّب مرّةً أخرى.", "Signing in to the app did not finish. Try again."),
+            )}`,
+          );
+        }
+        return NextResponse.redirect(`sudagri://auth?h=${sealed}`);
       }
       return NextResponse.redirect(`${origin}${next ?? (await homeFor(supabase, exchanged.user.id))}`);
     }

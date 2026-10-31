@@ -20,7 +20,9 @@
 library;
 
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -526,6 +528,53 @@ class AccountController extends ValueNotifier<Session?> {
       throw ApiException(body['error'] as String? ?? 'تعذّر الدخول (${res.statusCode}).');
     }
     await _keep(Session.fromJson(body));
+  }
+
+  // ── الدخول بحساب Google (البند ١٧٣) ─────────────────────────────────────────
+
+  static const _verifierKey = 'sudagri.oauth.verifier';
+
+  /// What went wrong on the way back from the browser, for the sign-in form to say.
+  final providerError = ValueNotifier<String?>(null);
+
+  /// The address to open in the phone's browser for [provider]. A random secret is made and kept here; only its
+  /// fingerprint leaves with the request. The site sends the session back sealed, openable only with that secret
+  /// (src/lib/appHandoff.ts), so another app that catches the link gets nothing.
+  Future<Uri> providerSignInUrl(String provider, {String side = 'farmer'}) async {
+    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    final random = Random.secure();
+    final verifier = base64Url.encode([for (var i = 0; i < 32; i++) random.nextInt(256)]).replaceAll('=', '');
+    final challenge = base64Url.encode(sha256.convert(utf8.encode(verifier)).bytes).replaceAll('=', '');
+    await (await SharedPreferences.getInstance()).setString(_verifierKey, verifier);
+    providerError.value = null;
+    return Uri.parse('$_site/api/app/oauth')
+        .replace(queryParameters: {'provider': provider, 'side': side, 'challenge': challenge});
+  }
+
+  /// The link the browser opens the app with, `sudagri://auth?h=…`: the sealed session and the kept secret go to
+  /// the site, and the session that comes back is kept. Other links are not this one's to handle.
+  Future<void> handleLink(Uri link) async {
+    if (link.scheme != 'sudagri' || link.host != 'auth') return;
+    final sealed = link.queryParameters['h'];
+    final prefs = await SharedPreferences.getInstance();
+    final verifier = prefs.getString(_verifierKey);
+    if (sealed == null || verifier == null) {
+      providerError.value = 'لم يكتمل الدخول بهذا الحساب. اضغط الزرّ مرّةً أخرى.';
+      return;
+    }
+    try {
+      final res = await _post('/api/app/oauth/finish', {'handoff': sealed, 'verifier': verifier});
+      final body = _json(res);
+      if (res.statusCode != 200) {
+        providerError.value = body['error'] as String? ?? 'لم يكتمل الدخول بهذا الحساب.';
+        return;
+      }
+      await prefs.remove(_verifierKey);
+      providerError.value = null;
+      await _keep(Session.fromJson(body));
+    } on ApiException catch (e) {
+      providerError.value = e.message;
+    }
   }
 
   /// Creates the account and signs in with it. When the account was created

@@ -275,6 +275,26 @@ class _SignInFormState extends State<_SignInForm> {
                 : const Text('دخول'),
           ),
           _Error(_error),
+          const SizedBox(height: 12),
+          // «الدخول بحساب Google» (البند ١٧٣): في متصفّح الجوّال، ثمّ يعود إلى التطبيق.
+          OutlinedButton.icon(
+            onPressed: _busy
+                ? null
+                : () async {
+                    try {
+                      final url = await accountController.providerSignInUrl('google');
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    } on ApiException catch (e) {
+                      if (mounted) setState(() => _error = e.message);
+                    }
+                  },
+            icon: const Icon(Icons.account_circle_outlined),
+            label: const Text('الدخول بحساب Google'),
+          ),
+          ValueListenableBuilder<String?>(
+            valueListenable: accountController.providerError,
+            builder: (_, message, _) => _Error(message),
+          ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => setState(() {
