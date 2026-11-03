@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requestPasswordReset, requestPhoneReset } from "@/app/login/actions";
 import PhoneField from "@/components/PhoneField";
+import SupportWhatsApp from "@/components/SupportWhatsApp";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -87,6 +88,8 @@ export default async function ResetPage({
             {t("اطلب الاستعادة من الإدارة", "Ask the administration to restore it")}
           </button>
         </form>
+        {/* A line to a person, for whoever cannot wait for the call back (web-flows-5). */}
+        <SupportWhatsApp locale={locale} className="mt-4" />
       </div>
 
       <p className="mt-6 text-center text-sm">

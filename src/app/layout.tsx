@@ -11,6 +11,7 @@ import { getLocale } from "@/lib/locale";
 import { dirOf, tr } from "@/lib/i18n";
 import LocaleProvider from "@/components/LocaleProvider";
 import PageLang from "@/components/PageLang";
+import SupportWhatsApp from "@/components/SupportWhatsApp";
 
 const tajawal = Tajawal({
   variable: "--font-tajawal",
@@ -128,6 +129,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             >
               {t("أرسل ملاحظة أو اقتراحاً", "Send a note or a suggestion")}
             </Link>
+            <SupportWhatsApp locale={locale} />
             <p className="pt-2 text-sm text-muted">
               {t(
                 "سوداقري — منصة استثمار زراعي رقمي في السودان · MVP تجريبي",
