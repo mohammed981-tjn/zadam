@@ -88,16 +88,22 @@ export default async function ExportOfferDetailPage({
   ] = await Promise.all([
     // The place of a farm is the owner's and the administration's alone: read through the function.
     supabase.rpc("export_offer_origins_detail", { p_offer_ids: [id] }),
-    supabase
-      .from("export_offer_custody")
-      .select("sequence, occurred_at, place_name, latitude, longitude, note")
-      .eq("offer_id", id)
-      .order("sequence"),
-    supabase
-      .from("export_offer_evidence")
-      .select("id, kind, captured_at, storage_path, sha256, document_type_id")
-      .eq("offer_id", id)
-      .order("created_at"),
+    // Coordinates and file paths are the owner's and the administration's (owner, 25 October 2026: «the
+    // visitor sees nothing at all»): they come through definer functions; anyone else reads the place names.
+    isOwner
+      ? supabase.rpc("export_offer_custody_detail", { p_offer: id })
+      : supabase
+          .from("export_offer_custody")
+          .select("sequence, occurred_at, place_name, note")
+          .eq("offer_id", id)
+          .order("sequence"),
+    isOwner
+      ? supabase.rpc("export_offer_evidence_detail", { p_offer: id })
+      : supabase
+          .from("export_offer_evidence")
+          .select("id, kind, captured_at, sha256, document_type_id")
+          .eq("offer_id", id)
+          .order("created_at"),
     fetchReadiness(supabase, id),
     supabase.rpc("export_offer_readiness_detail", { p_offer_id: id }),
   ]);

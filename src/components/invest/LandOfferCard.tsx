@@ -61,8 +61,15 @@ export default function LandOfferCard({
         <span className="rounded-full bg-leaf/10 px-2.5 py-0.5 text-xs font-bold text-leaf">{t("أرض موثّقة", "Verified land")}</span>
       </div>
       <p className="mt-1 text-sm text-muted">
-        <bdi className="font-bold text-foreground">{Number(l.feddans).toLocaleString("en-US")}</bdi> {t("فدان", "feddans")}
-        {band && AREA_BAND_SHORT[band] ? ` · ${lbl(AREA_BAND_SHORT[band], locale)}` : ""}
+        {/* The exact area and locality are the owner's until they accept (owner, 25 October 2026); others see the band. */}
+        {l.feddans !== null ? (
+          <>
+            <bdi className="font-bold text-foreground">{Number(l.feddans).toLocaleString("en-US")}</bdi> {t("فدان", "feddans")}
+            {band && AREA_BAND_SHORT[band] ? ` · ${lbl(AREA_BAND_SHORT[band], locale)}` : ""}
+          </>
+        ) : band && AREA_BAND_SHORT[band] ? (
+          <span className="font-bold text-foreground">{lbl(AREA_BAND_SHORT[band], locale)}</span>
+        ) : null}
         {l.documents_on_file > 0 ? ` · ${t(`${l.documents_on_file} مستندات في الملفّ`, `${l.documents_on_file} documents on file`)}` : ""}
       </p>
 

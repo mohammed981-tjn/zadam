@@ -110,7 +110,7 @@ export async function setInvestorConsent(fd: FormData) {
     .maybeSingle();
   if (!land) back(origin, "error", t("ليست لك هذه الأرض.", "This land is not yours."));
   // The soil at the land's own point, not the 160 km map cell's (backlog 180). A failed read keeps what is stored.
-  const estimate = open ? await recordSoilEstimate(supabase, landId, land.longitude, land.latitude) : null;
+  const estimate = open ? await recordSoilEstimate(user.id, landId, land.longitude, land.latitude) : null;
   const note = str(fd, "note").slice(0, 500);
   const { error } = await supabase.rpc("land_set_investor_consent", {
     p_land: landId,

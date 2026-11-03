@@ -22,9 +22,11 @@ import {
  * scheduled job has no visitor to act as; what it writes is only ever a row in
  * market_quotes and one in price_runs.
  *
- * A figure is published when its reader read it with certainty and it sits
- * within a day's movement of the last published figure; otherwise it is held
- * for an administrator. Gedaref's prose is always held. A figure no newer than
+ * Every figure is written held: publishing is the administration's (the database
+ * refuses anything else from the service key). A figure its reader read with
+ * certainty, within a day's movement of the last published one, is held under
+ * TRUSTED; anything else is held under the reason it failed. Gedaref's prose is
+ * always held under its own reason. A figure no newer than
  * the last one already shown is skipped — the run adds days, it does not
  * repeat them.
  */
@@ -82,7 +84,14 @@ export interface RefreshSummary {
   errors: string[];
 }
 
-type Row = Record<string, unknown> & { status: "published" | "held" };
+type Row = Record<string, unknown> & { status: "held"; reason: string };
+
+/**
+ * The service key writes every figure held (database trigger market_quotes_service_guard, live since 25 October
+ * 2026): publishing is the administration's. A figure the checks found nothing wrong with is held under this reason,
+ * the one the database's one-click approval looks for.
+ */
+const TRUSTED = "قراءة موثوقة تنتظر اعتماد الإدارة";
 
 async function lastFx(admin: SupabaseClient, kind: "fx_bank" | "fx_parallel") {
   const { data } = await admin
@@ -147,8 +156,7 @@ export async function refreshPrices(admin: SupabaseClient, trigger: "cron" | "ad
   if (parallel && (!parallelLast || parallel.q.date > parallelLast.date)) {
     const row = fxRow("fx_parallel", parallel.q, parallel.post.link, parallelLast?.sell ?? null);
     const bankSell = bank?.q.sell ?? bankLast?.sell ?? null;
-    if (row.status === "published" && bankSell && parallel.q.sell < bankSell) {
-      row.status = "held";
+    if (row.reason === TRUSTED && bankSell && parallel.q.sell < bankSell) {
       row.reason = `أدنى من سعر البنك (${bankSell}) — يُراجَع`;
     }
     rows.push(row);
@@ -205,15 +213,22 @@ export async function refreshPrices(admin: SupabaseClient, trigger: "cron" | "ad
 
 function fxRow(kind: "fx_bank" | "fx_parallel", q: FxQuote, link: string, lastSell: number | null): Row {
   const reason = q.buy > q.sell ? "سعر الشراء أعلى من البيع" : holdReason(q.sell, lastSell, 0.25, [500, 200_000]);
+  // Every row carries the same columns: PostgREST writes one batch with the union of the rows' keys and sets a
+  // missing one to NULL, not to the column's default — and `market`/`crop` are NOT NULL (found 25 October 2026:
+  // a run with a dollar and a crop figure wrote nothing).
   return {
     kind,
+    market: "",
+    crop: "",
+    unit: null,
     market_date: q.date,
     buy: q.buy,
     sell: q.sell,
+    price: null,
     source_url: link,
     quote: q.quote.slice(0, 600),
-    status: reason ? "held" : "published",
-    reason,
+    status: "held",
+    reason: reason ?? TRUSTED,
   };
 }
 
@@ -227,10 +242,12 @@ function cropRow(q: CropQuote, link: string, lastPrice: number | null, alwaysHol
     crop: q.crop,
     unit: q.unit,
     market_date: q.date,
+    buy: null,
+    sell: null,
     price: q.price,
     source_url: link,
     quote: q.quote.slice(0, 600),
-    status: reason ? "held" : "published",
-    reason,
+    status: "held",
+    reason: reason ?? TRUSTED,
   };
 }

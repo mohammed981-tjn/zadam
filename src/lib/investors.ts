@@ -119,7 +119,7 @@ export interface OpenLand {
   land_id: string;
   state: string;
   locality: string | null;
-  feddans: number;
+  feddans: number | null;
   area_band: string | null;
   soil_class: string | null;
   /** From land_soil_estimates() (backlog 180): `point` when the class is a satellite reading at the land's own point. */
@@ -145,7 +145,7 @@ export interface MyInterest {
   status: InterestStatus;
   state: string;
   locality: string | null;
-  feddans: number;
+  feddans: number | null;
   land_name: string | null;
   village: string | null;
   latitude: number | null;
