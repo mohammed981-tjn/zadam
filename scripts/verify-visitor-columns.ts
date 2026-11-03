@@ -16,12 +16,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { MEMBER_COLUMNS, VISITOR_COLUMNS } from "../src/lib/visitorColumns";
 
-// The later migrations narrow what a member reads of projects, suppliers and partner companies (backlog 181); their
-// grants are the ones that stand.
+// The visitor-columns migration and the later ones that narrow (backlog 181) or extend (projects.trial, 20261103020000)
+// those same tables, in order: a column grant is the sum of the grants since the last revoke of the table from the role.
 const sql = [
   "20261022050000_visitor_columns.sql",
   "20261025230000_projects_suppliers_private_ids.sql",
   "20261025230100_partner_companies_private_ids.sql",
+  "20261103020000_trial_records.sql",
 ]
   .map((f) => readFileSync(join(__dirname, "../supabase/migrations", f), "utf8"))
   .join("\n");
@@ -36,8 +37,14 @@ const split = (s: string) => s.split(",").map((c) => c.trim()).filter(Boolean).s
 
 function grants(role: "anon" | "authenticated"): Map<string, string[]> {
   const out = new Map<string, string[]>();
-  const re = new RegExp(`grant select \\(([^)]*)\\)\\s+on table public\\.([a-z_]+) to ${role};`, "g");
-  for (const m of sql.matchAll(re)) out.set(m[2], split(m[1]));
+  const re =
+    /(revoke select on table public\.([a-z_]+) from ([a-z_, ]+);)|(grant select \(([^)]*)\)\s+on (?:table )?public\.([a-z_]+) to ([a-z_, ]+);)/g;
+  const roles = (s: string) => s.split(",").map((r) => r.trim());
+  for (const m of sql.matchAll(re)) {
+    if (m[1] && roles(m[3]).includes(role)) out.set(m[2], []);
+    if (m[4] && roles(m[7]).includes(role)) out.set(m[6], [...new Set([...(out.get(m[6]) ?? []), ...split(m[5])])].sort());
+  }
+  for (const [table, cols] of out) if (cols.length === 0) out.delete(table);
   return out;
 }
 
