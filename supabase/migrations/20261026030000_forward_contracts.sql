@@ -136,6 +136,8 @@ create index forward_contracts_open on public.forward_contracts (status) where s
 alter table public.forward_contracts enable row level security;
 revoke all on public.forward_contracts from anon;
 revoke insert, update, delete, truncate on public.forward_contracts from authenticated;
+-- Since 20261024030000 a new table is readable by nobody until granted (audit db-b-2): the policy below picks the rows.
+grant select on public.forward_contracts to authenticated;
 
 create policy forward_contracts_parties on public.forward_contracts
   for select to authenticated
@@ -197,6 +199,7 @@ create index forward_contract_events_contract on public.forward_contract_events 
 alter table public.forward_contract_events enable row level security;
 revoke all on public.forward_contract_events from anon;
 revoke insert, update, delete, truncate on public.forward_contract_events from authenticated;
+grant select on public.forward_contract_events to authenticated;
 
 create policy forward_contract_events_parties on public.forward_contract_events
   for select to authenticated

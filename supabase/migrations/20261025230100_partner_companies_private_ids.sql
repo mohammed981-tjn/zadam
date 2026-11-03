@@ -12,6 +12,14 @@ grant select (id, name, commercial_registration_no, kinds, states, contact_name,
               bio, verified_at, active, created_at, updated_at)
   on table public.partner_companies to authenticated;
 
+-- A policy's subquery reads as the reader, so partner_interests_parties (20261017120000) — which asked
+-- partner_companies.owner_id directly — would fail for every member once the column is withheld (audit db-b-3,
+-- 3 November 2026). It asks the security-definer helper instead, as the policies moved in 20261022050000 do.
+alter policy partner_interests_parties on public.partner_interests
+  using (owns_partner_company(company_id)
+         or exists (select 1 from lands l where l.id = land_id and l.owner_id = (select auth.uid()))
+         or is_admin());
+
 -- The withheld columns of the reader's own company, or of all of them for an administrator.
 create function public.partner_company_private(p_ids uuid[] default null)
 returns table (id uuid, owner_id uuid, verified_by uuid)

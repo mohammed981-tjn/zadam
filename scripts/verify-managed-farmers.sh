@@ -24,6 +24,12 @@ NOTIFY="$(pg_stage "$ROOT/scripts/notify-functions.fixture.sql" notify.sql)"
 AGENTS="$(pg_stage "$ROOT/supabase/migrations/20261026020000_agent_mandates.sql" agents.sql)"
 MANAGED="$(pg_stage "$ROOT/supabase/migrations/20261026060000_managed_farmers.sql" managed.sql)"
 OWN="$(pg_stage "$ROOT/supabase/migrations/20261028010000_managed_farmer_own_record.sql" own.sql)"
+# owns_partner_company() is on the site since 20261022050000 (security definer, so a policy may ask it without reading
+# partner_companies.owner_id as the reader — which 20261025230100 withholds from members, audit db-b-3).
+OWNS="$(printf '%s\n' \
+  'create or replace function public.owns_partner_company(p_company uuid) returns boolean language sql stable security definer set search_path = public as $$ select exists (select 1 from partner_companies where id = p_company and owner_id = auth.uid()); $$;' \
+  'grant execute on function public.owns_partner_company(uuid) to anon, authenticated;' \
+  | pg_write owns.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-managed-farmers.sql" checks.sql)"
 
 # Supabase's defaults, on the base tables too; the phone on auth.users that phone sign-in fills; and the closed accounts of backlog 195, in the
@@ -45,6 +51,7 @@ echo "── القطيع";        pg_run_quiet "$LIVESTOCK"
 echo "── النفير";        pg_run_quiet "$NAFIR"
 echo "── الشركاء";       pg_run_quiet "$PARTNERS"
 echo "── الإشعارات";     pg_run_quiet "$NOTIFY"
+echo "── مالك الشركة";  pg_run "$OWNS" >/dev/null
 echo "── الوكيل";        pg_run "$AGENTS" >/dev/null
 echo "── المزارع المُدار"; pg_run "$MANAGED" >/dev/null
 echo "── سجلّه في ملفّ بياناته"; pg_run "$OWN" >/dev/null

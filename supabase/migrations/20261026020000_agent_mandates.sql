@@ -70,11 +70,15 @@ alter table public.agent_mandates enable row level security;
 -- لا يكتب فيه أحدٌ إلا بالدوالّ أدناه، ولا يقرؤه زائر.
 revoke all on public.agent_mandates from anon;
 revoke insert, update, delete, truncate on public.agent_mandates from authenticated;
+-- Since 20261024030000 a new table is readable by nobody until granted (audit db-b-2): the policy picks the rows.
+grant select on public.agent_mandates to authenticated;
 
+-- The company side is asked through owns_partner_company() (security definer): partner_companies.owner_id is withheld
+-- from members by 20261025230100, and a policy's subquery reads as the reader (audit db-b-3).
 create policy agent_mandates_read on public.agent_mandates
   for select to authenticated
   using (farmer_id = auth.uid()
-         or exists (select 1 from public.partner_companies c where c.id = company_id and c.owner_id = auth.uid())
+         or owns_partner_company(company_id)
          or is_admin());
 
 -- ── السجلّ ──────────────────────────────────────────────────────────────────
@@ -97,6 +101,7 @@ create index agent_actions_mandate on public.agent_actions (mandate_id, at desc)
 alter table public.agent_actions enable row level security;
 revoke all on public.agent_actions from anon;
 revoke insert, update, delete, truncate on public.agent_actions from authenticated;
+grant select on public.agent_actions to authenticated;
 
 create policy agent_actions_read on public.agent_actions
   for select to authenticated

@@ -24,6 +24,12 @@ as $$
     from jsonb_array_elements(p) c
 $$;
 
+-- The check runs as whoever writes the row — a farmer through the site or the app, or the server. Since 20261024030000
+-- a new function is executable by nobody until granted (audit db-b-1, 3 November 2026: without this line every
+-- insert or update of a land as a signed-in user failed). It reads nothing but its argument.
+revoke execute on function public.land_boundary_valid(jsonb) from public;
+grant execute on function public.land_boundary_valid(jsonb) to anon, authenticated, service_role;
+
 alter table public.lands
   add column boundary jsonb
   constraint lands_boundary_shape check (

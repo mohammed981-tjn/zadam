@@ -1,5 +1,8 @@
--- كلّ ما لم يُطبَّق على قاعدة الموقع، بالترتيب (26 أكتوبر 2026). يُلصق كلّه في SQL Editor ويُشغَّل مرّةً واحدة.
--- إن توقّف عند خطأ لا يُطبَّق شيءٌ منه (معاملةٌ واحدة).
+-- ما لم يُطبَّق على قاعدة الموقع من الهجرات، بالترتيب، مبنيٌّ بـ scripts/build-pending-sql.py لا باليد.
+-- معاملةٌ واحدة: إن توقّف عند خطأ لا يُطبَّق شيءٌ منه.
+-- يُطبَّق لاحقاً لا الآن:
+--   20261025200300_visitor_writes_through_server.sql: بعد نشر الكود: يسحب الكتابة المباشرة في نموذجَي التواصل، والموقع القديم يكتب فيهما مباشرة
+--   20261026040000_admin_second_factor.sql: الرمز الثاني للإدارة: بعد أن يتأكّد المالك أنّ TOTP مفعّل ويقرّر (الكود يعمل بدونه: الدور وحده يقرّر)
 begin;
 
 -- ═══ 20261025160000_ledger_review_fixes.sql ═══
@@ -2498,6 +2501,14 @@ grant select (id, name, commercial_registration_no, kinds, states, contact_name,
               bio, verified_at, active, created_at, updated_at)
   on table public.partner_companies to authenticated;
 
+-- A policy's subquery reads as the reader, so partner_interests_parties (20261017120000) — which asked
+-- partner_companies.owner_id directly — would fail for every member once the column is withheld (audit db-b-3,
+-- 3 November 2026). It asks the security-definer helper instead, as the policies moved in 20261022050000 do.
+alter policy partner_interests_parties on public.partner_interests
+  using (owns_partner_company(company_id)
+         or exists (select 1 from lands l where l.id = land_id and l.owner_id = (select auth.uid()))
+         or is_admin());
+
 -- The withheld columns of the reader's own company, or of all of them for an administrator.
 create function public.partner_company_private(p_ids uuid[] default null)
 returns table (id uuid, owner_id uuid, verified_by uuid)
@@ -2797,11 +2808,15 @@ alter table public.agent_mandates enable row level security;
 -- لا يكتب فيه أحدٌ إلا بالدوالّ أدناه، ولا يقرؤه زائر.
 revoke all on public.agent_mandates from anon;
 revoke insert, update, delete, truncate on public.agent_mandates from authenticated;
+-- Since 20261024030000 a new table is readable by nobody until granted (audit db-b-2): the policy picks the rows.
+grant select on public.agent_mandates to authenticated;
 
+-- The company side is asked through owns_partner_company() (security definer): partner_companies.owner_id is withheld
+-- from members by 20261025230100, and a policy's subquery reads as the reader (audit db-b-3).
 create policy agent_mandates_read on public.agent_mandates
   for select to authenticated
   using (farmer_id = auth.uid()
-         or exists (select 1 from public.partner_companies c where c.id = company_id and c.owner_id = auth.uid())
+         or owns_partner_company(company_id)
          or is_admin());
 
 -- ── السجلّ ──────────────────────────────────────────────────────────────────
@@ -2824,6 +2839,7 @@ create index agent_actions_mandate on public.agent_actions (mandate_id, at desc)
 alter table public.agent_actions enable row level security;
 revoke all on public.agent_actions from anon;
 revoke insert, update, delete, truncate on public.agent_actions from authenticated;
+grant select on public.agent_actions to authenticated;
 
 create policy agent_actions_read on public.agent_actions
   for select to authenticated
@@ -3358,6 +3374,8 @@ create index forward_contracts_open on public.forward_contracts (status) where s
 alter table public.forward_contracts enable row level security;
 revoke all on public.forward_contracts from anon;
 revoke insert, update, delete, truncate on public.forward_contracts from authenticated;
+-- Since 20261024030000 a new table is readable by nobody until granted (audit db-b-2): the policy below picks the rows.
+grant select on public.forward_contracts to authenticated;
 
 create policy forward_contracts_parties on public.forward_contracts
   for select to authenticated
@@ -3419,6 +3437,7 @@ create index forward_contract_events_contract on public.forward_contract_events 
 alter table public.forward_contract_events enable row level security;
 revoke all on public.forward_contract_events from anon;
 revoke insert, update, delete, truncate on public.forward_contract_events from authenticated;
+grant select on public.forward_contract_events to authenticated;
 
 create policy forward_contract_events_parties on public.forward_contract_events
   for select to authenticated
@@ -4263,6 +4282,12 @@ as $$
     from jsonb_array_elements(p) c
 $$;
 
+-- The check runs as whoever writes the row — a farmer through the site or the app, or the server. Since 20261024030000
+-- a new function is executable by nobody until granted (audit db-b-1, 3 November 2026: without this line every
+-- insert or update of a land as a signed-in user failed). It reads nothing but its argument.
+revoke execute on function public.land_boundary_valid(jsonb) from public;
+grant execute on function public.land_boundary_valid(jsonb) to anon, authenticated, service_role;
+
 alter table public.lands
   add column boundary jsonb
   constraint lands_boundary_shape check (
@@ -4326,4 +4351,5 @@ $$;
 revoke execute on function public.reopen_land_on_fact_change() from public, anon;
 
 insert into supabase_migrations.schema_migrations (version, name) values ('20261031010000', 'land_boundary') on conflict do nothing;
+
 commit;
