@@ -62,7 +62,7 @@ const SYSTEM_PROMPT = `أنت "مساعد سوداقري" — مساعد ذكي 
  * reachable the Arabic answer is sent as it is rather than nothing.
  */
 const ENGLISH_ANSWER =
-  "\n\nLANGUAGE: the visitor is reading the site in English. Write the whole answer in clear, simple English (the question may still be in Arabic or Sudanese dialect). Keep the same three rules; the general-knowledge opening becomes: \"From general agricultural knowledge (outside the platform's verified database):\"";
+  "\n\nLANGUAGE: the visitor is reading the site in English. This overrides the line above that says to speak Arabic only. Write the whole answer in clear, simple English (the question may still be in Arabic or Sudanese dialect). Keep the same three rules; the general-knowledge opening becomes: \"From general agricultural knowledge (outside the platform's verified database):\"";
 
 const TRANSLATE_PROMPT =
   "Translate the following answer from Sudagri's agricultural assistant into clear, simple English for a farmer or investor. Keep every number, unit, name and source exactly. Plain text only, no formatting symbols. Output the translation and nothing else.";
@@ -124,12 +124,22 @@ export async function POST(req: NextRequest) {
     openRouterModels: process.env.OPENROUTER_MODELS,
   });
 
-  /** An answer the platform wrote in Arabic, in the reader's language. */
+  /**
+   * An answer the platform wrote in Arabic, in the reader's language.
+   *
+   * A translation is a model call like any other, so it is counted against the
+   * same daily ceiling (SEC-9). Until 3 November 2026 it was not (public-api-1):
+   * a question the platform answers itself, asked again and again with the site
+   * in English, ran the whole engine chain each time outside the ceiling. Past
+   * the ceiling the reader gets the platform's Arabic answer, which is right,
+   * rather than nothing.
+   */
   const inReaderLanguage = async (arabic: string): Promise<string> => {
     if (locale !== "en" || engines.length === 0) return arabic;
     const cached = getCachedAnswer(`en-of|${arabic}`);
     if (cached) return cached;
-    const { result } = await generateWithFallback(engines, TRANSLATE_PROMPT, arabic);
+    if ((await checkModelBudget(clientAddress(req.headers))) !== "ok") return arabic;
+    const { result } = await generateWithFallback(engines, TRANSLATE_PROMPT, arabic, undefined, "en");
     const english = result?.text.replace(/[*#_`]+/g, "").trim();
     if (!english) return arabic;
     setCachedAnswer(`en-of|${arabic}`, english);
@@ -326,6 +336,7 @@ export async function POST(req: NextRequest) {
         locale === "en" ? PHOTO_SYSTEM_PROMPT + ENGLISH_ANSWER : PHOTO_SYSTEM_PROMPT,
         `${pageContext ? `${pageContext}\n\n` : ""}مقتطفات من قاعدة معرفة سوداقري قد تخصّ الصورة (JSON):\n${JSON.stringify(matched.slice(0, 6))}\n\nسؤال الزائر مع الصورة: ${question}`,
         image,
+        locale === "en" ? "en" : "ar",
       );
       if (!result) {
         console.error("assistant: photo answer failed", attempts);
@@ -471,6 +482,8 @@ export async function POST(req: NextRequest) {
             // resolved against the screen the visitor is looking at before anything
             // else is considered.
             `${pageContext ? `${pageContext}\n\n` : ""}المشاريع المعروضة حالياً (JSON):\n${projectsContext}\n\nقاعدة المعرفة الزراعية (JSON):\n${knowledgeContext}\n\nسؤال الزائر: ${question}`,
+            undefined,
+            locale === "en" ? "en" : "ar",
           )
         : { result: null, attempts: [{ engine: "-", reason: `daily budget: ${budget}` }] };
 

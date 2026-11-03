@@ -247,6 +247,58 @@ ok(
   "والسببُ مسجَّلٌ باسمه لا كخطأٍ مبهم",
 );
 
+section("D2) وللقارئ بالإنجليزيّة: الإنجليزيّةُ هي الصحيحة (public-api-1، 3 نوفمبر 2026)");
+
+/*
+ * Until 3 November 2026 the guard knew only Arabic, so every English answer the
+ * assistant had asked for was rejected — after every engine in the chain had
+ * been paid for it.
+ */
+const englishAnswer =
+  "From general agricultural knowledge (outside the platform's verified database): " +
+  "wheat in Gezira needs about 5,800 cubic metres of water per feddan over the season.";
+ok(wrongScriptReason(englishAnswer, "en") === null, "an English answer passes for an English reader");
+ok(wrongScriptReason(englishAnswer) !== null, "and is still the wrong script for an Arabic reader");
+ok(
+  wrongScriptReason("Sorghum (ذرة) is planted in July in Gedaref; see FAO-56 for the crop coefficient.", "en") === null,
+  "an English answer that names a crop in Arabic passes",
+);
+ok(
+  wrongScriptReason("الاحتياج المائي للقمح في الجزيرة نحو 5,800 م٣ للفدان", "en") !== null,
+  "an Arabic answer is the wrong script for an English reader",
+);
+ok(wrongScriptReason("Wheat 不是 water", "en") !== null, "CJK is barred for both");
+ok(
+  wrongScriptReason(
+    "The platform's entry «الري التكميلي للذرة الرفيعة في القضارف» says: «تُروى الذرة مرّةً واحدة عند الإزهار إذا انقطع المطر». " +
+      "In English: water sorghum once at flowering if the rain stops.",
+    "en",
+  ) === null,
+  "an English answer that quotes the platform's Arabic entry word for word passes",
+);
+
+ok(wrongScriptReason("5,800 — 70%", "en") === null, "a text with no letters divides by nothing");
+
+const arabicEngine: Engine = { name: "arabic", generate: async () => "إجابةٌ عربيّةٌ كاملة عن القمح" };
+const englishEngine: Engine = { name: "english", generate: async () => englishAnswer };
+const forEnglish = await generateWithFallback([englishEngine, arabicEngine], "s", "u", undefined, "en");
+ok(forEnglish.result?.engine === "english" && forEnglish.attempts.length === 0, "the chain keeps the first English answer, and pays for one engine only");
+const arabicFirst = await generateWithFallback([arabicEngine, englishEngine], "s", "u", undefined, "en");
+ok(arabicFirst.result?.engine === "english", "an engine that answers an English reader in Arabic hands on to the next");
+const forArabic = await generateWithFallback([englishEngine, arabicEngine], "s", "u");
+ok(forArabic.result?.engine === "arabic", "and with no language named the chain still expects Arabic");
+
+// The route: a translation is a model call and goes under the daily ceiling, and the English paths say so.
+const { readFileSync } = await import("node:fs");
+const route = readFileSync(new URL("../src/app/api/assistant/route.ts", import.meta.url), "utf8");
+const translate = route.slice(route.indexOf("const inReaderLanguage"), route.indexOf("try {", route.indexOf("const inReaderLanguage")));
+ok(/checkModelBudget\(/.test(translate), "the translation of a platform answer is counted against the daily ceiling");
+ok(/generateWithFallback\([^)]*"en"\)/.test(translate), "and asks the chain for English");
+ok(
+  (route.match(/locale === "en" \? "en" : "ar"/g) ?? []).length === 2,
+  "the photo answer and the model answer both name the reader's script",
+);
+
 section("E) حوافُّ السلسلة");
 
 const empty = await generateWithFallback([], "s", "u");
