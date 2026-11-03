@@ -108,6 +108,10 @@ export interface Land {
   documents_required: number;
   verification: "unverified" | "submitted" | "verified" | "rejected";
   verification_note: string | null;
+  /** Who verified the land, when, and at what area (20261103010000). A signature counts against the verified area. */
+  verified_by?: string | null;
+  verified_at?: string | null;
+  verified_feddans?: number | null;
   listed: boolean;
   created_at: string;
   /**

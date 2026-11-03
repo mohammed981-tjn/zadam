@@ -96,6 +96,12 @@ export default async function AdminLandsPage({
     "id" | "land_id" | "kind" | "caption" | "created_at"
   >[];
 
+  // What this administrator has opened (web-flows-3): the database verifies a land only after its verifier opened every
+  // document, so the button waits for the same. Before 20261103010000 reaches the site the table is not there, and
+  // nothing counts as opened.
+  const { data: viewRows } = await supabase.from("land_document_views").select("document_id").eq("admin_id", user.id);
+  const opened = new Set(((viewRows ?? []) as { document_id: string }[]).map((v) => v.document_id));
+
   const waiting = lands.filter((l) => l.verification !== "verified");
   const done = lands.filter((l) => l.verification === "verified");
 
@@ -107,6 +113,8 @@ export default async function AdminLandsPage({
     const mine = docs.filter((d) => d.land_id === land.id);
     const kinds = [...new Set(mine.map((d) => d.kind))];
     const enough = land.documents_on_file >= land.documents_required;
+    const unread = mine.filter((d) => !opened.has(d.id)).length;
+    const own = land.owner_id === user.id;
     const near = nearLands(land, lands);
 
     return (
@@ -140,12 +148,30 @@ export default async function AdminLandsPage({
         {mine.length === 0 ? (
           <p className="mt-2 text-sm text-danger">لم يُرفع أيّ مستند.</p>
         ) : (
-          <ul className="mt-2 space-y-1 text-sm text-muted">
-            {kinds.map((k) => (
-              <li key={k}>
-                ✓ {DOC_LABEL[k] ?? k} ({mine.filter((d) => d.kind === k).length})
-              </li>
-            ))}
+          <ul className="mt-2 space-y-1 text-sm">
+            {kinds.map((k) =>
+              mine
+                .filter((d) => d.kind === k)
+                .map((d) => (
+                  <li key={d.id} className="flex flex-wrap items-center gap-2">
+                    <span className={opened.has(d.id) ? "text-primary" : "text-muted"}>
+                      {opened.has(d.id) ? "✓ فُتح" : "○ لم يُفتح"}
+                    </span>
+                    <span>
+                      {DOC_LABEL[k] ?? k}
+                      {d.caption ? ` — ${d.caption}` : ""}
+                    </span>
+                    <a
+                      href={`/admin/lands/document/${d.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      افتح
+                    </a>
+                  </li>
+                )),
+            )}
           </ul>
         )}
 
@@ -177,15 +203,13 @@ export default async function AdminLandsPage({
           </div>
         )}
 
-        {/*
-          الملفّاتُ نفسُها لا تُعرض هنا، وهذا نقصٌ أُقرّ به: دلوُ الأدلّة خاصّ،
-          وعرضُ الملفّ يحتاج رابطاً موقَّعاً يُولَّد على الخادم. فالموظّفُ يرى
-          اليومَ أنّ المستندَ **موجودٌ ونوعه**، ولا يرى محتواه — وهذه مراجعةُ
-          اكتمالٍ لا مراجعةُ مضمون. تُستكمل برابطٍ موقَّت.
-        */}
+        {/* تُوثَّق الأرض بعد فتح مستنداتها كلّها، ولا يوثّق المدير أرضه (فحص 3 نوفمبر: web-flows-3 وdata-quality-5). */}
         <p className="mt-3 text-xs text-muted">
-          يُعرض هنا وجودُ المستند ونوعُه لا محتواه — عرضُ الملفّ يحتاج رابطاً
-          موقَّتاً يُولَّد على الخادم، ولم يُبنَ بعد.
+          {own
+            ? "هذه أرضك: لا توثّقها أنت، بل مديرٌ آخر أو معاينةٌ مدفوعة."
+            : unread > 0
+              ? `افتح المستندات قبل التوثيق — بقي ${unread}. كلّ فتحٍ يُسجَّل باسمك، والرابط يعيش دقيقتين.`
+              : "فتحتَ المستندات كلّها. يُسجَّل التوثيق باسمك وبمساحة الأرض اليوم."}
         </p>
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
@@ -198,11 +222,15 @@ export default async function AdminLandsPage({
             />
             <button
               type="submit"
-              disabled={!enough}
+              disabled={!enough || unread > 0 || own}
               title={
-                enough
-                  ? undefined
-                  : "الزنادُ في القاعدة يرفض النشر بمستنداتٍ ناقصة"
+                !enough
+                  ? "الزنادُ في القاعدة يرفض النشر بمستنداتٍ ناقصة"
+                  : own
+                    ? "لا يوثّق المدير أرضاً يملكها"
+                    : unread > 0
+                      ? "افتح المستندات كلّها أوّلاً"
+                      : undefined
               }
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >

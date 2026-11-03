@@ -40,3 +40,37 @@ grant usage on schema auth to anon, authenticated, service_role;
 -- PostgREST's login role on the platform.
 do $$ begin if not exists (select 1 from pg_roles where rolname = 'authenticator') then create role authenticator noinherit; end if; end $$;
 grant anon, authenticated, service_role to authenticator;
+
+-- ── ما على الموقع ولم تُنشئه أيّ هجرة ──────────────────────────────────────────
+-- notify_user وnotify_admins أُنشئتا على الموقع مباشرةً قبل مجلّد الهجرات، وتناديهما هجراتٌ كثيرة. تعريفهما هنا
+-- منسوخٌ من الموقع (pg_get_functiondef، 3 نوفمبر 2026)، لا من scripts/notify-functions.fixture.sql الأبسط منه.
+create or replace function public.notify_user(p_recipient uuid, p_kind text, p_title text, p_body text, p_link text)
+ returns void
+ language plpgsql
+ security definer
+ set search_path to 'public'
+as $function$
+begin
+  if p_recipient is null then return; end if;
+  insert into notifications (recipient_id, kind, title, body, link)
+  values (p_recipient, p_kind, p_title, p_body, p_link);
+end $function$;
+
+create or replace function public.notify_admins(p_kind text, p_title text, p_body text, p_link text)
+ returns integer
+ language plpgsql
+ security definer
+ set search_path to 'public'
+as $function$
+declare reached integer;
+begin
+  insert into notifications (recipient_id, kind, title, body, link)
+  select id, p_kind, p_title, p_body, p_link
+  from profiles where role = 'admin';
+
+  get diagnostics reached = row_count;
+  if reached = 0 then
+    raise warning 'notify_admins: no admin accounts exist; % went unnotified', p_kind;
+  end if;
+  return reached;
+end $function$;

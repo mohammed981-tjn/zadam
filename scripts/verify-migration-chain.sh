@@ -25,34 +25,7 @@ source "$ROOT/scripts/pg-harness.sh"
 
 pg_start migration-chain
 
-BASE="$(pg_stage "$ROOT/scripts/base-schema.sql" base.sql)"
-PLATFORM="$(pg_stage "$ROOT/scripts/supabase-platform.sql" platform.sql)"
-DEFAULTS="$(printf '%s\n' \
-  'grant usage on schema public to anon, authenticated, service_role;' \
-  'grant all on all tables in schema public to anon, authenticated, service_role;' \
-  'grant all on all functions in schema public to anon, authenticated, service_role;' \
-  'grant all on all sequences in schema public to anon, authenticated, service_role;' \
-  'alter default privileges in schema public grant all on tables to anon, authenticated, service_role;' \
-  'alter default privileges in schema public grant all on functions to anon, authenticated, service_role;' \
-  'alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;' \
-  | pg_write defaults.sql)"
-
-echo "── الأساس وما يوفّره Supabase"
-pg_run "$BASE" >/dev/null
-pg_run "$DEFAULTS" >/dev/null
-pg_run "$PLATFORM" >/dev/null
-
-n=0
-for f in "$ROOT"/supabase/migrations/*.sql; do
-  n=$((n + 1))
-  staged="$(pg_stage "$f" "m-$(basename "$f")")"
-  if ! out="$(pg_sh "$PG_PSQL -q -f $staged" 2>&1)"; then
-    echo "FAIL  الهجرة رقم $n لا تُطبَّق: $(basename "$f")"
-    echo "$out" | grep -v NOTICE | tail -6
-    exit 1
-  fi
-done
-echo "── طُبّقت الهجرات كلّها بالترتيب: $n"
+pg_apply_chain "$ROOT"
 
 # What the site reads and calls, from its own source, so the list cannot fall behind it.
 TABLES="$(grep -rhoE '\.from\("[a-z_]+"\)' "$ROOT/src" --include=*.ts --include=*.tsx | sed -E 's/.*"([a-z_]+)".*/\1/' | sort -u | paste -sd, -)"

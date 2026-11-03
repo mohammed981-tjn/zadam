@@ -4,12 +4,6 @@
 \set ON_ERROR_STOP 1
 set client_min_messages = notice;
 
--- The identity as PostgREST sets it: auth.uid() from the request's claims (base-schema.sql reads a table instead,
--- which a member could not read).
-create or replace function auth.uid() returns uuid language sql stable as $$
-  select nullif(coalesce(current_setting('request.jwt.claim.sub', true), auth.jwt() ->> 'sub'), '')::uuid $$;
-grant execute on function auth.uid(), auth.jwt(), auth.role() to anon, authenticated, service_role;
-
 create temp table chain_failures (what text);
 grant all on chain_failures to authenticated;
 
