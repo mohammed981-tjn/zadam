@@ -399,9 +399,29 @@ export function buildEngines(env: EngineEnv): Engine[] {
  * one, because the reader never learns why the assistant went quiet.
  */
 const CJK = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯]/;
-const LATIN_SHARE_LIMIT = 0.35;
+/**
+ * How much of the other script a reply may carry. Latin in an Arabic answer is
+ * held to a third (see above). Arabic in an English answer is allowed more: the
+ * engines read the platform's knowledge in Arabic and an English answer quotes
+ * it — a title, an excerpt, a crop's local name — while the reply that must be
+ * refused, one written wholly in Arabic, is nine-tenths Arabic or more.
+ */
+const FOREIGN_SHARE_LIMIT: Record<"ar" | "en", number> = { ar: 0.35, en: 0.6 };
 
-export function wrongScriptReason(text: string): string | null {
+/**
+ * The script the reader is reading in. Arabic by default; English when the
+ * visitor reads the site in English (the assistant asks the engines for an
+ * English answer then, and translates the platform's own Arabic answers).
+ *
+ * The test is the same either way round. Until 3 November 2026 it knew only
+ * Arabic, so every English answer the assistant had asked for was thrown away
+ * as "100% Latin letters" — after it had been paid for, by every engine in the
+ * chain (public-api-1 in the audit of that day). For an English reader, Arabic
+ * carrying the sentence is the wrong script, and a Latin answer is the right one.
+ */
+export type AnswerScript = "ar" | "en";
+
+export function wrongScriptReason(text: string, expect: AnswerScript = "ar"): string | null {
   if (CJK.test(text)) {
     return "answer contains CJK characters";
   }
@@ -413,8 +433,10 @@ export function wrongScriptReason(text: string): string | null {
   // نصٌّ بلا حروفٍ أصلاً — رقمٌ أو رمز — لا يُحكم عليه بنسبةٍ مقامُها صفر.
   if (letters === 0) return null;
 
-  if (latin / letters > LATIN_SHARE_LIMIT) {
-    return `answer is ${Math.round((latin / letters) * 100)}% Latin letters`;
+  const foreign = expect === "en" ? arabic : latin;
+  if (foreign / letters > FOREIGN_SHARE_LIMIT[expect]) {
+    const name = expect === "en" ? "Arabic" : "Latin";
+    return `answer is ${Math.round((foreign / letters) * 100)}% ${name} letters`;
   }
 
   return null;
@@ -425,6 +447,7 @@ export async function generateWithFallback(
   system: string,
   user: string,
   image?: EngineImage,
+  expect: AnswerScript = "ar",
 ): Promise<{ result: EngineResult | null; attempts: EngineAttempt[] }> {
   const attempts: EngineAttempt[] = [];
 
@@ -441,7 +464,7 @@ export async function generateWithFallback(
       const text = image ? await engine.generateWithImage!(system, user, image) : await engine.generate(system, user);
 
       // ويُعامَل كفشلِ محرّك لا كفشلِ طلب: الاحتياطيُّ بعده قد يُحسن.
-      const wrong = wrongScriptReason(text);
+      const wrong = wrongScriptReason(text, expect);
       if (wrong) throw new EngineFailure(wrong);
 
       return { result: { text, engine: engine.name, attempts }, attempts };
