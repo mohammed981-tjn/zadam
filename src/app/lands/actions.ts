@@ -172,7 +172,7 @@ export async function setLandLocation(
   }
 
   // The soil at the land's own point (backlog 180). A failed read changes nothing and says nothing.
-  const soil = await recordSoilEstimate(supabase, landId, lng, lat);
+  const soil = await recordSoilEstimate(user.id, landId, lng, lat);
   const soilName = soil ? (locale === "en" ? wrbShortEn(soil.wrb) : wrbShort(soil.wrb)) : null;
 
   revalidatePath("/lands");

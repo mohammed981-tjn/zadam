@@ -33,6 +33,11 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *      an administrator first. A scheduled job has no visitor to act as; it
  *      writes only rows in market_quotes and price_runs.
  *
+ *   4. The soil reading at a land's own point (backlog 180, review 198). Only the
+ *      server may call land_set_soil_estimate: the server reads SoilGrids itself
+ *      and passes who asked, and the function checks that person owns the land
+ *      or is an administrator.
+ *
  * A further caller is a decision, not a detail. Add it to this list.
  */
 
