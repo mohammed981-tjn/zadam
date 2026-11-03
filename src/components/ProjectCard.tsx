@@ -38,6 +38,12 @@ export default function ProjectCard({
         {emoji}
       </div>
 
+      {project.trial && !project.is_demo && (
+        <span className="-mb-1 w-fit rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
+          {en ? "Trial opportunity: run by the platform's team" : "فرصة تجريبيّة: منفّذها من فريق المنصّة"}
+        </span>
+      )}
+
       {project.is_demo && (
         <span className="-mb-1 w-fit rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
           {en ? "Illustrative example — not a real offer" : "نموذج توضيحي — ليس عرضاً حقيقياً"}

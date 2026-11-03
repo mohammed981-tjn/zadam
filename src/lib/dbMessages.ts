@@ -666,6 +666,7 @@ const MESSAGES: [string, string][] = [
   ["لا يوثّق المدير أرضاً يملكها: يوثّقها مديرٌ آخر، أو معاينةٌ مدفوعة.", "An administrator does not verify a land they own: another administrator, or a paid inspection, verifies it."],
   ["افتح مستندات الأرض كلّها قبل توثيقها (بقي % لم يُفتح).", "Open all of the land's documents before verifying it (% not opened yet)."],
   ["من وثّق الأرض ومتى وبأيّ مساحة يُكتب عند التوثيق وحده.", "Who verified the land, when and at what area is written at verification only."],
+  ["وسم «تجريبيّ» للإدارة وحدها.", "Only the administration marks something as a trial."],
   ["الأرض ليست موثّقةً الآن (تغيّرت بياناتها أو لم تُراجَع بعد)، فلا يُوقَّع عليها حتى تعيد الإدارة توثيقها.", "The land is not verified now (its details changed or it has not been reviewed yet), so nothing can be signed on it until the administration verifies it again."],
 ];
 

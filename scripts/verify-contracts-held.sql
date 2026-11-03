@@ -251,6 +251,25 @@ reset role;
 select _eq((select verified_feddans from lands where id = '1a000000-0000-0000-0000-0000000000a1'), 10::numeric, 'والمساحة الموثّقة بقيت 10 لا 20');
 
 \echo ''
+\echo '── ح) التجربة تُوسَم ولا تُحسب سجلّاً (20261103020000)'
+select _as(null);
+insert into seasons (id, owner_id, name, crop_key, station_key, irrigation, feddans, planting_date) values
+  ('5c000000-0000-0000-0000-0000000000e1', 'c1000000-0000-0000-0000-0000000000c1', '[تجربة] ذرة', 'sorghum', 'gezira', 'rainfed', 2, current_date - 100);
+select _as('c1000000-0000-0000-0000-0000000000c1');
+set role authenticated;
+select _refuses($q$update seasons set trial = true where id = '5c000000-0000-0000-0000-0000000000c1'$q$, 'للإدارة وحدها', 'صاحب الموسم لا يُخفي موسمه من سجلّه بوسمه تجريبيّاً');
+select _refuses($q$insert into seasons (owner_id, name, crop_key, station_key, irrigation, feddans, planting_date, trial)
+  values ('c1000000-0000-0000-0000-0000000000c1', 'x', 'wheat', 'gezira', 'canal', 1, current_date, true)$q$, 'للإدارة وحدها', 'ولا يُنشئه تجريبيّاً');
+reset role;
+select _as('ad000000-0000-0000-0000-0000000000ad', true);
+set role authenticated;
+select _does($q$update seasons set trial = true where id = '5c000000-0000-0000-0000-0000000000e1'$q$, 'والإدارة تسمه');
+reset role;
+select _as(null);
+select _eq((select count(*)::int from farmer_season_records('c1000000-0000-0000-0000-0000000000c1')), 1, 'وسجلّ المنفّذ يعدّ موسمه الحقيقيّ وحده');
+select _eq((select bool_and(name not like '%تجربة%') from farmer_season_records('c1000000-0000-0000-0000-0000000000c1')), true, 'ولا يظهر فيه التجريبيّ');
+
+\echo ''
 do $$
 declare f integer;
 begin

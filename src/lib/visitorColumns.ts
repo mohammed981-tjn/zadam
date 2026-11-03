@@ -31,7 +31,7 @@ export const VISITOR_COLUMNS = {
     "id, slug, name, location, description, total_feddans, price_per_share, total_shares, shares_sold, status, " +
     "risk_level, expected_annual_return, cover_image_url, created_at, is_demo, review_status, submitted_by, " +
     "risk_score, crop_key, station_key, planting_month, irrigation, water_source, declared_water_per_feddan, " +
-    "documents_on_file, documents_required, km_to_market",
+    "documents_on_file, documents_required, km_to_market, trial",
   feedback:
     "id, display_name, page_path, kind, body, status, admin_reply, replied_at, published, created_at, ai_reply, " +
     "ai_replied_at, ai_reply_engine",

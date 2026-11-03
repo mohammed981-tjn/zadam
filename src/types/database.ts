@@ -45,6 +45,8 @@ export interface Project {
   cover_image_url: string | null;
   /** Illustrative sample project — must never be presented as a real offer. */
   is_demo: boolean;
+  /** A trial opportunity run by the platform's own team (20261103020000), said so on its card and page. */
+  trial?: boolean;
   review_status: ReviewStatus;
   submitted_by: string | null;
   review_note: string | null;
