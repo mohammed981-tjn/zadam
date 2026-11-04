@@ -39,7 +39,19 @@ export async function GET(req: Request) {
 
   const role = (profile as { role?: string } | null)?.role ?? null;
   let review = null;
-  if (role === "admin") {
+  // With the administrators' second factor applied (20261026040000), the database counts an administrator as one only
+  // in a session that passed it, and the app's sessions do not: the review list would read back empty and say
+  // «لا شيء ينتظرك». It says where to look instead (mobile-vs-platform-7). Before that migration, is_admin() follows
+  // the role, as here.
+  const { data: adminNow, error: adminError } = role === "admin" ? await supabase.rpc("is_admin") : { data: false, error: null };
+  if (role === "admin" && !adminError && adminNow === false) {
+    review = {
+      total: null,
+      sections: [],
+      second_factor: true,
+      message: "قائمة المراجعة تحتاج الرمز الثاني: افتح الإدارة في الموقع وادخل بالرمز من تطبيق المصادقة.",
+    };
+  } else if (role === "admin") {
     const sections = await loadAdminQueue(supabase, 5);
     review = {
       total: sections.filter((s) => !s.info).reduce((a, s) => a + (s.count ?? 0), 0),

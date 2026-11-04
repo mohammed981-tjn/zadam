@@ -154,6 +154,8 @@ export interface MyInterest {
   owner_phone: string | null;
   created_at: string;
   decided_at: string | null;
+  /** The area's band, for the time before acceptance, when `feddans` is withheld (money-logic-4). */
+  area_band: string | null;
 }
 
 /** A row of land_investor_requests(): the investor's phone only once accepted. */

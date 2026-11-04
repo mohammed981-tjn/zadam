@@ -76,6 +76,8 @@ export interface DailyJobs {
   bookkeeping: () => Promise<unknown>;
   prices: () => Promise<unknown>;
   priceAlerts: () => Promise<unknown>;
+  /** Uploads to the research library that no sending followed (public-api-4). */
+  researchSweep: () => Promise<unknown>;
 }
 
 /**
@@ -89,6 +91,7 @@ export function dailySteps(jobs: DailyJobs): Step[] {
     { name: "system_check", run: jobs.systemCheck, budgetMs: 10_000 },
     { name: "faostat", run: jobs.faostat, budgetMs: 25_000 },
     { name: "bookkeeping", run: jobs.bookkeeping, budgetMs: 10_000 },
+    { name: "research_sweep", run: jobs.researchSweep, budgetMs: 5_000 },
     { name: "prices", run: jobs.prices, budgetMs: 45_000 },
     { name: "price_alerts", run: jobs.priceAlerts, budgetMs: 10_000 },
   ];

@@ -8,7 +8,7 @@ import PageHeader from "@/components/PageHeader";
 import ActionNotice from "@/components/ActionNotice";
 import InvestTabs from "@/components/invest/InvestTabs";
 import { INTEREST_STATUS_LABEL, INVESTOR_MODEL_LABEL, type MyInterest } from "@/lib/investors";
-import { lbl } from "@/lib/partners";
+import { areaShown, lbl } from "@/lib/partners";
 import { button, card, ghost } from "@/lib/ui";
 import { withdrawInvestorInterest } from "../actions";
 import { openAgreement } from "../agreements/actions";
@@ -77,7 +77,7 @@ export default async function MyInvestorRequestsPage({
               <li key={i.id}>
                 <Link href={`/invest/inspections/${i.id}`} className="font-bold text-primary underline">
                   <span {...arText}>{[i.state, i.locality].filter(Boolean).join(" · ")}</span> —{" "}
-                  {Number(i.feddans).toLocaleString("en-US")} {t("فدان", "feddans")}
+                  {areaShown(i.feddans, i.area_band, locale)}
                 </Link>
                 <span className="text-muted"> · {lbl(INSPECTION_STATUS_LABEL[i.status], locale)}</span>
               </li>
@@ -130,7 +130,7 @@ export default async function MyInvestorRequestsPage({
                 </span>
               </div>
               <p className="mt-1 text-sm text-muted">
-                {Number(r.feddans).toLocaleString("en-US")} {t("فدان", "feddans")} · {lbl(INVESTOR_MODEL_LABEL[r.model], locale)}
+                {areaShown(r.feddans, r.area_band, locale)} · {lbl(INVESTOR_MODEL_LABEL[r.model], locale)}
               </p>
               <p className="mt-2 whitespace-pre-line rounded-xl bg-background px-3 py-2 text-sm [overflow-wrap:anywhere]" {...arText}>
                 {r.message}

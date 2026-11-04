@@ -599,7 +599,9 @@ class _ReviewCard extends StatelessWidget {
         child: const Text('في الموقع'),
       ),
       children: [
-        if (account.review.isEmpty)
+        if (account.reviewNote != null)
+          Text(account.reviewNote!, style: TextStyle(color: mutedOn(context)))
+        else if (account.review.isEmpty)
           Text('لا شيء ينتظر قرارك الآن.', style: TextStyle(color: mutedOn(context))),
         for (final s in account.review)
           ExpansionTile(

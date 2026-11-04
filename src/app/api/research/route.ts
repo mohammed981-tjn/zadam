@@ -38,6 +38,10 @@ export async function POST(req: NextRequest) {
   const step = payload.step === "upload" ? "upload" : "submit";
 
   const verdict = await checkRateLimit(`research-${step}`, clientAddress(req.headers));
+  // An upload link is storage handed to a stranger: when the limiter cannot be asked, none is given (public-api-4).
+  if (step === "upload" && !verdict.allowed && verdict.tier === "unavailable") {
+    return say(lang, ["تعذّر تجهيز رفع الملفّ. حاول بعد قليل.", "The upload could not be prepared. Try again shortly."], 503);
+  }
   if (!verdict.allowed && verdict.tier !== "unavailable") {
     return say(lang, ["أرسلت كثيراً خلال دقيقة. انتظر قليلاً ثم أعد المحاولة.", "Too many sends in a minute. Wait a moment and try again."], 429);
   }
@@ -50,6 +54,12 @@ export async function POST(req: NextRequest) {
 
   if (step === "upload") {
     const path = `incoming/${crypto.randomUUID()}.pdf`;
+    // Recorded first, so a link the server gave is the only file a sending may name (public-api-4).
+    const { error: issueError } = await admin.from("research_uploads").insert({ path });
+    if (issueError) {
+      console.error("research: issue failed", issueError.message);
+      return say(lang, ["تعذّر تجهيز رفع الملفّ. حاول بعد قليل.", "The upload could not be prepared. Try again shortly."], 500);
+    }
     const { data, error } = await admin.storage.from("research").createSignedUploadUrl(path);
     if (error || !data) {
       console.error("research: upload url failed", error?.message);
@@ -79,6 +89,18 @@ export async function POST(req: NextRequest) {
   const row = checked.row;
 
   if (row.file_path) {
+    // A path this server gave in the last day, not yet used by another sending; marked used here (public-api-4).
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data: claimed } = await admin
+      .from("research_uploads")
+      .update({ used_at: new Date().toISOString() })
+      .eq("path", row.file_path)
+      .is("used_at", null)
+      .gte("issued_at", since)
+      .select("path");
+    if (!claimed || claimed.length === 0) {
+      return say(lang, ["انتهت صلاحيّة رابط الرفع. ارفع الملفّ من جديد.", "The upload link has expired. Upload the file again."], 400);
+    }
     // The file must be there, under the path this server made, and a PDF within the bucket's size.
     const name = row.file_path.slice("incoming/".length);
     const { data: found } = await admin.storage.from("research").list("incoming", { search: name, limit: 1 });

@@ -30,8 +30,20 @@ export async function clientFromBearer(
 
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user) return null;
+  // A temporary password the administration read out over the phone is changed on the website before the app may use
+  // the account (app-api-2 / public-api-5; the owner, question 24): whoever heard the call must not get in here.
+  if (mustChangePasswordFirst(data.user)) return null;
   return { supabase, user: data.user };
 }
+
+/** The account still carries a temporary password set by an administrator (AUTH-05). */
+export function mustChangePasswordFirst(user: Pick<User, "user_metadata">): boolean {
+  return user.user_metadata?.must_change_password === true;
+}
+
+/** What the app shows when that is why it was refused. */
+export const CHANGE_PASSWORD_FIRST =
+  "كلمة المرور هذه مؤقّتة. افتح الموقع وادخل بها وغيّرها أوّلاً، ثمّ ادخل إلى التطبيق بكلمة المرور الجديدة.";
 
 /**
  * Signs in with a password and hands back the session itself, for the app to
@@ -45,6 +57,12 @@ export async function passwordSession(email: string, password: string) {
   );
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.session) return { error: error?.message ?? "no session" } as const;
+  if (mustChangePasswordFirst(data.user)) {
+    // Not handed to the phone: the session ends here, and the person is told where to change the password.
+    // This session only («local»): a global sign-out would also end the website session where they change it.
+    await supabase.auth.signOut({ scope: "local" });
+    return { error: CHANGE_PASSWORD_FIRST, mustChange: true } as const;
+  }
   const s = data.session;
   return {
     session: {

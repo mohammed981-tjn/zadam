@@ -151,9 +151,11 @@ export function stationName(key: string, locale: Locale): string {
 }
 
 export function waterSourceLabel(key: string, locale: Locale): string {
+  // Own keys only: a stored "toString" would otherwise come back as a function (app-api-3).
+  if (!Object.hasOwn(WATER_SOURCE_LABEL, key)) return key;
   const k = key as WaterSource;
   if (locale === "en" && WATER_SOURCE_EN[k]) return WATER_SOURCE_EN[k];
-  return WATER_SOURCE_LABEL[k] ?? key;
+  return WATER_SOURCE_LABEL[k];
 }
 
 export function irrigationLabel(key: string, locale: Locale): string {

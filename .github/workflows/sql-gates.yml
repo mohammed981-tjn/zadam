@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       # ubuntu-latest ships PostgreSQL, but only the client on some images.
       # The gates build their own throwaway cluster, so they need the server
@@ -395,3 +395,6 @@ jobs:
       # لا حسابات مجهولة: قفلٌ ثانٍ بعد زرّ لوحة Supabase (db-b-6، السؤال 17).
       - name: لا حسابات مجهولة
         run: ./scripts/verify-no-anonymous.sh
+      # حرّاس 4 نوفمبر: تفاصيل الأرض بعد القبول، ومصدر الماء، وسقف التخزين، والعرض للمالك، واشتراكات التنبيهات.
+      - name: حرّاس 4 نوفمبر
+        run: ./scripts/verify-guards-1104.sh

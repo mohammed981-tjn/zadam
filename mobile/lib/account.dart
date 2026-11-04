@@ -249,6 +249,7 @@ class Account {
     required this.lands,
     this.reviewTotal,
     this.review = const [],
+    this.reviewNote,
   });
 
   final String name;
@@ -260,6 +261,10 @@ class Account {
   /// Null for everyone but an administrator.
   final int? reviewTotal;
   final List<ReviewSection> review;
+
+  /// Set when the review list cannot be read from the app (the administrators' second code, mobile-vs-platform-7):
+  /// what to do instead of «لا شيء ينتظر قرارك».
+  final String? reviewNote;
 
   bool get isAdmin => role == 'admin';
 
@@ -279,6 +284,7 @@ class Account {
       review: ((review?['sections'] as List<dynamic>?) ?? const [])
           .map((e) => ReviewSection.fromJson(e as Map<String, dynamic>))
           .toList(),
+      reviewNote: review?['message'] as String?,
     );
   }
 }

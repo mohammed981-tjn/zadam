@@ -42,7 +42,7 @@ export function landInputProblem(input: LandInput, t: T): string | null {
   if (!STATIONS.some((s) => s.key === input.stationKey)) {
     return t("منطقة مناخية غير معروفة.", "Unknown climate zone.");
   }
-  if (!(input.waterSource in WATER_SOURCE_LABEL)) {
+  if (!isWaterSource(input.waterSource)) {
     return t("مصدر مياه غير معروف.", "Unknown water source.");
   }
   if (!(TENURES as readonly string[]).includes(input.tenure)) {
@@ -52,7 +52,11 @@ export function landInputProblem(input: LandInput, t: T): string | null {
   return problem ? locationMessage(problem, t) : null;
 }
 
-export const isWaterSource = (v: string): v is WaterSource => v in WATER_SOURCE_LABEL;
+/**
+ * One of the four sources, by the object's own keys: `in` also answers yes to "toString" and "constructor", which then
+ * reached the pages as a function where a label belonged and broke them (audit 3 November 2026, app-api-3).
+ */
+export const isWaterSource = (v: string): v is WaterSource => Object.hasOwn(WATER_SOURCE_LABEL, v);
 
 /** The climate station nearest a point (great-circle distance). */
 export function nearestStation(lat: number, lng: number): string {

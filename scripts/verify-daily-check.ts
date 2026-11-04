@@ -27,6 +27,7 @@ function jobs(over: Partial<DailyJobs>, ran: string[]): DailyJobs {
     bookkeeping: () => after(5),
     prices: () => after(5),
     priceAlerts: () => after(5),
+    researchSweep: () => after(5),
     ...over,
   };
   return {
@@ -36,6 +37,7 @@ function jobs(over: Partial<DailyJobs>, ran: string[]): DailyJobs {
     bookkeeping: mark("bookkeeping", base.bookkeeping),
     prices: mark("prices", base.prices),
     priceAlerts: mark("price_alerts", base.priceAlerts),
+    researchSweep: mark("research_sweep", base.researchSweep),
   };
 }
 
@@ -72,7 +74,7 @@ async function main() {
       20,
     );
     ok(r.find((x) => x.name === "prune")?.status === "failed" && r.find((x) => x.name === "prune")?.error === "boom", "الكنس فشل وسُجّل سببه");
-    ok(r.filter((x) => x.status === "ok").map((x) => x.name).join(",") === "system_check,faostat,prices,price_alerts", "والباقي جرى كلّه");
+    ok(r.filter((x) => x.status === "ok").map((x) => x.name).join(",") === "system_check,faostat,research_sweep,prices,price_alerts", "والباقي جرى كلّه");
   }
 
   console.log("\nد) مزامنة فاو بطيئة لا تأخذ وقت فحص النظام");

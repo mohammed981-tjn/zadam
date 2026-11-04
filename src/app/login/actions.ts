@@ -422,6 +422,20 @@ export async function enter(_prev: EntryState, formData: FormData): Promise<Entr
       : { data: null, error: null };
     if (lookupError) console.error("enter: account lookup failed", lookupError.message);
 
+    if (exists === false && admin) {
+      // An account closed at its owner's request keeps its address with the administrators until they erase it: say
+      // so, rather than inviting a new account without its history (web-flows-9).
+      const { data: closed } = await admin.rpc("auth_account_closed", { p_email: who.address });
+      if (closed === true) {
+        return {
+          kind: "error",
+          message: t(
+            "هذا الحساب أُغلق بطلبك، ولا يمكن الدخول إليه. وإن أردت أن تبدأ من جديد فاضغط «ليس لي حساب».",
+            "This account was closed at your request and cannot be signed in to. To start again, press «I have no account».",
+          ),
+        };
+      }
+    }
     if (exists === false) {
       return {
         kind: "new",

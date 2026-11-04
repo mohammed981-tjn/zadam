@@ -6,6 +6,7 @@ import { evaluatePriceAlerts } from "@/lib/priceAlerts";
 import { runBookkeeping } from "@/lib/bookkeeping";
 import { syncFaostat } from "@/lib/faostatSync";
 import { DAILY_DEADLINE_MS, DAILY_RESERVE_MS, dailySteps, runSteps } from "@/lib/dailyCheck";
+import { sweepResearchUploads } from "@/lib/researchSweep";
 
 /**
  * Daily health check, which also keeps the database from being paused.
@@ -97,6 +98,7 @@ export async function GET(req: NextRequest) {
           return true;
         },
         faostat: () => syncFaostat(supabase, "cron"),
+        researchSweep: () => sweepResearchUploads(supabase),
         bookkeeping: () => runBookkeeping(supabase),
         prices: () => refreshPrices(supabase, "cron"),
         priceAlerts: () => evaluatePriceAlerts(supabase),

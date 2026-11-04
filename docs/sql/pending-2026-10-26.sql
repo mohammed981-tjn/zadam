@@ -5178,4 +5178,331 @@ create trigger auth_users_no_anonymous
 
 insert into supabase_migrations.schema_migrations (version, name) values ('20261104030000', 'no_anonymous_accounts') on conflict do nothing;
 
+-- ═══ 20261104040000_land_details_after_acceptance.sql ═══
+-- تفاصيل الأرض بعد قبول المالك (فحص 3 نوفمبر 2026، money-logic-4؛ المالك، 4 نوفمبر، السؤال 18: «نُخفيها حتى القبول»).
+--
+-- القائمة العامّة تعطي الولاية وفئة المساحة منذ 20261025150200، لكنّ طلبات المستثمر (investor_my_interests) ومعايناته
+-- (land_inspection_list / land_inspection_view) كانت تعطيه المحلّيّة والمساحة بالفدّان قبل أن يقبله المالك — وفي محلّيّةٍ
+-- صغيرة يُعرف المالك منهما. الآن: الولاية وفئة المساحة قبل القبول، والتفاصيل بعده. ولغير المستثمر (المالك، والمعاين،
+-- والمدير) كما كان.
+
+-- ── طلبات المستثمر ───────────────────────────────────────────────────────────
+drop function if exists public.investor_my_interests();
+create function public.investor_my_interests()
+returns table (
+  interest_id uuid, land_id uuid, model text, message text, status text,
+  state text, locality text, feddans numeric,
+  land_name text, village text, latitude numeric, longitude numeric,
+  owner_name text, owner_phone text, created_at timestamptz, decided_at timestamptz, area_band text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select i.id, l.id, i.model, i.message, i.status,
+         l.state,
+         case when i.status = 'accepted' then l.locality end,
+         case when i.status = 'accepted' then l.feddans end,
+         case when i.status = 'accepted' then l.name end,
+         case when i.status = 'accepted' then l.village end,
+         case when i.status = 'accepted' then l.latitude end,
+         case when i.status = 'accepted' then l.longitude end,
+         case when i.status = 'accepted' then p.full_name end,
+         case when i.status = 'accepted' then p.phone end,
+         i.created_at, i.decided_at,
+         land_area_band(l.feddans)
+    from investor_interests i
+    join lands l on l.id = i.land_id
+    left join profiles p on p.id = l.owner_id
+   where i.investor_id = auth.uid()
+   order by i.created_at desc
+   limit 200;
+$$;
+revoke all on function public.investor_my_interests() from public, anon;
+grant execute on function public.investor_my_interests() to authenticated;
+
+-- ── معاينات الطرف ───────────────────────────────────────────────────────────
+drop function if exists public.land_inspection_list();
+create function public.land_inspection_list()
+returns table (
+  id uuid, ref text, role text, land_id uuid, status text, state text, locality text, feddans numeric,
+  checks text[], investor_note text, investor_name text, fee_sdg numeric, fee_status text,
+  visit_on date, verdict text, created_at timestamptz, reported_at timestamptz, area_band text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select i.id, i.ref,
+         case when i.investor_id = auth.uid() then 'investor'
+              when i.owner_id = auth.uid() then 'owner' else 'inspector' end,
+         i.land_id, i.status, l.state,
+         case when i.investor_id <> auth.uid() or a.accepted then l.locality end,
+         case when i.investor_id <> auth.uid() or a.accepted then l.feddans end,
+         i.checks, i.investor_note,
+         case when i.investor_id <> auth.uid() then (select full_name from profiles where id = i.investor_id) end,
+         i.fee_sdg, i.fee_status, i.visit_on, i.verdict, i.created_at, i.reported_at,
+         land_area_band(l.feddans)
+    from land_inspections i
+    join lands l on l.id = i.land_id
+    cross join lateral (select exists (
+      select 1 from investor_interests ii
+       where ii.investor_id = auth.uid() and ii.land_id = i.land_id and ii.status = 'accepted') as accepted) a
+   where auth.uid() in (i.investor_id, i.owner_id)
+      or (i.inspector_id = auth.uid() and i.status in ('assigned','reported'))
+   order by i.created_at desc;
+$$;
+revoke all on function public.land_inspection_list() from public, anon;
+grant execute on function public.land_inspection_list() to authenticated;
+
+-- ── معاينةٌ واحدة ───────────────────────────────────────────────────────────
+create or replace function public.land_inspection_view(p_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_i land_inspections;
+  v_land lands;
+  v_role text;
+  v_sees_place boolean;
+  v_sees_area boolean;
+begin
+  if auth.uid() is null then raise exception 'سجّل الدخول أولاً.'; end if;
+  select * into v_i from land_inspections where id = p_id;
+  if v_i.id is null then raise exception 'لا معاينة بهذا المعرّف.'; end if;
+  v_role := case when auth.uid() = v_i.investor_id then 'investor'
+                 when auth.uid() = v_i.owner_id then 'owner'
+                 when auth.uid() = v_i.inspector_id and v_i.status in ('assigned','reported') then 'inspector'
+                 when is_admin() then 'admin' end;
+  if v_role is null then raise exception 'لستَ طرفاً في هذه المعاينة.'; end if;
+  select * into v_land from lands where id = v_i.land_id;
+  -- The place and the owner's name go to whoever must visit or already owns
+  -- it; never to the investor.
+  v_sees_place := v_role in ('owner','inspector','admin');
+  -- The locality and the exact area, too, wait for the owner's yes to this investor (money-logic-4): before it, the
+  -- state and the area's band, as on the public list.
+  v_sees_area := v_role <> 'investor' or exists (
+    select 1 from investor_interests ii
+     where ii.investor_id = auth.uid() and ii.land_id = v_i.land_id and ii.status = 'accepted');
+
+  return jsonb_build_object(
+    'id', v_i.id, 'ref', v_i.ref, 'me', v_role, 'status', v_i.status, 'checks', to_jsonb(v_i.checks),
+    'investor_note', v_i.investor_note, 'fee_sdg', v_i.fee_sdg, 'fee_status', v_i.fee_status,
+    'created_at', v_i.created_at, 'owner_decided_at', v_i.owner_decided_at,
+    'assigned_at', v_i.assigned_at, 'visit_on', v_i.visit_on,
+    'verdict', v_i.verdict, 'findings', v_i.findings, 'summary', v_i.summary,
+    'measured_feddans', v_i.measured_feddans, 'reported_at', v_i.reported_at,
+    'report_hash', v_i.report_hash, 'owner_reply', v_i.owner_reply, 'owner_replied_at', v_i.owner_replied_at,
+    'cancel_reason', v_i.cancel_reason,
+    'investor_name', case when v_role <> 'investor' then (select full_name from profiles where id = v_i.investor_id) end,
+    'inspector_name', (select full_name from profiles where id = v_i.inspector_id),
+    'owner_name', case when v_sees_place then (select full_name from profiles where id = v_i.owner_id) end,
+    'owner_phone', case when v_role in ('inspector','admin') then (select phone from profiles where id = v_i.owner_id) end,
+    'land', jsonb_build_object(
+      'state', v_land.state,
+      'locality', case when v_sees_area then v_land.locality end,
+      'feddans', case when v_sees_area then v_land.feddans end,
+      'area_band', land_area_band(v_land.feddans),
+      'water_source', v_land.water_source, 'soil_class', v_land.soil_class,
+      'documents_on_file', v_land.documents_on_file,
+      'name', case when v_sees_place then v_land.name end,
+      'village', case when v_sees_place then v_land.village end,
+      'latitude', case when v_sees_place then v_land.latitude end,
+      'longitude', case when v_sees_place then v_land.longitude end),
+    -- Photos reach the parties once the report is sealed; the inspector and
+    -- the administrators see them while it is written.
+    'photos', case when v_role in ('inspector','admin') or v_i.status = 'reported' then
+      coalesce((select jsonb_agg(jsonb_build_object(
+          'id', p.id, 'path', p.storage_path, 'caption', p.caption, 'captured_at', p.captured_at,
+          'distance_km', case when p.latitude is not null and p.longitude is not null
+                                   and v_land.latitude is not null and v_land.longitude is not null then
+            round((6371 * 2 * asin(sqrt(
+              power(sin(radians(p.latitude - v_land.latitude) / 2), 2)
+              + cos(radians(v_land.latitude)) * cos(radians(p.latitude))
+                * power(sin(radians(p.longitude - v_land.longitude) / 2), 2))))::numeric, 1) end)
+          order by p.created_at)
+        from land_inspection_photos p where p.inspection_id = v_i.id), '[]'::jsonb)
+      else '[]'::jsonb end
+  );
+end;
+$$;
+
+insert into supabase_migrations.schema_migrations (version, name) values ('20261104040000', 'land_details_after_acceptance') on conflict do nothing;
+
+-- ═══ 20261104050000_push_subscription_limits.sql ═══
+-- اشتراكات تنبيهات الهاتف: حدٌّ لكلّ مستخدم، ومزوّدو الإشعارات المعروفون وحدهم (فحص 3 نوفمبر 2026، public-api-3؛ المالك،
+-- 4 نوفمبر، السؤال 20).
+--
+-- كان push_subscribe يقبل أيّ عنوان https وأيّ عددٍ من الاشتراكات لحسابٍ واحد، والإرسال يمرّ عليها واحداً واحداً: حسابٌ
+-- يسجّل آلاف العناوين البطيئة يُبطئ تنبيهات الجميع. الآن: عشرة أجهزة عاملة لكلّ حساب، وعنوانٌ عند مزوّد إشعاراتٍ معروف
+-- (Google وMozilla وApple وMicrosoft)، ومفاتيح بطولها المعقول. والإرسال نفسه بمهلةٍ في الخادم (src/lib/push.ts).
+
+create or replace function public.push_subscribe(p_endpoint text, p_p256dh text, p_auth text, p_user_agent text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  sid uuid;
+  host text;
+begin
+  if auth.uid() is null then
+    raise exception 'سجّل الدخول أولاً';
+  end if;
+  if p_endpoint !~ '^https://' or length(p_endpoint) > 1000 then
+    raise exception 'عنوان الاشتراك غير صالح';
+  end if;
+  host := lower(substring(p_endpoint from '^https://([^/:?#]+)'));
+  if host is null or not (
+       host = 'fcm.googleapis.com'
+    or host = 'updates.push.services.mozilla.com'
+    or host = 'web.push.apple.com' or host like '%.push.apple.com'
+    or host like '%.notify.windows.com') then
+    raise exception 'مزوّد إشعاراتٍ غير معروف';
+  end if;
+  if length(coalesce(p_p256dh, '')) not between 40 and 200 or length(coalesce(p_auth, '')) not between 16 and 100 then
+    raise exception 'عنوان الاشتراك غير صالح';
+  end if;
+  -- Ten working devices per account; the same browser subscribing again is not a new one.
+  if (select count(*) from push_subscriptions
+       where user_id = auth.uid() and failed_at is null and endpoint <> p_endpoint) >= 10 then
+    raise exception 'لحسابك عشرة أجهزةٍ تصلها التنبيهات. أوقفها في جهازٍ لا تستعمله ثمّ أعد المحاولة.';
+  end if;
+  insert into public.push_subscriptions (user_id, endpoint, p256dh, auth, user_agent)
+  values (auth.uid(), p_endpoint, p_p256dh, p_auth, left(nullif(btrim(coalesce(p_user_agent, '')), ''), 300))
+  on conflict (endpoint) do update
+    set user_id = excluded.user_id,
+        p256dh = excluded.p256dh,
+        auth = excluded.auth,
+        user_agent = excluded.user_agent,
+        failed_at = null,
+        failed_note = null
+  returning id into sid;
+  return sid;
+end $$;
+
+revoke all on function public.push_subscribe(text, text, text, text) from public, anon;
+grant execute on function public.push_subscribe(text, text, text, text) to authenticated;
+
+insert into supabase_migrations.schema_migrations (version, name) values ('20261104050000', 'push_subscription_limits') on conflict do nothing;
+
+-- ═══ 20261104060000_land_and_storage_guards.sql ═══
+-- ثلاثة حرّاس صغار من فحص 3 نوفمبر 2026 (المالك، 4 نوفمبر: الأسئلة 20 و21 و23).
+
+-- ── ١. مصدر الماء من القائمة (app-api-3) ───────────────────────────────────
+-- كان الفحص في الكود بـ `in`، فقيمةٌ مثل "toString" تمرّ وتُسقط صفحة الأرض حين تُعرض. والقاعدة تقول القائمة الآن أيضاً.
+alter table public.lands
+  add constraint lands_water_source_known
+  check (water_source is null or water_source in ('canal', 'river_pump', 'borehole', 'rainfed'));
+
+-- ── ٢. سقف التخزين: 100 ميجابايت لكلّ حساب (ops-5) ─────────────────────────
+-- لا سقف كان لما يرفعه حسابٌ من صورٍ ومستندات، والتخزين المجّانيّ كلّه 1 جيجابايت: حسابٌ واحد يوقف الرفع للجميع.
+-- ما رفعه الحساب يُعدّ قبل كلّ رفعٍ جديد؛ وكلّ ملفٍّ لا يتجاوز 10 ميجابايت (حدّ الدلو)، فأقصى ما يبلغه الحساب 110.
+-- والمدير بلا سقف.
+create function public.storage_used_by(p_user uuid)
+returns bigint
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(sum((o.metadata ->> 'size')::bigint), 0)
+    from storage.objects o
+   where o.owner = p_user
+$$;
+
+comment on function public.storage_used_by(uuid) is 'ما رفعه حسابٌ إلى التخزين بالبايت. يسألها سقف storage_quota_per_account.';
+revoke all on function public.storage_used_by(uuid) from public, anon;
+grant execute on function public.storage_used_by(uuid) to authenticated, service_role;
+
+create policy storage_quota_per_account on storage.objects
+  as restrictive for insert to authenticated
+  with check (public.is_admin() or public.storage_used_by(auth.uid()) < 100 * 1024 * 1024);
+
+-- ── ٣. العرض على المستثمرين والشركاء للمالك والمدير وحدهما (db-b-4 / money-logic-5) ──
+-- الوكيل (20261026020000) يكتب في أرض المزارع الذي فوّضه، وكان يستطيع أيضاً عرضها على المستثمرين والشركاء. العرض قرار
+-- المالك: يسجّل الوكيل الأرض ويحدّث بياناتها، ولا يغيّر هذه الأعمدة.
+create function public.lands_offer_owner_only()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if auth.uid() is null or auth.uid() = new.owner_id or is_admin() then
+    return new;
+  end if;
+  if (tg_op = 'INSERT' and (new.open_to_investors or new.open_to_partners
+                            or cardinality(new.investor_models) > 0 or new.investor_note is not null))
+     or (tg_op = 'UPDATE' and (new.open_to_investors is distinct from old.open_to_investors
+                            or new.open_to_partners is distinct from old.open_to_partners
+                            or new.investor_models is distinct from old.investor_models
+                            or new.investor_note is distinct from old.investor_note)) then
+    raise exception 'عرض الأرض على المستثمرين أو الشركاء قرارُ صاحبها وحده.';
+  end if;
+  return new;
+end $$;
+
+revoke all on function public.lands_offer_owner_only() from public, anon, authenticated;
+
+create trigger lands_offer_owner_only
+  before insert or update on public.lands
+  for each row execute function public.lands_offer_owner_only();
+
+insert into supabase_migrations.schema_migrations (version, name) values ('20261104060000', 'land_and_storage_guards') on conflict do nothing;
+
+-- ═══ 20261104070000_closed_account_sign_in.sql ═══
+-- شاشة الدخول تعرف الحساب المُغلَق (فحص 3 نوفمبر 2026، web-flows-9؛ المالك، 4 نوفمبر، السؤال 26).
+--
+-- إغلاق الحساب (20261025140000) يمحو بريده وجوّاله من auth.users، فإذا حاول صاحبه الدخول بعدها قالت الشاشة «لا حساب
+-- بهذا الرقم بعد» ودعته إلى حسابٍ جديدٍ بلا تاريخه. والعنوان محفوظٌ في closed_accounts (للمدير وحده) حتى يمحو المدير
+-- الهويّة. هذه الدالّة تجيب الخادمَ وحده: هل هذا العنوان لحسابٍ أُغلق؟ — لا أكثر.
+
+create function public.auth_account_closed(p_email text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.closed_accounts
+     where lower(email) = lower(btrim(p_email))
+       and identity_erased_at is null);
+$$;
+
+comment on function public.auth_account_closed(text) is
+  'هل هذا العنوان لحسابٍ أُغلق ولم تُمحَ هويّته؟ للخادم وحده، لشاشة الدخول.';
+
+revoke all on function public.auth_account_closed(text) from public, anon, authenticated;
+grant execute on function public.auth_account_closed(text) to service_role;
+
+insert into supabase_migrations.schema_migrations (version, name) values ('20261104070000', 'closed_account_sign_in') on conflict do nothing;
+
+-- ═══ 20261104080000_research_uploads_issued.sql ═══
+-- رابط رفع البحث لطلبٍ واحدٍ مسجَّل، وكنسٌ لما تُرك (فحص 3 نوفمبر 2026، public-api-4 / web-client-3؛ المالك، 4 نوفمبر،
+-- السؤال 25).
+--
+-- كان /api/research يعطي أيّ زائرٍ رابط رفعٍ إلى دلو research، ولا يتذكّر أنّه أعطاه، ولا يمسح ملفّاً لم يُرسَل معه بحث،
+-- وإن تعذّر سؤالُ حدّ المحاولات أعطى الرابط على كلّ حال. الآن: كلّ رابطٍ يُسجَّل هنا بمساره، والإرسالُ يقبل مساراً
+-- سُجِّل ولم يُستعمل خلال يوم ويعلّمه مستعملاً؛ والفحص اليوميّ يمحو ما في incoming/ ممّا لم يُرسَل معه بحثٌ بعد يوم.
+-- للخادم وحده: لا يقرؤه ولا يكتبه أحدٌ غيره.
+
+create table public.research_uploads (
+  path       text primary key check (path ~ '^incoming/[0-9a-f-]{36}\.pdf$'),
+  issued_at  timestamptz not null default now(),
+  used_at    timestamptz
+);
+
+comment on table public.research_uploads is 'روابط رفع البحوث التي أعطاها الخادم، ومتى استُعمل كلٌّ منها. للخادم وحده.';
+
+alter table public.research_uploads enable row level security;
+revoke all on table public.research_uploads from public, anon, authenticated;
+grant select, insert, update, delete on table public.research_uploads to service_role;
+
+insert into supabase_migrations.schema_migrations (version, name) values ('20261104080000', 'research_uploads_issued') on conflict do nothing;
+
 commit;

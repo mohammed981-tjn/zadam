@@ -83,6 +83,16 @@ export const AREA_BAND_SHORT: Record<AreaBand, Bi> = {
   scheme: { ar: "مشروع آليّ", en: "Mechanised scheme" },
 };
 
+/**
+ * The area as a party may see it: in feddans once they may (the owner, or an investor the owner has accepted), its
+ * band before that (money-logic-4, the owner's question 18).
+ */
+export function areaShown(feddans: number | null, band: string | null, locale: Locale): string {
+  if (feddans !== null && feddans !== undefined) return `${Number(feddans).toLocaleString("en-US")} ${tr(locale, "فدان", "feddans")}`;
+  const b = (AREA_BANDS as readonly string[]).includes(band ?? "") ? (band as AreaBand) : null;
+  return b ? lbl(AREA_BAND_LABEL[b], locale) : tr(locale, "المساحة بعد القبول", "Area after acceptance");
+}
+
 // ── الماء والتربة والمحاصيل ───────────────────────────────────────────────
 
 export const WATER_SOURCES = Object.keys(WATER_SOURCE_LABEL) as WaterSource[];
