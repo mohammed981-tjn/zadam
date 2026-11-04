@@ -631,6 +631,7 @@ const MESSAGES: [string, string][] = [
   ["اكتب مبلغ الغرامة.", "Enter the penalty amount."],
   ["للإدارة وحدها، بالرمز الثاني.", "For administrators only, with the second code."],
   ["لم يُضَف نوع الإشعار password_reset", "The password_reset notification type was not added"],
+  ["لم يُضَف نوع الإشعار system_alert", "The system_alert notification type was not added"],
   ["اكتب لماذا لم تُستعَد كلمة المرور.", "Write why the password was not reset."],
   ["هذا الطلب أُغلق من قبل.", "This request has already been closed."],
   ["تسجيل المزارعين لجمعيّةٍ أو شركةٍ موثّقة.", "Registering farmers is for a verified cooperative or company."],

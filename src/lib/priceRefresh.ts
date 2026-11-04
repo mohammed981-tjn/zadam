@@ -22,12 +22,13 @@ import {
  * scheduled job has no visitor to act as; what it writes is only ever a row in
  * market_quotes and one in price_runs.
  *
- * Nothing is published by this job (the owner, 25 October 2026: read by the
- * platform, approved by a click). Every figure it reads is written held: with
- * the reason AWAITING_REASON when its reader read it with certainty and it sits
- * within a day's movement of the last published figure — the administrator's
- * one click approves those — and with its own reason when it strays or comes
- * from free prose (Gedaref), which are decided one by one. A figure no newer
+ * Every figure it reads is written held: with the reason AWAITING_REASON when its reader read it with certainty, it
+ * sits within a day's movement of the last published figure and no other source read that day differently — and with
+ * its own reason when it strays or comes from free prose (Gedaref), which the administrator decides one by one. The
+ * first kind is then published at the end of the run by market_quotes_publish_trusted (the owner, 4 November 2026,
+ * question 16 of the audit: «الأسعار تُنشر بلا اعتمادي»; until then it waited for a click that decided nothing). The
+ * service key itself still cannot publish (market_quotes_service_guard). And when a feed has stopped, or a figure has
+ * waited more than two days, price_feeds_alert tells the administrators inside the platform, once a day (ops-6). A figure no newer
  * than the last one already shown is skipped — the run adds days, it does not
  * repeat them. What is read is kept: nothing in market_quotes is ever deleted
  * except by an administrator's erasure.
@@ -254,12 +255,23 @@ export async function refreshPrices(admin: SupabaseClient, trigger: "cron" | "ad
     const { data: written, error } = await admin
       .from("market_quotes")
       .upsert(rows, { onConflict: "kind,market,crop,market_date,source_url", ignoreDuplicates: true })
-      .select("status");
+      .select("id, status, reason");
     if (error) errors.push(`write: ${error.message}`);
-    for (const w of (written ?? []) as { status: string }[]) {
+    const list = (written ?? []) as { id: string; status: string; reason: string | null }[];
+    // What was read with certainty, within a day's movement, and not disputed by another source: published now.
+    const trusted = list.filter((w) => w.status === "held" && w.reason === AWAITING_REASON).map((w) => w.id);
+    let auto = 0;
+    if (trusted.length > 0) {
+      const { data: n, error: publishError } = await admin.rpc("market_quotes_publish_trusted", { p_ids: trusted });
+      if (publishError) errors.push(`publish: ${publishError.message}`);
+      else auto = typeof n === "number" ? n : 0;
+    }
+    for (const w of list) {
       if (w.status === "published") published++;
       else held++;
     }
+    published += auto;
+    held -= auto;
   }
 
   // A feed whose newest figure is older than the window this run looks back over is broken, not
@@ -267,6 +279,11 @@ export async function refreshPrices(admin: SupabaseClient, trigger: "cron" | "ad
   const stale = staleLines(await loadFeedStates(admin));
   if (stale.length > 0) console.error("prices: stale feeds", stale);
   errors.push(...stale);
+  // And to the administrators, inside the platform: the daily check said «سليم» 115 times while the feeds were down.
+  // The function decides whether there is anything to say (a stopped feed, a figure held over two days) and says it
+  // once a day.
+  const { error: alertError } = await admin.rpc("price_feeds_alert", { p_lines: stale });
+  if (alertError) errors.push(`alert: ${alertError.message}`);
 
   const summary = { found: rows.length, published, held, errors: errors.slice(0, 20) };
   if (run) {

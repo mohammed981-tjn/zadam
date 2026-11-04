@@ -1,14 +1,15 @@
 /**
- * The daily price run publishes nothing (backlog 196; the owner, 25 October 2026:
- * «لا تنشر شي للعامة واسالني وانا اختار الإجابة»).
+ * The daily price run writes every figure held, then publishes only what was read with certainty (backlog 196; the
+ * owner, 4 November 2026, question 16 of the audit: «الأسعار تُنشر بلا اعتمادي» — until then the trusted figures waited
+ * for a click that decided nothing).
  *
  *   npx tsx scripts/verify-price-refresh.ts
  *
  * Runs the real `refreshPrices` against the real articles (scripts/fixtures/price-feeds)
  * served in place of the sites, and a database that only records what it is asked to write.
- * Whatever the readers find, every row the run writes must be held — the administrator's click
- * is the only way a figure reaches visitors — and a figure read with certainty must carry the
- * exact words the database's one-click approval looks for.
+ * Whatever the readers find, every row the run writes must be held (the service key cannot publish), a figure read with
+ * certainty must carry the exact words market_quotes_publish_trusted looks for, and only those rows' ids go to it —
+ * never a stray, a disputed day or Gedaref's free prose, which wait for the administrator.
  */
 
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -96,6 +97,7 @@ async function main() {
   const fakeDb = (stored: Stored[]) => {
     const written: Row[] = [];
     const updates: { table: string; set: Record<string, unknown>; where: Record<string, unknown> }[] = [];
+    const rpcs: { fn: string; args: Record<string, unknown> }[] = [];
     const chain = (table: string): Record<string, unknown> => {
       const where: Record<string, unknown> = {};
       const not: Record<string, unknown> = {};
@@ -112,7 +114,12 @@ async function main() {
         single: async () => ({ data: { id: "run-1" } }),
         upsert: (rows: Row[]) => {
           written.push(...rows);
-          return { select: async () => ({ data: rows.map((r) => ({ status: r.status })), error: null }) };
+          return {
+            select: async () => ({
+              data: rows.map((r, i) => ({ id: `row-${written.length - rows.length + i}`, status: r.status, reason: r.reason })),
+              error: null,
+            }),
+          };
         },
         then: (resolve: (v: unknown) => void) => {
           if (set) {
@@ -134,7 +141,11 @@ async function main() {
       };
       return c;
     };
-    return { written, updates, admin: { from: (t: string) => chain(t) } as unknown as Parameters<typeof refreshPrices>[0] };
+    const rpc = async (fn: string, args: Record<string, unknown>) => {
+      rpcs.push({ fn, args });
+      return { data: fn === "market_quotes_publish_trusted" ? (args.p_ids as string[]).length : 0, error: null };
+    };
+    return { written, updates, rpcs, admin: { from: (t: string) => chain(t), rpc } as unknown as Parameters<typeof refreshPrices>[0] };
   };
   const run = async (stored: Stored[]) => {
     const db = fakeDb(stored);
@@ -147,7 +158,7 @@ async function main() {
     }
   };
 
-  const { written, summary } = await run([]);
+  const { written, summary, rpcs } = await run([]);
 
   ok(written.length > 0, `the run found figures (${written.length})`);
   const keys = (r: Row) => Object.keys(r).sort().join(",");
@@ -155,8 +166,15 @@ async function main() {
     "every row carries the same columns — PostgREST would set a key missing from one row to NULL in the whole batch");
   ok(written.every((r) => r.market !== null && r.market !== undefined && r.crop !== null && r.crop !== undefined),
     "and market/crop are never NULL (they are NOT NULL in the table)");
-  ok(written.every((r) => r.status === "held"), "every row it wrote is held — none published");
-  ok(summary.published === 0, "and the summary counts none published");
+  ok(written.every((r) => r.status === "held"), "every row it wrote is held — the service key cannot publish");
+  const publishCall = rpcs.find((c) => c.fn === "market_quotes_publish_trusted");
+  const trustedIds = written.map((r, i) => (r.reason === AWAITING_REASON ? `row-${i}` : null)).filter(Boolean);
+  ok(!!publishCall && JSON.stringify(publishCall.args.p_ids) === JSON.stringify(trustedIds) && trustedIds.length > 0,
+    `only the rows read with certainty go to market_quotes_publish_trusted (${trustedIds.length} of ${written.length})`);
+  ok(summary.published === trustedIds.length && summary.held === written.length - trustedIds.length,
+    "and the summary counts them published, the rest held");
+  ok(rpcs.some((c) => c.fn === "price_feeds_alert" && Array.isArray(c.args.p_lines)),
+    "and the run asks price_feeds_alert whether to tell the administrators (ops-6)");
   ok(written.some((r) => r.kind === "fx_bank"), "the bank's dollar was read");
   const parallelRows = written.filter((r) => r.kind === "fx_parallel");
   ok(parallelRows.length === 1 && parallelRows[0].market_date === "2026-10-23", "one parallel figure, the newest day any source gave (23 October, not bajnews's 21st)");
@@ -199,7 +217,7 @@ async function main() {
     console.log(`${failed} FAILED`);
     process.exit(1);
   }
-  console.log("ALL CHECKS PASSED — the run reads and holds; only the administrator publishes");
+  console.log("ALL CHECKS PASSED — the run reads and holds, publishes only the certain, and leaves the rest to the administrator");
 }
 
 main().catch((e) => {

@@ -65,7 +65,8 @@ select format('الموقع ينادي %s والعضو لا ينفّذها، و�
    and p.proname <> all (array[
          'auth_account_exists', 'check_assistant_rate_limit', 'check_model_budget', 'farm_book_sync',
          'farmer_season_records', 'feedback_awaiting_auto_reply', 'field_alert_send', 'land_set_soil_estimate',
-         'log_assistant_question', 'password_reset_request', 'price_alert_fire', 'prune_ephemeral_rows',
+         'log_assistant_question', 'market_quotes_publish_trusted', 'password_reset_request', 'price_alert_fire',
+         'price_feeds_alert', 'prune_ephemeral_rows',
          'run_system_check'])
    -- An overload the site no longer calls (the 3-argument investor_express_interest) may stay closed.
    and not exists (select 1 from pg_proc q where q.proname = p.proname and q.pronamespace = p.pronamespace

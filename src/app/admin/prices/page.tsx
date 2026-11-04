@@ -102,8 +102,8 @@ export default async function AdminPricesPage({
     <div className="mx-auto max-w-4xl px-4 py-10">
       <PageHeader icon="shield" eyebrow={t("الإدارة", "Administration")} title={t("الأسعار", "Prices")}>
         {t(
-          "تقرأ المنصّة كلّ يوم سعر بنك الخرطوم والسوق الموازي ونشرات بورصتي الأبيض والقضارف من مواقع الأخبار، وتحجز كلّ رقمٍ برابطه وجملته ولا تنشر شيئاً بنفسها: تعتمد ما قُرئ بيقين بنقرةٍ واحدة، وما شذّ عن آخر رقمٍ أو جاء من نصٍّ حرّ تقرّر فيه رقماً رقماً. وكلّ ما قُرئ يُحفظ ولا يمحوه إلا أنت بسبب.",
-          "Every day the platform reads Bank of Khartoum, the parallel market and the El Obeid and Gedaref bulletins from the news sites and holds each figure with its link and sentence; it publishes nothing by itself. You approve what was read with certainty in one click, and decide the strays and free prose one by one. Everything read is kept, and only you can erase it, with a reason.",
+          "تقرأ المنصّة كلّ يوم سعر بنك الخرطوم والسوق الموازي ونشرات بورصتي الأبيض والقضارف من مواقع الأخبار، وتحفظ كلّ رقمٍ برابطه وجملته. ما قُرئ بيقين وبقي ضمن حركة يومٍ ولم يختلف عليه مصدرٌ آخر يُنشر وحده؛ وما شذّ عن آخر رقمٍ، أو اختلفت فيه المصادر، أو جاء من نصٍّ حرّ، ينتظر قرارك رقماً رقماً. وإن توقّف مصدرٌ أو بقي رقمٌ ينتظرك أكثر من يومين وصلك إشعار. وكلّ ما قُرئ يُحفظ ولا يمحوه إلا أنت بسبب.",
+          "Every day the platform reads Bank of Khartoum, the parallel market and the El Obeid and Gedaref bulletins from the news sites and keeps each figure with its link and sentence. What was read with certainty, within a day's movement and undisputed by another source, is published by itself; what strays from the last figure, what the sources disagree on, and free prose wait for your decision one by one. If a source stops, or a figure has waited for you more than two days, you are notified. Everything read is kept, and only you can erase it, with a reason.",
         )}
       </PageHeader>
       <ActionNotice ok={sp.ok} error={sp.error} />
