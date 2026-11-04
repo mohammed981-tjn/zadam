@@ -57,6 +57,10 @@ const OBEID: Source[] = [
   // 4 نوفمبر 2026: «سوق الأبيض» تملؤه أخبار الحرب، فخرجت نشرة 14 أكتوبر من العشرة الأولى؛ «بورصة» وجدتها
   // (scripts/probe-feeds-now.ts). ما يُقرأ مرّتين لا يُكتب مرّتين.
   { base: "https://sudafax.com", search: "بورصة", days: CROP_WINDOW_DAYS },
+  // 4 نوفمبر 2026 (المالك: «أضفه بالقواعد نفسها»): شبكة أخبار شمال كردفان تنشر القائمة نفسها التي كان سودافاكس
+  // ينقلها (رصد إسماعيل جبال)، في 30 أكتوبر و1 نوفمبر، وقرأها readObeidList كما هي. العنوان مشكولٌ («الأُبَيض»)،
+  // فالبحث بـ«بورصة».
+  { base: "https://nksnews.net", search: "بورصة", days: CROP_WINDOW_DAYS },
 ];
 const GEDAREF: Source[] = [{ base: "https://sudafax.com", search: "القضارف", days: CROP_WINDOW_DAYS }];
 
