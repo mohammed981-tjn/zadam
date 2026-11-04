@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -34,7 +35,7 @@ export async function addCustodyEvent(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 
@@ -118,7 +119,7 @@ export async function attachEvidence(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 
@@ -231,7 +232,7 @@ export async function classifyEvidence(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 

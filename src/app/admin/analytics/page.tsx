@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { normalizeArabic } from "@/lib/retrieval";
 import type { KnowledgeEntry, Lead } from "@/types/database";
 import PromoteAnswer from "@/components/PromoteAnswer";
@@ -111,7 +112,7 @@ export default async function AnalyticsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const { data: profile } = await supabase
     .from("profiles")

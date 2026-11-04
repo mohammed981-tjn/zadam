@@ -16,7 +16,16 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { MEMBER_COLUMNS, VISITOR_COLUMNS } from "../src/lib/visitorColumns";
 
-const sql = readFileSync(join(__dirname, "../supabase/migrations/20261022050000_visitor_columns.sql"), "utf8");
+// The visitor-columns migration and the later ones that narrow (backlog 181) or extend (projects.trial, 20261103020000)
+// those same tables, in order: a column grant is the sum of the grants since the last revoke of the table from the role.
+const sql = [
+  "20261022050000_visitor_columns.sql",
+  "20261025230000_projects_suppliers_private_ids.sql",
+  "20261025230100_partner_companies_private_ids.sql",
+  "20261103020000_trial_records.sql",
+]
+  .map((f) => readFileSync(join(__dirname, "../supabase/migrations", f), "utf8"))
+  .join("\n");
 
 let failed = 0;
 const check = (ok: boolean, label: string, why = "") => {
@@ -28,8 +37,14 @@ const split = (s: string) => s.split(",").map((c) => c.trim()).filter(Boolean).s
 
 function grants(role: "anon" | "authenticated"): Map<string, string[]> {
   const out = new Map<string, string[]>();
-  const re = new RegExp(`grant select \\(([^)]*)\\)\\s+on table public\\.([a-z_]+) to ${role};`, "g");
-  for (const m of sql.matchAll(re)) out.set(m[2], split(m[1]));
+  const re =
+    /(revoke select on table public\.([a-z_]+) from ([a-z_, ]+);)|(grant select \(([^)]*)\)\s+on (?:table )?public\.([a-z_]+) to ([a-z_, ]+);)/g;
+  const roles = (s: string) => s.split(",").map((r) => r.trim());
+  for (const m of sql.matchAll(re)) {
+    if (m[1] && roles(m[3]).includes(role)) out.set(m[2], []);
+    if (m[4] && roles(m[7]).includes(role)) out.set(m[6], [...new Set([...(out.get(m[6]) ?? []), ...split(m[5])])].sort());
+  }
+  for (const [table, cols] of out) if (cols.length === 0) out.delete(table);
   return out;
 }
 
@@ -77,6 +92,13 @@ for (const table of ["suppliers", "partner_companies"] as const) {
   check(!split(MEMBER_COLUMNS[table]).includes("review_note"), `a member does not read ${table}.review_note`, "it is in the list");
 }
 check(!split(MEMBER_COLUMNS.feedback).includes("contact"), "a member does not read feedback.contact", "it is in the list");
+for (const [table, col] of [
+  ["suppliers", "owner_id"], ["suppliers", "licence_doc_path"], ["suppliers", "verified_by"],
+  ["projects", "created_by"], ["projects", "review_note"], ["projects", "land_id"],
+  ["partner_companies", "owner_id"], ["partner_companies", "verified_by"],
+] as const) {
+  check(!split(MEMBER_COLUMNS[table]).includes(col), `a member does not read ${table}.${col}`, "it is in the list");
+}
 
 /*
  * The phone app reads as a visitor too, and it was missed: its النفير screen

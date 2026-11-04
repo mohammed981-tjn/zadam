@@ -8,7 +8,7 @@ import {
   type IrrigationMethod,
 } from "@/lib/agronomy";
 import { STAGE_TEMPLATES, LEDGER_LABEL, type StageKey } from "@/lib/season";
-import { assessProject, WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
+import { assessProject, WATER_SOURCE_LABEL, WATER_SOURCE_LABEL_EN, type WaterSource } from "@/lib/risk";
 import { computeTrust } from "@/lib/trust";
 import { RISK_WEIGHTS, type RiskProfile } from "@/lib/portfolio";
 import { investmentLive } from "@/lib/platformFlags";
@@ -87,12 +87,6 @@ const IRRIGATION_EN: Record<IrrigationMethod, string> = {
   drip: "Drip irrigation",
 };
 
-const WATER_SOURCE_EN: Record<WaterSource, string> = {
-  canal: "Canal from a dam or river",
-  river_pump: "Direct pumping from the river",
-  borehole: "Boreholes (groundwater)",
-  rainfed: "Fully rain-fed",
-};
 
 const LEDGER_EN: Record<string, string> = {
   seeds: "Seeds",
@@ -413,7 +407,7 @@ export default async function GuidePage() {
   const irrigation = (m: IrrigationMethod) =>
     en ? IRRIGATION_EN[m] : IRRIGATION_LABEL[m];
   const waterSource = (w: WaterSource) =>
-    en ? WATER_SOURCE_EN[w] : WATER_SOURCE_LABEL[w];
+    en ? WATER_SOURCE_LABEL_EN[w] : WATER_SOURCE_LABEL[w];
 
   const LIVE = <Pill tone="bg-primary/10 text-primary">{t("يعمل", "Live")}</Pill>;
   const SHUT = <Pill tone="bg-danger/10 text-danger">{t("مغلق", "Closed")}</Pill>;
@@ -650,17 +644,18 @@ export default async function GuidePage() {
           <Note title={t("فرق مهم بين الطريقتين", "An important difference between the two")} tone="flag">
             {en ? (
               <p>
-                An email account can be recovered if you forget its password. A
-                phone account{" "}
-                <strong>cannot be recovered yet</strong> — there is no text
-                message carrying a code and no email to receive a link. So if
-                you will be running the platform, use an email account.
+                An email account recovers its password by a link in the inbox. A
+                phone account has no inbox and no text messages yet, so it is{" "}
+                <strong>recovered by the administration</strong>: from «Forgot
+                your password», they call the number on the account, then read
+                you a temporary password that you change when you sign in.
               </p>
             ) : (
               <p>
-                حساب البريد يمكن استرجاعه إن نسيت كلمة مروره. حساب الجوال{" "}
-                <strong>لا يمكن استرجاعه بعد</strong> — لا رسالة نصية تحمل رمزاً
-                ولا بريد يصله رابط. فإن كنت ستدير المنصة، اجعل حسابك بالبريد.
+                حساب البريد يستعيد كلمة مروره برابطٍ في بريده. وحساب الجوال لا بريد
+                له ولا رسائل نصيّة بعد، فـ<strong>تستعيدها له الإدارة</strong>: من
+                «نسيت كلمة المرور» تتّصل بالرقم المسجَّل في الحساب، ثمّ تقرأ لك
+                كلمةً مؤقّتة تغيّرها حين تدخل.
               </p>
             )}
           </Note>

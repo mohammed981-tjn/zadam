@@ -1,5 +1,7 @@
 "use server";
 
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
+
 import { createClient } from "@/lib/supabase/server";
 import {
   planAllocation,
@@ -40,7 +42,7 @@ export async function generatePlan(
   const supabase = await createClient();
   const { data: projects, error } = await supabase
     .from("projects")
-    .select("*")
+    .select(MEMBER_COLUMNS.projects)
     .eq("status", "open");
 
   if (error) {
@@ -54,7 +56,7 @@ export async function generatePlan(
    * replaces the typed one, so the allocation follows evidence rather than an
    * opinion. Projects predating the scoring fields keep their stored level.
    */
-  const scored = ((projects ?? []) as Project[]).map((p) => {
+  const scored = ((projects ?? []) as unknown as Project[]).map((p) => {
     if (!p.crop_key || !p.station_key) return p;
 
     const assessment = assessProject({

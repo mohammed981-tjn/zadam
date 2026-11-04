@@ -142,6 +142,49 @@ begin
 end $$;
 reset role;
 
+\echo ''
+\echo '=========================================================================='
+\echo 'د) محطّات الشحنة وصور الأدلّة: الإحداثيّات ومسار الملفّ لصاحب العرض وللمدير (مراجعة ١٩٨)'
+\echo '=========================================================================='
+reset role;
+revoke select on table public.export_offer_custody, public.export_offer_evidence from anon;
+grant select (id, offer_id, sequence, occurred_at, place_name, note, created_at) on table public.export_offer_custody to anon;
+grant select (id, offer_id, kind, captured_at, sha256, created_at, document_type_id) on table public.export_offer_evidence to anon;
+do $$
+declare o uuid := (select id from export_offers where reference = 'EXP-PRIV');
+begin
+  insert into export_offer_custody (offer_id, sequence, occurred_at, place_name, latitude, longitude)
+  values (o, 1, now(), 'المزرعة', 13.183333, 30.216667), (o, 2, now(), 'مخزن الأبيض', 13.18, 30.22);
+  insert into export_offer_evidence (offer_id, kind, captured_at, latitude, longitude, storage_path)
+  values (o, 'photo', now(), 13.183333, 30.216667, 'a1000000-0000-0000-0000-0000000000a1/field.jpg');
+end $$;
+set role authenticated;
+do $$
+declare o uuid := (select id from export_offers where reference = 'EXP-PRIV');
+begin
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _eq((select count(*)::int from (select place_name from export_offer_custody) x), 2, 'المسجَّل الآخر يرى أسماء المحطّات');
+  perform _refuses($q$select latitude from export_offer_custody$q$, 'ولا يقرأ إحداثيّات المحطّات');
+  perform _refuses($q$select latitude from export_offer_evidence$q$, 'ولا إحداثيّات صور الأدلّة');
+  perform _refuses($q$select storage_path from export_offer_evidence$q$, 'ولا مسار ملفّ الدليل');
+  perform _eq((select count(*)::int from export_offer_custody_detail(o)), 0, 'والدالّة لا تعطيه المحطّات');
+  perform _eq((select count(*)::int from export_offer_evidence_detail(o)), 0, 'ولا الأدلّة');
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _eq((select latitude::text from export_offer_custody_detail(o) where sequence = 1), '13.183333', 'صاحب العرض يقرأ إحداثيّة محطّته');
+  perform _eq((select storage_path from export_offer_evidence_detail(o)), 'a1000000-0000-0000-0000-0000000000a1/field.jpg', 'ومسار دليله');
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  perform _eq((select count(*)::int from export_offer_custody_detail(o)), 2, 'والمدير يقرأ المحطّتين');
+  perform _eq((select count(*)::int from export_offer_evidence_detail(o)), 1, 'والدليل');
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  perform _refuses($q$select latitude from export_offer_custody$q$, 'والزائر لا يقرأ شيئاً من الإحداثيّات');
+  perform _refuses($q$select storage_path from export_offer_evidence$q$, 'ولا المسار');
+  perform _refuses($q$select * from export_offer_custody_detail((select id from export_offers limit 1))$q$, 'ولا يستدعي الدالّة');
+end $$;
+reset role;
+
 do $$
 declare n integer;
 begin

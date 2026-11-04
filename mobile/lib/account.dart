@@ -20,12 +20,15 @@
 library;
 
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
+import 'land_shape.dart';
 
 /// The country codes the website's phone field offers, in its order
 /// (src/lib/phone.ts, COUNTRIES). scripts/verify-app-account.ts holds the two
@@ -161,6 +164,39 @@ class MyLand {
       );
 }
 
+/// What the site answers when a land is saved from the app.
+class LandSaved {
+  const LandSaved({
+    required this.id,
+    required this.feddans,
+    required this.message,
+    this.station,
+    this.soilName,
+    this.soilProbability,
+  });
+
+  final String id;
+  final num feddans;
+
+  /// The climate station nearest the land's centre (the key in agronomy.dart's `stations`).
+  final String? station;
+  final String message;
+  final String? soilName;
+  final num? soilProbability;
+
+  factory LandSaved.fromJson(Map<String, dynamic> j) {
+    final soil = j['soil'] as Map<String, dynamic>?;
+    return LandSaved(
+      id: j['id'] as String? ?? '',
+      feddans: j['feddans'] as num? ?? 0,
+      message: j['message'] as String? ?? '',
+      station: j['station'] as String?,
+      soilName: soil?['name'] as String?,
+      soilProbability: soil?['probability'] as num?,
+    );
+  }
+}
+
 class ReviewItem {
   const ReviewItem({required this.title, this.meta});
   final String title;
@@ -213,6 +249,7 @@ class Account {
     required this.lands,
     this.reviewTotal,
     this.review = const [],
+    this.reviewNote,
   });
 
   final String name;
@@ -224,6 +261,10 @@ class Account {
   /// Null for everyone but an administrator.
   final int? reviewTotal;
   final List<ReviewSection> review;
+
+  /// Set when the review list cannot be read from the app (the administrators' second code, mobile-vs-platform-7):
+  /// what to do instead of «لا شيء ينتظر قرارك».
+  final String? reviewNote;
 
   bool get isAdmin => role == 'admin';
 
@@ -243,6 +284,7 @@ class Account {
       review: ((review?['sections'] as List<dynamic>?) ?? const [])
           .map((e) => ReviewSection.fromJson(e as Map<String, dynamic>))
           .toList(),
+      reviewNote: review?['message'] as String?,
     );
   }
 }
@@ -494,6 +536,53 @@ class AccountController extends ValueNotifier<Session?> {
     await _keep(Session.fromJson(body));
   }
 
+  // ── الدخول بحساب Google (البند ١٧٣) ─────────────────────────────────────────
+
+  static const _verifierKey = 'sudagri.oauth.verifier';
+
+  /// What went wrong on the way back from the browser, for the sign-in form to say.
+  final providerError = ValueNotifier<String?>(null);
+
+  /// The address to open in the phone's browser for [provider]. A random secret is made and kept here; only its
+  /// fingerprint leaves with the request. The site sends the session back sealed, openable only with that secret
+  /// (src/lib/appHandoff.ts), so another app that catches the link gets nothing.
+  Future<Uri> providerSignInUrl(String provider, {String side = 'farmer'}) async {
+    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    final random = Random.secure();
+    final verifier = base64Url.encode([for (var i = 0; i < 32; i++) random.nextInt(256)]).replaceAll('=', '');
+    final challenge = base64Url.encode(sha256.convert(utf8.encode(verifier)).bytes).replaceAll('=', '');
+    await (await SharedPreferences.getInstance()).setString(_verifierKey, verifier);
+    providerError.value = null;
+    return Uri.parse('$_site/api/app/oauth')
+        .replace(queryParameters: {'provider': provider, 'side': side, 'challenge': challenge});
+  }
+
+  /// The link the browser opens the app with, `sudagri://auth?h=…`: the sealed session and the kept secret go to
+  /// the site, and the session that comes back is kept. Other links are not this one's to handle.
+  Future<void> handleLink(Uri link) async {
+    if (link.scheme != 'sudagri' || link.host != 'auth') return;
+    final sealed = link.queryParameters['h'];
+    final prefs = await SharedPreferences.getInstance();
+    final verifier = prefs.getString(_verifierKey);
+    if (sealed == null || verifier == null) {
+      providerError.value = 'لم يكتمل الدخول بهذا الحساب. اضغط الزرّ مرّةً أخرى.';
+      return;
+    }
+    try {
+      final res = await _post('/api/app/oauth/finish', {'handoff': sealed, 'verifier': verifier});
+      final body = _json(res);
+      if (res.statusCode != 200) {
+        providerError.value = body['error'] as String? ?? 'لم يكتمل الدخول بهذا الحساب.';
+        return;
+      }
+      await prefs.remove(_verifierKey);
+      providerError.value = null;
+      await _keep(Session.fromJson(body));
+    } on ApiException catch (e) {
+      providerError.value = e.message;
+    }
+  }
+
   /// Creates the account and signs in with it. When the account was created
   /// but the sign-in that follows was not, throws with a message saying so —
   /// the person signs in from the form, and nothing is lost.
@@ -590,6 +679,41 @@ class AccountController extends ValueNotifier<Session?> {
     if (res.statusCode != 200) {
       throw ApiException(_json(res)['error'] as String? ?? 'تعذّر تعليمها مقروءة.');
     }
+  }
+
+  /// «أرضي · استثماري» (البند ١٧٣): which side of the one account the person is on now, as the website's switch.
+  Future<void> switchSide(String side) async {
+    final res = await _authed('POST', '/api/app/side', body: {'side': side});
+    if (res.statusCode != 200) {
+      throw ApiException(_json(res)['error'] as String? ?? 'تعذّر تغيير الجانب (${res.statusCode}).');
+    }
+  }
+
+  // ── «حدّد أرضك» (البند ١٣٤) ────────────────────────────────────────────────
+
+  /// Saves a land from its corners. The site works out the area and the centre from them, as the website saves a
+  /// land: submitted, unlisted, as this person. Then it reads the soil at the centre and sends it back.
+  Future<LandSaved> registerLand({
+    required String name,
+    required String state,
+    String? locality,
+    required String waterSource,
+    required String tenure,
+    required List<Corner> corners,
+  }) async {
+    final res = await _authed('POST', '/api/app/lands', body: {
+      'name': name,
+      'state': state,
+      if (locality != null && locality.isNotEmpty) 'locality': locality,
+      'water_source': waterSource,
+      'tenure': tenure,
+      'boundary': [for (final c in thin(corners)) c.toJson()],
+    });
+    final body = _json(res);
+    if (res.statusCode != 200) {
+      throw ApiException(body['error'] as String? ?? 'تعذّر تسجيل الأرض (${res.statusCode}).');
+    }
+    return LandSaved.fromJson(body);
   }
 
   // ── صندوق الرسائل (البند ١٤٤) ────────────────────────────────────────────

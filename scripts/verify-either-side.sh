@@ -29,6 +29,7 @@ PRIVATE="$(pg_stage "$ROOT/supabase/migrations/20261021220000_land_rows_not_publ
 AGREEMENTS="$(pg_stage "$ROOT/supabase/migrations/20261021230000_partnership_agreements.sql" agreements.sql)"
 TRUST="$(pg_stage "$ROOT/supabase/migrations/20261023010000_partnership_trust.sql" trust.sql)"
 MANAGED="$(pg_stage "$ROOT/supabase/migrations/20261023020000_partnership_managed.sql" managed.sql)"
+BANDONLY="$(pg_stage "$ROOT/supabase/migrations/20261025150200_open_lands_band_only.sql" bandonly.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-either-side.sql" checks.sql)"
 
 # Supabase's own defaults, so that a revoke in a migration is what the checks meet.
@@ -52,6 +53,7 @@ echo "── صفُّ الأرض خاصّ";   pg_run "$PRIVATE" >/dev/null
 echo "── العقد";             pg_run "$AGREEMENTS" >/dev/null
 echo "── ما ينقص الشراكة";   pg_run "$TRUST" >/dev/null
 echo "── الشراكة الثلاثيّة";  pg_run "$MANAGED" >/dev/null
+echo "── الفئة لا المساحة";    pg_run "$BANDONLY" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"

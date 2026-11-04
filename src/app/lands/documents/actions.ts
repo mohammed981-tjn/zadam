@@ -9,6 +9,7 @@ import { evidenceFileExists } from "@/lib/evidenceFile";
 import { LAND_DOCUMENT_KINDS } from "@/lib/landDocuments";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginHrefHere } from "@/lib/loginHere";
 
 // القائمةُ نفسُها هي مصدرُ الحقيقة، ومنها تُشتقّ المفاتيحُ المقبولة — فلا
 // تفترقان. وهي في `lib/` لا هنا: وحدةُ `"use server"` لا تُصدّر إلّا دوالَّ
@@ -32,7 +33,7 @@ export async function addLandDocument(args: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -58,6 +59,17 @@ export async function addLandDocument(args: {
       ),
     };
   }
+
+  // A document kept offline is sent again if the reply to its first send was lost (backlog 185): the same file on the
+  // same land is the document already recorded.
+  const { data: already } = await supabase
+    .from("land_documents")
+    .select("id")
+    .eq("land_id", args.landId)
+    .eq("storage_path", args.storagePath)
+    .limit(1)
+    .maybeSingle();
+  if (already) return { ok: true };
 
   const photo = sanitisePhotoMetadata(args.metadata);
 

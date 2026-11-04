@@ -88,7 +88,7 @@ export default function MapScreen({
   };
 
   const chip =
-    "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-extrabold shadow-float ring-1 backdrop-blur transition active:scale-95";
+    "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-extrabold shadow-float ring-1 backdrop-blur transition active:scale-95 md:px-3 md:py-1.5";
 
   return (
     <LiveMap
@@ -99,10 +99,11 @@ export default function MapScreen({
       // The country first seen clear of the chips above, the key below and the buttons beside.
       padding={{ top: 64, bottom: 190, left: 16, right: 72 }}
     >
-      {/* الطبقات: شريطٌ يُمرَّر أفقيّاً على الهاتف. */}
+      {/* الطبقات: شريطٌ يُمرَّر أفقيّاً على الهاتف؛ ومن عرض الحاسوب اللوحيّ فما فوق تظهر كلّها في سطرين إن لزم
+          (المالك، 26 أكتوبر: «صورة الخرائط لا تعرض تبويبات الخرائط كاملة»)، ويُترك يمينها لأزرار الخريطة. */}
       <nav
         aria-label={t("طبقات الخريطة", "Map layers")}
-        className="absolute inset-x-0 top-0 flex gap-2 overflow-x-auto p-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="absolute inset-x-0 top-0 flex gap-2 overflow-x-auto p-2.5 [scrollbar-width:none] md:flex-wrap md:overflow-visible md:pr-20 [&::-webkit-scrollbar]:hidden"
       >
         {grids.map((x) => {
           const on = x.key === gridKey;

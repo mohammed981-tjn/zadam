@@ -10,6 +10,7 @@ import type { IrrigationMethod } from "@/lib/agronomy";
 import { evidenceFileExists } from "@/lib/evidenceFile";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginHrefHere } from "@/lib/loginHere";
 
 /** The reader's language for a message this action returns. */
 async function translator() {
@@ -193,7 +194,7 @@ export async function createContract(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const t = await translator();
 
   /*
@@ -403,7 +404,7 @@ export async function addMilestoneEvidence(args: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const t = await translator();
 
   if (!args.milestoneId || !args.storagePath) {
@@ -424,6 +425,17 @@ export async function addMilestoneEvidence(args: {
       message: t("لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.", "We could not find the uploaded file. Upload it again and try once more."),
     };
   }
+
+  // A proof kept on the phone with no network is sent again if the reply to its first send was lost (backlog 185):
+  // the same file on the same phase is the proof already recorded, not a second one.
+  const { data: already } = await supabase
+    .from("milestone_evidence")
+    .select("id")
+    .eq("milestone_id", args.milestoneId)
+    .eq("storage_path", args.storagePath)
+    .limit(1)
+    .maybeSingle();
+  if (already) return { ok: true };
 
   const { sanitisePhotoMetadata } = await import("@/lib/exif");
   const photo = sanitisePhotoMetadata(args.metadata);

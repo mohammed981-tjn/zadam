@@ -10,6 +10,9 @@ import { card, ghost } from "@/lib/ui";
 import { FAO29_TABLE1, cropsAtSoilSalinity, phNormal, waterSalinity, type LandTest } from "@/lib/landTests";
 import type { Land, Season } from "@/types/database";
 import { deleteLandTest } from "../actions";
+import LandBoundaryMap from "@/components/map/LandBoundaryMap";
+import { boundaryOf } from "@/lib/landInput";
+import { loginHrefHere } from "@/lib/loginHere";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -28,7 +31,7 @@ export default async function FieldCardPage({ params }: { params: Promise<{ id: 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -56,18 +59,29 @@ export default async function FieldCardPage({ params }: { params: Promise<{ id: 
   const latestSoil = tests.find((x) => x.kind === "soil" && x.ec_dsm !== null);
   const soilCrops = latestSoil?.ec_dsm != null ? cropsAtSoilSalinity(Number(latestSoil.ec_dsm)) : null;
 
+  // The boundary drawn in the app (backlog 134), and the area it encloses beside the area on record.
+  const drawn = land.boundary && land.boundary.length >= 3 ? land.boundary : null;
+  const enclosed = drawn ? boundaryOf(drawn.map(([lat, lng]) => ({ lat, lng }))) : null;
+
   const statusText = { active: t("جارٍ", "Running"), completed: t("مُقفل", "Closed"), abandoned: t("متروك", "Abandoned") };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <Link href="/lands" className="text-sm text-primary underline">
-        {t("← أراضيّ", "← My land")}
-      </Link>
+      {land.owner_id === user.id ? (
+        <Link href="/lands" className="text-sm text-primary underline">
+          {t("← أراضيّ", "← My land")}
+        </Link>
+      ) : (
+        // An agent the owner authorised (backlog 169), or the administrator: the land is not theirs, so say whose.
+        <Link href={`/agent/${land.owner_id}`} className="text-sm text-primary underline">
+          {t("← مزارعيّ: أرضٌ لمزارعٍ تعمل عنه", "← My farmers: a land of a farmer you act for")}
+        </Link>
+      )}
       <div className="mt-3">
         <PageHeader icon="wheat" eyebrow={t("بطاقة الحقل", "Field card")} title={land.name}>
           {t(
-            "تاريخ هذه الأرض في مكانٍ واحد: مواسمها، وما فُحص من مائها وتربتها ومتى. ما تكتبه هنا لا يراه غيرك وغير الإدارة.",
-            "This land's history in one place: its seasons, and what was tested in its water and soil, and when. What you write here is seen only by you and the administration.",
+            "تاريخ هذه الأرض في مكانٍ واحد: مواسمها، وما فُحص من مائها وتربتها ومتى. ما تكتبه هنا لا يراه غيرك والإدارة، ووكيلك إن أذنت له في أراضيك.",
+            "This land's history in one place: its seasons, and what was tested in its water and soil, and when. What you write here is seen only by you, the administration, and your agent if you authorised one for your land.",
           )}
         </PageHeader>
       </div>
@@ -86,6 +100,19 @@ export default async function FieldCardPage({ params }: { params: Promise<{ id: 
             </div>
           ))}
         </dl>
+        {drawn && (
+          <div className="mt-4">
+            <LandBoundaryMap boundary={drawn} label={land.name} />
+            {enclosed && (
+              <p className="mt-2 text-xs text-muted">
+                {t(
+                  `الحدود كما رُسمت في التطبيق (${drawn.length} ركناً) تحيط بـ ${enclosed.feddans.toFixed(2)} فدان.`,
+                  `The boundary as drawn in the app (${drawn.length} corners) encloses ${enclosed.feddans.toFixed(2)} feddans.`,
+                )}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="mt-8">
@@ -184,10 +211,13 @@ export default async function FieldCardPage({ params }: { params: Promise<{ id: 
           </div>
         )}
 
-        <details className="mt-4 rounded-2xl border border-border bg-card p-4" open={tests.length === 0}>
-          <summary className="cursor-pointer font-bold">{t("أضف فحصاً", "Add a test")}</summary>
-          <LandTestForm landId={land.id} today={today} />
-        </details>
+        {/* The owner's to write: an agent reads the card, and the tests stay the owner's (backlog 169). */}
+        {land.owner_id === user.id && (
+          <details className="mt-4 rounded-2xl border border-border bg-card p-4" open={tests.length === 0}>
+            <summary className="cursor-pointer font-bold">{t("أضف فحصاً", "Add a test")}</summary>
+            <LandTestForm landId={land.id} today={today} />
+          </details>
+        )}
       </section>
 
       <section className="mt-8">

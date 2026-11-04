@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import PageHeader from "@/components/PageHeader";
 import ActionNotice from "@/components/ActionNotice";
 import { cropName, UNIT_NAME } from "@/lib/marketPrices";
-import { loadFeedStates, type FeedKey } from "@/lib/priceFreshness";
+import { AWAITING_REASON, loadFeedStates, type FeedKey } from "@/lib/priceFreshness";
 import { button, card, ghost } from "@/lib/ui";
-import { reviewQuote, runPricesNow } from "./actions";
+import { approveAllAwaiting, eraseQuote, reviewQuote, runPricesNow } from "./actions";
 
 export const metadata = { title: "الأسعار | الإدارة | سوداقري" };
 
@@ -56,7 +57,7 @@ export default async function AdminPricesPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if ((me as { role: string } | null)?.role !== "admin") redirect("/");
 
@@ -80,6 +81,9 @@ export default async function AdminPricesPage({
     crop_obeid: t("نشرة سوق الأبيض", "El Obeid bulletin"),
   };
   const held = (heldRows ?? []) as Quote[];
+  // What the platform read with certainty and holds only because it publishes nothing by itself: one click approves these.
+  const awaiting = held.filter((q) => q.reason === AWAITING_REASON);
+  const special = held.filter((q) => q.reason !== AWAITING_REASON);
   const recent = (recentRows ?? []) as Quote[];
   const runs = (runRows ?? []) as Run[];
 
@@ -98,8 +102,8 @@ export default async function AdminPricesPage({
     <div className="mx-auto max-w-4xl px-4 py-10">
       <PageHeader icon="shield" eyebrow={t("الإدارة", "Administration")} title={t("الأسعار", "Prices")}>
         {t(
-          "تقرأ المنصّة كلّ يوم سعر بنك الخرطوم والسوق الموازي ونشرات بورصتي الأبيض والقضارف من مواقع الأخبار، وتنشر كلّ رقمٍ برابطه وجملته. وما شذّ عن آخر رقمٍ أو جاء من نصٍّ حرّ يُحجز هنا لقرارك.",
-          "Every day the platform reads Bank of Khartoum, the parallel market and the El Obeid and Gedaref bulletins from the news sites, and publishes each figure with its link and its sentence. What strays from the last figure, or comes from free prose, waits here for your decision.",
+          "تقرأ المنصّة كلّ يوم سعر بنك الخرطوم والسوق الموازي ونشرات بورصتي الأبيض والقضارف من مواقع الأخبار، وتحفظ كلّ رقمٍ برابطه وجملته. ما قُرئ بيقين وبقي ضمن حركة يومٍ ولم يختلف عليه مصدرٌ آخر يُنشر وحده؛ وما شذّ عن آخر رقمٍ، أو اختلفت فيه المصادر، أو جاء من نصٍّ حرّ، ينتظر قرارك رقماً رقماً. وإن توقّف مصدرٌ أو بقي رقمٌ ينتظرك أكثر من يومين وصلك إشعار. وكلّ ما قُرئ يُحفظ ولا يمحوه إلا أنت بسبب.",
+          "Every day the platform reads Bank of Khartoum, the parallel market and the El Obeid and Gedaref bulletins from the news sites and keeps each figure with its link and sentence. What was read with certainty, within a day's movement and undisputed by another source, is published by itself; what strays from the last figure, what the sources disagree on, and free prose wait for your decision one by one. If a source stops, or a figure has waited for you more than two days, you are notified. Everything read is kept, and only you can erase it, with a reason.",
         )}
       </PageHeader>
       <ActionNotice ok={sp.ok} error={sp.error} />
@@ -142,6 +146,25 @@ export default async function AdminPricesPage({
         <h2 className="title-bar mb-3 font-black">
           {t("ينتظر قرارك", "Waiting for you")} <span className="text-muted">({held.length})</span>
         </h2>
+        {awaiting.length > 0 && (
+          <form action={approveAllAwaiting} className={`${card} mb-4 flex flex-wrap items-center gap-3`}>
+            {awaiting.map((q) => (
+              <input key={q.id} type="hidden" name="quote_id" value={q.id} />
+            ))}
+            <button className={button}>
+              {t(`اعتمد كلّ ما قُرئ بيقين (${awaiting.length})`, `Approve everything read with certainty (${awaiting.length})`)}
+            </button>
+            <span className="text-xs text-muted">
+              {t(
+                "يشمل الأرقام المقروءة من مصادرها بجملتها ولم تشذّ عن آخر رقم؛ ولا يشمل المشكوك فيه ولا النصّ الحرّ — انظر القائمة تحت.",
+                "Covers figures read in their source's own sentence that did not stray from the last one; it leaves out the doubtful and the free prose — see the list below.",
+              )}
+            </span>
+          </form>
+        )}
+        {special.length > 0 && awaiting.length > 0 && (
+          <p className="mb-3 text-xs text-muted">{t(`منها ${special.length} تحتاج قراراً منفرداً لسببٍ مكتوب تحت كلٍّ منها.`, `${special.length} of them need an individual decision, for the reason written under each.`)}</p>
+        )}
         {held.length === 0 ? (
           <p className="text-sm text-muted">{t("لا شيء محجوز.", "Nothing held.")}</p>
         ) : (
@@ -173,13 +196,24 @@ export default async function AdminPricesPage({
                   <form action={reviewQuote}>
                     <input type="hidden" name="quote_id" value={q.id} />
                     <input type="hidden" name="publish" value="true" />
-                    <button className={button}>{t("انشره", "Publish")}</button>
+                    <button className={button}>{t("اعتمده", "Approve")}</button>
                   </form>
                   <form action={reviewQuote}>
                     <input type="hidden" name="quote_id" value={q.id} />
                     <input type="hidden" name="publish" value="false" />
-                    <button className={ghost}>{t("ارفضه", "Reject")}</button>
+                    <button className={ghost}>{t("ارفضه (يبقى محفوظاً)", "Reject (it stays kept)")}</button>
                   </form>
+                  <details>
+                    <summary className="cursor-pointer text-xs text-primary underline">{t("امحُ بسبب", "Erase with a reason")}</summary>
+                    <form action={eraseQuote} className="mt-2 flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="quote_id" value={q.id} />
+                      <label className="flex flex-col gap-1 text-xs">
+                        {t("السبب (٣ أحرفٍ فأكثر)", "Reason (3 characters or more)")}
+                        <input name="reason" required minLength={3} maxLength={300} className="rounded-lg border border-border bg-background px-2 py-1" />
+                      </label>
+                      <button className={ghost}>{t("امحُ وأبقِ لقطة", "Erase, keep a snapshot")}</button>
+                    </form>
+                  </details>
                 </div>
               </li>
             ))}
@@ -217,8 +251,8 @@ export default async function AdminPricesPage({
                 <span className="text-muted">· {r.trigger === "cron" ? t("تلقائيّ", "automatic") : t("بضغطة", "by hand")}</span>
                 <span className="block text-xs">
                   {t(
-                    `وجد ${r.found} · نشر ${r.published} · حجز ${r.held}`,
-                    `found ${r.found} · published ${r.published} · held ${r.held}`,
+                    `وجد ${r.found} · حجز ${r.held}${r.published ? ` · نُشر ${r.published} (قبل قاعدة الاعتماد)` : ""}`,
+                    `found ${r.found} · held ${r.held}${r.published ? ` · published ${r.published} (before the approval rule)` : ""}`,
                   )}
                   {!r.finished_at && t(" · لم يكتمل", " · did not finish")}
                 </span>

@@ -1,5 +1,5 @@
 /**
- * مسكُ الدفاتر اليوميّ (البندان ١٨٧ و١٩١): يُنادي الدوالّ الثلاث، ولا يرمي أبداً.
+ * مسكُ الدفاتر اليوميّ (البنود ١٨٧ و١٩١ و١٨٩): يُنادي الدوالّ الأربع، ولا يرمي أبداً.
  *
  *   npx tsx scripts/verify-bookkeeping.ts
  */
@@ -34,9 +34,18 @@ async function main() {
       farm_book_sync: { data: 2 },
       farm_book_reconcile: { data: [] },
       oversight_snapshot: { data: 4 },
+      agreement_memo_sync: { data: [{ posted: 2, skipped: 1, without_amount: 3 }] },
     });
-    eq(await runBookkeeping(client), { synced: 2, mismatched: 0, snapshot: 4 }, "الأعداد الثلاثة");
-    eq(called, ["farm_book_sync", "farm_book_reconcile", "oversight_snapshot"], "بهذا الترتيب: الترحيل ثم المطابقة ثم الإحصاء");
+    eq(
+      await runBookkeeping(client),
+      { synced: 2, mismatched: 0, snapshot: 4, agreements: { posted: 2, skipped: 1, withoutAmount: 3 } },
+      "الأعداد الأربعة",
+    );
+    eq(
+      called,
+      ["farm_book_sync", "farm_book_reconcile", "oversight_snapshot", "agreement_memo_sync"],
+      "بهذا الترتيب: الترحيل ثم المطابقة ثم الإحصاء ثم العقود القائمة",
+    );
   }
 
   console.log("\nب) فرقٌ بين الدفترين يُعدّ ويُسجَّل");
@@ -65,11 +74,15 @@ async function main() {
     const rb = await runBookkeeping(b.client);
     const c = fake({ farm_book_sync: { data: "not a number" }, farm_book_reconcile: { data: "not rows" }, oversight_snapshot: { data: null } });
     const rc = await runBookkeeping(c.client);
+    eq(ra, { synced: null, mismatched: 0, snapshot: 3, agreements: null }, "رمى الترحيل: تعمل المطابقة والإحصاء");
+    eq(a.called.length, 4, "والأربع نُوديت");
+    eq(rb, { synced: null, mismatched: null, snapshot: null, agreements: null }, "وكلّها فشلت: أصفارٌ فارغة لا استثناء");
+    eq(rc, { synced: null, mismatched: null, snapshot: null, agreements: null }, "وردودٌ غريبة لا تُعدّ أعداداً");
+    const d = fake({ agreement_memo_sync: "throw" });
+    const e = fake({ agreement_memo_sync: { data: [{ posted: "x", skipped: 0, without_amount: 0 }] } });
+    eq((await runBookkeeping(d.client)).agreements, null, "ورمى قيد العقود: لا شيء يرمي");
+    eq((await runBookkeeping(e.client)).agreements, null, "وصفٌّ غريب منه لا يُعدّ");
     console.error = orig;
-    eq(ra, { synced: null, mismatched: 0, snapshot: 3 }, "رمى الترحيل: تعمل المطابقة والإحصاء");
-    eq(a.called.length, 3, "والثلاث نُوديت");
-    eq(rb, { synced: null, mismatched: null, snapshot: null }, "وكلّها فشلت: أصفارٌ فارغة لا استثناء");
-    eq(rc, { synced: null, mismatched: null, snapshot: null }, "وردودٌ غريبة لا تُعدّ أعداداً");
   }
 
   console.log("");

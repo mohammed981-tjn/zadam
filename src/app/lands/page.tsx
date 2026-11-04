@@ -54,9 +54,12 @@ export default async function LandsPage({
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const arText = locale === "en" ? ({ lang: "ar", dir: "rtl" } as const) : {};
 
+  // The caller's own lands only: the policies also return a farmer's lands to the agent they authorised (backlog 169),
+  // and every land to the administrator; neither is "my land", and the owner's actions below would refuse them.
   const { data } = await supabase
     .from("lands")
     .select("*")
+    .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
 
   const lands = (data ?? []) as Land[];

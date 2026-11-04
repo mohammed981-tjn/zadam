@@ -8,8 +8,8 @@ name: Database backup and drift
 #    plan later (23 October): pg_dump of the public schema, and the accounts
 #    (auth.users, auth.identities) as data, gzipped and locked with a
 #    passphrase before it leaves the runner — it holds names and phone
-#    numbers — then kept as a file on the db-backups release of this private
-#    repository. Release files do not count against the account's full
+#    numbers — then kept as a file on the db-backups release of this repository —
+#    only while it is private (it became public on 26 October; see the step). Release files do not count against the account's full
 #    artifact storage (mobile.yml explains), and every week's file is kept:
 #    the database is a few megabytes, and the owner keeps the old.
 #    The files in the storage bucket (photos, documents) are not in the
@@ -53,7 +53,7 @@ jobs:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Are the secrets there?
         id: ready
@@ -94,6 +94,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          # A release of a public repository is anyone's, locked or not. The repository became public on
+          # 26 October; until it is private again, or the copies have another home, none is kept.
+          if [ "$(gh api "repos/$GH_REPO" --jq .private)" != "true" ]; then
+            echo "### لم تُحفظ نسخة: المستودع عامّ، وملفّات الإصدار فيه يراها كلّ أحد" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           if ! gh release view db-backups >/dev/null 2>&1; then
             gh release create db-backups --title "نسخ القاعدة الاحتياطيّة" --prerelease \
               --notes "نسخةٌ كلّ أسبوع من قاعدة سوداقري، مقفلةٌ بكلمة مرور. الطريقة في .github/workflows/db-backup.yml."

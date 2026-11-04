@@ -5,6 +5,7 @@ import { formatUsd } from "@/lib/format";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { portfolioTotals } from "@/lib/investorTotals";
+import { loginHrefHere } from "@/lib/loginHere";
 import type { Investment, Project } from "@/types/database";
 
 type InvestmentRow = Investment & { projects: Project | null };
@@ -23,7 +24,7 @@ export default async function DashboardPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const { data: investments } = await supabase
     .from("investments")

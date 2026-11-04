@@ -59,11 +59,12 @@ export default async function ProjectPage({
   let landOffer: OpenLand | null = null;
   let landId: string | null = null;
   if (user && verifiedLand) {
-    const [{ data: landRow }, offers] = await Promise.all([
-      supabase.from("projects").select("land_id").eq("id", typedProject.id).maybeSingle(),
+    // projects.land_id is not a member's column either (backlog 181): the land comes when it is open to investors.
+    const [{ data: openLand }, offers] = await Promise.all([
+      supabase.rpc("project_open_land", { p_project: typedProject.id }),
       loadLandOffers(supabase, true),
     ]);
-    landId = (landRow as { land_id: string | null } | null)?.land_id ?? null;
+    landId = (openLand as string | null) ?? null;
     landOffers = offers;
     landOffer = landId ? (offers.lands.find((l) => l.land_id === landId) ?? null) : null;
   }
@@ -104,6 +105,16 @@ export default async function ProjectPage({
         {emoji}
       </div>
       <div className="mx-auto max-w-4xl px-4 py-10">
+        {typedProject.trial && !typedProject.is_demo && (
+          <div className="mb-6 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
+            <strong className="font-bold">{t("فرصة تجريبيّة.", "Trial opportunity.")}</strong>{" "}
+            {t(
+              "منفّذها من فريق المنصّة نفسه، على أرضٍ يملكها أحد أفراده، لتجربة المسار كاملاً قبل فرص المزارعين. سجلّ المواسم التجريبيّة لا يُحسب في درجة الثقة.",
+              "It is run by the platform's own team, on land one of its members owns, to try the whole path before farmers' opportunities. Trial seasons do not count towards the trust score.",
+            )}
+          </div>
+        )}
+
         {typedProject.is_demo && (
           <div className="mb-6 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
             <strong className="font-bold">{t("نموذج توضيحي.", "Illustrative example.")}</strong>{" "}

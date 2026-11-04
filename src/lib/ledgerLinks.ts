@@ -24,6 +24,13 @@ export const LINK_KIND_LABEL: Record<LinkKind, { ar: string; en: string }> = {
   rent_payment: { ar: "أجرة أرض", en: "Land rent" },
 };
 
+export const REVERSAL_LABEL: Record<ReversalStatus, { ar: string; en: string }> = {
+  pending: { ar: "طلب إلغاءٍ ينتظر الردّ", en: "Cancellation request waiting for a reply" },
+  accepted: { ar: "أُلغي باتّفاقكما وعُكس في الدفترين", en: "Cancelled by your agreement and reversed in both books" },
+  rejected: { ar: "رُفض طلب الإلغاء", en: "The cancellation request was refused" },
+  withdrawn: { ar: "سُحب طلب الإلغاء", en: "The cancellation request was withdrawn" },
+};
+
 export const LINK_STATUS_LABEL: Record<LinkStatus, { ar: string; en: string }> = {
   pending: { ar: "ينتظر الردّ", en: "Waiting for a reply" },
   confirmed: { ar: "مؤكَّد ومقيَّد في الدفترين", en: "Confirmed and booked in both books" },
@@ -34,6 +41,22 @@ export const LINK_STATUS_LABEL: Record<LinkStatus, { ar: string; en: string }> =
 /** Which side pays from an account of its own: the proposer for these, the receiver for the next. */
 export const proposerNeedsAccount = (k: LinkKind): boolean => k === "input_finance" || k === "payout" || k === "rent_payment";
 export const counterNeedsAccount = (k: LinkKind): boolean => k === "payout" || k === "rent_payment";
+
+export const REVERSAL_STATUSES = ["pending", "accepted", "rejected", "withdrawn"] as const;
+export type ReversalStatus = (typeof REVERSAL_STATUSES)[number];
+
+/** A row of ledger_link_reversals_list(): a request to cancel a confirmed entry by both partners' agreement. */
+export interface ReversalRow {
+  id: string;
+  link_id: string;
+  /** True when I asked for the cancellation. */
+  mine: boolean;
+  status: ReversalStatus;
+  reason: string;
+  reject_reason: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
 
 /** A row of ledger_links_list(). Amounts are whole minor units, rates pounds per dollar. */
 export interface LinkRow {
@@ -54,6 +77,47 @@ export interface LinkRow {
   reject_reason: string | null;
   created_at: string;
   resolved_at: string | null;
+  /** The cancellation request that matters for this entry, if any — see `attachReversals`. */
+  reversal?: ReversalRow | null;
+}
+
+/**
+ * A confirmed entry stays «confirmed» in the table for good; its cancellation by agreement is a row beside it. An
+ * entry whose cancellation was accepted has been reversed in both books, so no statement may count it any more.
+ */
+export const isReversed = (r: Pick<LinkRow, "reversal">): boolean => r.reversal?.status === "accepted";
+
+/** Confirmed and not cancelled since: what both books still carry. */
+export const isLive = (r: Pick<LinkRow, "status" | "reversal">): boolean => r.status === "confirmed" && !isReversed(r);
+
+/**
+ * Hangs on each entry the request that matters: an accepted one, else a pending one, else the latest decided.
+ * The database allows only one open (pending or accepted) request per entry, so the choice is never between two.
+ */
+export function attachReversals(links: readonly LinkRow[], reversals: readonly ReversalRow[]): LinkRow[] {
+  const rank = (r: ReversalRow) => (r.status === "accepted" ? 3 : r.status === "pending" ? 2 : 1);
+  const best = new Map<string, ReversalRow>();
+  for (const r of reversals) {
+    const cur = best.get(r.link_id);
+    if (!cur || rank(r) > rank(cur) || (rank(r) === rank(cur) && r.created_at > cur.created_at)) best.set(r.link_id, r);
+  }
+  return links.map((l) => ({ ...l, reversal: best.get(l.id) ?? null }));
+}
+
+/** What the reader may do with an entry: ask to cancel it, answer a request, or take back his own. */
+export type ReversalAction = "request" | "answer" | "withdraw" | "none";
+export function reversalAction(r: Pick<LinkRow, "status" | "reversal">): ReversalAction {
+  if (r.status !== "confirmed") return "none";
+  const v = r.reversal;
+  if (!v || v.status === "rejected" || v.status === "withdrawn") return "request";
+  if (v.status === "pending") return v.mine ? "withdraw" : "answer";
+  return "none";
+}
+
+/** The reason typed with a cancellation request or its refusal: 3 to 300 characters once trimmed. */
+export function parseReversalReason(raw: string): string | null {
+  const t = raw.trim();
+  return t.length >= 3 && t.length <= 300 ? t : null;
 }
 
 // ── الاقتراح ────────────────────────────────────────────────────────────────
@@ -169,17 +233,48 @@ export function linkUsd(row: Pick<LinkRow, "amount_minor" | "currency" | "fx_rat
   return micro === null ? ZERO : toBase(BigInt(Math.round(minor)), micro);
 }
 
-/** What a season still owes the investor as financing: confirmed financing less the principal the shares settled, per currency. */
-export function outstandingFinancing(rows: readonly LinkRow[], seasonId: string): Record<CurrencyCode, bigint> {
-  const out: Record<CurrencyCode, bigint> = { USD: ZERO, SDG: ZERO };
+/**
+ * What a season still owes the investor as financing, in dollars' cents: confirmed financing less the principal the
+ * shares settled, each at the rate it was booked at. One figure, not one per currency: a share in dollars settles
+ * financing given in pounds too (review 198 B9 — kept apart, pounds financed and settled by a dollar share still
+ * showed as owed).
+ */
+export function outstandingFinancing(rows: readonly LinkRow[], seasonId: string): bigint {
+  let out = ZERO;
   for (const r of rows) {
-    if (r.status !== "confirmed" || r.season_id !== seasonId) continue;
-    if (r.kind === "input_finance") out[r.currency] += BigInt(Math.round(r.amount_minor));
-    if (r.kind === "harvest_share") out[r.currency] -= BigInt(Math.round(r.principal_minor));
+    if (!isLive(r) || r.season_id !== seasonId) continue;
+    if (r.kind === "input_finance") out += linkUsd(r);
+    if (r.kind === "harvest_share") out -= linkUsd(r, r.principal_minor);
   }
-  if (out.USD < ZERO) out.USD = ZERO;
-  if (out.SDG < ZERO) out.SDG = ZERO;
-  return out;
+  return out < ZERO ? ZERO : out;
+}
+
+/**
+ * The shortest stretch, first flow to last, a yearly rate is shown for. Over days or weeks a modest gain compounds
+ * into an absurd yearly figure (2% in a day is 137,000% a year); the investment-performance standards (GIPS) do not
+ * annualise a period under a year, and neither does this (review 198 B3).
+ */
+export const MIN_ANNUAL_DAYS = 365;
+
+/**
+ * The return line of the statement: a yearly rate when the money moved over a year or more, else the plain return
+ * over the days it took, saying why no yearly rate is shown.
+ */
+export function returnSentence(
+  st: Pick<InvestorStatement, "xirr" | "cashReturn" | "spanDays" | "settled">,
+  t: (ar: string, en: string) => string,
+): string {
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+  const rest = st.settled ? "" : t(" (يرتفع حين يُسلَّم الباقي)", " (it rises as the rest is handed over)");
+  if (st.xirr !== null) {
+    return t(`العائد السنويّ على ما سُلّم فعلاً: ${pct(st.xirr)}${rest}.`, `Yearly return on what was actually paid: ${pct(st.xirr)}${rest}.`);
+  }
+  if (st.cashReturn === null) return "";
+  const days = st.spanDays ?? 0;
+  return t(
+    `العائد على ما سُلّم فعلاً: ${pct(st.cashReturn)} خلال ${days} يوماً${rest}. لا يُحسب عائدٌ سنويّ لمدّةٍ أقلّ من سنة.`,
+    `Return on what was actually paid: ${pct(st.cashReturn)} over ${days} days${rest}. No yearly rate is given for less than a year.`,
+  );
 }
 
 export interface InvestorStatement {
@@ -199,8 +294,12 @@ export interface InvestorStatement {
   moicCash: number | null;
   /** recognised ÷ invested: the multiple the crop share stands for, collected or not. */
   moicRecognised: number | null;
-  /** The yearly rate of the cash flows; null when there is none to compute. */
+  /** The yearly rate of the cash flows; null when there is none to compute, or the flows span less than MIN_ANNUAL_DAYS. */
   xirr: number | null;
+  /** Days from the first flow to the last; null without flows. */
+  spanDays: number | null;
+  /** (money back − money in) ÷ money in over the whole span, not per year; null when nothing went in. */
+  cashReturn: number | null;
   /** True when nothing recognised is still waiting to be handed over. */
   settled: boolean;
 }
@@ -212,7 +311,7 @@ export function investorStatement(rows: readonly LinkRow[]): InvestorStatement {
   let rent = ZERO;
   const flows: Flow[] = [];
   for (const r of rows) {
-    if (r.status !== "confirmed") continue;
+    if (!isLive(r)) continue;
     const usd = linkUsd(r);
     const cents = Number(usd) / 100;
     if (r.kind === "input_finance") {
@@ -230,6 +329,10 @@ export function investorStatement(rows: readonly LinkRow[]): InvestorStatement {
   }
   const inv = Number(invested) / 100;
   const due = recognised - handedOver;
+  const days = flows.map((f) => Date.parse(`${f.date}T00:00:00Z`) / 86_400_000).filter((d) => Number.isFinite(d));
+  const spanDays = days.length ? Math.max(...days) - Math.min(...days) : null;
+  const paidIn = flows.filter((f) => f.amount < 0).reduce((a, f) => a - f.amount, 0);
+  const paidBack = flows.filter((f) => f.amount > 0).reduce((a, f) => a + f.amount, 0);
   return {
     invested,
     recognised,
@@ -239,7 +342,9 @@ export function investorStatement(rows: readonly LinkRow[]): InvestorStatement {
     flows,
     moicCash: inv > 0 ? Number(handedOver) / 100 / inv : null,
     moicRecognised: inv > 0 ? Number(recognised) / 100 / inv : null,
-    xirr: xirr(flows),
+    xirr: spanDays !== null && spanDays >= MIN_ANNUAL_DAYS ? xirr(flows) : null,
+    spanDays,
+    cashReturn: paidIn > 0 ? (paidBack - paidIn) / paidIn : null,
     settled: due <= ZERO,
   };
 }

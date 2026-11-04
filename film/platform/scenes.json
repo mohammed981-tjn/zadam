@@ -1,0 +1,245 @@
+[
+ {
+  "id": "01",
+  "line": "01b",
+  "title": "منصّة سوداقري",
+  "path": "/",
+  "title_en": "Sudagri"
+ },
+ {
+  "id": "02",
+  "line": "02",
+  "title": "كيف نعمل: من البذرة إلى السوق",
+  "path": "/how-we-work",
+  "title_en": "How we work: from seed to market"
+ },
+ {
+  "id": "18",
+  "line": "18b",
+  "title": "فرص الاستثمار على أراضٍ موثّقة",
+  "path": "/invest",
+  "title_en": "Investing in verified land"
+ },
+ {
+  "id": "19",
+  "line": "19",
+  "title": "المشاريع ومتابعة الموسم",
+  "path": "/projects",
+  "title_en": "Projects and following the season"
+ },
+ {
+  "id": "19b",
+  "line": "19b",
+  "title": "مواسمي",
+  "path": "/seasons",
+  "auth": true,
+  "title_en": "My seasons"
+ },
+ {
+  "id": "16",
+  "line": "16",
+  "title": "العقد والتنفيذ بالدليل",
+  "path": "/how-we-work",
+  "anchor": "العقد",
+  "title_en": "The contract, and work proven step by step"
+ },
+ {
+  "id": "17",
+  "line": "17",
+  "title": "دفتر الحسابات",
+  "path": "/guide",
+  "anchor": "دفتر الحسابات",
+  "title_en": "The account book"
+ },
+ {
+  "id": "03",
+  "line": "03",
+  "title": "سجّل أرضك مجّاناً",
+  "path": "/guide",
+  "anchor": "#lands",
+  "title_en": "Register your land for free"
+ },
+ {
+  "id": "03b",
+  "line": "03b",
+  "title": "التسجيل بالجوّال",
+  "path": "/signup",
+  "title_en": "Sign up with your phone"
+ },
+ {
+  "id": "03c",
+  "line": "03c",
+  "title": "أراضيّ",
+  "path": "/lands",
+  "auth": true,
+  "title_en": "My land"
+ },
+ {
+  "id": "04",
+  "line": "04",
+  "title": "الخريطة الكاملة",
+  "path": "/map",
+  "still": "/photos/irrigated-plain.webp",
+  "title_en": "The full map"
+ },
+ {
+  "id": "04b",
+  "line": "04b",
+  "title": "طبقات الخريطة: الارتفاع والتربة",
+  "path": "/map?layer=elev",
+  "wait": 6000,
+  "still": "/photos/irrigated-plain.webp",
+  "title_en": "Map layers: height and soil"
+ },
+ {
+  "id": "04c",
+  "line": "04c",
+  "title": "القناة والمعادن والطرق والكهرباء",
+  "path": "/map?layer=none&over=canal,minerals,infra",
+  "wait": 6000,
+  "still": "/photos/irrigated-plain.webp",
+  "title_en": "Canal, minerals, roads and power"
+ },
+ {
+  "id": "05",
+  "line": "05",
+  "title": "توقّعات المطر",
+  "path": "/rain",
+  "still": "/photos/gezira-farmer.webp",
+  "title_en": "Rain forecasts"
+ },
+ {
+  "id": "06",
+  "line": "06",
+  "title": "حاسبة الماء",
+  "path": "/tools/water",
+  "title_en": "Water calculator"
+ },
+ {
+  "id": "07",
+  "line": "07",
+  "title": "دراسة الجدوى",
+  "path": "/tools/feasibility",
+  "title_en": "Feasibility study"
+ },
+ {
+  "id": "08",
+  "line": "08",
+  "title": "محاصيل جديدة",
+  "path": "/tools/new-crops",
+  "title_en": "New crops"
+ },
+ {
+  "id": "09",
+  "line": "09",
+  "title": "سوق المحاصيل",
+  "path": "/market",
+  "title_en": "Crop market"
+ },
+ {
+  "id": "10",
+  "line": "10",
+  "title": "عروض البيع والشراء",
+  "path": "/market/offers",
+  "title_en": "Offers to buy and sell"
+ },
+ {
+  "id": "11",
+  "line": "11",
+  "title": "أسعار المدخلات والوقود",
+  "path": "/market/inputs",
+  "title_en": "Input and fuel prices"
+ },
+ {
+  "id": "12",
+  "line": "12",
+  "title": "أسعار الصرف",
+  "path": "/rates",
+  "title_en": "Exchange rates"
+ },
+ {
+  "id": "13",
+  "line": "13",
+  "title": "كتالوج الخدمات",
+  "path": "/services",
+  "title_en": "Service catalogue"
+ },
+ {
+  "id": "14",
+  "line": "14",
+  "title": "الشركات الشريكة",
+  "path": "/partners",
+  "title_en": "Partner companies"
+ },
+ {
+  "id": "15",
+  "line": "15",
+  "title": "الموردون",
+  "path": "/suppliers",
+  "title_en": "Suppliers"
+ },
+ {
+  "id": "20",
+  "line": "20",
+  "title": "الثروة الحيوانية",
+  "path": "/export/market",
+  "title_en": "Livestock"
+ },
+ {
+  "id": "20b",
+  "line": "20b",
+  "title": "قطيعي",
+  "path": "/herds",
+  "auth": true,
+  "title_en": "My herd"
+ },
+ {
+  "id": "21",
+  "line": "21",
+  "title": "ملفّ الصادر",
+  "path": "/export",
+  "title_en": "The export file"
+ },
+ {
+  "id": "22",
+  "line": "22",
+  "title": "التعدين والذهب",
+  "path": "/mining/gold",
+  "title_en": "Mining and gold"
+ },
+ {
+  "id": "23",
+  "line": "23",
+  "title": "النفير",
+  "path": "/nafir",
+  "title_en": "Nafir"
+ },
+ {
+  "id": "24",
+  "line": "24",
+  "title": "قاعدة المعرفة والمساعد",
+  "path": "/knowledge",
+  "title_en": "Knowledge base and assistant"
+ },
+ {
+  "id": "25",
+  "line": "25",
+  "title": "الدراسات",
+  "path": "/studies",
+  "title_en": "Studies"
+ },
+ {
+  "id": "27",
+  "line": "27",
+  "title": "مكتبة الدراسات والبحوث",
+  "path": "/library",
+  "title_en": "Library of studies and research"
+ },
+ {
+  "id": "26",
+  "line": "26b",
+  "title": "سوداقري",
+  "card": "outro",
+  "title_en": "Sudagri"
+ }
+]

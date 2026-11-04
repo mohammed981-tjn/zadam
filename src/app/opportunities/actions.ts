@@ -3,6 +3,7 @@ import { dbText } from "@/lib/dbText";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { assessProject, type ProjectFacts, type WaterSource } from "@/lib/risk";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
 import { getLocale } from "@/lib/locale";
@@ -35,7 +36,7 @@ export async function submitOpportunity(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -120,7 +121,7 @@ export async function submitOpportunity(
     };
   }
 
-  const assessment = assessProject(facts);
+  const assessment = assessProject(facts, locale);
 
   if (assessment.blockers.length > 0) {
     return {

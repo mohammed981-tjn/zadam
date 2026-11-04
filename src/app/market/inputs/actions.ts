@@ -10,6 +10,7 @@ import { isNotYetCreated } from "@/lib/marketOffers";
 import { SUDAN_STATES } from "@/lib/nafir";
 import { toWesternDigits } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 
 /**
  * Three steps, each a database function (supabase/migrations/
@@ -39,7 +40,7 @@ async function session() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   return { supabase, locale, t: (ar: string, en: string) => tr(locale, ar, en) };
 }

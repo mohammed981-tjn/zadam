@@ -94,6 +94,14 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/admin/suppliers",
   "/admin/inspections",
   "/admin/prices",
+  "/admin/faostat",
+  "/admin/accounts",
+  "/account/close",
+  "/account/agents",
+  "/agent",
+  "/agent/*",
+  "/library",
+  "/library/*",
   "/studies",
   "/studies/exchange-rate",
   "/arc-canal",
@@ -103,6 +111,8 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/market",
   "/market/offers",
   "/market/offers/new",
+  "/market/forward",
+  "/market/forward/*",
   "/mining/registry/*",
 ];
 

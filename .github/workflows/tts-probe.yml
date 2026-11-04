@@ -14,7 +14,7 @@ jobs:
     outputs:
       ids: ${{ steps.p.outputs.ids }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - id: p
         run: echo "ids=$(python3 -c "import json;print(json.dumps([v['id'] for v in json.load(open('tts/probe/variants.json'))]))")" >> "$GITHUB_OUTPUT"
   speak:
@@ -27,7 +27,7 @@ jobs:
       matrix:
         id: ${{ fromJson(needs.plan.outputs.ids) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - env:
           ID: ${{ matrix.id }}
         run: |

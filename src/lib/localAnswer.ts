@@ -1134,9 +1134,9 @@ function resolveSoilWater(input: LocalAnswerInput): LocalAnswer | null {
       "",
       `وبحساب FAO-56 على ${crop.name} في ${station.name}، عند ذروة الموسم:`,
       `  تربة رملية: ريّة كل ${n1(light.days)} أيام، ` +
-        `بعمق ${Math.round(light.doseMm)} مم (${Math.round(light.doseM3PerFeddan)} م³ للفدان).`,
+        `بعمق ${Math.round(light.doseMm)} مم تبلغ الجذور (تضخّ لها ${Math.round(light.doseM3PerFeddan)} م³ للفدان بالريّ بالغمر).`,
       `  تربة طينية طميية: ريّة كل ${n1(heavy.days)} أيام، ` +
-        `بعمق ${Math.round(heavy.doseMm)} مم (${Math.round(heavy.doseM3PerFeddan)} م³ للفدان).`,
+        `بعمق ${Math.round(heavy.doseMm)} مم تبلغ الجذور (تضخّ لها ${Math.round(heavy.doseM3PerFeddan)} م³ للفدان بالريّ بالغمر).`,
       "",
       "أي أنك تروي نحو ثلاثة أضعاف عدد المرّات، وبثلث الكمية في كل مرّة. " +
         "والريّة الكبيرة على الرملية تنزل تحت الجذور ولا يستفيد منها المحصول.",

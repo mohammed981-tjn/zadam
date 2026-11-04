@@ -125,7 +125,9 @@ export interface InspectionRow {
   status: InspectionStatus;
   state: string | null;
   locality: string | null;
-  feddans: number;
+  /** The investor sees it once the owner has accepted them; before that, `area_band` (money-logic-4). */
+  feddans: number | null;
+  area_band: string | null;
   checks: InspectionCheck[];
   investor_note: string | null;
   investor_name: string | null;
@@ -181,7 +183,9 @@ export interface InspectionView {
   land: {
     state: string | null;
     locality: string | null;
-    feddans: number;
+    /** The investor sees it once the owner has accepted them; before that, `area_band` (money-logic-4). */
+    feddans: number | null;
+    area_band: string | null;
     water_source: string | null;
     soil_class: string | null;
     documents_on_file: number | null;

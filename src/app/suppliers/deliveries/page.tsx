@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
@@ -89,7 +90,7 @@ export default async function DeliveriesPage({
 
       {!user ? (
         <p className={`${card} mt-6 text-sm`}>
-          <Link href="/login" className="font-medium text-primary underline">
+          <Link href={loginTo("/suppliers/deliveries")} className="font-medium text-primary underline">
             {t("سجّل الدخول", "Sign in")}
           </Link>{" "}
           {t("لترى توصيلاتك أو لتسجّل ناقلاً.", "to see your deliveries or register as a carrier.")}

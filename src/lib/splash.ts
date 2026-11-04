@@ -41,13 +41,18 @@ export const SPLASH_FADE_MS = 400;
  *   • `VIDEO_MAX_MS` — the clip's own length and a little over, so it is not
  *     cut short, and not a moment more if it stalls midway.
  *
- * And a tap or a key ends the whole intro at any point, as before.
+ * A tap or a key moves the intro on a step (26 October); «تخطَّ» or Escape closes it at any point.
  */
 export const SPLASH_VIDEO_START_MS = 2500;
 export const SPLASH_VIDEO_MAX_MS = 9000;
 
-/** The longest the intro can last, clip and logo screen together, fade included. */
-export const SPLASH_INTRO_WORST_MS = SPLASH_VIDEO_MAX_MS + SPLASH_MAX_MS + SPLASH_FADE_MS;
+/*
+ * ثمّ شاشاتُ التعريف بعد الشعار (البند ٢٠٠؛ المالك، 25 أكتوبر 2026: «ثلاث اسبلاشات او أربعة في البداية قبل ما يفتح
+ * التطبيق تشرح ماتقدمه المنصة»). Until 26 October each turned after three seconds; since then each stays until it is
+ * tapped (the owner: «ثابتة… لا تتغيّر تلقائيّاً إلّا بعد الضغط عليها»), so they have no clock of their own, and the
+ * homepage films wait for the intro to be closed, however long that is.
+ */
+export const SPLASH_SLIDES = 4;
 
 /**
  * متى تنتهي الشاشة، بالمللي ثانية من لحظة ظهورها.

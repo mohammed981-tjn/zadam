@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { ledgerToday } from "@/lib/ledger/today";
 import { loadReport, pickBook } from "@/lib/ledger/load";
 import ActionNotice from "@/components/ActionNotice";
+import PrintButton from "@/components/PrintButton";
 import LinksPanel from "@/components/books/LinksPanel";
-import type { LinkRow } from "@/lib/ledgerLinks";
-import { PAGE_SIZE, parseReportParams, reportHref, type ReportKey, type ReportParams } from "@/lib/ledger/reportParams";
+import { reversalAction } from "@/lib/ledgerLinks";
+import { loadLinks } from "@/lib/ledgerLinksLoad";
+import { bookHeading, PAGE_SIZE, parseReportParams, reportHref, type ReportKey, type ReportParams } from "@/lib/ledger/reportParams";
 import { money } from "@/lib/ledger/reports";
-import type { ChartRow, ReportData } from "@/lib/ledger/reportData";
+import { currentIncomeLabel, type ChartRow, type ReportData } from "@/lib/ledger/reportData";
 
 type SP = Record<string, string | undefined>;
 
@@ -45,7 +48,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -54,13 +57,31 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   const name = (r: { name_ar: string; name_en: string }) => (locale === "en" && r.name_en ? r.name_en : r.name_ar);
   const arText = (r: { name_en: string }) => (locale === "en" && !r.name_en ? ({ lang: "ar", dir: "rtl" } as const) : {});
 
-  const book = await pickBook(supabase, p.kind);
+  const book = await pickBook(supabase, p.kind, user.id, p.bookId);
 
   // What the partners in my agreements proposed to book in both books. It belongs to the person, not to a book:
   // a proposal can wait for someone whose book is not yet opened.
-  const { data: linkRows } = await supabase.rpc("ledger_links_list");
-  const links = (linkRows ?? []) as LinkRow[];
-  const waitingForMe = links.filter((l) => l.status === "pending" && !l.mine).length;
+  const links = await loadLinks(supabase);
+  const waitingForMe = links.filter((l) => (l.status === "pending" && !l.mine) || reversalAction(l) === "answer").length;
+  // Fees the platform recorded against me, waiting for me to say where I paid them from (backlog 189).
+  const { data: feeRows } = await supabase.rpc("ledger_fees_list");
+  const feesWaiting = ((feeRows ?? []) as { status: string; payer_owner: string }[]).filter(
+    (f) => f.status === "pending" && f.payer_owner === user.id,
+  ).length;
+
+  if (!book && p.bookId) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <h1 className="text-2xl font-bold">{t("دفتر الحسابات", "Books")}</h1>
+        <p className="mt-4 rounded-2xl border border-border bg-card p-5 text-sm leading-7">
+          {t(
+            "هذا الدفتر ليس مفتوحاً لك: الفحص انتهت مدّته أو أُغلق، أو الرابط لدفترٍ آخر.",
+            "This book is not open to you: the inspection has ended or been closed, or the link is to another book.",
+          )}
+        </p>
+      </div>
+    );
+  }
 
   if (!book && p.report !== "links") {
     return (
@@ -91,7 +112,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   const shown: ReportKey = p.report === "links" ? "links" : (data?.kind ?? p.report);
 
   const link = (patch: Partial<ReportParams> & { report: ReportKey }) =>
-    reportHref("/books", { kind: p.kind, from: p.from, to: p.to, asOf: p.asOf, ...patch }, today);
+    reportHref("/books", { kind: p.kind, bookId: p.bookId, from: p.from, to: p.to, asOf: p.asOf, ...patch }, today);
   const exportLink = reportHref("/books/export", { ...p, report: shown, page: 1 }, today);
   const usesPeriod = ["income", "cash", "seasons", "journal", "account"].includes(shown);
 
@@ -103,21 +124,29 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
           <p className="mt-1 text-sm text-muted">
             {!book
               ? t("لم يُفتح لك دفتر بعد", "No book opened for you yet")
-              : book.kind === "platform"
-                ? t("دفتر المنصّة", "The platform's book")
-                : book.kind === "investor"
-                  ? t("دفتر المستثمر", "Investor book")
-                  : t("دفتر مزرعتك", "Your farm book")}
+              : (({ ar, en }) => t(ar, en))(bookHeading(book, user.id))}
             {" · "}
             {t("كلّ المبالغ بالدولار", "all amounts in US dollars")}
             {book?.closed_through && ` · ${t("مقفل حتى", "closed through")} ${book.closed_through}`}
           </p>
         </div>
-        {data && (
-          <a href={exportLink} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
-            {t("تصدير CSV", "Export CSV")}
-          </a>
-        )}
+        <div className="flex flex-wrap gap-2 print:hidden">
+          {book && book.owner_id === user.id && (
+            <Link href={`/books/reconcile${p.kind ? `?book=${p.kind}` : ""}`} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
+              {t("مطابقة الكشف", "Match a statement")}
+            </Link>
+          )}
+          <Link href="/books/fees" className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
+            {t("رسوم المنصّة", "Platform fees")}
+            {feesWaiting > 0 && <span className="ms-1.5 rounded-full bg-danger px-1.5 py-0.5 text-xs font-bold text-white">{feesWaiting}</span>}
+          </Link>
+          {data && (
+            <a href={exportLink} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
+              {t("تصدير CSV", "Export CSV")}
+            </a>
+          )}
+          {data && <PrintButton label={t("اطبع أو احفظ PDF", "Print or save as PDF")} />}
+        </div>
       </div>
 
       <p className="mt-3 text-xs text-muted">
@@ -127,7 +156,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
         )}
       </p>
 
-      <nav className="mt-4 flex gap-2 overflow-x-auto pb-1" aria-label={t("التقارير", "Reports")}>
+      <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 print:hidden" aria-label={t("التقارير", "Reports")}>
         {TABS.map((tab) => (
           <Link
             key={tab.key}
@@ -147,9 +176,10 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
       </nav>
 
       {shown !== "links" && (
-      <form method="get" action="/books" className="mt-4 flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3">
+      <form method="get" action="/books" className="mt-4 flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3 print:hidden">
         <input type="hidden" name="r" value={shown} />
         {p.kind && <input type="hidden" name="book" value={p.kind} />}
+        {p.bookId && <input type="hidden" name="id" value={p.bookId} />}
         {p.account && shown === "account" && <input type="hidden" name="a" value={p.account} />}
         {usesPeriod ? (
           <>
@@ -310,7 +340,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
                       </tr>
                     )}
                     <tr className="border-t border-border">
-                      <td className={td}>{t("ربح هذه السنة حتى اليوم", "This year's profit to date")}</td>
+                      <td className={td}>{(({ ar, en }) => t(ar, en))(currentIncomeLabel(data.asOf, today))}</td>
                       <td className={num}>{money(data.sheet.currentIncome)}</td>
                     </tr>
                     <Total label={t("مجموع الملكيّة", "Total equity")} value={money(data.sheet.totalEquityWithIncome)} />

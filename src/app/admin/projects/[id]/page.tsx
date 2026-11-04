@@ -1,5 +1,7 @@
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { formatUsd, statusLabel } from "@/lib/format";
 import type { Investment, Profile, Project, ProjectUpdate } from "@/types/database";
 import { addProjectUpdate, confirmInvestment, updateProjectStatus } from "../../actions";
@@ -20,7 +22,7 @@ export default async function AdminProjectPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -31,11 +33,11 @@ export default async function AdminProjectPage({
 
   const { data: project } = await supabase
     .from("projects")
-    .select("*")
+    .select(MEMBER_COLUMNS.projects)
     .eq("id", id)
     .single();
   if (!project) notFound();
-  const typedProject = project as Project;
+  const typedProject = project as unknown as Project;
 
   const { data: updates } = await supabase
     .from("project_updates")

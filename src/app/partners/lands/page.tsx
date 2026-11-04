@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
@@ -76,7 +77,7 @@ export default async function MatchingLandsPage({
 
       {!user ? (
         <p className={`${card} mt-6 text-sm`}>
-          <Link href="/login" className="font-medium text-primary underline">
+          <Link href={loginTo("/partners/lands")} className="font-medium text-primary underline">
             {t("سجّل الدخول", "Sign in")}
           </Link>{" "}
           {t("بحساب شركتك.", "with your company’s account.")}

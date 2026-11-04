@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loginTo } from "@/lib/authEntry";
 import { currentFx } from "@/lib/livePrices";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
@@ -48,9 +49,15 @@ export default async function MySupplierPage({
   let products: SupplierProduct[] = [];
   let notDeployed = false;
   if (user) {
-    const { data, error } = await supabase.from("suppliers").select(MEMBER_COLUMNS.suppliers).eq("owner_id", user.id).maybeSingle();
+    // The owner's own columns come from supplier_private() (backlog 181): a member does not read suppliers.owner_id.
+    type Priv = { id: string; owner_id: string; licence_doc_path: string | null; verified_by: string | null };
+    const { data: privRows, error } = await supabase.rpc("supplier_private");
     notDeployed = isNotDeployed(error);
-    supplier = data as unknown as Supplier | null;
+    const own = ((privRows ?? []) as Priv[]).find((r) => r.owner_id === user.id) ?? null;
+    if (own) {
+      const { data } = await supabase.from("suppliers").select(MEMBER_COLUMNS.suppliers).eq("id", own.id).maybeSingle();
+      supplier = data ? ({ ...(data as unknown as Supplier), ...own } as Supplier) : null;
+    }
     if (supplier) {
       // The administrator's note is the owner's to read, not every member's (backlog 132).
       const { data: noteRows } = await supabase.rpc("review_notes", { p_kind: "supplier" });
@@ -79,7 +86,7 @@ export default async function MySupplierPage({
 
       {!user ? (
         <p className={`${card} mt-6 text-sm`}>
-          <Link href="/login" className="font-medium text-primary underline">
+          <Link href={loginTo("/suppliers/mine")} className="font-medium text-primary underline">
             {t("سجّل الدخول", "Sign in")}
           </Link>{" "}
           {t("لتسجّل متجرك.", "to register your shop.")}

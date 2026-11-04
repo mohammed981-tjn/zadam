@@ -42,6 +42,19 @@ const WP = [
   ["https://sudafax.com", "سوق الأبيض"],
   ["https://sudafax.com", "القضارف"],
   ["https://alsudantoday.com", "سعر الدولار"],
+  // 25 أكتوبر 2026 (البند ١٩٦): مرشَّحاتٌ جديدة للدولار، وللبورصتين. لا يُكتب قارئٌ لما لم يُرَ هنا.
+  ["https://alghadalsudani.com", "الدولار"],
+  ["https://alghadalsudani.com", "الجنيه"],
+  ["https://alrakoba.net", "الدولار"],
+  ["https://sudanile.com", "الدولار"],
+  ["https://www.sudantribune.net", "الدولار"],
+  ["https://www.dabangasudan.org", "الدولار"],
+  ["https://sudanalaan.net", "بورصة"],
+  ["https://ainelhagega.com", "بورصة"],
+  ["https://tagpress.net", "بورصة"],
+  ["https://alnilin.com", "بورصة"],
+  ["https://sudanakhbar.com", "بورصة القضارف"],
+  ["https://sudafax.com", "أسعار المحاصيل"],
 ];
 const PAGES = [
   "https://iqraa24.com/",

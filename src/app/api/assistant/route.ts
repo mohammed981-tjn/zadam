@@ -17,7 +17,7 @@ import {
   type MarketRow,
 } from "@/lib/localAnswer";
 import { getCachedAnswer, setCachedAnswer } from "@/lib/answerCache";
-import { pageContextLine } from "@/lib/pageHelp";
+import { helpKeyForPath, pageContextLine } from "@/lib/pageHelp";
 import { investmentLive } from "@/lib/platformFlags";
 import { checkModelBudget, checkRateLimit, clientAddress, type ModelBudget } from "@/lib/rateLimit";
 import { getLocale } from "@/lib/locale";
@@ -98,14 +98,12 @@ export async function POST(req: NextRequest) {
    * a different question from the same three words typed on the home page, and
    * until now both got the same general answer.
    *
-   * The path only ever selects a fixed entry from pageHelp; an unknown or
-   * crafted value matches nothing and yields an empty string, so this field
-   * cannot be used to push text of the caller's choosing into the prompt.
+   * The path only ever selects a fixed entry from pageHelp, and only that entry's key goes on — into the prompt and
+   * into the cache key below. It used to go on as sent: "/seasons/<instructions>" matched "/seasons", the instructions
+   * reached the model, and the answer was cached for everyone who asked the same question (public-api-2).
    */
-  const pageContext =
-    typeof path === "string" && path.startsWith("/") && path.length < 200
-      ? pageContextLine(path)
-      : "";
+  const pageKey = helpKeyForPath(path);
+  const pageContext = pageKey ? pageContextLine(pageKey) : "";
 
   // Note there is no early return when no model is configured. The assistant
   // no longer depends on the model being reachable: the platform answers what it
@@ -381,8 +379,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Visitors repeat each other. Serving the second asker from memory keeps the
-    // quota for questions nobody has asked yet. English answers are cached apart.
-    const cacheKey = locale === "en" ? `en|${question}` : question;
+    // quota for questions nobody has asked yet. English answers are cached apart, and so is each page's: the answer
+    // was shaped by that page's context, so it is not the answer to the same words asked elsewhere.
+    const cacheKey = `${locale === "en" ? "en|" : ""}${pageKey ? `${pageKey}|` : ""}${question}`;
     const cached = getCachedAnswer(cacheKey);
     if (cached) {
       // A cached answer is a model answer served twice, and it is counted as

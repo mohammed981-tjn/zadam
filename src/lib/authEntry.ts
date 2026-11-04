@@ -67,24 +67,63 @@ export function readIdentifier(typed: string, dial: string, locale: Locale = "ar
   return { ok: true, kind: "phone", address: phoneToEmail(phone.e164), e164: phone.e164, shown: phone.display };
 }
 
+/** Any origin that is not ours, so that "still here?" can be asked of the browser's own reading of a path. */
+const PROBE_ORIGIN = "https://sudagri.invalid";
+
 /**
  * Where to go after signing in, when the visitor came from somewhere.
  *
  * Only a path on this site: "/lands/new", never "//evil.example" or
  * "https://…", which would make the sign-in page a doorway to anywhere.
+ *
+ * The one check, for the sign-in screen and the emailed links' callback alike (audit 3 November 2026,
+ * web-client-1 / auth-actions-1; the owner's question 13). The first version looked at the first two characters, and
+ * the browser reads more than that: it drops a tab or a newline anywhere in an address and turns "\" into "/", so
+ * "/<tab>/evil.example" passed as a path and opened as "//evil.example" — another site, reached from a link that really
+ * began with our address. So control characters and backslashes are refused outright, and what is left is read the
+ * way a browser reads it and must still be on this site.
  */
-export function safeNext(next: string | null | undefined): string | null {
-  if (!next) return null;
+export function safeNext(next: unknown): string | null {
+  // A repeated `?next=` arrives as an array; anything that is not one string is no path.
+  if (typeof next !== "string" || !next) return null;
   const value = next.trim();
-  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return null;
-  if (value.length > 300 || /[\r\n]/.test(value)) return null;
-  if (value.startsWith("/login") || value.startsWith("/signup")) return null;
-  return value;
+  if (value.length > 300) return null;
+  if (/[\u0000-\u001f\u007f\\]/.test(value)) return null;
+  if (!value.startsWith("/") || value.startsWith("//")) return null;
+  let url: URL;
+  try {
+    url = new URL(value, PROBE_ORIGIN);
+  } catch {
+    return null;
+  }
+  if (url.origin !== PROBE_ORIGIN) return null;
+  // And again after the browser's own tidying: "/.//evil.example" loses its "." and becomes "//evil.example".
+  if (url.pathname.startsWith("//")) return null;
+  if (url.pathname.startsWith("/login") || url.pathname.startsWith("/signup")) return null;
+  return `${url.pathname}${url.search}${url.hash}`;
 }
+
+/**
+ * The header the proxy puts on every request it passes on: the path and query the visitor asked for, so a page or a
+ * server action that sends someone to sign in can say where to bring them back (`loginHrefHere` in @/lib/loginHere;
+ * web-flows-8). The proxy sets it over anything the visitor sent, and it is read through `safeNext` like any other
+ * return path.
+ */
+export const REQUEST_PATH_HEADER = "x-sudagri-path";
 
 /** The sign-in screen, coming back to `path` afterwards. */
 export function loginTo(path: string): string {
   return `/login?next=${encodeURIComponent(path)}`;
+}
+
+/**
+ * The sign-in link for a page in the browser, from its own path (`usePathname()`): back to that page afterwards, or
+ * plain on the home page and the sign-in, sign-up and reset screens, where coming back would hide the person's own home.
+ */
+export function signInFrom(pathname: string | null): string {
+  // The home page, and the screens of signing in itself: nothing to come back to, so the person goes to their own home.
+  if (!pathname || pathname === "/" || /^\/(login|signup|reset|auth)(\/|$)/.test(pathname)) return "/login";
+  return loginTo(pathname);
 }
 
 /**

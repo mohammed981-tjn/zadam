@@ -1,10 +1,23 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import ActionNotice from "@/components/ActionNotice";
 import { ledgerToday } from "@/lib/ledger/today";
 import { money } from "@/lib/ledger/reports";
-import { inspectionState, lastMonths, pivotFlows, type FlowRow } from "@/lib/oversightView";
+import {
+  agreementsWithheld,
+  closedMonthEnd,
+  inspectionState,
+  lastClosedMonths,
+  pivotFlows,
+  RECONCILE_REMEDY,
+  reconcileVerdict,
+  STALE_LABEL,
+  type FlowRow,
+  type ReconcileRow,
+  type StaleRow,
+} from "@/lib/oversightView";
 import { LINK_KIND_LABEL, LINK_STATUS_LABEL, type LinkKind, type LinkStatus } from "@/lib/ledgerLinks";
 import { button, card, field, ghost, label } from "@/lib/ui";
 import { closeInspection, openInspection } from "./actions";
@@ -38,29 +51,39 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/dashboard");
 
   const today = ledgerToday();
-  const months = lastMonths(today, 12);
+  // The twelve months that are over: the month under way has no figure until it ends.
+  const months = lastClosedMonths(today, 12);
   const from = months[0];
+  const asOf = closedMonthEnd(today);
 
-  const [flowsRes, mixRes, linksRes, inspRes, peopleRes] = await Promise.all([
-    supabase.rpc("oversight_flows", { p_from: from, p_to: today }),
-    supabase.rpc("oversight_currency_mix", { p_from: months[months.length - 3], p_to: today }),
-    supabase.rpc("oversight_links", { p_from: from, p_to: today }),
+  const [settingsRes, flowsRes, mixRes, linksRes, staleRes, reconRes, inspRes, peopleRes] = await Promise.all([
+    supabase.from("oversight_settings").select("min_books").maybeSingle(),
+    supabase.rpc("oversight_flows", { p_from: from, p_to: asOf }),
+    supabase.rpc("oversight_currency_mix", { p_from: months[months.length - 3], p_to: asOf }),
+    supabase.rpc("oversight_links", { p_from: from, p_to: asOf }),
+    supabase.rpc("oversight_stale", { p_days: 7 }),
+    supabase.rpc("oversight_reconcile", { p_as_of: asOf }),
     supabase.rpc("ledger_inspections_list"),
     q ? supabase.rpc("admin_users_list", { p_limit: 10, p_offset: 0, p_q: q }) : Promise.resolve({ data: [] as Person[] }),
   ]);
+  // The floor is the administration's setting (now five books); the words below follow it instead of repeating a number.
+  const minBooks = Number((settingsRes.data as { min_books?: number } | null)?.min_books ?? 5);
+  const floorWord = minBooks.toLocaleString("ar-EG");
   const flows = pivotFlows((flowsRes.data ?? []) as FlowRow[]);
   const mix = (mixRes.data ?? []) as Mix[];
   const linkAgg = (linksRes.data ?? []) as LinkAgg[];
+  const stale = (staleRes.data ?? []) as StaleRow[];
+  const verdict = reconcileVerdict(((reconRes.data ?? []) as ReconcileRow[])[0]);
   const inspections = (inspRes.data ?? []) as Insp[];
   const people = (peopleRes.data ?? []) as Person[];
   const now = new Date();
   const monthName = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("ar-EG", { timeZone: "UTC", month: "short", year: "2-digit" });
-  const firstError = flowsRes.error ?? mixRes.error ?? linksRes.error ?? inspRes.error;
+  const firstError = flowsRes.error ?? mixRes.error ?? linksRes.error ?? staleRes.error ?? reconRes.error ?? inspRes.error;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -68,7 +91,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
       <h1 className="mt-3 text-2xl font-bold">الرقابة الماليّة</h1>
       <p className="mt-2 text-sm leading-7 text-muted">
         تراقب المنصّة الحركة الماليّة في الشبكة كما يراقب البنك المركزيّ البنوك: ترى الأرقام المجمَّعة بلا أسماء، ولا تكتب في دفتر أحد ولا في ماله.
-        وأيّ رقمٍ ساهم فيه أقلّ من ثلاثة دفاتر، أو غلب عليه دفترٌ واحد، يُحجب حتى لا يُعرف صاحبه.
+        وأيّ رقمٍ ساهم فيه أقلّ من {floorWord} دفاتر، أو غلب عليه دفترٌ واحد، يُحجب حتى لا يُعرف صاحبه.
         وقراءة دفترٍ بعينه لا تكون إلا بفحصٍ تكتب سببه، مدّته محدودة، ويصل صاحبَ الدفتر إشعارٌ عند فتحه وعند إغلاقه.
       </p>
 
@@ -83,7 +106,10 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
       )}
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-bold">١ · الحركة الماليّة في الشبكة (بالدولار، آخر ١٢ شهراً)</h2>
+        <h2 className="mb-3 text-lg font-bold">١ · الحركة الماليّة في الشبكة (بالدولار، آخر ١٢ شهراً انتهت)</h2>
+        <p className="mb-3 text-sm text-muted">
+          كلّ قيدٍ يُعدّ في الشهر الذي سُجّل فيه، والشهر الجاري يظهر حين ينتهي: فرقمُ الشهر المنتهي ثابتٌ لا يتغيّر بين قراءتين، فلا يُعرف منه قيد أحد.
+        </p>
         <div className={box}>
           <table className="w-full text-sm">
             <thead className="bg-card">
@@ -117,7 +143,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
         <p className="mt-2 text-xs text-muted">«محجوب» ليس صفراً: أُخفي حمايةً لخصوصيّة أصحاب الدفاتر. تظهر الأرقام حين تتّسع الشبكة.</p>
         {mix.length > 0 && (
           <p className="mt-3 text-sm">
-            <span className="font-bold">حصّة العملات في القيود (آخر ٣ أشهر): </span>
+            <span className="font-bold">حصّة العملات في القيود (آخر ٣ أشهر انتهت، والشهر يُحجب كلّه إن حُجبت عملةٌ فيه): </span>
             {mix.map((r) => (
               <span key={`${r.period}${r.currency}`} className="me-3 text-muted">
                 {monthName(r.period)} {r.currency === "SDG" ? "جنيه" : "دولار"} {r.suppressed || r.share_pct === null ? "محجوب" : `${r.share_pct}٪`}
@@ -141,7 +167,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
                   <td className={td}>{LINK_KIND_LABEL[r.kind]?.ar ?? r.kind}</td>
                   <td className={td}>{LINK_STATUS_LABEL[r.status]?.ar ?? r.status}</td>
                   {r.suppressed ? (
-                    <td className={`${td} text-muted`} colSpan={3}>محجوب (أقلّ من ثلاثة عقود)</td>
+                    <td className={`${td} text-muted`} colSpan={3}>{agreementsWithheld(floorWord)}</td>
                   ) : (
                     <>
                       <td className={num}>{r.links}</td>
@@ -154,6 +180,44 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-bold">٢ب · ما تأخّر، وفرق الذمّتين (بلا أسماء)</h2>
+        <div className={box}>
+          <table className="w-full text-sm">
+            <thead className="bg-card">
+              <tr><th className={th}>ما مضى عليه أكثر من أسبوع</th><th className={th}>العدد</th><th className={th}>العقود</th><th className={th}>أقدمها (أياماً)</th></tr>
+            </thead>
+            <tbody>
+              {stale.map((r) => (
+                <tr key={r.what} className="border-t border-border">
+                  <td className={td}>{STALE_LABEL[r.what] ?? r.what}</td>
+                  {r.suppressed ? (
+                    <td className={`${td} text-muted`} colSpan={3}>{agreementsWithheld(floorWord)}</td>
+                  ) : (
+                    <>
+                      <td className={num}>{r.items}</td>
+                      <td className={num}>{r.agreements}</td>
+                      <td className={num}>{r.items ? r.oldest_days : ""}</td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-4 text-sm leading-7">
+          <span className="font-bold">فرق الذمّتين (حتى {asOf}، نهاية آخر شهرٍ انتهى): </span>
+          {verdict.kind === "withheld" && <span className="text-muted">محجوب — الدفاتر قليلة في أحد الجانبين أو يغلب عليه دفترٌ واحد.</span>}
+          {verdict.kind === "match" && <span>ما تقوله دفاتر المزارعين أنّها مستحقّةٌ لشركائها يطابق ما تقوله دفاتر المستثمرين أنّها مستحقّةٌ لهم.</span>}
+          {verdict.kind === "differs" && (
+            <span>
+              {verdict.direction === "farm_more" ? "دفاتر المزارعين تُثبت مستحقّاً للشركاء أكثر مما تُثبته دفاتر المستثمرين" : "دفاتر المستثمرين تُثبت مستحقّاً لهم أكثر مما تُثبته دفاتر المزارعين"} بمقدار{" "}
+              <span className="font-bold tabular-nums">{money(verdict.difference)}</span>. {RECONCILE_REMEDY}
+            </span>
+          )}
+        </p>
       </section>
 
       <section className="mt-10">
@@ -216,7 +280,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
                     <td className={td}>
                       {st === "active" && (
                         <div className="flex flex-col gap-2">
-                          <Link className="text-primary underline" href={`/books?book=${i.book_kind}`}>اقرأ الدفتر</Link>
+                          <Link className="text-primary underline" href={`/books?book=${i.book_kind}&id=${i.book_id}`}>اقرأ الدفتر</Link>
                           <form action={closeInspection}>
                             <input type="hidden" name="inspection_id" value={i.id} />
                             <button type="submit" className={ghost}>أغلق الفحص</button>

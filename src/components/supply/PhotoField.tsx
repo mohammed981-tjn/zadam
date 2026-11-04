@@ -27,12 +27,15 @@ export default function PhotoField({
   label,
   required,
   pdf,
+  suffix,
 }: {
   name: string;
   folder: string;
   label: string;
   required?: boolean;
   pdf?: boolean;
+  /** Appended to the file's id, for a column whose check names the kind of photo (`-consent`, `-photo`). */
+  suffix?: string;
 }) {
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -64,7 +67,12 @@ export default function PhotoField({
         setMsg(t("الملفّ أكبر من ١٠ ميجابايت بعد الضغط.", "The file is over 10 MB after compression."));
         return;
       }
-      const p = `${user.id}/${folder}/${crypto.randomUUID()}.${EXT[out.type] ?? "jpg"}`;
+      const ext = EXT[out.type] ?? "jpg";
+      if (suffix && !["jpg", "png", "webp"].includes(ext)) {
+        setMsg(t("صيغةٌ غير مقبولة. صوّر بالهاتف (JPG أو PNG).", "Format not accepted. Take a phone photo (JPG or PNG)."));
+        return;
+      }
+      const p = `${user.id}/${folder}/${crypto.randomUUID()}${suffix ?? ""}.${ext}`;
       const { error } = await supabase.storage.from("evidence").upload(p, out, { contentType: out.type, upsert: false });
       if (error) {
         setMsg(t(`تعذّر الرفع: ${error.message}`, `Upload failed: ${error.message}`));

@@ -3,6 +3,7 @@ import { dbText } from "@/lib/dbText";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { investmentLive } from "@/lib/platformFlags";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
@@ -46,8 +47,10 @@ export async function invest(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
+    // Back to the opportunity afterwards (web-flows-8): the form is on its page.
+    const signIn = await loginHrefHere();
     redirect(
-      `/login?error=${encodeURIComponent(t("سجّل الدخول أولاً للاستثمار", "Sign in first to invest"))}`,
+      `${signIn}${signIn.includes("?") ? "&" : "?"}error=${encodeURIComponent(t("سجّل الدخول أولاً للاستثمار", "Sign in first to invest"))}`,
     );
   }
 

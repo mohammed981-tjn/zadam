@@ -8,9 +8,12 @@
  * includes the columns it does not hold. So every query a signed-out visitor
  * can reach names its columns from here.
  *
- * `MEMBER_COLUMNS` is the same for signed-in members on the two tables whose
- * review note is the owner's and the administration's alone; they read it
- * through `review_notes()`.
+ * `MEMBER_COLUMNS` is the same for signed-in members on the tables where some
+ * columns are the owner's and the administration's alone: review notes through
+ * `review_notes()`, and since backlog 181 the account ids and the licence path of
+ * suppliers and projects through `supplier_private()` and `project_private()`
+ * (supabase/migrations/20261025230000_projects_suppliers_private_ids.sql), and
+ * those of partner companies through `partner_company_private()` (230100).
  *
  * scripts/verify-visitor-columns.ts holds these strings to the migration's
  * grants: add a column to one, add it to the other.
@@ -28,7 +31,7 @@ export const VISITOR_COLUMNS = {
     "id, slug, name, location, description, total_feddans, price_per_share, total_shares, shares_sold, status, " +
     "risk_level, expected_annual_return, cover_image_url, created_at, is_demo, review_status, submitted_by, " +
     "risk_score, crop_key, station_key, planting_month, irrigation, water_source, declared_water_per_feddan, " +
-    "documents_on_file, documents_required, km_to_market",
+    "documents_on_file, documents_required, km_to_market, trial",
   feedback:
     "id, display_name, page_path, kind, body, status, admin_reply, replied_at, published, created_at, ai_reply, " +
     "ai_replied_at, ai_reply_engine",
@@ -55,13 +58,9 @@ export const VISITOR_COLUMNS = {
 } as const;
 
 export const MEMBER_COLUMNS = {
-  suppliers:
-    "id, owner_id, name, state, locality, phone, whatsapp, delivery_states, categories, pesticide_licence_no, " +
-    "seed_registration_no, commercial_registration_no, licence_doc_path, bio, verified_at, verified_by, active, " +
-    "created_at, updated_at",
-  partner_companies:
-    "id, owner_id, name, commercial_registration_no, kinds, states, contact_name, phone, whatsapp, bio, " +
-    "verified_at, verified_by, active, created_at, updated_at",
+  suppliers: VISITOR_COLUMNS.suppliers,
+  projects: VISITOR_COLUMNS.projects,
+  partner_companies: VISITOR_COLUMNS.partner_companies,
   feedback:
     "id, author_id, display_name, page_path, kind, body, status, admin_reply, replied_at, replied_by, published, " +
     "created_at, ai_reply, ai_replied_at, ai_reply_engine",

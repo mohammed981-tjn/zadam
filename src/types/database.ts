@@ -45,6 +45,8 @@ export interface Project {
   cover_image_url: string | null;
   /** Illustrative sample project — must never be presented as a real offer. */
   is_demo: boolean;
+  /** A trial opportunity run by the platform's own team (20261103020000), said so on its card and page. */
+  trial?: boolean;
   review_status: ReviewStatus;
   submitted_by: string | null;
   review_note: string | null;
@@ -94,6 +96,8 @@ export interface Land {
   village: string | null;
   latitude: number | null;
   longitude: number | null;
+  /** Corners as drawn in the app, [lat, lng] in order round the field (20261031010000); null when never drawn. */
+  boundary?: [number, number][] | null;
   feddans: number;
   station_key: string;
   water_source: string;
@@ -106,6 +110,10 @@ export interface Land {
   documents_required: number;
   verification: "unverified" | "submitted" | "verified" | "rejected";
   verification_note: string | null;
+  /** Who verified the land, when, and at what area (20261103010000). A signature counts against the verified area. */
+  verified_by?: string | null;
+  verified_at?: string | null;
+  verified_feddans?: number | null;
   listed: boolean;
   created_at: string;
   /**
@@ -406,6 +414,10 @@ export interface ServiceProvider {
    * takes the other away from the provider that legitimately needs it.
    */
   paused_by_owner: boolean;
+  /** Mechanisation only: available now, in the provider's own words (backlog 168). */
+  available: boolean;
+  /** When they last said it; stamped by the database, never typed. */
+  availability_confirmed_at: string | null;
   created_at: string;
 }
 

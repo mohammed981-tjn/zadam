@@ -1,6 +1,6 @@
 import { formatMoney } from "@/lib/ledger/money";
 import { tr, type Locale } from "@/lib/i18n";
-import type { InvestorStatement } from "@/lib/ledgerLinks";
+import { returnSentence, type InvestorStatement } from "@/lib/ledgerLinks";
 
 /**
  * كشف حساب المستثمر مع هذا العقد (البند ١٨٨ ج): ما وظّفه، وما أُقرّ له به، وما سُلّم، وما بقي، والعائد.
@@ -10,7 +10,6 @@ import type { InvestorStatement } from "@/lib/ledgerLinks";
 export default function InvestorStatementCard({ st, locale, role }: { st: InvestorStatement; locale: Locale; role: "owner" | "investor" }) {
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const usd = (v: bigint) => formatMoney(v, "USD");
-  const pct = (v: number | null) => (v === null ? "—" : `${(v * 100).toFixed(1)}%`);
   const times = (v: number | null) => (v === null ? "—" : `${v.toFixed(2)}×`);
 
   const empty = st.invested === BigInt(0) && st.recognised === BigInt(0) && st.handedOver === BigInt(0) && st.rent === BigInt(0);
@@ -43,9 +42,10 @@ export default function InvestorStatementCard({ st, locale, role }: { st: Invest
       {st.invested > BigInt(0) && (
         <p className="mt-3 text-xs text-muted">
           {t(
-            `مضاعف رأس المال: ${times(st.moicRecognised)} بما أُقرّ به، و${times(st.moicCash)} بما سُلّم. العائد السنويّ على ما سُلّم فعلاً: ${pct(st.xirr)}${st.settled ? "" : " (يرتفع حين يُسلَّم الباقي)"}.`,
-            `Money multiple: ${times(st.moicRecognised)} on what was recognised, ${times(st.moicCash)} on what was handed over. Yearly return on what was actually paid: ${pct(st.xirr)}${st.settled ? "" : " (it rises as the rest is handed over)"}.`,
+            `مضاعف رأس المال: ${times(st.moicRecognised)} بما أُقرّ به، و${times(st.moicCash)} بما سُلّم.`,
+            `Money multiple: ${times(st.moicRecognised)} on what was recognised, ${times(st.moicCash)} on what was handed over.`,
           )}{" "}
+          {returnSentence(st, t)}{" "}
           {t("حسابٌ للماضي لا وعدٌ بعائد.", "Arithmetic on the past, not a promise of a return.")}
         </p>
       )}

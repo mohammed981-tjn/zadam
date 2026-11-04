@@ -61,12 +61,18 @@ interface SubscriptionRow {
  * answers 404 or 410 has dropped the subscription: it is marked failed and
  * kept, never deleted. Returns what happened, for the job's report.
  */
+/** How long one push service may take to answer before it is given up on. */
+const PUSH_TIMEOUT_MS = 8_000;
+
 export async function pushToUser(admin: Admin, userId: string, payload: PushPayload): Promise<{ sent: number; failed: number }> {
   const { data: subs, error } = await admin
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
     .eq("user_id", userId)
-    .is("failed_at", null);
+    .is("failed_at", null)
+    // The database allows ten working devices (public-api-3); the newest ten are asked here even for an older row.
+    .order("created_at", { ascending: false })
+    .limit(10);
   if (error || !subs || subs.length === 0) {
     if (error) console.error("push: subscriptions", error);
     return { sent: 0, failed: 0 };
@@ -78,9 +84,13 @@ export async function pushToUser(admin: Admin, userId: string, payload: PushPayl
   const body = JSON.stringify(trimPayload(payload));
   let sent = 0;
   let failed = 0;
-  for (const s of subs as SubscriptionRow[]) {
+  // Side by side, each with a deadline: one slow push service no longer holds the others or the run (public-api-3).
+  await Promise.all((subs as SubscriptionRow[]).map(async (s) => {
     try {
-      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, { TTL: 86_400 });
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, {
+        TTL: 86_400,
+        timeout: PUSH_TIMEOUT_MS,
+      });
       sent++;
       await admin.from("push_subscriptions").update({ last_sent_at: new Date().toISOString() }).eq("id", s.id);
     } catch (e) {
@@ -92,6 +102,6 @@ export async function pushToUser(admin: Admin, userId: string, payload: PushPayl
         console.error("push: send failed", status, (e as Error).message);
       }
     }
-  }
+  }));
   return { sent, failed };
 }

@@ -34,10 +34,13 @@ async function publishedSince(kinds: QuoteRow["kind"][], since: string): Promise
       .select("kind, market, crop, unit, market_date, buy, sell, price, source_url")
       .in("kind", kinds)
       .gte("market_date", since)
-      .order("market_date", { ascending: true })
+      // The newest 500, not the oldest: ascending with a limit froze the pages once the window passed 500 rows
+      // (review 198). Same-day figures are ordered by when they were written, so the latest approved one wins.
+      .order("market_date", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(500);
     if (error) return [];
-    return (data ?? []) as QuoteRow[];
+    return ((data ?? []) as QuoteRow[]).reverse();
   } catch {
     return [];
   }

@@ -126,8 +126,8 @@ export async function setInvestorConsent(fd: FormData) {
     "ok",
     open
       ? t(
-          "عُرضت أرضك في صفحة فرص الاستثمار. يرى المستثمر الولاية والمحليّة والمساحة والتربة والماء فقط، ولا يرى اسمك ولا موقعها حتى تقبل طلبه.",
-          "Your land is now on the investment opportunities page. Investors see only its state, locality, area, soil and water — not your name or its location until you accept a request.",
+          "عُرضت أرضك في صفحة فرص الاستثمار. يرى المستثمر الولاية، وفئة المساحة (لا عدد الفدادين)، والتربة، ومصدر الماء. ولا يرى اسمك ولا المحلّيّة ولا المساحة الدقيقة ولا موقعها حتى تقبل طلبه.",
+          "Your land is now on the investment opportunities page. Investors see its state, its area band (not the number of feddans), its soil and its water source. They do not see your name, the locality, the exact area or its location until you accept their request.",
         )
       : t("أُغلقت الأرض أمام المستثمرين.", "Your land is closed to investors."),
   );

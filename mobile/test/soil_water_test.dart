@@ -51,41 +51,48 @@ class _SoilCase {
 /// least one of these numbers.
 const soilCases = <_SoilCase>[
   _SoilCase('wheat', 'gezira', 10, IrrigationMethod.flood, 'sand',
-      37.5000, 10.1322, 3.7011, 157.5000),
+      37.5000, 5.5727, 6.7292, 286.3636),
   _SoilCase('sorghum', 'kordofan', 6, IrrigationMethod.flood, 'clay loam',
-      105.0000, 7.9765, 13.1637, 441.0000),
+      105.0000, 4.3871, 23.9339, 801.8182),
   _SoilCase('onion', 'northern', 10, IrrigationMethod.drip, 'sandy loam',
-      10.8000, 8.1779, 1.3206, 45.3600),
+      10.8000, 7.3601, 1.4674, 50.4000),
   _SoilCase('tomato', 'khartoum', 9, IrrigationMethod.drip, 'loam',
-      50.4000, 5.6428, 8.9317, 211.6800),
+      50.4000, 5.0785, 9.9242, 235.2000),
   _SoilCase('sugarcane', 'khartoum', 2, IrrigationMethod.sprinkler, 'clay',
-      120.0000, 9.9185, 12.0986, 504.0000),
+      120.0000, 7.4389, 16.1314, 672.0000),
   _SoilCase('groundnut', 'kordofan', 6, IrrigationMethod.flood, 'loamy sand',
-      23.7500, 10.0074, 2.3732, 99.7500),
+      23.7500, 5.5041, 4.3150, 181.3636),
   // محاصيل أكتوبر ٢٠٢٦ (البند ١٩٣): مقياسا الجذر والاستنزاف من الجدول ٢٢ — بين p الأضيق (٠٫٣٠ و٠٫٣٥) والمعتاد (٠٫٥٠).
   _SoilCase('potato', 'gezira', 10, IrrigationMethod.flood, 'sandy loam',
-      16.8000, 11.2259, 1.4965, 70.5600),
+      16.8000, 6.1742, 2.7210, 128.2909),
   _SoilCase('sweet_pepper', 'khartoum', 7, IrrigationMethod.drip, 'loamy sand',
-      14.2500, 6.5137, 2.1877, 59.8500),
+      14.2500, 5.8623, 2.4308, 66.5000),
   _SoilCase('carrot', 'gezira', 10, IrrigationMethod.flood, 'clay loam',
-      36.7500, 10.3039, 3.5666, 154.3500),
+      36.7500, 5.6671, 6.4848, 280.6364),
   _SoilCase('watermelon', 'northern', 0, IrrigationMethod.flood, 'sandy loam',
-      38.4000, 9.0156, 4.2593, 161.2800),
+      38.4000, 4.9586, 7.7442, 293.2364),
   _SoilCase('sunflower', 'gezira', 10, IrrigationMethod.sprinkler, 'loam',
-      64.8000, 8.0029, 8.0970, 272.1600),
+      64.8000, 6.0022, 10.7960, 362.8800),
   _SoilCase('faba_bean', 'gezira', 10, IrrigationMethod.flood, 'clay',
-      45.0000, 9.9942, 4.5026, 189.0000),
+      45.0000, 5.4968, 8.1866, 343.6364),
   _SoilCase('citrus', 'khartoum', 0, IrrigationMethod.drip, 'sandy loam',
-      72.0000, 5.4483, 13.2152, 302.4000),
+      72.0000, 4.9034, 14.6836, 336.0000),
   _SoilCase('sweet_potato', 'gezira', 6, IrrigationMethod.flood, 'silt loam',
-      100.0000, 9.3304, 10.7177, 420.0000),
+      100.0000, 5.1317, 19.4867, 763.6364),
+  // المحاصيل الجديدة على السودان (البند ١٩٤): p الافتراضيّ (فول الصويا) وp الأضيق (العنب ٠٫٣٥) وp الجدول ٠٫٦٥ مقصوصاً إلى ٠٫٥٠ (الزيتون).
+  _SoilCase('soybean', 'gezira', 6, IrrigationMethod.flood, 'clay loam',
+      63.0000, 3.7681, 16.7195, 481.0909),
+  _SoilCase('grapes', 'northern', 2, IrrigationMethod.drip, 'sandy loam',
+      42.0000, 6.8548, 6.1271, 196.0000),
+  _SoilCase('olive', 'khartoum', 0, IrrigationMethod.drip, 'loam',
+      108.0000, 5.0204, 21.5121, 504.0000),
 ];
 
 void main() {
   group('matches the web soil-water engine', () {
     for (final c in soilCases) {
       test('${c.crop} on ${c.soil} in ${c.station}', () {
-        final crop = crops.firstWhere((x) => x.key == c.crop);
+        final crop = allCrops.firstWhere((x) => x.key == c.crop);
         final station = stations.firstWhere((x) => x.key == c.station);
         final r = irrigationInterval(
           crop,
@@ -143,6 +150,27 @@ void main() {
       }
     });
 
+    test('the interval does not depend on the irrigation method', () {
+      // The soil reservoir and the plant's draw on it are the same whatever
+      // delivers the water; only what must be pumped differs (review 198, D10).
+      final station = stations.firstWhere((x) => x.key == 'khartoum');
+      for (final crop in allCrops.where((c) => rootDepthM[c.key] != null)) {
+        final byMethod = IrrigationMethod.values
+            .map((m) => irrigationInterval(crop, station, 10, m, 'clay')!)
+            .toList();
+        for (final r in byMethod.skip(1)) {
+          expect(r.days, closeTo(byMethod.first.days, 1e-9),
+              reason: '${crop.key}: the interval moved with the method');
+        }
+        for (var i = 0; i < IrrigationMethod.values.length; i++) {
+          final eff = irrigationEfficiency[IrrigationMethod.values[i]]!;
+          expect(byMethod[i].doseM3PerFeddan * eff,
+              closeTo(byMethod[i].doseMm * m3PerMmPerFeddan, 1e-6),
+              reason: '${crop.key}: the pumped dose is the net dose plus losses');
+        }
+      }
+    });
+
     test('a crop has an interval exactly when it has a published root depth', () {
       // The picker may offer a crop the root-depth table does not cover (rice
       // today: FAO-56 Table 22 gives its p as a share of saturation, which this
@@ -150,7 +178,7 @@ void main() {
       // guessed depth — and the screen says why instead of showing an empty
       // panel (water_screen.dart).
       final station = stations.first;
-      for (final crop in crops) {
+      for (final crop in allCrops) {
         final r = irrigationInterval(
           crop,
           station,
@@ -171,7 +199,7 @@ void main() {
       // row nobody can reach. `mango` is the one deliberate exception — the
       // web keeps its depth for the knowledge base while the water engine
       // has no Kc for it (see the note beside CROPS in agronomy.ts).
-      final keys = crops.map((c) => c.key).toSet();
+      final keys = allCrops.map((c) => c.key).toSet();
       for (final k in rootDepthM.keys) {
         if (k == 'mango') continue;
         expect(keys, contains(k), reason: 'root depth for unknown crop $k');

@@ -19,6 +19,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../account.dart';
 import '../api.dart';
 import '../theme.dart';
+import 'land_map_screen.dart';
 import 'messages_screen.dart';
 
 /// Opens a page of the website in the phone's browser.
@@ -274,6 +275,26 @@ class _SignInFormState extends State<_SignInForm> {
                 : const Text('دخول'),
           ),
           _Error(_error),
+          const SizedBox(height: 12),
+          // «الدخول بحساب Google» (البند ١٧٣): في متصفّح الجوّال، ثمّ يعود إلى التطبيق.
+          OutlinedButton.icon(
+            onPressed: _busy
+                ? null
+                : () async {
+                    try {
+                      final url = await accountController.providerSignInUrl('google');
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    } on ApiException catch (e) {
+                      if (mounted) setState(() => _error = e.message);
+                    }
+                  },
+            icon: const Icon(Icons.account_circle_outlined),
+            label: const Text('الدخول بحساب Google'),
+          ),
+          ValueListenableBuilder<String?>(
+            valueListenable: accountController.providerError,
+            builder: (_, message, _) => _Error(message),
+          ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => setState(() {
@@ -431,7 +452,7 @@ class _SignedInState extends State<_SignedIn> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
             children: [
-              _WhoCard(account: a),
+              _WhoCard(account: a, onChanged: _reload),
               if (a.isAdmin) ...[
                 const SizedBox(height: 16),
                 _ReviewCard(account: a),
@@ -441,7 +462,7 @@ class _SignedInState extends State<_SignedIn> {
               const SizedBox(height: 16),
               _NoticesCard(account: a, onChanged: _reload),
               const SizedBox(height: 16),
-              _LandsCard(account: a),
+              _LandsCard(account: a, onChanged: _reload),
             ],
           );
         },
@@ -451,8 +472,9 @@ class _SignedInState extends State<_SignedIn> {
 }
 
 class _WhoCard extends StatelessWidget {
-  const _WhoCard({required this.account});
+  const _WhoCard({required this.account, required this.onChanged});
   final Account account;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -476,7 +498,29 @@ class _WhoCard extends StatelessWidget {
                   Text('أنت داخل بحساب', style: TextStyle(fontSize: 12, color: mutedOn(context))),
                   Text(account.name.isEmpty ? 'بلا اسم' : account.name,
                       style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-                  if (label.isNotEmpty)
+                  // «أرضي · استثماري» (البند ١٧٣): حسابٌ واحدٌ للجانبين، كما في قائمة الموقع.
+                  if (account.role == 'farmer' || account.role == 'investor') ...[
+                    const SizedBox(height: 8),
+                    SegmentedButton<String>(
+                      key: const Key('side-switch'),
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(value: 'farmer', label: Text('أرضي'), icon: Icon(Icons.grass, size: 18)),
+                        ButtonSegment(value: 'investor', label: Text('استثماري'), icon: Icon(Icons.trending_up, size: 18)),
+                      ],
+                      selected: {account.role!},
+                      onSelectionChanged: (s) async {
+                        try {
+                          await accountController.switchSide(s.first);
+                          onChanged();
+                        } on ApiException catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                          }
+                        }
+                      },
+                    ),
+                  ] else if (label.isNotEmpty)
                     Text(label, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
                 ],
               ),
@@ -555,7 +599,9 @@ class _ReviewCard extends StatelessWidget {
         child: const Text('في الموقع'),
       ),
       children: [
-        if (account.review.isEmpty)
+        if (account.reviewNote != null)
+          Text(account.reviewNote!, style: TextStyle(color: mutedOn(context)))
+        else if (account.review.isEmpty)
           Text('لا شيء ينتظر قرارك الآن.', style: TextStyle(color: mutedOn(context))),
         for (final s in account.review)
           ExpansionTile(
@@ -656,8 +702,9 @@ class _MessagesCard extends StatelessWidget {
 }
 
 class _LandsCard extends StatelessWidget {
-  const _LandsCard({required this.account});
+  const _LandsCard({required this.account, required this.onChanged});
   final Account account;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -688,10 +735,15 @@ class _LandsCard extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            OutlinedButton.icon(
-              onPressed: () => openOnSite(context, '/lands'),
+            // «حدّد أرضك» (البند ١٣٤): بالمشي حولها أو بالنقر على الخريطة، في التطبيق نفسه.
+            FilledButton.icon(
+              onPressed: () async {
+                final saved = await Navigator.of(context)
+                    .push<bool>(MaterialPageRoute(builder: (_) => const LandMapScreen()));
+                if (saved == true) onChanged();
+              },
               icon: const Icon(Icons.add_location_alt, size: 18),
-              label: const Text('سجّل أرضاً'),
+              label: const Text('حدّد أرضك على الخريطة'),
             ),
             OutlinedButton.icon(
               onPressed: () => openOnSite(context, '/invest'),

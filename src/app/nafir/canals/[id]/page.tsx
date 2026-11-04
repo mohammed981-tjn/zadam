@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import NafirShell, { button, field, ghost } from "@/components/nafir/NafirShell";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import { nafirViewer } from "@/lib/nafirViewer";
+import { loginTo } from "@/lib/authEntry";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import {
@@ -88,7 +89,7 @@ export default async function CanalPage({
         <section className="mt-6 rounded-2xl border border-border bg-card p-5">
           {!user ? (
             <p className="text-sm">
-              <Link href="/login" className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+              <Link href={loginTo(`/nafir/canals/${id}`)} className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
               {t("لتطلب الانضمام إلى هذه الترعة.", "to ask to join this canal.")}
             </p>
           ) : (

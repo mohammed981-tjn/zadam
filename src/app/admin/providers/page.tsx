@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import Explain, { EmptyState } from "@/components/Explain";
 import { SERVICE_KIND_LABEL, SERVICE_UNIT_LABEL, SERVICE_BY_KEY } from "@/lib/services";
 import type { ProviderService, ServiceProvider } from "@/types/database";
@@ -28,7 +29,7 @@ export default async function AdminProvidersPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   // Same gate as the other admin screens: checked here so the page never
   // renders for a non-admin, and enforced again by RLS and by the trigger on

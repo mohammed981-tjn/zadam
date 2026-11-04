@@ -1,6 +1,7 @@
 import Link from "next/link";
 import NafirShell, { button, field } from "@/components/nafir/NafirShell";
 import { nafirViewer } from "@/lib/nafirViewer";
+import { loginTo } from "@/lib/authEntry";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { SUDAN_STATES, ar, stateName, typed, type CanalSummary } from "@/lib/nafir";
@@ -77,7 +78,7 @@ export default async function CanalsPage({
         <h2 className="text-lg font-bold">{t("سجّل ترعتك", "Register your canal")}</h2>
         {!user ? (
           <p className="mt-2 text-sm">
-            <Link href="/login" className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+            <Link href={loginTo("/nafir/canals")} className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
             {t("لتسجّل ترعة.", "to register a canal.")}
           </p>
         ) : (

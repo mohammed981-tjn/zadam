@@ -126,6 +126,7 @@ export async function GET(req: NextRequest) {
   const written = { locust_near: 0, animal_disease: 0, stage_due: 0 };
   const pushed = { sent: 0, failed: 0 };
   let failed = 0;
+  const toPush: typeof alerts = [];
   for (const a of alerts.slice(0, MAX_ALERTS_PER_RUN)) {
     const { data, error } = await supabase.rpc("field_alert_send", {
       p_recipient: a.recipient,
@@ -140,9 +141,18 @@ export async function GET(req: NextRequest) {
       console.error("field-alerts: send", a.kind, error);
     } else if (data === true) {
       written[a.kind]++;
-      // To the phone's screen too, for whoever turned that on. A push that
-      // fails changes nothing: the notification is already in their inbox.
-      const p = await pushToUser(supabase, a.recipient, { title: a.title, body: a.body, url: a.link });
+      toPush.push(a);
+    }
+  }
+
+  // To the phone's screen too, for whoever turned that on. A push that fails changes nothing: the notification is
+  // already in their inbox. Five people at a time, each send under its own deadline (public-api-3), so a slow push
+  // service cannot spend the run's sixty seconds.
+  for (let i = 0; i < toPush.length; i += 5) {
+    const batch = await Promise.all(
+      toPush.slice(i, i + 5).map((a) => pushToUser(supabase, a.recipient, { title: a.title, body: a.body, url: a.link })),
+    );
+    for (const p of batch) {
       pushed.sent += p.sent;
       pushed.failed += p.failed;
     }

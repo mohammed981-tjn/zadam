@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import {
   disbursementDecision,
   summariseLedger,
@@ -19,6 +20,7 @@ import {
   stationName as stationLabel,
 } from "@/lib/farmLabelsEn";
 import { returnBand } from "@/lib/risk";
+import { ledgerToday } from "@/lib/ledger/today";
 import type {
   LedgerEntryRow,
   Season,
@@ -55,7 +57,7 @@ export default async function SeasonPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -89,7 +91,9 @@ export default async function SeasonPage({
 
   // The rate a pound entry would take today, shown so the farmer knows what he is agreeing to.
   // None published is a normal state: the farmer then types the rate he exchanged at.
-  const today = new Date().toISOString().slice(0, 10);
+  // Khartoum's day, as the ledger counts it: the server's clock is UTC, and between midnight and two it is still
+  // yesterday there (review 198 B6).
+  const today = ledgerToday();
   const suggested = isOwner
     ? ((await supabase.rpc("ledger_fx_rate", { p_date: today, p_source: "parallel" })).data as
         | { rate: number; rate_date: string }[]

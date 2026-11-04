@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
@@ -51,10 +52,18 @@ export default async function MyPartnerPage({
   let managing: { id: string; ref: string | null; status: "draft" | "signed"; version: number; updated_at: string }[] = [];
   let notDeployed = false;
   if (user) {
-    const { data, error } = await supabase.from("partner_companies").select(MEMBER_COLUMNS.partner_companies).eq("owner_id", user.id).maybeSingle();
+    // Which company is this account's: the owner's id is not a column members read (backlog 181), so the
+    // database says, and the company is then read like any other.
+    const { data: own } = await supabase.rpc("partner_company_private");
+    const mine = ((own ?? []) as { id: string; owner_id: string; verified_by: string | null }[]).find(
+      (c) => c.owner_id === user.id,
+    );
+    const { data, error } = mine
+      ? await supabase.from("partner_companies").select(MEMBER_COLUMNS.partner_companies).eq("id", mine.id).maybeSingle()
+      : { data: null, error: null };
     notDeployed = isNotDeployed(error);
     if (error && !notDeployed) console.error("partners/mine: company failed", error);
-    company = data as unknown as PartnerCompany | null;
+    company = data ? ({ ...(data as object), owner_id: mine!.owner_id } as unknown as PartnerCompany) : null;
     if (company) {
       // The administrator's note is the owner's to read, not every member's (backlog 132).
       const { data: noteRows } = await supabase.rpc("review_notes", { p_kind: "partner_company" });
@@ -90,7 +99,7 @@ export default async function MyPartnerPage({
 
       {!user ? (
         <p className={`${card} mt-6 text-sm`}>
-          <Link href="/login" className="font-medium text-primary underline">
+          <Link href={loginTo("/partners/mine")} className="font-medium text-primary underline">
             {t("سجّل الدخول", "Sign in")}
           </Link>{" "}
           {t("لتسجّل شركتك.", "to register your company.")}

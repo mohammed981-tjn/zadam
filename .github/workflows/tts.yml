@@ -28,7 +28,7 @@ jobs:
     outputs:
       chunks: ${{ steps.p.outputs.chunks }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - id: p
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
@@ -50,7 +50,7 @@ jobs:
       matrix:
         ids: ${{ fromJson(needs.plan.outputs.chunks) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: matrix.ids != 'none'
       - if: matrix.ids != 'none'
         env:

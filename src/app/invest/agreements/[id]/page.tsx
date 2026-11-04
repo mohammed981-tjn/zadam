@@ -2,6 +2,7 @@ import Link from "next/link";
 import { openPartnershipConversation } from "@/app/messages/actions";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import ActionNotice from "@/components/ActionNotice";
@@ -10,7 +11,8 @@ import SignaturePad from "@/components/invest/SignaturePad";
 import HarvestSplitCalculator from "@/components/invest/HarvestSplitCalculator";
 import InvestorStatementCard from "@/components/books/InvestorStatementCard";
 import LinkProposalForms from "@/components/books/LinkProposalForms";
-import { investorStatement, type LinkRow } from "@/lib/ledgerLinks";
+import { investorStatement, reversalAction } from "@/lib/ledgerLinks";
+import { loadLinks } from "@/lib/ledgerLinksLoad";
 import { ledgerToday } from "@/lib/ledger/today";
 import {
   AGREEMENT_ITEMS,
@@ -56,7 +58,7 @@ export default async function AgreementPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -76,10 +78,9 @@ export default async function AgreementPage({
   const seasons = (seasonRows ?? []) as { id: string; name: string; status: string }[];
   // The entries the two partners proposed and confirmed between their books (backlog 188).
   const party = signed && (a.me === "owner" || a.me === "investor");
-  const { data: linkRows } = party ? await supabase.rpc("ledger_links_list") : { data: null };
-  const agreementLinks = ((linkRows ?? []) as LinkRow[]).filter((l) => l.agreement_id === a.id);
+  const agreementLinks = party ? (await loadLinks(supabase)).filter((l) => l.agreement_id === a.id) : [];
   const statement = investorStatement(agreementLinks);
-  const pendingLinks = agreementLinks.filter((l) => l.status === "pending");
+  const pendingLinks = agreementLinks.filter((l) => l.status === "pending" || reversalAction(l) === "answer");
   const mine = a.signatures.find((s) => s.role === a.me);
   // Two parties, or three when a partner company manages (backlog 136).
   const roles = signerRoles(a.model);
@@ -293,7 +294,7 @@ export default async function AgreementPage({
           {pendingLinks.length > 0 && (
             <p className="mt-3">
               <Link href="/books?r=links" className="font-bold text-primary underline">
-                {t(`${arNum(pendingLinks.length)} اقتراحٌ معلّق ← افتحها`, `${pendingLinks.length} pending proposal(s) → open them`)}
+                {t(`${arNum(pendingLinks.length)} اقتراحٌ أو طلب إلغاءٍ معلّق ← افتحها`, `${pendingLinks.length} pending proposal(s) or cancellation request(s) → open them`)}
               </Link>
             </p>
           )}

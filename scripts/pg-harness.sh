@@ -136,3 +136,33 @@ pg_run() {
   status="${PIPESTATUS[0]}"
   return "$status"
 }
+
+# The whole chain (scripts/verify-migration-chain.sh and the gates built on it): base-schema.sql, the defaults Supabase
+# starts every project with, what Supabase provides (supabase-platform.sql), then every migration in order. Stops at
+# the first migration that does not apply, and says which. Then the identity as PostgREST sets it (chain-identity.sql).
+pg_apply_chain() {
+  local root="$1" f staged out n=0
+  pg_run "$(pg_stage "$root/scripts/base-schema.sql" chain-base.sql)" >/dev/null
+  printf '%s\n' \
+    'grant usage on schema public to anon, authenticated, service_role;' \
+    'grant all on all tables in schema public to anon, authenticated, service_role;' \
+    'grant all on all functions in schema public to anon, authenticated, service_role;' \
+    'grant all on all sequences in schema public to anon, authenticated, service_role;' \
+    'alter default privileges in schema public grant all on tables to anon, authenticated, service_role;' \
+    'alter default privileges in schema public grant all on functions to anon, authenticated, service_role;' \
+    'alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;' \
+    | pg_write chain-defaults.sql >/dev/null
+  pg_run "$PG_DATADIR/chain-defaults.sql" >/dev/null
+  pg_run "$(pg_stage "$root/scripts/supabase-platform.sql" chain-platform.sql)" >/dev/null
+  for f in "$root"/supabase/migrations/*.sql; do
+    n=$((n + 1))
+    staged="$(pg_stage "$f" "m-$(basename "$f")")"
+    if ! out="$(pg_sh "$PG_PSQL -q -f $staged" 2>&1)"; then
+      echo "FAIL  الهجرة رقم $n لا تُطبَّق: $(basename "$f")"
+      echo "$out" | grep -v NOTICE | tail -6
+      return 1
+    fi
+  done
+  pg_run "$(pg_stage "$root/scripts/chain-identity.sql" chain-identity.sql)" >/dev/null
+  echo "── طُبّقت الهجرات كلّها بالترتيب: $n"
+}

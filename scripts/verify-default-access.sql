@@ -33,7 +33,8 @@ exception when others then perform _fail(label, 'رُفض والمفروض أن 
 grant update, select on _score to anon, authenticated;
 grant select on _who to anon, authenticated;
 grant execute on function _fail(text, text), _pass(text), _act_as(uuid), _eq(anyelement, anyelement, text),
-  _refuses(text, text), _works(text, text, integer) to anon, authenticated;
+  _refuses(text, text), _works(text, text, integer) to anon, authenticated, service_role;
+grant update, select on _score to service_role;
 
 \echo ''
 \echo '=========================================================================='
@@ -88,7 +89,9 @@ insert into profiles (id, full_name, role) values
   ('a1000000-0000-0000-0000-0000000000a1', 'مستثمر', 'investor');
 
 grant usage on schema public, auth to anon, authenticated;
-grant select, insert, update on public.profiles, public.leads, public.feedback to anon, authenticated;
+grant select, insert, update on public.profiles to anon, authenticated;
+-- leads and feedback: what production grants after 20261025200300 (select and update stay under their policies; insert is the server's).
+grant select, update on public.leads, public.feedback to anon, authenticated;
 grant select on public.role_changes to authenticated;
 grant execute on all functions in schema auth to anon, authenticated;
 grant execute on function public.is_admin() to anon, authenticated;
@@ -135,32 +138,63 @@ reset role;
 \echo 'د) كتابات الزائر: سقفُ الطول وسقفُ الازدحام'
 \echo '=========================================================================='
 
+-- البند ١٩٨ د٩: كان السقف على الجدول كلّه والنموذجُ يكتب بالمفتاح العامّ، فسكربتٌ واحد يوقفه للناس كلّهم. الكتابة
+-- الآن من خادم الموقع وحده (بعد حدّه لكلّ عنوان)، بمفتاح الخدمة.
+grant insert on public.leads, public.feedback to service_role;
+do $$
+begin
+  perform _eq(has_table_privilege('anon', 'public.leads', 'insert') or has_table_privilege('authenticated', 'public.leads', 'insert'), false,
+    'لا يكتب الزائر ولا المسجَّل في طلبات التواصل مباشرةً من الواجهة العامّة');
+  perform _eq(has_table_privilege('anon', 'public.feedback', 'insert') or has_table_privilege('authenticated', 'public.feedback', 'insert'), false,
+    'ولا في الملاحظات');
+end $$;
 set role anon;
 do $$
 begin
-  perform _works($q$insert into leads (full_name, contact, role, interest, message) values ('زائر', '0912345678', 'farmer', 'أرض', 'مرحباً')$q$,
-    'يُرسل الزائر طلبه العاديّ', 1);
+  begin
+    insert into leads (full_name, contact, role) values ('سكربت', '0900000000', 'other');
+    perform _fail('سكربتٌ بالمفتاح العامّ يُرفض', 'نُفِّذ');
+  exception when insufficient_privilege then
+    perform _pass('سكربتٌ بالمفتاح العامّ لا يكتب صفّاً واحداً — فلا يملأ ساعة أحد');
+  end;
+end $$;
+reset role;
+
+set role service_role;
+do $$
+begin
+  perform _works($q$insert into leads (full_name, contact, role, interest, message) values ('زائر', '0912345678', 'farmer', repeat('أ', 450), 'مرحباً')$q$,
+    'ويُرسل الخادمُ طلب الزائر العاديّ (واهتمامٌ بأربعمئة وخمسين حرفاً كما يقطعه الخادم)', 1);
   perform _refuses($q$insert into leads (full_name, contact, role, message) values ('زائر', '0912345678', 'farmer', repeat('ا', 2500))$q$,
-    'ولا يرسل رسالةً بألفين وخمسمئة حرف');
+    'ولا رسالةً بألفين وخمسمئة حرف');
   perform _refuses($q$insert into feedback (display_name, body, kind) values (repeat('ب', 200), 'ملاحظةٌ كافية', 'problem')$q$,
     'ولا اسماً بمئتي حرف في الملاحظات');
-  perform _works($q$insert into feedback (body, kind) values ('ملاحظةٌ كافية', 'suggestion')$q$, 'وتُقبل ملاحظته العاديّة', 1);
+  perform _works($q$insert into feedback (body, kind) values ('ملاحظةٌ كافية', 'suggestion')$q$, 'وتُقبل الملاحظة العاديّة', 1);
 end $$;
 reset role;
 
 insert into leads (full_name, contact, role)
-  select 'ازدحام', '0900000000', 'other' from generate_series(1, 300);
-set role anon;
+  select 'ازدحام', '0900000000', 'other' from generate_series(1, 400);
+set role service_role;
+do $$
+begin
+  perform _works($q$insert into leads (full_name, contact, role) values ('زائر', '0912345678', 'farmer')$q$,
+    'وأربعمئة طلبٍ في الساعة لا توقف النموذج (كان يقف عند ثلاثمئة)', 1);
+end $$;
+reset role;
+insert into leads (full_name, contact, role)
+  select 'ازدحام', '0900000000', 'other' from generate_series(1, 2600);
+set role service_role;
 do $$
 begin
   perform _refuses($q$insert into leads (full_name, contact, role) values ('زائر', '0912345678', 'farmer')$q$,
-    'ومع ثلاثمئة طلبٍ في الساعة يُرفض الجديد: الفيضان لا يملأ الجدول');
+    'ومع ثلاثة آلاف طلبٍ في الساعة يُرفض الجديد: حاجزٌ أخير يحفظ الجدول');
 end $$;
 reset role;
 do $$
 begin
-  perform _works($q$insert into leads (full_name, contact, role) values ('خدمة', '0900000001', 'other')$q$,
-    'ومفتاحُ الخدمة لا يُحدّ (القيد على الزائر والمسجَّل وحدهما)', 1);
+  perform _works($q$insert into leads (full_name, contact, role) values ('صيانة', '0900000001', 'other')$q$,
+    'ومدير القاعدة لا يُحدّ', 1);
 end $$;
 
 \echo ''

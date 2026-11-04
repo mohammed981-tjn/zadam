@@ -67,7 +67,7 @@ export interface StatementLine {
 export type ReportData =
   | { kind: "trial"; trial: TrialBalance }
   | { kind: "income"; statement: IncomeStatement }
-  | { kind: "balance"; sheet: BalanceSheet }
+  | { kind: "balance"; sheet: BalanceSheet; asOf: string }
   | { kind: "cash"; flow: CashFlowStatement }
   | { kind: "seasons"; rows: SeasonProfitRow[] }
   | { kind: "journal"; entries: JournalEntryView[]; hasMore: boolean }
@@ -77,16 +77,34 @@ export type ReportData =
 const TYPE_AR: Record<string, string> = { asset: "أصل", liability: "التزام", equity: "ملكيّة", revenue: "إيراد", expense: "مصروف" };
 const SECTION_AR: Record<string, string> = { operating: "تشغيليّة", investing: "استثماريّة", financing: "تمويليّة" };
 
+/**
+ * The line of the balance sheet that holds the profit of the sheet's own year (review 198 B8): "this year … today"
+ * only when the sheet is today's; for an earlier day it names the year and the day, so a sheet of last June does not
+ * call last year's profit this year's.
+ */
+export function currentIncomeLabel(asOf: string, today?: string): { ar: string; en: string } {
+  if (today !== undefined && asOf === today) return { ar: "ربح هذه السنة حتى اليوم", en: "This year's profit to date" };
+  const year = asOf.slice(0, 4);
+  return { ar: `ربح سنة ${year} حتى ${asOf}`, en: `Profit of ${year} up to ${asOf}` };
+}
+
 /** The rows of the CSV a report exports, with the heading the page shows, amounts in dollars. */
 export function reportToCsv(data: ReportData): string {
   const rows: CsvCell[][] = [];
   switch (data.kind) {
     case "trial":
       rows.push(["الرمز", "الحساب", "النوع", "مدين (دولار)", "دائن (دولار)"]);
-      for (const r of [...data.trial.rows, ...data.trial.memo]) {
+      for (const r of data.trial.rows) {
         rows.push([r.code, r.name_ar, TYPE_AR[r.type] ?? r.type, moneyCell(r.debit_balance), moneyCell(r.credit_balance)]);
       }
+      // The total is of the rows above it, as on the page; the statistical accounts follow it apart (review 198 B7).
       rows.push(["", "المجموع", "", moneyCell(data.trial.totalDebit), moneyCell(data.trial.totalCredit)]);
+      if (data.trial.memo.length > 0) {
+        rows.push(["", "حسابات إحصائيّة (خارج الميزانيّة، لا تدخل المجموع)", "", null, null]);
+        for (const r of data.trial.memo) {
+          rows.push([r.code, r.name_ar, TYPE_AR[r.type] ?? r.type, moneyCell(r.debit_balance), moneyCell(r.credit_balance)]);
+        }
+      }
       break;
     case "income":
       rows.push(["الرمز", "الحساب", "النوع", "المبلغ (دولار)"]);
@@ -104,7 +122,7 @@ export function reportToCsv(data: ReportData): string {
       rows.push(["", "مجموع الالتزامات", "", moneyCell(data.sheet.totalLiabilities)]);
       for (const r of data.sheet.equity) rows.push([r.code, r.name_ar, "ملكيّة", moneyCell(r.balance)]);
       rows.push(["", "أرباح السنوات السابقة (محتجزة)", "", moneyCell(data.sheet.retainedIncome)]);
-      rows.push(["", "ربح هذه السنة حتى اليوم", "", moneyCell(data.sheet.currentIncome)]);
+      rows.push(["", currentIncomeLabel(data.asOf).ar, "", moneyCell(data.sheet.currentIncome)]);
       rows.push(["", "مجموع الملكيّة", "", moneyCell(data.sheet.totalEquityWithIncome)]);
       break;
     case "cash":
@@ -139,6 +157,8 @@ export function reportToCsv(data: ReportData): string {
           ]);
         }
       }
+      // A file that does not hold the whole period says so, on its last line.
+      if (data.hasMore) rows.push(["", "", `الملف ناقص: يحمل أحدث ${data.entries.length} قيداً من الفترة فقط؛ صدّر فترةً أقصر لما قبلها`]);
       break;
     case "chart":
       rows.push(["الرمز", "الحساب", "النوع", "يُقيَّد عليه", "نشط"]);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { extractionLabel, type ExtractionMethod } from "@/lib/provenance";
 import RegistryForms from "@/components/RegistryForms";
 import { tr } from "@/lib/i18n";
@@ -34,7 +35,7 @@ export default async function RegistryPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   // Site names and states are what the user typed; on the English page they keep their direction.

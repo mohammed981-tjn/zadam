@@ -1,5 +1,7 @@
+import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { formatUsd, riskLabel } from "@/lib/format";
 import { MONTH_NAMES, CROPS, STATIONS } from "@/lib/agronomy";
 import {
@@ -16,7 +18,7 @@ export default async function ReviewPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -27,11 +29,11 @@ export default async function ReviewPage() {
 
   const { data } = await supabase
     .from("projects")
-    .select("*")
+    .select(MEMBER_COLUMNS.projects)
     .eq("review_status", "submitted")
     .order("created_at", { ascending: true });
 
-  const pending = (data ?? []) as Project[];
+  const pending = (data ?? []) as unknown as Project[];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">

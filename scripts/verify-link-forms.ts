@@ -5,8 +5,15 @@
  *   npx tsx scripts/verify-link-forms.ts
  */
 import {
+  attachReversals,
   counterNeedsAccount,
   investorStatement,
+  isLive,
+  isReversed,
+  parseReversalReason,
+  reversalAction,
+  returnSentence,
+  type ReversalRow,
   linkProposalMessage,
   linkUsd,
   outstandingFinancing,
@@ -86,9 +93,32 @@ console.log("\nب) كشف حساب المستثمر");
   ok(st.recognised === BigInt(600000) && st.handedOver === BigInt(600000) && st.due === BigInt(0), "المقرّ به ٦٬٠٠٠$ وسُلّم ٦٬٠٠٠$ وصفرٌ باقٍ (والمرفوض لا يُحتسب)");
   ok(st.settled, "فالحساب مُصفّى");
   ok(st.moicCash === 2 && st.moicRecognised === 2, "ضعف رأس المال");
-  const expected = Math.pow(2, 365 / 214) - 1;
-  ok(st.xirr !== null && Math.abs(st.xirr - expected) < 1e-9, `والعائد السنويّ من تاريخَي الحركة (${expected.toFixed(4)})`);
+  // 214 days: under a year, so no yearly rate — the plain return over the span instead (review 198 B3).
+  ok(st.xirr === null && st.spanDays === 214 && st.cashReturn === 1, "٢١٤ يوماً: لا عائد سنويّ، والعائد على المدّة ١٠٠٪");
   ok(st.flows.length === 2 && st.flows[0].amount === -3000 && st.flows[1].amount === 6000, "وتدفّقان: −٣٬٠٠٠ و+٦٬٠٠٠");
+  const year = investorStatement([
+    row({ kind: "input_finance", amount_minor: 300000, entry_date: "2025-03-01" }),
+    row({ kind: "harvest_share", amount_minor: 600000, principal_minor: 300000, entry_date: "2026-02-01" }),
+    row({ kind: "payout", amount_minor: 600000, entry_date: "2026-03-01" }),
+  ]);
+  const expected = Math.pow(2, 365 / 365) - 1;
+  ok(year.spanDays === 365 && year.xirr !== null && Math.abs(year.xirr - expected) < 1e-9, `وسنةٌ كاملة: العائد السنويّ من تاريخَي الحركة (${expected.toFixed(4)})`);
+  // The case the review found: in and out within days gives an absurd yearly rate; none is shown.
+  const quick = investorStatement([
+    row({ kind: "input_finance", amount_minor: 100000, entry_date: "2026-03-01" }),
+    row({ kind: "payout", amount_minor: 102000, entry_date: "2026-03-02" }),
+  ]);
+  ok(quick.xirr === null && quick.cashReturn !== null && Math.abs(quick.cashReturn - 0.02) < 1e-12, "يومٌ واحد بربح ٢٪: لا عائد سنويّ (كان يظهر ١٣٧٬٠٠٠٪)، والعائد ٢٪");
+  const same = investorStatement([
+    row({ kind: "input_finance", amount_minor: 100000, entry_date: "2026-03-01" }),
+    row({ kind: "payout", amount_minor: 100100, entry_date: "2026-03-01" }),
+  ]);
+  ok(same.xirr === null && same.spanDays === 0, "واليوم نفسه: لا عائد سنويّ");
+  const say = (st2: Parameters<typeof returnSentence>[0]) => returnSentence(st2, (a) => a);
+  ok(say(quick).includes("2.0%") && say(quick).includes("خلال 1 يوماً") && say(quick).includes("لا يُحسب عائدٌ سنويّ"),
+     "والجملة تقول العائد على المدّة وأيّامها وأنّه لا عائد سنويّ");
+  ok(say(year).startsWith("العائد السنويّ") && say(year).includes("100.0%"), "وفي السنة الكاملة تقول العائد السنويّ");
+  ok(!say(quick).includes("السنويّ على"), "ولا تقول «سنويّ» لمدّةٍ قصيرة");
 
   const partial = investorStatement([
     row({ kind: "input_finance", amount_minor: 300000 }),
@@ -97,7 +127,7 @@ console.log("\nب) كشف حساب المستثمر");
   ]);
   ok(partial.due === BigInt(400000) && !partial.settled, "وتسليمٌ جزئيّ: يبقى ٤٬٠٠٠$ مستحقّة");
   ok(partial.moicCash !== null && Math.abs(partial.moicCash - 2 / 3) < 1e-9 && partial.moicRecognised === 2, "المضاعف المقبوض ٠٫٦٧ والمقرّ به ٢");
-  ok(partial.xirr !== null && partial.xirr < 0, "والعائد المقبوض سالبٌ ما لم يُسلَّم الباقي");
+  ok(partial.cashReturn !== null && partial.cashReturn < 0, "والعائد المقبوض سالبٌ ما لم يُسلَّم الباقي");
 
   const none = investorStatement([]);
   ok(none.invested === BigInt(0) && none.moicCash === null && none.xirr === null && none.settled, "وبلا قيود: لا مضاعف ولا عائد");
@@ -118,12 +148,22 @@ console.log("\nج) ما بقي من التمويل لكلّ موسم");
     row({ kind: "harvest_share", amount_minor: 600000, principal_minor: 300000, season_id: S1 }),
     row({ kind: "input_finance", amount_minor: 777700, season_id: S1, status: "pending" }),
   ];
-  const a = outstandingFinancing(rows, S1);
-  ok(a.USD === BigInt(0) && a.SDG === BigInt(245050000), "الموسم الأوّل: الدولار أُطفئ والجنيه باقٍ");
-  ok(outstandingFinancing(rows, S2).USD === BigInt(100000), "والثاني ١٠٠٠$ باقية");
-  ok(outstandingFinancing(rows, "x").USD === BigInt(0), "وموسمٌ لا قيد له صفر");
+  ok(outstandingFinancing(rows, S1) === BigInt(100000), "الموسم الأوّل: ٣٬٠٠٠$ + ٢٬٤٥٠٬٥٠٠ جنيه (١٬٠٠٠$) − أصلٌ أُطفئ ٣٬٠٠٠$ = ١٬٠٠٠$ باقية، رقمٌ واحد بالدولار");
+  ok(outstandingFinancing(rows, S2) === BigInt(100000), "والثاني ١٠٠٠$ باقية");
+  ok(outstandingFinancing(rows, "x") === BigInt(0), "وموسمٌ لا قيد له صفر");
   const over = outstandingFinancing([row({ kind: "input_finance", amount_minor: 100 }), row({ kind: "harvest_share", amount_minor: 500, principal_minor: 900 })], S1);
-  ok(over.USD === BigInt(0), "وما زاد على الأصل لا يصير سالباً");
+  ok(over === BigInt(0), "وما زاد على الأصل لا يصير سالباً");
+  // Review 198 B9: financing in pounds, settled by a share in dollars, is settled — it used to stay "left" in pounds.
+  const crossed = outstandingFinancing([
+    row({ kind: "input_finance", currency: "SDG", amount_minor: 245050000, fx_rate: "2450.500000" }),
+    row({ kind: "harvest_share", currency: "USD", amount_minor: 150000, principal_minor: 100000 }),
+  ], S1);
+  ok(crossed === BigInt(0), "تمويلٌ بالجنيه أطفأه أصلٌ بالدولار: لا شيء باقٍ");
+  const crossedBack = outstandingFinancing([
+    row({ kind: "input_finance", amount_minor: 200000 }),
+    row({ kind: "harvest_share", currency: "SDG", amount_minor: 490100000, principal_minor: 245050000, fx_rate: "2450.500000" }),
+  ], S1);
+  ok(crossedBack === BigInt(100000), "وتمويلٌ بالدولار أطفأ نصفَه أصلٌ بالجنيه: ١٬٠٠٠$ باقية");
 }
 
 console.log("\nد) إلى أين يعود النموذج");
@@ -138,6 +178,59 @@ console.log("\nد) إلى أين يعود النموذج");
   ok(safeReturnTo("/admin/users") === "/books?r=links", "وصفحةٌ أخرى من الموقع");
   ok(safeReturnTo(`/invest/agreements/${id}/../../admin`) === "/books?r=links", "والتفافٌ بالنقطتين");
   ok(safeReturnTo("") === "/books?r=links", "والفراغ");
+}
+
+console.log("\nهـ) الإلغاء باتّفاق الطرفين لا يُحتسب بعد قبوله");
+{
+  const rev = (over: Partial<ReversalRow> & { link_id: string }): ReversalRow => ({
+    id: "r-" + over.link_id + "-" + (over.status ?? "pending"), mine: true, status: "pending", reason: "كُتب المبلغ خطأً",
+    reject_reason: null, created_at: "2026-10-01T10:00:00Z", resolved_at: null, ...over,
+  });
+  const fin = row({ id: "L-fin", kind: "input_finance", amount_minor: 300000, season_id: S1, entry_date: "2026-03-01" });
+  const share = row({ id: "L-share", kind: "harvest_share", amount_minor: 600000, principal_minor: 300000, season_id: S1, entry_date: "2026-09-01" });
+  const payout = row({ id: "L-pay", kind: "payout", amount_minor: 200000, entry_date: "2026-10-01" });
+  const links = [fin, share, payout];
+
+  // The same request seen from the two sides, and the best one chosen per entry.
+  const withR = attachReversals(links, [
+    rev({ link_id: "L-fin", status: "rejected", reject_reason: "تسلّمته", created_at: "2026-09-01T10:00:00Z" }),
+    rev({ link_id: "L-fin", status: "pending", created_at: "2026-09-02T10:00:00Z" }),
+    rev({ link_id: "L-pay", status: "withdrawn" }),
+    rev({ link_id: "L-pay", status: "rejected", created_at: "2026-10-05T10:00:00Z", reject_reason: "لا" }),
+  ]);
+  ok(withR[0].reversal?.status === "pending", "لقيدٍ طلبٌ مرفوض ثمّ معلّق: يُختار المعلّق");
+  ok(withR[1].reversal === null, "وقيدٌ بلا طلب: لا شيء");
+  ok(withR[2].reversal?.status === "rejected", "وبين مسحوبٍ ومرفوضٍ: الأحدث");
+  const acc = attachReversals(links, [rev({ link_id: "L-share", status: "accepted", resolved_at: "2026-10-02T10:00:00Z" }), rev({ link_id: "L-share", status: "rejected", reject_reason: "x", created_at: "2026-12-01T10:00:00Z" })]);
+  ok(acc[1].reversal?.status === "accepted", "والمقبول يغلب ولو جاء بعده مرفوض");
+  ok(isReversed(acc[1]) && !isReversed(acc[0]) && !isLive(acc[1]) && isLive(acc[0]), "المقبول مُلغى، وغيره حيّ");
+  ok(!isLive(row({ status: "pending" })) && !isLive(row({ status: "rejected" })), "والمعلّق والمرفوض ليسا حيَّين");
+
+  const before = investorStatement(links);
+  ok(before.invested === BigInt(300000) && before.recognised === BigInt(600000) && before.handedOver === BigInt(200000), "قبل الإلغاء: وظّف ٣٬٠٠٠ وأُقرّ ٦٬٠٠٠ وسُلّم ٢٬٠٠٠");
+  const cancelledPayout = investorStatement(attachReversals(links, [rev({ link_id: "L-pay", status: "accepted" })]));
+  ok(cancelledPayout.handedOver === BigInt(0) && cancelledPayout.due === BigInt(600000) && cancelledPayout.flows.length === 1, "إلغاء التسليم: يعود المستحقّ كاملاً ويسقط تدفّقه");
+  const cancelledFin = investorStatement(attachReversals(links, [rev({ link_id: "L-fin", status: "accepted" })]));
+  ok(cancelledFin.invested === BigInt(0) && cancelledFin.moicCash === null, "إلغاء التمويل: لا توظيف، ولا مضاعف");
+  const pendingOnly = investorStatement(attachReversals(links, [rev({ link_id: "L-pay", status: "pending" })]));
+  ok(pendingOnly.handedOver === BigInt(200000), "وطلبٌ معلّق لا يغيّر الكشف حتى يُقبل");
+
+  const out = outstandingFinancing(attachReversals(links, [rev({ link_id: "L-share", status: "accepted" })]), S1);
+  ok(out === BigInt(300000), "إلغاء نصيب الحصاد يُرجع التمويل المستحقّ (٣٬٠٠٠$)");
+  ok(outstandingFinancing(attachReversals(links, [rev({ link_id: "L-fin", status: "accepted" })]), S1) === BigInt(0), "وإلغاء التمويل يُسقطه (ولا يصير سالباً)");
+
+  // What the reader may do.
+  ok(reversalAction(row({ status: "pending" })) === "none", "المعلّق يُلغى بالإلغاء العاديّ لا بهذا");
+  ok(reversalAction(row({ status: "confirmed" })) === "request", "المؤكَّد بلا طلب: يطلب");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "pending", mine: true }) })) === "withdraw", "وطلبي المعلّق: أسحبه");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "pending", mine: false }) })) === "answer", "وطلب شريكي المعلّق: أردّ عليه");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "accepted" }) })) === "none", "والمقبول: انتهى");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "rejected", reject_reason: "ل" }) })) === "request", "والمرفوض: يجوز أن يطلب ثانية");
+  ok(reversalAction(row({ status: "confirmed", reversal: rev({ link_id: "x", status: "withdrawn" }) })) === "request", "والمسحوب كذلك");
+
+  ok(parseReversalReason("  كُتب خطأً  ") === "كُتب خطأً", "السبب يُقصّ");
+  ok(parseReversalReason("ab") === null && parseReversalReason("   ") === null && parseReversalReason("") === null, "والقصير والفارغ يُرفضان");
+  ok(parseReversalReason("س".repeat(300)) !== null && parseReversalReason("س".repeat(301)) === null, "والحدّ ٣٠٠ حرف");
 }
 
 if (failed) {

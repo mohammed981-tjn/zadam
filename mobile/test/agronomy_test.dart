@@ -114,13 +114,20 @@ const cases = <_Case>[
       228.3200, 418.6768, 761.2305, 3197.1682, 9, 39.1876),
   _Case('citrus', 'khartoum', 0, IrrigationMethod.drip, 365, 1443.2993,
       116.9344, 1326.3649, 1473.7387, 6189.7027, 3, 22.8827),
+  // محاصيل جديدة على السودان (البند ١٩٤).
+  _Case('soybean', 'gezira', 6, IrrigationMethod.flood, 85, 409.3642,
+      202.9467, 206.4176, 375.3047, 1576.2797, 8, 28.7743),
+  _Case('grapes', 'northern', 2, IrrigationMethod.drip, 240, 1247.6079,
+      5.9776, 1241.6303, 1379.5893, 5794.2750, 4, 31.9890),
+  _Case('olive', 'khartoum', 0, IrrigationMethod.drip, 270, 1156.5782,
+      109.5744, 1047.0038, 1163.3375, 4886.0177, 3, 23.4286),
 ];
 
 void main() {
   group('matches the web engine', () {
     for (final c in cases) {
       test('${c.crop} in ${c.station}, planted month ${c.plantingMonth}', () {
-        final crop = crops.firstWhere((x) => x.key == c.crop);
+        final crop = allCrops.firstWhere((x) => x.key == c.crop);
         final station = stations.firstWhere((x) => x.key == c.station);
         final r = waterRequirement(crop, station, c.plantingMonth, c.method);
 
@@ -176,7 +183,7 @@ void main() {
 
   group('sanity properties that must hold for every crop and station', () {
     test('gross always at least net, and rain never exceeds demand', () {
-      for (final crop in crops) {
+      for (final crop in allCrops) {
         for (final station in stations) {
           final r = waterRequirement(
               crop, station, 6, IrrigationMethod.flood);

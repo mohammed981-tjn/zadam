@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
 import { dateLabel, isNotDeployed } from "@/lib/supplyChain";
@@ -40,20 +41,29 @@ export default async function AdminPartnersPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
-  const [{ data: cRows, error: cErr }, { data: aRows }, { data: noteRows }] = await Promise.all([
+  const [{ data: cRows, error: cErr }, { data: aRows }, { data: noteRows }, { data: privRows }] = await Promise.all([
     supabase.from("partner_companies").select(MEMBER_COLUMNS.partner_companies).order("created_at"),
     supabase.from("partner_agreements").select("*").order("created_at", { ascending: false }).limit(300),
     // The review note left the table's member columns (backlog 132); the administrators read it here.
     supabase.rpc("review_notes", { p_kind: "partner_company" }),
+    // The owner's and the verifier's ids are the administrators' to read (backlog 181).
+    supabase.rpc("partner_company_private"),
   ]);
   const notDeployed = isNotDeployed(cErr);
   if (cErr && !notDeployed) console.error("admin/partners: list failed", cErr);
   const notes = new Map(((noteRows ?? []) as { id: string; review_note: string }[]).map((r) => [r.id, r.review_note]));
-  const companies = ((cRows ?? []) as unknown as PartnerCompany[]).map((c) => ({ ...c, review_note: notes.get(c.id) ?? null }));
+  const ids = new Map(
+    ((privRows ?? []) as { id: string; owner_id: string; verified_by: string | null }[]).map((r) => [r.id, r]),
+  );
+  const companies = ((cRows ?? []) as unknown as PartnerCompany[]).map((c) => ({
+    ...c,
+    owner_id: ids.get(c.id)?.owner_id ?? c.owner_id,
+    review_note: notes.get(c.id) ?? null,
+  }));
   const agreements = (aRows ?? []) as PartnerAgreement[];
   const nameOf = new Map(companies.map((c) => [c.id, c.name]));
 

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import SideSwitch from "@/components/SideSwitch";
 import NavMenu, { type NavGroup } from "./NavMenu";
+import DesktopSidebar from "./DesktopSidebar";
 import LangToggle from "./LangToggle";
 import BottomNav from "./BottomNav";
 import OutboxProvider from "./OutboxProvider";
@@ -107,6 +108,7 @@ export default async function Navbar() {
       items: [
         { href: "/market", label: t("سوق المحاصيل اليوم", "Crop market today") },
         { href: "/market/offers", label: t("عروض البيع والشراء", "Buy and sell offers") },
+        { href: "/market/forward", label: t("العقود الآجلة: سعرٌ قبل الحصاد", "Forward contracts: a price before harvest") },
         { href: "/market/inputs", label: t("أين السماد والجازولين وبكم", "Where fertiliser and diesel are, and at what price") },
         { href: "/rates", label: t("أسعار العملات", "Exchange rates") },
       ],
@@ -141,6 +143,7 @@ export default async function Navbar() {
               { href: "/contracts", label: t("عقودي", "My contracts") },
               { href: "/services/mine", label: t("جهتي كمقدّم خدمة", "My provider profile") },
               { href: "/partners/mine", label: t("شركتي الشريكة", "My partner company") },
+              { href: "/agent", label: t("مزارعيّ: وضع الوكيل", "My farmers: agent mode") },
             ]
           : []),
       ],
@@ -187,6 +190,7 @@ export default async function Navbar() {
         { href: "/books", label: t("دفتر حساباتي", "My books") },
         { href: "/my-project", label: t("مشروعي — قائمة المدخلات", "My project — input list") },
         { href: "/herds", label: t("دورات الإنتاج الحيواني", "Livestock production cycles") },
+        { href: "/account/agents", label: t("وكلائي: من يعمل عنّي", "My agents: who acts for me") },
         { href: "/opportunities/new", label: t("ارفع فرصة", "Post an opportunity") },
         { href: "/export/offers", label: t("عروضي للتصدير", "My export offers") },
       ],
@@ -236,6 +240,7 @@ export default async function Navbar() {
     icon: "book",
     items: [
       { href: "/studies", label: t("كلّ الدراسات", "All studies") },
+      { href: "/library", label: t("مكتبة الدراسات والبحوث", "Studies and research library") },
       { href: "/studies/exchange-rate", label: t("أزمة سعر الصرف والتضخم", "The exchange-rate and inflation crisis") },
       { href: "/arc-canal", label: t("القناة القوسية", "The Arc Canal") },
       { href: "/export", label: t("ممرّ الصادر السوداني", "Sudan's export corridor") },
@@ -281,16 +286,37 @@ export default async function Navbar() {
         { href: "/admin/partners", label: t("الشركات الشريكة واتّفاقاتها", "Partner companies and agreements") },
         { href: "/admin/inspections", label: t("تقارير المعاينة", "Inspection reports") },
         { href: "/admin/prices", label: t("الأسعار التلقائيّة", "Automatic prices") },
+        { href: "/admin/accounts", label: t("إغلاق الحسابات", "Closing accounts") },
+        { href: "/admin/resets", label: t("استعادة كلمات المرور", "Password recovery") },
+        { href: "/admin/managed", label: t("مزارعون بلا جوّال", "Farmers without a phone") },
+        { href: "/admin/faostat", label: t("بيانات الفاو (غلّة وأسعار منتجين)", "FAOSTAT data (yields, producer prices)") },
         { href: "/admin/land-groups", label: t("فهرس مجموعات المزارع", "Farm groups index") },
         { href: "/admin/feedback", label: t("ملاحظات الزوّار", "Visitor feedback") },
+        { href: "/admin/library", label: t("مكتبة الدراسات: المراجعة", "Library: review") },
         { href: "/admin/leads", label: t("العملاء المحتملون", "Leads") },
         { href: "/admin/canal-images", label: t("صور القناة", "Canal images") },
       ],
     });
   }
 
+  const account = user ? (
+    <>
+      <p className="mb-2 text-xs text-muted">
+        {t("أنت داخل بحساب", "Signed in as")}{" "}
+        <span className="font-bold text-foreground">
+          {fullName || t("بلا اسم", "no name")}
+        </span>
+        {roleLabel && <> — {roleLabel}</>}
+      </p>
+      {/* البند ١٥١: حسابٌ واحد للجانبين، يُبدَّل بينهما كما في Airbnb. */}
+      <SideSwitch role={role ?? null} locale={locale} />
+      <SignOutButton />
+    </>
+  ) : undefined;
+
   return (
     <>
+    <DesktopSidebar groups={groups} account={account} />
     {/* The header stays on screen (backlog 121): the menu is the way around the
         site, and on a long page it was a scroll back to the top away. Opaque,
         not frosted: a backdrop filter would make the header the frame the
@@ -298,10 +324,12 @@ export default async function Navbar() {
         and even 95% let the headings scrolling under it show through. */}
     <header className="sticky top-0 z-40 border-b border-border bg-background print:hidden">
       <div className="brand-edge" aria-hidden />
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+      {/* From `lg` up the name and the menu are in the side column (DesktopSidebar),
+          and the bar keeps the actions, at its end. */}
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 lg:max-w-none lg:justify-end lg:px-8">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 text-lg font-black text-primary sm:text-xl"
+          className="flex shrink-0 items-center gap-2 text-lg font-black text-primary sm:text-xl lg:hidden"
         >
           {/*
             السنبلةُ هنا، والشعارُ في الواجهة — وهذا ما طلبه المالك حرفيّاً.
@@ -410,25 +438,9 @@ export default async function Navbar() {
             </Link>
           )}
           <LangToggle />
-          <NavMenu
-            groups={groups}
-            signOut={
-              user ? (
-                <>
-                  <p className="mb-2 text-xs text-muted">
-                    {t("أنت داخل بحساب", "Signed in as")}{" "}
-                    <span className="font-bold text-foreground">
-                      {fullName || t("بلا اسم", "no name")}
-                    </span>
-                    {roleLabel && <> — {roleLabel}</>}
-                  </p>
-                  {/* البند ١٥١: حسابٌ واحد للجانبين، يُبدَّل بينهما كما في Airbnb. */}
-                  <SideSwitch role={role ?? null} locale={locale} />
-                  <SignOutButton />
-                </>
-              ) : undefined
-            }
-          />
+          <div className="lg:hidden">
+            <NavMenu groups={groups} signOut={account} />
+          </div>
         </div>
       </div>
     </header>

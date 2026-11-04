@@ -305,6 +305,20 @@ ok(
   "and the wording says a file, not merely «evidence»",
 );
 
+console.log("\n  an English reader (backlog 94):");
+const ARABIC = /[\u0600-\u06FF]/;
+for (const [seasons, name] of [
+  [[], "no record"],
+  [[S({ status: "active" })], "only seasons under way"],
+  [[S(), S({ plannedBudget: 0, stagesDated: 0, revenue: 0, actualCosts: 0 }), S({ status: "abandoned" })], "a record with gaps"],
+  [[S(), S(), S(), S()], "a full record"],
+] as [SeasonRecord[], string][]) {
+  const en = computeTrust(seasons, "en");
+  const text = [en.bandLabel, en.summary, ...en.factors.flatMap((f) => [f.label, f.detail])].join(" ");
+  ok(!ARABIC.test(text), `${name}: band, summary and factors carry no Arabic letter`);
+  ok(en.score === computeTrust(seasons).score && en.band === computeTrust(seasons).band, `${name}: the same score and band`);
+}
+
 console.log(
   "\n" + (fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`),
 );

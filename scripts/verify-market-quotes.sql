@@ -138,6 +138,148 @@ do $$ begin
 end $$;
 
 \echo ''
+\echo 'د) ما يُقرأ يُحفظ ولا يمحوه إلا المدير (البند ١٩٦)'
+
+insert into market_quotes (kind, market_date, buy, sell, source_url, quote, status, reason) values
+  ('fx_bank', '2026-10-24', 4900, 4950, 'https://bajnews.net/a/', 'جملة', 'held', 'قراءة موثوقة تنتظر اعتماد الإدارة'),
+  ('fx_parallel', '2026-10-24', 9600, 10100, 'https://bajnews.net/b/', 'جملة', 'held', 'قراءة موثوقة تنتظر اعتماد الإدارة'),
+  ('fx_parallel', '2026-10-23', 90000, 100000, 'https://bajnews.net/c/', 'جملة', 'held', 'قفزة عن آخر رقم — يُراجَع');
+insert into market_quotes (kind, market, crop, unit, market_date, price, source_url, status, reason) values
+  ('crop', 'obeid', 'millet', 'qintar', '2026-10-24', 410000, 'https://sudafax.com/d/', 'held', 'قراءة موثوقة تنتظر اعتماد الإدارة');
+
+-- Nobody deletes: not the owner role, not a visitor, not an administrator by a plain DELETE, not a truncate.
+do $$ begin
+  perform _refuses($q$delete from market_quotes$q$, 'لا حذفَ مباشراً حتى بصلاحية صاحب الجدول');
+  perform _refuses($q$delete from market_quotes where status = 'rejected'$q$, 'ولا حذفَ المرفوض');
+  perform _refuses($q$truncate market_quotes$q$, 'ولا تفريغ');
+end $$;
+set role authenticated;
+do $$ begin
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  perform _refuses($q$delete from market_quotes$q$, 'والمديرُ نفسه لا يحذف بـDELETE (يمحو بالدالّة وحدها)');
+  perform _refuses($q$truncate market_quotes$q$, 'ولا يفرّغ');
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  perform _refuses($q$delete from market_quotes$q$, 'والزائر لا يحذف');
+  perform _refuses($q$select market_quote_erase((select id from market_quotes limit 1), 'سبب كافٍ')$q$, 'ولا يمحو بالدالّة');
+  perform _refuses($q$select market_quote_review_all(array(select id from market_quotes))$q$, 'ولا يعتمد بنقرة');
+end $$;
+reset role;
+
+-- The administrator's erasure: a reason is needed, a snapshot is kept, and the row goes.
+set role authenticated;
+do $$
+declare victim uuid; n_before integer; n_after integer; snap jsonb;
+begin
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _refuses($q$select market_quote_erase((select id from market_quotes limit 1), 'سبب كافٍ')$q$, 'المسجَّل غير المدير لا يمحو');
+  perform _refuses($q$select market_quote_review_all(array(select id from market_quotes))$q$, 'ولا يعتمد بنقرة');
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  select id into victim from market_quotes where reason like 'قفزة%';
+  perform _refuses(format($q$select market_quote_erase(%L, 'ab')$q$, victim), 'والمحو بلا سببٍ كافٍ يُرفض');
+  perform _refuses($q$select market_quote_erase('00000000-0000-0000-0000-000000000000', 'سبب كافٍ')$q$, 'ورقمٌ غير موجود');
+  select count(*) into n_before from market_quotes;
+  perform market_quote_erase(victim, 'قراءة خاطئة: القفزة من خطأ طباعة في الخبر');
+  select count(*) into n_after from market_quotes;
+  perform _eq(n_before - n_after, 1, 'المديرُ يمحو صفّاً واحداً بالدالّة');
+  perform _eq((select count(*)::int from market_quotes where id = victim), 0, 'وهو الصفّ المطلوب');
+  select quote into snap from market_quote_erasures order by erased_at desc limit 1;
+  perform _eq(snap ->> 'source_url', 'https://bajnews.net/c/', 'ولقطته محفوظة بمصدرها');
+  perform _eq((snap ->> 'sell')::numeric, 100000::numeric, 'وبرقمها');
+  perform _eq((select erased_by from market_quote_erasures order by erased_at desc limit 1), 'f6000000-0000-0000-0000-0000000000f6'::uuid, 'ومن محاه');
+  perform _eq((select reason from market_quote_erasures order by erased_at desc limit 1), 'قراءة خاطئة: القفزة من خطأ طباعة في الخبر', 'وسببه');
+  perform _eq((select count(*)::int from market_quote_erasures), 1, 'ولا سجلّ محوٍ غيره');
+  perform _act_as('c3000000-0000-0000-0000-0000000000c3');
+  perform _eq((select count(*)::int from market_quote_erasures), 0, 'وغير المدير لا يقرأ سجلّ المحو');
+end $$;
+reset role;
+do $$ begin
+  perform _refuses($q$update market_quote_erasures set reason = 'xyz'$q$, 'ولا يُعدَّل سجلّ المحو');
+  perform _refuses($q$delete from market_quote_erasures$q$, 'ولا يُحذف منه');
+end $$;
+
+-- One click: only what the system held because it publishes nothing itself.
+set role authenticated;
+do $$
+declare n integer;
+begin
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  perform _eq((select count(*)::int from market_quotes where status = 'held'), 3, 'قبل النقرة: ثلاثة محجوزات مقروءة بيقين (والنصّ الحرّ القديم نُشر في أ)');
+  -- The page showed two of the three: the third (read after it opened, or past its list) waits for the next look.
+  n := market_quote_review_all(array(select id from market_quotes where status = 'held' order by created_at, id limit 2));
+  perform _eq(n, 2, 'النقرة تعتمد ما عُرض على المدير وحده: اثنان من ثلاثة');
+  perform _eq((select count(*)::int from market_quotes where status = 'held'), 1, 'والثالث الذي لم يُعرض باقٍ محجوزاً');
+  n := n + market_quote_review_all(array(select id from market_quotes where status = 'held'));
+  perform _eq(n, 3, 'ثمّ يُعتمد حين يُعرض: دولاران ومحصول');
+  perform _eq((select count(*)::int from market_quotes where status = 'published' and reason = 'قراءة موثوقة تنتظر اعتماد الإدارة' and reviewed_by is not null and reviewed_at is not null), 3, 'وتسجّل من اعتمد ومتى');
+  perform _eq((select count(*)::int from market_quotes where status = 'held'), 0, 'ولا يبقى محجوزٌ');
+  perform _eq(market_quote_review_all(array(select id from market_quotes)), 0, 'والنقرة الثانية لا تجد شيئاً');
+end $$;
+reset role;
+
+-- A figure held for its strangeness is not approved by the click.
+insert into market_quotes (kind, market_date, buy, sell, source_url, quote, status, reason) values
+  ('fx_bank', '2026-10-25', 4900, 99000, 'https://bajnews.net/e/', 'جملة', 'held', 'قفزة عن آخر رقم — يُراجَع'),
+  ('fx_bank', '2026-10-26', 4900, 4960, 'https://bajnews.net/f/', 'جملة', 'held', 'قراءة موثوقة تنتظر اعتماد الإدارة');
+set role authenticated;
+do $$ begin
+  perform _act_as('f6000000-0000-0000-0000-0000000000f6');
+  perform _eq(market_quote_review_all(array(select id from market_quotes where status = 'held')), 1, 'النقرة تعتمد المقروء بيقين وحده');
+  perform _eq((select status from market_quotes where source_url = 'https://bajnews.net/e/'), 'held', 'وما شذّ يبقى محجوزاً لقرارٍ منفرد');
+  perform _eq((select status from market_quotes where source_url = 'https://bajnews.net/f/'), 'published', 'والمقروء بيقين نُشر');
+end $$;
+reset role;
+
+do $$ begin
+  perform _eq(has_function_privilege('anon', 'market_quote_erase(uuid,text)', 'execute'), false, 'المحو ليس للزائر');
+  perform _eq(has_function_privilege('service_role', 'market_quote_erase(uuid,text)', 'execute'), false, 'ولا لمفتاح الخدمة');
+  perform _eq(has_function_privilege('service_role', 'market_quote_review_all(uuid[])', 'execute'), false, 'ولا الاعتماد بنقرة');
+  perform _eq(has_function_privilege('authenticated', 'market_quotes_keep()', 'execute'), false, 'والحارس الداخليّ لا يستدعيه أحد');
+  perform _eq(has_table_privilege('service_role', 'market_quotes', 'delete'), false, 'ومفتاح الخدمة لا يملك DELETE');
+  perform _eq(has_table_privilege('service_role', 'market_quotes', 'truncate'), false, 'ولا TRUNCATE');
+  perform _eq(has_table_privilege('authenticated', 'market_quotes', 'truncate'), false, 'والمسجَّل لا يملك TRUNCATE');
+  perform _eq(has_table_privilege('anon', 'market_quotes', 'truncate'), false, 'والزائر لا يملك TRUNCATE');
+end $$;
+
+\echo ''
+\echo 'هـ) مفتاح الخدمة يكتب محجوزاً، ولا يعدّل محفوظاً (البند ١٩٨ ج٧)'
+
+insert into market_quotes (kind, market_date, buy, sell, source_url, quote, status, reason) values
+  ('fx_parallel', '2026-10-27', 9700, 10200, 'https://bajnews.net/g/', 'جملة', 'held', 'قراءة موثوقة تنتظر اعتماد الإدارة'),
+  ('fx_parallel', '2026-10-28', 9700, 10200, 'https://bajnews.net/h/', 'جملة', 'held', 'قفزة عن آخر رقم — يُراجَع');
+set role service_role;
+do $$ begin
+  insert into market_quotes (kind, market_date, buy, sell, source_url, quote, status, reason)
+  values ('fx_bank', '2026-10-27', 4900, 4950, 'https://bajnews.net/s1/', 'جملة', 'held', 'قراءة موثوقة تنتظر اعتماد الإدارة');
+  perform _pass('مفتاح الخدمة يكتب رقماً محجوزاً');
+  perform _refuses($q$insert into market_quotes (kind, market_date, buy, sell, source_url, status) values ('fx_bank', '2026-10-28', 4900, 4950, 'https://bajnews.net/s2/', 'published')$q$,
+    'ولا يكتبه منشوراً');
+  perform _refuses($q$insert into market_quotes (kind, market_date, buy, sell, source_url, status, reviewed_at) values ('fx_bank', '2026-10-29', 4900, 4950, 'https://bajnews.net/s3/', 'held', now())$q$,
+    'ولا بختم مراجعة');
+  perform _refuses($q$update market_quotes set buy = 9000, sell = 9999 where status = 'published' and kind = 'fx_bank' and market_date = '2026-10-21'$q$,
+    'ولا يغيّر رقماً منشوراً');
+  perform _refuses($q$update market_quotes set status = 'published' where source_url = 'https://bajnews.net/g/'$q$,
+    'ولا ينشر محجوزاً');
+  perform _refuses($q$update market_quotes set sell = 10900 where source_url = 'https://bajnews.net/g/'$q$,
+    'ولا يغيّر رقم محجوز');
+  perform _refuses($q$update market_quotes set reason = 'قراءة موثوقة تنتظر اعتماد الإدارة' where source_url = 'https://bajnews.net/h/'$q$,
+    'ولا يُدخل محجوزاً شاذّاً في النقرة الواحدة');
+  perform _refuses($q$update market_quotes set reason = null where source_url = 'https://bajnews.net/g/'$q$,
+    'ولا يمحو سبب الحجز');
+  update market_quotes set reason = 'المصادر تختلف في هذا اليوم — يُراجَع' where source_url = 'https://bajnews.net/g/';
+  perform _pass('ويُخرج محجوزاً من النقرة الواحدة حين تختلف المصادر');
+end $$;
+reset role;
+do $$ begin
+  perform _eq((select reason from market_quotes where source_url = 'https://bajnews.net/g/'), 'المصادر تختلف في هذا اليوم — يُراجَع', 'فصار سببه الاختلاف');
+  perform _eq((select sell from market_quotes where kind = 'fx_bank' and market_date = '2026-10-21'), 4886.38::numeric, 'والمنشور بقي كما هو');
+  perform _eq((select count(*)::int from market_quotes where source_url like 'https://bajnews.net/s_/' and status = 'published'), 0, 'ولم يُنشر شيءٌ بمفتاح الخدمة');
+  perform _eq(has_function_privilege('service_role', 'market_quotes_service_guard()', 'execute'), false, 'والحارس لا يستدعيه مفتاح الخدمة');
+end $$;
+
+\echo ''
 \echo '=========================================================================='
 
 do $$

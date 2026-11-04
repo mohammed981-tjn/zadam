@@ -33,6 +33,7 @@ MANAGED="$(pg_stage "$ROOT/supabase/migrations/20261023020000_partnership_manage
 ENTRY="$(pg_stage "$ROOT/supabase/migrations/20261023030000_entry_and_land_facts.sql" entry.sql)"
 OFFERS="$(pg_stage "$ROOT/supabase/migrations/20261012120000_market_offers.sql" offers.sql)"
 MESSAGES="$(pg_stage "$ROOT/supabase/migrations/20261023040000_messages.sql" messages.sql)"
+REVIEW="$(pg_stage "$ROOT/supabase/migrations/20261025200200_messages_contact_and_title.sql" review.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-messages.sql" checks.sql)"
 
 # Supabase's own defaults, so that a revoke in a migration is what the checks
@@ -63,6 +64,7 @@ echo "── الشراكة الثلاثيّة";  pg_run "$MANAGED" >/dev/null
 echo "── الدفعة صفر";        pg_run "$ENTRY" >/dev/null
 echo "── عروض السوق";        pg_run "$OFFERS" >/dev/null
 echo "── الرسائل";           pg_run "$MESSAGES" >/dev/null
+echo "── مراجعة ١٩٨ (د٨)";   pg_run "$REVIEW" >/dev/null
 
 echo "── الحرّاس"
 pg_run "$CHECKS"

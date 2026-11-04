@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 
 /**
  * «أرضي | استثماري» — one account on both sides (backlog 151).
@@ -26,7 +27,7 @@ export async function switchSide(fd: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   await supabase.from("profiles").update({ role: side }).eq("id", user.id).in("role", ["farmer", "investor"]);
   revalidatePath("/", "layout");
   redirect(side === "investor" ? "/invest" : "/lands");

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { signInFrom } from "@/lib/authEntry";
 import { CROP_INPUTS } from "@/lib/cropInputs";
 import { SERVICE_BY_KEY } from "@/lib/services";
 import {
@@ -288,6 +290,7 @@ function LocustWatch({ locust, locale }: { locust: LocustSummary; locale: Locale
   const gregarious = locust.counts.some((c) => isGregarious(c.category));
   const km = (v: number) => Math.round(v).toLocaleString("en-US");
   const near = (locust.lands ?? []).filter((l) => l.nearest && l.nearest.km <= LOCUST_ALERT_KM);
+  const signIn = signInFrom(usePathname());
   return (
     <div className="mt-2 rounded-lg bg-background p-3 text-xs leading-relaxed">
       {/* ── قرب أرضك ─────────────────────────────────── */}
@@ -343,7 +346,7 @@ function LocustWatch({ locust, locale }: { locust: LocustSummary; locale: Locale
       )}
       {!locust.signedIn && (
         <p className="mb-2">
-          <Link href="/login" className="text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>
+          <Link href={signIn} className="text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>
           {t(" وأضف موقع أرضك ليصلك إشعارٌ إن رُصد جرادٌ قربها.", " and add your land's location, and you will be notified when locusts are recorded near it.")}
         </p>
       )}

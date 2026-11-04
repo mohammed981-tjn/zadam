@@ -26,6 +26,9 @@ export default function FilmPlayer({
 }) {
   return (
     <video
+      // A new film (another language's cut, on the ع / EN switch) is a new element: a <video> does not reload when only
+      // its <source> children change.
+      key={base}
       controls
       controlsList="nodownload noplaybackrate noremoteplayback"
       disablePictureInPicture

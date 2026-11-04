@@ -444,7 +444,7 @@ export default function LiveMap({
 
       {/* The delivery-app controls, on the right edge whatever the language,
           under the page's chips when it has them. */}
-      <div className={`absolute right-3 flex flex-col gap-2 ${children ? "top-[4.25rem]" : "top-3"}`}>
+      <div className={`absolute right-3 flex flex-col gap-2 ${children ? "top-[4.25rem] md:top-3" : "top-3"}`}>
         <button
           type="button"
           onClick={switchGround}

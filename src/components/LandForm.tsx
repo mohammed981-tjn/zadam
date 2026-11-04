@@ -31,11 +31,12 @@ const TENURES: [string, string, string][] = [
   ["unspecified", "غير محدّد", "Not specified"],
 ];
 
-export default function LandForm() {
+/** `forFarmer`: an agent registering in the name of a farmer who authorised it (backlog 169). */
+export default function LandForm({ forFarmer }: { forFarmer?: string } = {}) {
   const locale = useLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const { state, formAction, pending, note, kept } = useOutboxAction<LandResult>(registerLand, {
-    key: "land-new",
+    key: forFarmer ? `land-new-${forFarmer}` : "land-new",
     label: t("تسجيل أرض", "Registering a land"),
   });
 
@@ -102,6 +103,7 @@ export default function LandForm() {
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
       <form action={formAction} className="flex flex-col gap-5">
+        {forFarmer && <input type="hidden" name="for_farmer" value={forFarmer} />}
         <fieldset className="grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2">
           <legend className="px-2 text-sm font-bold">
             {t("التعريف والموقع", "Identity and location")}

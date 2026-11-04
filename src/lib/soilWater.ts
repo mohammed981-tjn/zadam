@@ -1,5 +1,6 @@
 import {
   CROPS,
+  IRRIGATION_EFFICIENCY,
   M3_PER_MM_PER_FEDDAN,
   waterRequirement,
   type CropCoefficients,
@@ -119,6 +120,13 @@ export const ROOT_DEPTH_M: Record<string, number> = {
   zucchini: 0.6,
   sweet_potato: 1.0,
   citrus: 1.2,
+  /*
+   * المحاصيل الجديدة على السودان (`NEW_CROPS`، البند ١٩٤)، من الجدول ٢٢ نفسه: soybean «Soybeans» ٠٫٦–١٫٣،
+   * grapes «Grapes – Table or Raisin» ١٫٠–٢٫٠، olive «Olives (40 to 60% ground coverage)» ١٫٢–١٫٧؛ الطرف الأقصر.
+   */
+  soybean: 0.6,
+  grapes: 1.0,
+  olive: 1.2,
 };
 
 /**
@@ -147,17 +155,18 @@ export const SHALLOW_P: Record<string, number> = {
   sweet_pepper: 0.3,
   cabbage: 0.45,
   carrot: 0.35,
+  grapes: 0.35,
 };
 
 export interface IrrigationInterval {
   soil: string;
   /** Readily available water in the root zone, mm. */
   rawMm: number;
-  /** Peak daily crop water use, mm/day. */
+  /** Peak daily crop water use (net, what the plant draws from the soil), mm/day. */
   peakMmPerDay: number;
   /** Days between irrigations at peak demand. */
   days: number;
-  /** Depth to apply each time, mm, and the same in m³ per feddan. */
+  /** Depth that refills the root zone each time, mm (net), and what to pump for it, m³ per feddan (gross). */
   doseMm: number;
   doseM3PerFeddan: number;
 }
@@ -183,10 +192,11 @@ export function irrigationInterval(
   const rawMm = taw * rootDepth * p;
 
   const req = waterRequirement(crop, station, plantingMonth, method);
-  // peakM3PerFeddanPerDay is gross — what leaves the pump. Back out the depth
-  // the plant actually sees so the interval is not shortened by the delivery
-  // system's own losses.
-  const peakMmPerDay = req.peakM3PerFeddanPerDay / M3_PER_MM_PER_FEDDAN;
+  const efficiency = IRRIGATION_EFFICIENCY[method];
+  // peakM3PerFeddanPerDay is gross — what leaves the pump. The plant draws the
+  // root zone down by the net depth only, so the efficiency is multiplied back
+  // in: the interval is the soil's and the crop's, the same under every method.
+  const peakMmPerDay = (req.peakM3PerFeddanPerDay / M3_PER_MM_PER_FEDDAN) * efficiency;
   if (peakMmPerDay <= 0) return null;
 
   const days = rawMm / peakMmPerDay;
@@ -197,7 +207,8 @@ export function irrigationInterval(
     peakMmPerDay,
     days,
     doseMm: rawMm,
-    doseM3PerFeddan: rawMm * M3_PER_MM_PER_FEDDAN,
+    // What to pump to put rawMm into the root zone: the method's losses are added here, not to the interval.
+    doseM3PerFeddan: (rawMm * M3_PER_MM_PER_FEDDAN) / efficiency,
   };
 }
 

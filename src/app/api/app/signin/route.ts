@@ -51,6 +51,9 @@ export async function POST(req: Request) {
   }
 
   const result = await passwordSession(email, password);
+  if ("mustChange" in result) {
+    return NextResponse.json({ error: result.error, must_change_password: true }, { status: 403 });
+  }
   if ("error" in result) {
     return NextResponse.json({ error: translateAuthError(result.error ?? "", method, "ar") }, { status: 401 });
   }

@@ -12,6 +12,7 @@ import {
 import {
   assessProject,
   WATER_SOURCE_LABEL,
+  WATER_SOURCE_LABEL_EN,
   type WaterSource,
 } from "@/lib/risk";
 import {
@@ -97,12 +98,6 @@ const IRRIGATION_EN: Record<IrrigationMethod, string> = {
   drip: "Drip irrigation",
 };
 
-const WATER_SOURCE_EN: Record<WaterSource, string> = {
-  canal: "Canal from a reservoir or river",
-  river_pump: "Pumped directly from the river",
-  borehole: "Boreholes (groundwater)",
-  rainfed: "Fully rainfed",
-};
 
 export default function OpportunityForm({
   operatorSeasons,
@@ -152,8 +147,9 @@ export default function OpportunityForm({
         operatorSeasons,
         operatorReportingRate,
         kmToMarket,
-      }),
+      }, locale),
     [
+      locale,
       cropKey,
       stationKey,
       plantingMonth,
@@ -312,7 +308,7 @@ export default function OpportunityForm({
             >
               {SOURCES.map((s) => (
                 <option key={s} value={s}>
-                  {en ? WATER_SOURCE_EN[s] : WATER_SOURCE_LABEL[s]}
+                  {en ? WATER_SOURCE_LABEL_EN[s] : WATER_SOURCE_LABEL[s]}
                 </option>
               ))}
             </select>

@@ -39,6 +39,7 @@ export default function MilestoneProof({
       }))}
       folder="milestones"
       label={tr(locale, "أضف إثبات تنفيذ", "Add proof of delivery")}
+      offline={{ key: `milestone:${milestoneId}`, label: tr(locale, "إثبات مرحلة عقد", "Contract phase proof") }}
       onUploaded={async ({ kind, storagePath, caption, metadata }) => {
         const result = await addMilestoneEvidence({
           milestoneId,

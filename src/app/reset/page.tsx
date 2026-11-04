@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { requestPasswordReset } from "@/app/login/actions";
+import { requestPasswordReset, requestPhoneReset } from "@/app/login/actions";
+import PhoneField from "@/components/PhoneField";
+import SupportWhatsApp from "@/components/SupportWhatsApp";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -71,10 +73,23 @@ export default async function ResetPage({
         </p>
         <p>
           {t(
-            "إعادة التعيين بالبريد لا تصلح للحسابات المسجّلة بالجوال، لأن الرقم لا يستقبل بريداً. تواصل معنا وسنعيد تعيينها لك يدوياً — إلى أن تتوفّر خدمة الرسائل القصيرة.",
-            "Email reset does not work for accounts registered with a mobile number, because a number cannot receive email. Contact us and we will reset it for you by hand — until an SMS service is available.",
+            "الرقم لا يستقبل بريداً، فتستعيدها الإدارة لك: اكتب رقمك واسمك، فتتّصل بك على الرقم نفسه لتتأكّد أنّك صاحبه، ثمّ تقرأ لك كلمة مرورٍ مؤقّتة تدخل بها وتضع كلمتك.",
+            "A number cannot receive email, so the administration restores it for you: enter your number and name, and they will call that same number to make sure it is yours, then read you a temporary password to sign in with and set your own.",
           )}
         </p>
+        {/* AUTH-05 (backlog 141): the request goes to the administration; nothing here says whether the number has an account. */}
+        <form action={requestPhoneReset} className="mt-4 flex flex-col gap-3 text-sm text-foreground">
+          <PhoneField locale={locale} />
+          <label className="flex flex-col gap-1">
+            {t("اسمك كما في حسابك", "Your name as on your account")}
+            <input name="full_name" required minLength={2} maxLength={120} className={field} />
+          </label>
+          <button type="submit" className="rounded-lg border border-primary px-4 py-2 font-medium text-primary">
+            {t("اطلب الاستعادة من الإدارة", "Ask the administration to restore it")}
+          </button>
+        </form>
+        {/* A line to a person, for whoever cannot wait for the call back (web-flows-5). */}
+        <SupportWhatsApp locale={locale} className="mt-4" />
       </div>
 
       <p className="mt-6 text-center text-sm">

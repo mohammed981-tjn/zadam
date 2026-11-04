@@ -117,6 +117,24 @@ do $$ begin
   perform _refuses($q$select conversation_send(_id('conv'), 'كلّمني على 0912 345 678')$q$, 'رقمٌ بمسافات يُرفض قبل القبول');
   perform _refuses($q$select conversation_send(_id('conv'), 'رقمي ٠٩١٢٣٤٥٦٧٨')$q$, 'وبالأرقام العربيّة');
   perform _refuses($q$select conversation_send(_id('conv'), 'راسلني واتساب')$q$, 'و«واتساب» يُرفض');
+  -- البند ١٩٨ د٨: كانت هذه كلّها تمرّ.
+  perform _refuses($q$select conversation_send(_id('conv'), 'رقمي 0912/345/678')$q$, 'ورقمٌ بشرطاتٍ مائلة');
+  perform _refuses($q$select conversation_send(_id('conv'), 'رقمي 0912,345,678')$q$, 'وبفواصل');
+  perform _refuses($q$select conversation_send(_id('conv'), 'رقمي 0912.345.678')$q$, 'وبنقاط');
+  perform _refuses($q$select conversation_send(_id('conv'), 'رقمي ٠٩١٢-٣٤٥_٦٧٨')$q$, 'وبالعربيّة مع شرطات');
+  perform _refuses($q$select conversation_send(_id('conv'), 'كلّمني +249 912 345 678')$q$, 'وبمفتاح السودان');
+  perform _refuses($q$select conversation_send(_id('conv'), 'كلّمني 00249912345678')$q$, 'وبـ00');
+  perform _refuses($q$select conversation_send(_id('conv'), 'كلّمني 249 912 345 678')$q$, 'وبمفتاح السودان بلا «+»');
+  perform _refuses($q$select conversation_send(_id('conv'), 'osman at sudani dot net')$q$, 'وعنوانٌ بريديّ مكتوبٌ بالكلمات من غير الخدمات المعروفة');
+  perform _refuses($q$select conversation_send(_id('conv'), 'كلّمني 9 1 2 3 4 5 6 7 8')$q$, 'ورقمٌ حرفاً حرفاً بلا الصفر');
+  perform _refuses($q$select conversation_send(_id('conv'), 'كلّمني +20 101 234 5678')$q$, 'ورقم بلدٍ آخر');
+  perform _refuses($q$select conversation_send(_id('conv'), 'osman at gmail dot com')$q$, 'وبريدٌ مكتوبٌ بالكلمات');
+  perform _refuses($q$select conversation_send(_id('conv'), 'بريدي على gmail')$q$, 'واسم خدمة البريد');
+  -- And ordinary numbers still pass.
+  perform conversation_send(_id('conv'), 'أدفع 150,000,000 جنيه للموسم، أي 1.500 للفدان.');
+  perform conversation_send(_id('conv'), 'نبدأ يوم 15/10/2026 الساعة 08:30، والحصاد بعد 120 يوماً.');
+  perform conversation_send(_id('conv'), 'الإنتاج المتوقّع ٢٥ جوالاً للفدان على ٢٠ فداناً، أي ٥٠٠ جوال.');
+  perform _pass('والأعداد العاديّة تمرّ: مبلغٌ بالملايين، وتاريخٌ وساعة، وكمّيّات');
   perform conversation_send(_id('conv'), 'كم فداناً تصلح للقمح هذا الموسم؟ والمساحة ٢٠ فداناً.');
   perform conversation_send(_id('conv'), 'وهل الماء من النيل مباشرة؟');
   perform _eq((select count(*)::int from my_conversations() where id = _id('conv')), 1, 'المحادثة في قائمة المستثمرة');
@@ -134,14 +152,14 @@ end $$;
 set role authenticated;
 do $$ begin
   perform _act_as('a1000000-0000-0000-0000-0000000000a1');
-  perform _eq((select unread from my_conversations() where id = _id('conv')), 2, 'لصاحب الأرض رسالتان غير مقروءتين');
+  perform _eq((select unread from my_conversations() where id = _id('conv')), 5, 'لصاحب الأرض خمس رسائل غير مقروءة');
   perform _eq((select title ~ 'سلمى' and title ~ 'الجموعية' from my_conversations() where id = _id('conv')), true,
     'ويرى في العنوان اسم المستثمرة وأرضه');
   perform conversation_mark_read(_id('conv'));
   perform _eq((select unread from my_conversations() where id = _id('conv')), 0, 'وبعد القراءة لا شيء غير مقروء');
   perform _eq((select (conversation_view(_id('conv'))->'request'->>'message') ~ 'الرياض'), true,
     'ورسالة الطلب الأولى في رأس المحادثة');
-  perform _eq((select jsonb_array_length(conversation_view(_id('conv'))->'messages')), 2, 'والرسالتان فيها');
+  perform _eq((select jsonb_array_length(conversation_view(_id('conv'))->'messages')), 5, 'والرسائل الخمس فيها');
   perform _eq((select (conversation_view(_id('conv'))->'messages'->0->>'role')), 'investor', 'باسم دورها لا باسم صاحبتها');
 end $$;
 reset role;
@@ -242,6 +260,9 @@ do $$ begin
   perform _refuses($q$select conversation_send(_id('conv2'), 'لماذا؟')$q$, 'بعد الاعتذار لا رسائل جديدة');
   perform _eq((select open from my_conversations() where id = _id('conv2')), false, 'والقائمة تقول إنّها مغلقة');
   perform _eq((select jsonb_array_length(conversation_view(_id('conv2'))->'messages')), 1, 'وما كُتب فيها باقٍ');
+  -- البند ١٩٨: بعد الاعتذار كان عنوانها يكشف اسم الأرض للمستثمر.
+  perform _eq((select title !~ 'الجموعية' from my_conversations() where id = _id('conv2')), true,
+    'وعنوانها بعد الاعتذار لا يكشف اسم الأرض، كما قبل القبول');
 end $$;
 reset role;
 

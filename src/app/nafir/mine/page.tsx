@@ -4,6 +4,7 @@ import NafirShell from "@/components/nafir/NafirShell";
 import { nafirViewer } from "@/lib/nafirViewer";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginHrefHere } from "@/lib/loginHere";
 import {
   NAFIR_KINDS,
   NAFIR_KINDS_EN,
@@ -33,7 +34,7 @@ export async function generateMetadata() {
  */
 export default async function MinePage() {
   const { supabase, user } = await nafirViewer();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   const t = (a: string, en: string) => tr(locale, a, en);
   const n = (x: number) => ar(x, locale);

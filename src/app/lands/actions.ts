@@ -4,14 +4,16 @@ import { dbText } from "@/lib/dbText";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { STATIONS } from "@/lib/agronomy";
-import { WATER_SOURCE_LABEL, type WaterSource } from "@/lib/risk";
+import { adminState } from "@/lib/adminGuard";
+import { type WaterSource } from "@/lib/risk";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { locationMessage, locationProblem, parseCoordinates } from "@/lib/landLocation";
 import { testProblem } from "@/lib/landTests";
+import { landInputProblem } from "@/lib/landInput";
 import { recordSoilEstimate } from "@/lib/landSoil";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
+import { loginHrefHere } from "@/lib/loginHere";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -27,8 +29,6 @@ export interface LandResult {
   message: string;
 }
 
-const TENURES = ["owned", "leased", "communal", "unspecified"];
-
 /**
  * Registers a plot. It is stored unverified and unlisted whatever the form
  * says — the database trigger enforces that independently — so a farmer can
@@ -43,7 +43,7 @@ export async function registerLand(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -55,29 +55,21 @@ export async function registerLand(
   const waterSource = str(formData, "water_source");
   const tenure = str(formData, "tenure");
 
-  if (!name || !state) {
-    return { ok: false, message: t("اسم الأرض والولاية مطلوبان.", "The land name and state are required.") };
-  }
-  if (!Number.isFinite(feddans) || feddans <= 0) {
-    return { ok: false, message: t("أدخل مساحة صحيحة بالفدان.", "Enter a valid area in feddans.") };
-  }
-  if (!STATIONS.some((s) => s.key === stationKey)) {
-    return { ok: false, message: t("منطقة مناخية غير معروفة.", "Unknown climate zone.") };
-  }
-  if (!(waterSource in WATER_SOURCE_LABEL)) {
-    return { ok: false, message: t("مصدر مياه غير معروف.", "Unknown water source.") };
-  }
-  if (!TENURES.includes(tenure)) {
-    return { ok: false, message: t("نوع حيازة غير معروف.", "Unknown tenure type.") };
-  }
-
   const lat = optNum(formData, "latitude");
   const lng = optNum(formData, "longitude");
-  const problem = locationProblem(lat, lng);
-  if (problem) return { ok: false, message: locationMessage(problem, t) };
+  const problem = landInputProblem(
+    { name, state, feddans, stationKey, waterSource, tenure, latitude: lat, longitude: lng },
+    t,
+  );
+  if (problem) return { ok: false, message: problem };
+
+  // وضع الوكيل (البند ١٦٩): a company registers the land in its farmer's name. The policy admits the row only under an
+  // active mandate that covers lands, and the database logs it and tells the farmer; here it only names the owner.
+  const forFarmer = str(formData, "for_farmer");
+  const owner = /^[0-9a-f-]{36}$/.test(forFarmer) ? forFarmer : user.id;
 
   const { error } = await supabase.from("lands").insert({
-    owner_id: user.id,
+    owner_id: owner,
     name,
     state,
     locality: str(formData, "locality") || null,
@@ -106,6 +98,16 @@ export async function registerLand(
   }
 
   revalidatePath("/lands");
+  if (owner !== user.id) {
+    revalidatePath(`/agent/${owner}`);
+    return {
+      ok: true,
+      message: t(
+        "سُجّلت الأرض باسم المزارع، وأُخبر بها. ارفع مستنداتها من صفحته في «مزارعيّ»، ولن تظهر لأحدٍ حتى تعتمدها الإدارة.",
+        "The land is registered in the farmer's name, and they have been told. Upload its documents from their page under «My farmers»; no one sees it until the administrators approve it.",
+      ),
+    };
+  }
   return {
     ok: true,
     message: t(
@@ -133,7 +135,7 @@ export async function setLandLocation(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -212,14 +214,13 @@ export async function rejectLand(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if ((profile as { role: string } | null)?.role !== "admin") return;
+  // The database's answer, second factor included (AUTH-04): without it the update below would match no row and
+  // say nothing.
+  const state = await adminState(supabase, user.id);
+  if (state === "needs_second_factor") redirect("/admin");
+  if (state !== "ok") return;
 
   const id = str(formData, "id");
   const note = str(formData, "verification_note");
@@ -251,14 +252,13 @@ export async function verifyLand(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if ((profile as { role: string } | null)?.role !== "admin") return;
+  // The database's answer, second factor included (AUTH-04): without it the update below would match no row and
+  // say nothing.
+  const state = await adminState(supabase, user.id);
+  if (state === "needs_second_factor") redirect("/admin");
+  if (state !== "ok") return;
 
   const id = str(formData, "id");
   const documents = num(formData, "documents_on_file");
@@ -291,7 +291,7 @@ export async function addLandTest(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -344,7 +344,7 @@ export async function deleteLandTest(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const landId = str(formData, "land_id");
   await supabase.from("land_tests").delete().eq("id", str(formData, "test_id"));
   revalidatePath(`/lands/${landId}`);

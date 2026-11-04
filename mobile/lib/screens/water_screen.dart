@@ -13,7 +13,11 @@ import '../soil_water.dart';
 import '../theme.dart';
 
 class WaterScreen extends StatefulWidget {
-  const WaterScreen({super.key});
+  /// Opened from a land just saved (backlog 134): its climate station and its area, so the answer is for that field.
+  const WaterScreen({super.key, this.stationKey, this.feddans});
+
+  final String? stationKey;
+  final double? feddans;
 
   @override
   State<WaterScreen> createState() => _WaterScreenState();
@@ -33,6 +37,14 @@ class _WaterScreenState extends State<WaterScreen> {
   /// mid-range and the comparison panel below shows the whole spread, which
   /// makes the cost of leaving it wrong visible instead of hiding it.
   String _soil = 'sandy loam';
+
+  @override
+  void initState() {
+    super.initState();
+    _station = stations.firstWhere((s) => s.key == widget.stationKey, orElse: () => stations.first);
+    // The slider runs from one feddan to five hundred.
+    if (widget.feddans != null) _feddans = widget.feddans!.clamp(1, 500).toDouble();
+  }
 
   WaterRequirement get _result =>
       waterRequirement(_crop, _station, _plantingMonth, _method);
@@ -97,8 +109,9 @@ class _WaterScreenState extends State<WaterScreen> {
                   _Dropdown<CropCoefficients>(
                     label: 'المحصول',
                     value: _crop,
-                    items: crops,
-                    nameOf: (c) => c.name,
+                    items: allCrops,
+                    nameOf: (c) =>
+                        isNewCrop(c.key) ? '${c.name} — جديد على السودان' : c.name,
                     onChanged: (v) => setState(() => _crop = v),
                   ),
                   const SizedBox(height: 12),
@@ -188,8 +201,8 @@ class _WaterScreenState extends State<WaterScreen> {
               title: 'الفترة بين ريّة وريّة — تربة ${soilLabel[_soil]}',
               primary: 'كل ${_n(iv.days, 1)} يوم',
               secondary:
-                  'الجرعة ${_n(iv.doseMm)} مم — أي ${_n(iv.doseM3PerFeddan * _feddans)} م³ '
-                  '(${_n(iv.doseM3PerFeddan)} م³ للفدان) في كل ريّة، '
+                  'الجرعة ${_n(iv.doseMm)} مم تبلغ الجذور، وتضخّ لها ${_n(iv.doseM3PerFeddan * _feddans)} م³ '
+                  '(${_n(iv.doseM3PerFeddan)} م³ للفدان) في كل ريّة مع فاقد طريقة الريّ، '
                   'محسوبة على شهر الذروة لا على المتوسط',
             ),
             const SizedBox(height: 12),

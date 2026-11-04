@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import ActionNotice from "@/components/ActionNotice";
@@ -20,6 +21,7 @@ import {
   type InspectionView,
 } from "@/lib/inspections";
 import { button, card, field, ghost, label } from "@/lib/ui";
+import { areaShown } from "@/lib/partners";
 import {
   cancelInspection,
   decideInspection,
@@ -57,7 +59,7 @@ export default async function InspectionPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -127,9 +129,7 @@ export default async function InspectionPage({
         <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-4">
           <div>
             <dt className="text-xs text-muted">{t("المساحة المسجّلة", "Registered area")}</dt>
-            <dd className="font-medium">
-              {num(v.land.feddans)} {t("فدان", "feddans")}
-            </dd>
+            <dd className="font-medium">{areaShown(v.land.feddans, v.land.area_band, locale)}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted">{t("مصدر المياه", "Water source")}</dt>
@@ -474,11 +474,13 @@ export default async function InspectionPage({
               <span className="font-bold">
                 {num(v.measured_feddans)} {t("فدان", "feddans")}
               </span>
-              <span className="text-muted">
-                {" "}
-                ({t("المسجّلة ", "registered ")}
-                {num(v.land.feddans)})
-              </span>
+              {v.land.feddans !== null && (
+                <span className="text-muted">
+                  {" "}
+                  ({t("المسجّلة ", "registered ")}
+                  {num(v.land.feddans)})
+                </span>
+              )}
             </p>
           )}
           <div className="mt-4 rounded-xl border border-dashed border-leaf/40 p-3 text-xs leading-6">

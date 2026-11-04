@@ -25,7 +25,7 @@ jobs:
     outputs:
       lines: ${{ steps.p.outputs.lines }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: |
           sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
           pip install -q demucs soundfile
@@ -65,7 +65,7 @@ jobs:
       matrix:
         id: ${{ fromJson(needs.split.outputs.lines) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: matrix.id != 'none'
       - if: matrix.id != 'none'
         env:

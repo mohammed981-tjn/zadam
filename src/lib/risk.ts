@@ -27,6 +27,8 @@ import {
   type StationClimate,
 } from "./agronomy";
 import type { RiskLevel } from "@/types/database";
+import type { Locale } from "./i18n";
+import { cropName } from "./enNames";
 
 export type WaterSource = "canal" | "river_pump" | "borehole" | "rainfed";
 
@@ -35,6 +37,14 @@ export const WATER_SOURCE_LABEL: Record<WaterSource, string> = {
   river_pump: "ضخ مباشر من النهر",
   borehole: "آبار جوفية",
   rainfed: "مطري بالكامل",
+};
+
+/** The same, for an English reader (backlog 94). */
+export const WATER_SOURCE_LABEL_EN: Record<WaterSource, string> = {
+  canal: "Canal from a reservoir or river",
+  river_pump: "Pumped directly from the river",
+  borehole: "Boreholes (groundwater)",
+  rainfed: "Fully rainfed",
 };
 
 /**
@@ -207,7 +217,8 @@ function lookup(facts: ProjectFacts): {
  * Scores a project across six weighted factors and reports why each scored what
  * it did. Weights sum to 100 so the result reads directly as a percentage.
  */
-export function assessProject(facts: ProjectFacts): RiskAssessment {
+export function assessProject(facts: ProjectFacts, locale: Locale = "ar"): RiskAssessment {
+  const t = (ar: string, en: string) => (locale === "en" ? en : ar);
   const found = lookup(facts);
   const blockers: string[] = [];
 
@@ -216,7 +227,7 @@ export function assessProject(facts: ProjectFacts): RiskAssessment {
       score: 0,
       level: "high",
       factors: [],
-      blockers: ["المحصول أو الموقع غير معروف للنظام."],
+      blockers: [t("المحصول أو الموقع غير معروف للنظام.", "The crop or the location is unknown to the system.")],
       waterNeededPerFeddan: 0,
       waterCoverage: 0,
     };
@@ -239,17 +250,24 @@ export function assessProject(facts: ProjectFacts): RiskAssessment {
   const adequacy = clamp01((coverage - 0.6) / 0.45);
   factors.push({
     key: "water_adequacy",
-    label: "كفاية المياه",
+    label: t("كفاية المياه", "Water adequacy"),
     weight: 25,
     score: adequacy,
-    detail:
+    detail: t(
       `المحصول يحتاج ${Math.round(waterNeeded).toLocaleString("en-US")} م³/فدان ` +
-      `والمشروع يوفّر ${Math.round(facts.declaredWaterPerFeddan).toLocaleString("en-US")} م³ ` +
-      `(تغطية ${Math.round(coverage * 100)}%).`,
+        `والمشروع يوفّر ${Math.round(facts.declaredWaterPerFeddan).toLocaleString("en-US")} م³ ` +
+        `(تغطية ${Math.round(coverage * 100)}%).`,
+      `The crop needs ${Math.round(waterNeeded).toLocaleString("en-US")} m³/feddan ` +
+        `and the project supplies ${Math.round(facts.declaredWaterPerFeddan).toLocaleString("en-US")} m³ ` +
+        `(${Math.round(coverage * 100)}% coverage).`,
+    ),
   });
   if (coverage < 0.7) {
     blockers.push(
-      `المياه المتاحة لا تغطي إلا ${Math.round(coverage * 100)}% من احتياج المحصول — المشروع غير قابل للتنفيذ بهذه الأرقام.`,
+      t(
+        `المياه المتاحة لا تغطي إلا ${Math.round(coverage * 100)}% من احتياج المحصول — المشروع غير قابل للتنفيذ بهذه الأرقام.`,
+        `The available water covers only ${Math.round(coverage * 100)}% of what the crop needs — the project cannot work on these figures.`,
+      ),
     );
   }
 
@@ -257,10 +275,13 @@ export function assessProject(facts: ProjectFacts): RiskAssessment {
   const reliability = WATER_SOURCE_RELIABILITY[facts.waterSource];
   factors.push({
     key: "water_source",
-    label: "موثوقية مصدر المياه",
+    label: t("موثوقية مصدر المياه", "Reliability of the water source"),
     weight: 15,
     score: reliability,
-    detail: `${WATER_SOURCE_LABEL[facts.waterSource]} — موثوقية ${Math.round(reliability * 100)}% عبر الموسم.`,
+    detail: t(
+      `${WATER_SOURCE_LABEL[facts.waterSource]} — موثوقية ${Math.round(reliability * 100)}% عبر الموسم.`,
+      `${WATER_SOURCE_LABEL_EN[facts.waterSource]} — ${Math.round(reliability * 100)}% reliable through the season.`,
+    ),
   });
 
   // 3. Documentation. This is the factor that keeps invented projects out.
@@ -270,14 +291,20 @@ export function assessProject(facts: ProjectFacts): RiskAssessment {
       : 0;
   factors.push({
     key: "documents",
-    label: "اكتمال التوثيق",
+    label: t("اكتمال التوثيق", "Complete documentation"),
     weight: 20,
     score: docRatio,
-    detail: `${facts.documentsOnFile} من ${facts.documentsRequired} مستنداً مطلوباً مرفوعة ومعتمدة.`,
+    detail: t(
+      `${facts.documentsOnFile} من ${facts.documentsRequired} مستنداً مطلوباً مرفوعة ومعتمدة.`,
+      `${facts.documentsOnFile} of ${facts.documentsRequired} required documents uploaded and approved.`,
+    ),
   });
   if (docRatio < 1) {
     blockers.push(
-      `التوثيق ناقص (${facts.documentsOnFile}/${facts.documentsRequired}) — لا يُنشر مشروع قبل اكتمال مستنداته.`,
+      t(
+        `التوثيق ناقص (${facts.documentsOnFile}/${facts.documentsRequired}) — لا يُنشر مشروع قبل اكتمال مستنداته.`,
+        `Documentation is incomplete (${facts.documentsOnFile}/${facts.documentsRequired}) — no project is published before its documents are complete.`,
+      ),
     );
   }
 
@@ -287,13 +314,16 @@ export function assessProject(facts: ProjectFacts): RiskAssessment {
     0.6 * seasonScore + 0.4 * clamp01(facts.operatorReportingRate);
   factors.push({
     key: "operator",
-    label: "سجل المنفّذ",
+    label: t("سجل المنفّذ", "Operator's record"),
     weight: 20,
     score: trackRecord,
     detail:
       facts.operatorSeasons === 0
-        ? "منفّذ جديد بلا مواسم سابقة على المنصة."
-        : `${facts.operatorSeasons} موسماً منجزاً، والتزام بالتقارير ${Math.round(facts.operatorReportingRate * 100)}%.`,
+        ? t("منفّذ جديد بلا مواسم سابقة على المنصة.", "A new operator with no earlier seasons on the platform.")
+        : t(
+            `${facts.operatorSeasons} موسماً منجزاً، والتزام بالتقارير ${Math.round(facts.operatorReportingRate * 100)}%.`,
+            `${facts.operatorSeasons} season(s) delivered, ${Math.round(facts.operatorReportingRate * 100)}% of reports filed.`,
+          ),
   });
 
   // 5. Price exposure, from the crop's own historical volatility.
@@ -301,22 +331,28 @@ export function assessProject(facts: ProjectFacts): RiskAssessment {
   const priceStability = econ ? clamp01(1 - econ.priceCv / 0.5) : 0.5;
   factors.push({
     key: "price",
-    label: "استقرار السعر",
+    label: t("استقرار السعر", "Price stability"),
     weight: 12,
     score: priceStability,
     detail: econ
-      ? `تذبذب سعر ${crop.name} التاريخي ${Math.round(econ.priceCv * 100)}%.`
-      : "لا توجد بيانات سعرية لهذا المحصول.",
+      ? t(
+          `تذبذب سعر ${crop.name} التاريخي ${Math.round(econ.priceCv * 100)}%.`,
+          `The historical price swing of ${cropName(crop, "en")} is ${Math.round(econ.priceCv * 100)}%.`,
+        )
+      : t("لا توجد بيانات سعرية لهذا المحصول.", "There is no price data for this crop."),
   });
 
   // 6. Market access — a good harvest that cannot reach a buyer is not income.
   const access = clamp01(1 - facts.kmToMarket / 120);
   factors.push({
     key: "access",
-    label: "الوصول للسوق",
+    label: t("الوصول للسوق", "Market access"),
     weight: 8,
     score: access,
-    detail: `${facts.kmToMarket} كم إلى أقرب طريق سوق صالح طوال العام.`,
+    detail: t(
+      `${facts.kmToMarket} كم إلى أقرب طريق سوق صالح طوال العام.`,
+      `${facts.kmToMarket} km to the nearest all-season market road.`,
+    ),
   });
 
   const score = factors.reduce((sum, f) => sum + f.weight * f.score, 0);

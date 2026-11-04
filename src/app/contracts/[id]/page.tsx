@@ -7,6 +7,7 @@ import { setMilestoneStatus, setContractStatus } from "@/app/contracts/actions";
 import { SERVICE_CATALOGUE, serviceUnitLabel } from "@/lib/services";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
+import { loginHrefHere } from "@/lib/loginHere";
 import type {
   ContractMilestone,
   MilestoneEvidence,
@@ -234,7 +235,7 @@ export default async function ContractPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const en = locale === "en";

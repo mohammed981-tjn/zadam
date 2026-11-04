@@ -15,6 +15,7 @@
 /// where there is coverage is not a tool for the people who need it.
 library;
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -31,6 +32,8 @@ void main() {
   // Read the saved session without holding up the first frame; «حسابي» shows
   // a spinner until it is in.
   accountController.load();
+  // Back from Google's sign-in in the browser (backlog 173): `sudagri://auth?h=…`, while open or as the app starts.
+  AppLinks().uriLinkStream.listen(accountController.handleLink, onError: (_) {});
   runApp(const SudagriApp());
 }
 

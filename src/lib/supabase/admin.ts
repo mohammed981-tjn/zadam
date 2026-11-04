@@ -33,7 +33,31 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *      an administrator first. A scheduled job has no visitor to act as; it
  *      writes only rows in market_quotes and price_runs.
  *
- *   4. The soil reading at a land's own point (backlog 180, review 198). Only the
+ *   4. The contact and feedback forms (/api/leads, /api/feedback; backlog 198,
+ *      D9). The public key holds no INSERT on those tables any more, so one
+ *      script cannot fill their hourly ceiling and shut the forms for everyone;
+ *      the routes limit each address first and build the row from a few fields.
+ *
+ *   5. The studies and research library (/api/research, /library/[id],
+ *      /admin/library; backlog 202). Anyone may send a work, so the public key
+ *      holds no INSERT on the table: the route limits each address and writes
+ *      the row pending; it also makes the one-path upload link into the
+ *      private bucket, and the pages make hour-long download links — for a
+ *      published work, or for the administrator reviewing one.
+ *
+ *   6. A temporary password for a phone account that forgot its own (/admin/resets; AUTH-05, backlog 141). Only
+ *      the admin API sets another account's password. The action is behind `requireAdmin` — the database's answer,
+ *      second factor included — and a request the database holds open; the password is set with a flag that sends
+ *      its owner to change it at the first sign-in, and is never written anywhere else.
+ *
+ *   7. A farmer without a phone, registered by their cooperative (/agent, /admin/managed; backlog 169). The account is
+ *      made already confirmed under an internal `@managed.invalid` address with a random password that is never stored
+ *      or shown, so nobody signs into it; the database then decides whether the company may register it, and the
+ *      account is deleted if it refuses. When the farmer gets a phone, the administrator — behind `requireAdmin` —
+ *      moves the account to the phone's address with a temporary password, as in 6, and puts it back if the database
+ *      refuses the link.
+ *
+ *   8. The soil reading at a land's own point (backlog 180, review 198). Only the
  *      server may call land_set_soil_estimate: the server reads SoilGrids itself
  *      and passes who asked, and the function checks that person owns the land
  *      or is an administrator.

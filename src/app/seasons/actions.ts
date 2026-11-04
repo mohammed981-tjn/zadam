@@ -1,11 +1,13 @@
 "use server";
 import { dbText } from "@/lib/dbText";
 import { ledgerEntryDate } from "@/lib/entryDate";
+import { ledgerToday } from "@/lib/ledger/today";
 import { isSettleFrom, ledgerEntryInputMessage, parseLedgerEntryInput, parseSettleRate } from "@/lib/ledgerEntryInput";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { planSeason, type LedgerCategory } from "@/lib/season";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
 import { sanitisePhotoMetadata } from "@/lib/exif";
@@ -41,7 +43,7 @@ export async function createSeason(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const t = await translator();
 
   const name = str(formData, "name");
@@ -181,7 +183,7 @@ export async function addEvidence(args: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const t = await translator();
 
   if (!args.stageId || !args.storagePath) {
@@ -205,6 +207,17 @@ export async function addEvidence(args: {
       ),
     };
   }
+
+  // A photo kept offline is sent again if the reply to its first send was lost (backlog 185): the same file on the
+  // same stage is the evidence already recorded, not a second piece of it.
+  const { data: already } = await supabase
+    .from("stage_evidence")
+    .select("id")
+    .eq("stage_id", args.stageId)
+    .eq("storage_path", args.storagePath)
+    .limit(1)
+    .maybeSingle();
+  if (already) return { ok: true };
 
   const photo = sanitisePhotoMetadata(args.metadata);
 
@@ -238,7 +251,7 @@ export async function completeStage(formData: FormData) {
     .from("season_stages")
     .update({
       completed: true,
-      actual_end: new Date().toISOString().slice(0, 10),
+      actual_end: ledgerToday(),
     })
     .eq("id", str(formData, "stage_id"));
 
@@ -254,7 +267,7 @@ export async function addLedgerEntry(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const seasonId = str(formData, "season_id");
   const category = str(formData, "category") as LedgerCategory;
@@ -290,14 +303,17 @@ export async function addLedgerEntry(formData: FormData) {
   }
 
   // A cost kept on the phone while offline is sent later; it keeps the day it was written (backlog 167).
-  const entryDate = ledgerEntryDate(str(formData, "entry_date"), new Date().toISOString().slice(0, 10));
+  // Without a day of its own the row takes Khartoum's today, sent explicitly: the column's default is the database's
+  // UTC date, a day behind between midnight and two (review 198 B6).
+  const today = ledgerToday();
+  const entryDate = ledgerEntryDate(str(formData, "entry_date"), today);
 
   const { error } = await supabase.from("ledger_entries").insert({
     season_id: seasonId,
     category,
     ...parsed.money,
     description: str(formData, "description") || null,
-    ...(entryDate ? { entry_date: entryDate } : {}),
+    entry_date: entryDate ?? today,
     created_by: user.id,
   });
 
@@ -329,7 +345,7 @@ export async function settleLedgerEntry(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const seasonId = str(formData, "season_id");
   const entryId = str(formData, "entry_id");
@@ -346,7 +362,7 @@ export async function settleLedgerEntry(formData: FormData) {
   if (!rate.ok) {
     redirect(back(ledgerEntryInputMessage("rate", t)));
   }
-  const date = ledgerEntryDate(str(formData, "settle_date"), new Date().toISOString().slice(0, 10));
+  const date = ledgerEntryDate(str(formData, "settle_date"), ledgerToday());
 
   const { error } = await supabase.rpc("farm_settle_entry", {
     p_entry_id: entryId,
@@ -369,7 +385,7 @@ export async function unsettleLedgerEntry(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const seasonId = str(formData, "season_id");
   const entryId = str(formData, "entry_id");
@@ -443,7 +459,7 @@ export async function setPublishRecord(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const publish = str(formData, "publish") === "true";
 

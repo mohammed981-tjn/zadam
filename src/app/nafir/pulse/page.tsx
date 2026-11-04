@@ -3,6 +3,7 @@ import NafirShell, { button } from "@/components/nafir/NafirShell";
 import { nafirViewer } from "@/lib/nafirViewer";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginTo } from "@/lib/authEntry";
 import { PULSE_QUESTIONS, PULSE_SCALE, PULSE_SCALE_EN, ar, currentPeriod, type NafirIndicators } from "@/lib/nafir";
 import { submitPulse } from "../actions";
 
@@ -89,7 +90,7 @@ export default async function PulsePage({
       <section className="mt-6">
         {!user ? (
           <p className="text-sm">
-            <Link href="/login" className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+            <Link href={loginTo("/nafir/pulse")} className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
             {t("لتُجيب.", "to answer.")}
           </p>
         ) : mine ? (

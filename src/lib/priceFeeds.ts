@@ -101,23 +101,38 @@ export function westernDigits(s: string): string {
 }
 
 /**
- * A price as written: «4,850», «4٬850», «4850.00», «6.448» (thousands with a
- * dot, as some Sudanese papers write them), «470 ألف».
+ * A price as written: «4,850», «4٬850», «4850.00», «4,886.38», «6.448» (thousands
+ * with a dot, as some Sudanese papers write them), «470 ألف».
  *
  * A group of exactly three digits after each separator is a thousands group,
- * whichever mark separates it; anything else after a dot is a decimal part.
+ * whichever mark separates it; after comma-grouped thousands, a dot and one or
+ * two digits are the decimal part; anything else after a dot is a decimal part.
  */
 export function parseAmount(raw: string): number | null {
   const s = westernDigits(raw).replace(/\s+/g, " ").trim();
-  const m = s.match(/^(\d{1,3}(?:[.,٬]\d{3})+|\d+(?:\.\d{1,2})?)(?:\s*(ألف|الف|مليون))?$/u);
+  const m = s.match(/^(\d{1,3}(?:[,٬]\d{3})+(?:\.\d{1,2})?|\d{1,3}(?:\.\d{3})+|\d+(?:\.\d{1,2})?)(?:\s*(ألف|الف|مليون))?$/u);
   if (!m) return null;
-  const n = /^\d{1,3}(?:[.,٬]\d{3})+$/.test(m[1]) ? Number(m[1].replace(/[.,٬]/g, "")) : Number(m[1]);
+  const n = /^\d{1,3}(?:[,٬]\d{3})+(?:\.\d{1,2})?$/.test(m[1])
+    ? Number(m[1].replace(/[,٬]/g, ""))
+    : /^\d{1,3}(?:\.\d{3})+$/.test(m[1])
+      ? Number(m[1].replace(/\./g, ""))
+      : Number(m[1]);
   const scale = m[2] ? (m[2] === "مليون" ? 1_000_000 : 1_000) : 1;
   const v = n * scale;
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
-const NUMBER = String.raw`[\d٠-٩]{1,3}(?:[.,٬][\d٠-٩]{3})+|[\d٠-٩]+(?:\.[\d٠-٩]{1,2})?`;
+const NUMBER = String.raw`[\d٠-٩]{1,3}(?:[,٬][\d٠-٩]{3})+(?:\.[\d٠-٩]{1,2})?|[\d٠-٩]{1,3}(?:\.[\d٠-٩]{3})+|[\d٠-٩]+(?:\.[\d٠-٩]{1,2})?`;
+/** «ألف» or «مليون» after a figure: part of the figure, captured with it (backlog 198 C4: «9.6 ألف» was read as 9.6). */
+const SCALE = String.raw`(?:\s*(ألف|الف|مليون))?`;
+/**
+ * Text between two figures that names no other currency: a sentence that moves on to the euro or the riyal
+ * does not lend its figure to the dollar (backlog 198 C3).
+ */
+const NO_OTHER_CURRENCY = (stop: string) =>
+  String.raw`(?:(?!يورو|ريال|درهم|إسترليني|استرليني|المصري|دينار|فرنك|يوان|الين\s)[^${stop}])*?`;
+/** A figure and the word after it, as one amount for parseAmount. */
+const amount = (n: string | undefined, scale: string | undefined) => (n === undefined ? null : parseAmount(scale ? `${n} ${scale}` : n));
 
 const MONTHS: Record<string, number> = {
   يناير: 1, فبراير: 2, مارس: 3, أبريل: 4, إبريل: 4, ابريل: 4, مايو: 5, يونيو: 6, يوليو: 7,
@@ -129,20 +144,37 @@ const iso = (y: number, m: number, d: number) =>
     ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
     : null;
 
-/** «21 أكتوبر 2026» or «2026/10/14» in the text, else the post's own day. */
+const MONTH_NAMES = "يناير|فبراير|مارس|أبريل|إبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر";
+
+/**
+ * «21 أكتوبر 2026» or «2026/10/14» in the text, else the post's own day. A day after the post's own is not the
+ * market's day (an article does not report tomorrow's prices): the post's day is kept.
+ */
 export function marketDay(text: string, postDate: string): string {
   const t = westernDigits(text);
-  const named = t.match(/(\d{1,2})\s+(يناير|فبراير|مارس|أبريل|إبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)\s+(\d{4})/u);
+  const post = postDate.slice(0, 10);
+  const named = t.match(new RegExp(String.raw`(\d{1,2})\s+(${MONTH_NAMES})\s+(\d{4})`, "u"));
   if (named) {
     const d = iso(Number(named[3]), MONTHS[named[2]], Number(named[1]));
-    if (d) return d;
+    if (d) return d > post ? post : d;
   }
   const slashed = t.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
   if (slashed) {
     const d = iso(Number(slashed[1]), Number(slashed[2]), Number(slashed[3]));
-    if (d) return d;
+    if (d) return d > post ? post : d;
   }
-  return postDate.slice(0, 10);
+  return post;
+}
+
+/**
+ * The day a news sentence reports: a date only when the sentence calls it today («اليوم الأربعاء 21 أكتوبر 2026»),
+ * else the post's own day. Any other date in the sentence is one it compares with («دون تغيير عن 20 أكتوبر»),
+ * not the day of its figures (backlog 198 C5).
+ */
+export function sentenceDay(text: string, postDate: string): string {
+  const t = westernDigits(text);
+  const today = t.match(new RegExp(String.raw`اليوم(?:\s+[^\s\d]+){0,2}\s+(\d{1,2})\s+(${MONTH_NAMES})\s+(\d{4})`, "u"));
+  return today ? marketDay(today[0], postDate) : postDate.slice(0, 10);
 }
 
 // ── بنك الخرطوم: الجدول ─────────────────────────────────────────────────────
@@ -199,23 +231,26 @@ export function readBankOfKhartoum(post: WpPost): FxQuote | null {
 // ── بنك الخرطوم: الجملة ─────────────────────────────────────────────────────
 
 const BANK_SENTENCE = new RegExp(
-  String.raw`بنك\s+الخرطوم[^.،,]*?شراء\s+(?:ال)?دولار(?:\s+الأمريكي|\s+الامريكي)?\s+(${NUMBER})\s*جنيه[^\s،,]*\s*[،,]\s*(?:مقابل|بينما|و)\s+(${NUMBER})\s*جنيه[^\s،,]*\s+للبيع`,
+  String.raw`بنك\s+الخرطوم(?:(?!السوق|الموازي|بنك)[^.،,])*?شراء\s+(?:ال)?دولار(?:\s+الأمريكي|\s+الامريكي)?\s+(${NUMBER})${SCALE}\s*جنيه[^\s،,]*\s*[،,]\s*(?:مقابل|بينما|و)\s+(${NUMBER})${SCALE}\s*جنيه[^\s،,]*\s+للبيع`,
   "u",
 );
 
 /**
  * The bank's dollar from a news sentence: one that names «بنك الخرطوم» itself and then gives
  * the buying price and the selling price in pounds. A sentence about another bank, or about
- * the parallel market, is never taken; and a figure not written as two prices stays unread.
+ * the parallel market, is never taken — not even one that names the bank to set it aside
+ * («بعيداً عن بنك الخرطوم بلغ في السوق الموازية…», backlog 198 D7); and a figure not written
+ * as two prices stays unread.
  */
 export function readBankOfKhartoumSentence(post: WpPost): FxQuote | null {
   for (const line of htmlToLines(post.content.rendered)) {
+    if (/الموازي|السوداء|السوق\s+الأسود/u.test(line)) continue;
     const m = line.match(BANK_SENTENCE);
     if (!m) continue;
-    const buy = parseAmount(m[1]);
-    const sell = parseAmount(m[2]);
+    const buy = amount(m[1], m[2]);
+    const sell = amount(m[3], m[4]);
     if (buy === null || sell === null) continue;
-    return { date: marketDay(line, post.date), buy, sell, quote: line };
+    return { date: sentenceDay(line, post.date), buy, sell, quote: line };
   }
   return null;
 }
@@ -228,7 +263,14 @@ export function readBank(post: WpPost): FxQuote | null {
 // ── السوق الموازي: الجملة ───────────────────────────────────────────────────
 
 const PARALLEL_SENTENCE = new RegExp(
-  String.raw`شراء\s+(?:ال)?دولار(?:\s+الأمريكي|\s+الامريكي)?\s+(${NUMBER})\s*(?:ألف\s*)?جنيه[^.]*?(?:سعر\s+)?(?:ال)?بيع\s*(?:إلى|الى|إلي|إلى\s+نحو)?\s*(${NUMBER})`,
+  String.raw`شراء\s+(?:ال)?دولار(?:\s+الأمريكي|\s+الامريكي)?\s+(${NUMBER})${SCALE}\s*جنيه${NO_OTHER_CURRENCY(".")}(?:سعر\s+)?(?:ال)?بيع\s*(?:إلى|الى|إلي|إلى\s+نحو)?\s*(${NUMBER})${SCALE}`,
+  "u",
+);
+
+// «… إذ بلغ سعر بيع الدولار الأميركي 10,250 جنيها سودانيا، مقابل 9,670 جنيها للشراء» (الغد السوداني، 23 أكتوبر 2026):
+// البيع أوّلاً ثمّ الشراء. تُقبل بصيغتها الكاملة وحدها: بيعٌ فدولارٌ فرقمان فكلمة «للشراء» بعد «مقابل».
+const PARALLEL_SELL_FIRST = new RegExp(
+  String.raw`بيع\s+(?:ال)?دولار(?:\s+الأمريكي|\s+الامريكي|\s+الأميركي|\s+الاميركي)?\s+(${NUMBER})${SCALE}\s*جنيه${NO_OTHER_CURRENCY("،,.")}[،,]\s*مقابل\s+(${NUMBER})${SCALE}\s*جنيه[^\s،,.]*\s+للشراء`,
   "u",
 );
 
@@ -244,9 +286,11 @@ export function readParallelMarket(post: WpPost): FxQuote | null {
     for (const line of lines.slice(i, i + 3)) {
       if (/بنك/u.test(line)) continue;
       const m = line.match(PARALLEL_SENTENCE);
-      if (!m) continue;
-      const buy = parseAmount(m[1]);
-      const sell = parseAmount(m[2]);
+      const s = m ? null : line.match(PARALLEL_SELL_FIRST);
+      if (!m && !s) continue;
+      // The first sentence gives the buying price first; the second gives the selling price first.
+      const buy = m ? amount(m[1], m[2]) : amount(s![3], s![4]);
+      const sell = m ? amount(m[3], m[4]) : amount(s![1], s![2]);
       if (buy === null || sell === null) continue;
       return { date: post.date.slice(0, 10), buy, sell, quote: line };
     }

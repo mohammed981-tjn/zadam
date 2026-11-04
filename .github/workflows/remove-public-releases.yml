@@ -1,0 +1,29 @@
+name: Remove the public releases
+
+# The repository became public on 26 October, and with it the two pre-releases that were the owner's alone: the
+# investors' film and the app build. The owner chose to remove them (the films and builds now reach him locked, in
+# the conversation: .github/delivery/lock.sh). Deletes each release with its tag; one already gone is skipped.
+on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: [".github/workflows/remove-public-releases.yml"]
+  workflow_dispatch:
+
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: |
+          for tag in film-investors app-latest film-platform db-backups; do
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release delete "$tag" --cleanup-tag --yes && echo "### حُذف: $tag" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "### لا إصدار: $tag" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          gh release list

@@ -108,7 +108,7 @@ export interface GroupOrderSummary {
   title: string;
   supplier_id: string;
   supplier_name: string;
-  pickup_name: string;
+  pickup_name: string | null;
   pickup_locality: string;
   pickup_state: string;
   drop_day: string;
@@ -122,7 +122,7 @@ export interface GroupOrderSummary {
 
 export interface GroupOrderDetail extends GroupOrderSummary {
   supplier_phone: string;
-  organiser_name: string;
+  organiser_name: string | null;
   organiser_phone: string | null;
   pickup_lat: number | null;
   pickup_lng: number | null;

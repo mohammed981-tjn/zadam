@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import Explain from "@/components/Explain";
 import HerdReadiness from "@/components/HerdReadiness";
 import HerdExportChecklist from "@/components/HerdExportChecklist";
@@ -49,7 +50,7 @@ export default async function HerdPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
