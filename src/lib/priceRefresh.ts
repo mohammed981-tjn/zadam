@@ -310,6 +310,13 @@ export function disagreement(row: Row, q: FxQuote, sameDay: { q: { sell: number 
   return row;
 }
 
+/**
+ * With nothing to compare against, the range alone is too wide to publish on: since 4 November the trusted figures
+ * publish themselves, so the first figure of a series waits for a person (independent review of the phase).
+ */
+export const NO_BASELINE_REASON = "لا رقمَ سابقٌ يُقارَن به — يُراجَع";
+const noBaseline = (last: number | null): string | null => (last !== null && last > 0 ? null : NO_BASELINE_REASON);
+
 /** Buying is judged as selling is — the same range and the same day's movement — and may not sit far below it. */
 function buyReason(q: FxQuote, lastBuy: number | null): string | null {
   const own = holdReason(q.buy, lastBuy, 0.25, [500, 200_000]);
@@ -320,7 +327,9 @@ function buyReason(q: FxQuote, lastBuy: number | null): string | null {
 
 export function fxRow(kind: "fx_bank" | "fx_parallel", q: FxQuote, link: string, lastSell: number | null, lastBuy: number | null = null): Row {
   // Selling and buying are both judged (backlog 198 C4: a buying price of 9.6 once passed, checked only against selling).
-  const reason = q.buy > q.sell ? "سعر الشراء أعلى من البيع" : (holdReason(q.sell, lastSell, 0.25, [500, 200_000]) ?? buyReason(q, lastBuy));
+  const reason = q.buy > q.sell
+    ? "سعر الشراء أعلى من البيع"
+    : (holdReason(q.sell, lastSell, 0.25, [500, 200_000]) ?? noBaseline(lastSell) ?? buyReason(q, lastBuy));
   // Every row carries the same columns: PostgREST writes one batch with the union of the rows' keys and sets a
   // missing one to NULL, not to the column's default — and `market`/`crop` are NOT NULL (found 25 October 2026:
   // a run with a dollar and a crop figure wrote nothing).
@@ -343,7 +352,7 @@ export function fxRow(kind: "fx_bank" | "fx_parallel", q: FxQuote, link: string,
 export function cropRow(q: CropQuote, link: string, lastPrice: number | null, alwaysHold: boolean): Row {
   const reason = alwaysHold
     ? "نصٌّ حرّ من نشرة القضارف — يُنشر بعد المراجعة"
-    : holdReason(q.price, lastPrice, 0.5, [1_000, 1_000_000_000]);
+    : (holdReason(q.price, lastPrice, 0.5, [1_000, 1_000_000_000]) ?? noBaseline(lastPrice));
   return {
     kind: "crop",
     market: q.market,

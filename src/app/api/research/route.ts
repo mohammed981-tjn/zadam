@@ -89,16 +89,17 @@ export async function POST(req: NextRequest) {
   const row = checked.row;
 
   if (row.file_path) {
-    // A path this server gave in the last day, not yet used by another sending; marked used here (public-api-4).
+    // A path this server gave in the last day and no sending has used (public-api-4). Claimed below, once the file is
+    // found, and given back if the row cannot be written, so a retry is not told its link expired.
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const { data: claimed } = await admin
+    const { data: issued } = await admin
       .from("research_uploads")
-      .update({ used_at: new Date().toISOString() })
+      .select("path")
       .eq("path", row.file_path)
       .is("used_at", null)
       .gte("issued_at", since)
-      .select("path");
-    if (!claimed || claimed.length === 0) {
+      .maybeSingle();
+    if (!issued) {
       return say(lang, ["انتهت صلاحيّة رابط الرفع. ارفع الملفّ من جديد.", "The upload link has expired. Upload the file again."], 400);
     }
     // The file must be there, under the path this server made, and a PDF within the bucket's size.
@@ -108,6 +109,16 @@ export async function POST(req: NextRequest) {
     const size = Number((file?.metadata as { size?: number } | undefined)?.size ?? 0);
     if (!file || size <= 0 || size > RESEARCH_MAX_BYTES) {
       return say(lang, ["لم نجد الملفّ المرفوع. ارفعه من جديد.", "We could not find the uploaded file. Upload it again."], 400);
+    }
+    // One sending per link: of two at once, the second finds it taken.
+    const { data: claimed } = await admin
+      .from("research_uploads")
+      .update({ used_at: new Date().toISOString() })
+      .eq("path", row.file_path)
+      .is("used_at", null)
+      .select("path");
+    if (!claimed || claimed.length === 0) {
+      return say(lang, ["هذا الملفّ أُرسل من قبل.", "This file was already sent."], 409);
     }
   }
 
@@ -120,6 +131,8 @@ export async function POST(req: NextRequest) {
   const { error } = await admin.from("research_items").insert({ ...row, submitted_by: user?.id ?? null });
   if (error) {
     console.error("research: insert failed", error.message);
+    // The link was not spent: the same file may be sent again (and the sweep still clears it if it never is).
+    if (row.file_path) await admin.from("research_uploads").update({ used_at: null }).eq("path", row.file_path);
     const dup = error.code === "23505";
     return say(
       lang,

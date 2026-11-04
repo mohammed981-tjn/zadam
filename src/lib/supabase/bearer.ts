@@ -31,7 +31,8 @@ export async function clientFromBearer(
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user) return null;
   // A temporary password the administration read out over the phone is changed on the website before the app may use
-  // the account (app-api-2 / public-api-5; the owner, question 24): whoever heard the call must not get in here.
+  // the account (app-api-2 / public-api-5; the owner, question 24), as the website itself requires. It makes the owner
+  // change it; it is not a lock against someone else who knows it (the flag is the account's own metadata).
   if (mustChangePasswordFirst(data.user)) return null;
   return { supabase, user: data.user };
 }

@@ -113,7 +113,7 @@ begin
     'created_at', v_i.created_at, 'owner_decided_at', v_i.owner_decided_at,
     'assigned_at', v_i.assigned_at, 'visit_on', v_i.visit_on,
     'verdict', v_i.verdict, 'findings', v_i.findings, 'summary', v_i.summary,
-    'measured_feddans', v_i.measured_feddans, 'reported_at', v_i.reported_at,
+    'measured_feddans', case when v_sees_area then v_i.measured_feddans end, 'reported_at', v_i.reported_at,
     'report_hash', v_i.report_hash, 'owner_reply', v_i.owner_reply, 'owner_replied_at', v_i.owner_replied_at,
     'cancel_reason', v_i.cancel_reason,
     'investor_name', case when v_role <> 'investor' then (select full_name from profiles where id = v_i.investor_id) end,

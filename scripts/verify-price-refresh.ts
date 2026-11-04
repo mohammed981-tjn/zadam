@@ -16,7 +16,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AWAITING_REASON } from "../src/lib/priceFreshness";
-import { apartFrom, cropRow, disagreement, fxRow, refreshPrices, type Row } from "../src/lib/priceRefresh";
+import { apartFrom, cropRow, disagreement, fxRow, NO_BASELINE_REASON, refreshPrices, type Row } from "../src/lib/priceRefresh";
 import type { CropQuote, FxQuote } from "../src/lib/priceFeeds";
 
 let failed = 0;
@@ -33,10 +33,13 @@ const migration = readFileSync(join(__dirname, "../supabase/migrations/202610251
 ok(migration.includes(`reason = '${AWAITING_REASON}'`), "AWAITING_REASON is, letter for letter, the reason market_quote_review_all approves");
 
 console.log("\nA single row");
+const crop0 = (): CropQuote => ({ market: "obeid", crop: "millet", unit: "ardeb", date: "2026-10-14", price: 1575000, quote: "…" });
 const fx: FxQuote = { date: "2026-10-23", buy: 9670, sell: 10250, quote: "…" };
 ok(fxRow("fx_parallel", fx, "https://x.example/1", 10105).status === "held", "a figure within a day's movement is held, not published");
 ok(fxRow("fx_parallel", fx, "https://x.example/1", 10105).reason === AWAITING_REASON, "and waits under the approvable reason");
-ok(fxRow("fx_parallel", fx, "https://x.example/1", null).reason === AWAITING_REASON, "the first ever figure also waits, it is not published");
+ok(fxRow("fx_parallel", fx, "https://x.example/1", null).reason === NO_BASELINE_REASON,
+  "the first ever figure waits for a person: with no earlier figure there is nothing to judge a day's movement by");
+ok(cropRow(crop0(), "https://x.example/2", null, false).reason === NO_BASELINE_REASON, "and so does a crop's first");
 ok(fxRow("fx_parallel", { ...fx, sell: 20000 }, "https://x.example/1", 10105).reason !== AWAITING_REASON, "a figure that strays 95% waits under its own reason, outside the one click");
 ok(fxRow("fx_parallel", { ...fx, buy: 11000 }, "https://x.example/1", 10105).reason !== AWAITING_REASON, "buying above selling waits under its own reason");
 const agree = (other: number) => disagreement(fxRow("fx_parallel", fx, "https://x.example/1", 10105), fx, [{ q: { ...fx, sell: other } }]);
@@ -182,8 +185,9 @@ async function main() {
   ok(written.some((r) => r.kind === "fx_parallel" && r.sell === 10250 && r.buy === 9670), "the parallel market's dollar was read from the Alghad article, buying 9,670 and selling 10,250");
   ok(written.some((r) => r.kind === "crop" && r.market === "obeid"), "the El Obeid list was read");
   ok(
-    written.filter((r) => r.kind !== "crop" || r.market === "obeid").every((r) => r.reason === AWAITING_REASON),
-    "what the readers read with certainty waits under the approvable reason",
+    written.filter((r) => r.kind !== "crop" || r.market === "obeid").every((r) => r.reason === AWAITING_REASON || r.reason === NO_BASELINE_REASON)
+      && written.some((r) => r.reason === AWAITING_REASON),
+    "what the readers read with certainty is trusted, or waits only because there is no earlier figure to judge it by",
   );
   ok(written.filter((r) => r.market === "gedaref").every((r) => r.reason !== AWAITING_REASON), "free prose from Gedaref is held under its own reason");
   ok(written.every((r) => typeof r.source_url === "string" && String(r.source_url).startsWith("https://") && String(r.quote).length > 0), "every row carries its source link and the words it was read from");

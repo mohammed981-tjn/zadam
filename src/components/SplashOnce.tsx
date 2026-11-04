@@ -286,8 +286,13 @@ export default function SplashOnce() {
     // Escape closes; Enter, Space and the arrows go on. Tab moves focus as it always does.
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") skip();
+      // Enter or Space on «تخطَّ» itself is the button's own click (below), not the next screen.
+      else if ((e.target as HTMLElement | null)?.closest?.("[data-skip]")) return;
       else if (["Enter", " ", "ArrowLeft", "ArrowRight"].includes(e.key)) advance();
     };
+    // The keyboard's Enter or Space and a screen reader's «activate» reach the button as a click, not a pointerdown.
+    const skipButton = el.querySelector<HTMLButtonElement>("[data-skip]");
+    skipButton?.addEventListener("click", skip);
     el.addEventListener("pointerdown", onTap);
     window.addEventListener("keydown", onKey);
 
@@ -308,6 +313,7 @@ export default function SplashOnce() {
       window.clearTimeout(done);
       el.removeEventListener("pointerdown", onTap);
       window.removeEventListener("keydown", onKey);
+      skipButton?.removeEventListener("click", skip);
     };
     // The path is read once: the intro is for the page the visit opened on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
