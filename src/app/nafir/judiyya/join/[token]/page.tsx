@@ -42,7 +42,7 @@ export default async function JoinPage({
       {!user ? (
         <p className="mt-5 rounded-2xl border border-border bg-card p-5 text-sm">
           <Link href={loginTo(`/nafir/judiyya/join/${token}`)} className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link> {t("أو", "or")}{" "}
-          <Link href="/signup" className="font-medium text-primary underline">{t("أنشئ حساباً", "create an account")}</Link>
+          <Link href={`/signup?next=${encodeURIComponent(`/nafir/judiyya/join/${token}`)}`} className="font-medium text-primary underline">{t("أنشئ حساباً", "create an account")}</Link>
           {t("، ثمّ افتح الرابط نفسه مرّةً أخرى.", ", then open the same link again.")}
         </p>
       ) : (

@@ -17,7 +17,9 @@ import { loginTo, REQUEST_PATH_HEADER, safeNext } from "@/lib/authEntry";
 
 /** The path this request was for, if it is one we may return to. */
 export async function requestPath(): Promise<string | null> {
-  return safeNext((await headers()).get(REQUEST_PATH_HEADER));
+  const full = (await headers()).get(REQUEST_PATH_HEADER);
+  // A query too long to carry (an Arabic search, a shared link's tracking tail) still leaves the page itself.
+  return safeNext(full) ?? safeNext(full?.split("?")[0]);
 }
 
 /** The sign-in screen, coming back to this request's page afterwards (or plain, when there is none to return to). */

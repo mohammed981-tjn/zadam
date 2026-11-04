@@ -51,11 +51,27 @@ const HOSTILE: [string, string][] = [
   ["javascript:alert(1)", "javascript:"],
   ["/" + "a".repeat(400), "أطولُ من ٣٠٠ حرف"],
   ["", "فارغ"],
+  ["/.//evil.example", "نقطةٌ يحذفها المتصفّح فتبقى شرطتان (وجدتها المراجعة)"],
+  ["/..//evil.example", "نقطتان"],
+  ["/%2e//evil.example", "نقطةٌ مُرمَّزة"],
+  ["/%2E%2E//evil.example", "نقطتان مُرمَّزتان"],
+  ["/a/..//evil.example", "مجلّدٌ ثمّ رجوع"],
+  ["/.//evil.example/p?x=1#h", "نقطةٌ ومسارٌ وسؤال"],
+  ["/.//", "نقطةٌ وشرطتان وحدهما"],
 ];
 for (const [value, label] of HOSTILE) {
   const out = safeNext(value);
   ok(out === null || lands(out) === SITE, `${label}: ${JSON.stringify(value)} → ${JSON.stringify(out)}`);
 }
+
+ok(safeNext(["/lands", "//evil.example"]) === null && safeNext(42) === null && safeNext(undefined) === null,
+   "و next مكرّرٌ (مصفوفة) أو غيرُ نصٍّ لا يُسقط الصفحة: لا مسار");
+let idempotent = true;
+for (const [value] of HOSTILE) {
+  const once = safeNext(value);
+  if (once !== null && safeNext(once) !== once) idempotent = false;
+}
+ok(idempotent, "وما يمرّ مرّةً يمرّ كما هو مرّةً ثانية (لا يصنع التنظيفُ شيئاً جديداً)");
 
 section("ب) وما هو صفحةٌ في المنصّة يمرّ، كما كُتب أو كما يقرؤه المتصفّح");
 
@@ -68,13 +84,15 @@ const FRIENDLY: [string, string][] = [
 ];
 for (const [value, want] of FRIENDLY) {
   const out = safeNext(value);
-  ok(out === want && lands(out) === SITE, `${JSON.stringify(value)} → ${JSON.stringify(out)}`);
+  ok(out === want && lands(out) === SITE && safeNext(out) === out, `${JSON.stringify(value)} → ${JSON.stringify(out)}`);
 }
 ok(safeNext("/login?next=/x") === null && safeNext("/signup") === null, "ولا يعود إلى شاشة الدخول نفسها (حلقة)");
 ok(safeNext("/حقول") !== null && lands(safeNext("/حقول")!) === SITE, "ومسارٌ عربيٌّ يمرّ مُرمَّزاً");
 ok(signInFrom("/contracts/9") === loginTo("/contracts/9") && signInFrom("/login") === "/login"
-     && signInFrom("/signup?as=investor") === "/login" && signInFrom(null) === "/login",
-   "و signInFrom (للمتصفّح) يعيد إلى الصفحة نفسها، ولا يعيد إلى شاشتَي الدخول والتسجيل");
+     && signInFrom("/signup") === "/login" && signInFrom("/reset/confirm") === "/login" && signInFrom(null) === "/login"
+     && signInFrom("/login-help") === loginTo("/login-help"),
+   "و signInFrom (للمتصفّح) يعيد إلى الصفحة نفسها، لا إلى شاشات الدخول والتسجيل والاسترجاع");
+ok(signInFrom("/") === "/login", "ومن الرئيسيّة يدخل إلى بيته، لا إلى صفحة الزوّار (وجدتها المراجعة)");
 ok(safeNext(decodeURIComponent(new URL(loginTo("/seasons/7?x=1"), SITE).searchParams.get("next")!)) === "/seasons/7?x=1",
    "و loginTo ثمّ قراءةُ next تعيد المسارَ نفسه");
 
@@ -97,7 +115,8 @@ for (const menu of ["src/components/NavMenu.tsx", "src/components/DesktopSidebar
      `${menu.split("/").pop()}: بندُ الدخول في القائمة يعود إلى الصفحة المعروضة الآن`);
 }
 const here = readFileSync("src/lib/loginHere.ts", "utf8");
-ok(/safeNext\(\(await headers\(\)\)\.get\(REQUEST_PATH_HEADER\)\)/.test(here), "و loginHrefHere يقرؤه عبر safeNext");
+ok(/safeNext\(full\) \?\? safeNext\(full\?\.split\("\?"\)\[0\]\)/.test(here),
+   "و loginHrefHere يقرؤه عبر safeNext، ويكتفي بالصفحة إن طال السؤال");
 
 section("هـ) لا إرسالَ إلى الدخول بلا مكان العودة، إلّا ما له سبب");
 

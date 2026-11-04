@@ -83,8 +83,9 @@ const PROBE_ORIGIN = "https://sudagri.invalid";
  * began with our address. So control characters and backslashes are refused outright, and what is left is read the
  * way a browser reads it and must still be on this site.
  */
-export function safeNext(next: string | null | undefined): string | null {
-  if (!next) return null;
+export function safeNext(next: unknown): string | null {
+  // A repeated `?next=` arrives as an array; anything that is not one string is no path.
+  if (typeof next !== "string" || !next) return null;
   const value = next.trim();
   if (value.length > 300) return null;
   if (/[\u0000-\u001f\u007f\\]/.test(value)) return null;
@@ -96,6 +97,8 @@ export function safeNext(next: string | null | undefined): string | null {
     return null;
   }
   if (url.origin !== PROBE_ORIGIN) return null;
+  // And again after the browser's own tidying: "/.//evil.example" loses its "." and becomes "//evil.example".
+  if (url.pathname.startsWith("//")) return null;
   if (url.pathname.startsWith("/login") || url.pathname.startsWith("/signup")) return null;
   return `${url.pathname}${url.search}${url.hash}`;
 }
@@ -115,10 +118,11 @@ export function loginTo(path: string): string {
 
 /**
  * The sign-in link for a page in the browser, from its own path (`usePathname()`): back to that page afterwards, or
- * plain on the sign-in and sign-up screens themselves, where there is nothing to come back to.
+ * plain on the home page and the sign-in, sign-up and reset screens, where coming back would hide the person's own home.
  */
 export function signInFrom(pathname: string | null): string {
-  if (!pathname || pathname.startsWith("/login") || pathname.startsWith("/signup")) return "/login";
+  // The home page, and the screens of signing in itself: nothing to come back to, so the person goes to their own home.
+  if (!pathname || pathname === "/" || /^\/(login|signup|reset|auth)(\/|$)/.test(pathname)) return "/login";
   return loginTo(pathname);
 }
 
