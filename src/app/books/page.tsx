@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { ledgerToday } from "@/lib/ledger/today";
@@ -47,7 +48,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useId, useRef, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { signInFrom } from "@/lib/authEntry";
 import { MENU_STATE_EVENT, OPEN_ASSISTANT_EVENT, TOGGLE_MENU_EVENT } from "@/lib/events";
 import { activeHref, groupForPath, type NavGroup } from "@/lib/nav";
 import { tr } from "@/lib/i18n";
@@ -249,7 +250,8 @@ export default function NavMenu({
                       return (
                         <Link
                           key={item.href}
-                          href={item.href}
+                          // The menu is drawn once by the layout, so its sign-in item is pointed back at the page shown now, here.
+                          href={item.href === "/login" ? signInFrom(pathname) : item.href}
                           role="menuitem"
                           // Closed on selection rather than by watching the
                           // path, so the menu never lingers over the page being

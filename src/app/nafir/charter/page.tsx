@@ -2,6 +2,7 @@ import Link from "next/link";
 import NafirShell, { button, field, ghost } from "@/components/nafir/NafirShell";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import { nafirViewer } from "@/lib/nafirViewer";
+import { loginTo } from "@/lib/authEntry";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
 import {
@@ -126,7 +127,7 @@ export default async function CharterPage({
         <h2 className="text-lg font-bold">{t("التوقيع", "Sign")}</h2>
         {!user ? (
           <p className="mt-2 text-sm">
-            <Link href="/login" className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+            <Link href={loginTo("/nafir/charter")} className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
             {t("لتوقّع الميثاق.", "to sign the charter.")}
           </p>
         ) : mine ? (

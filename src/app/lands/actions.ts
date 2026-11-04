@@ -13,6 +13,7 @@ import { testProblem } from "@/lib/landTests";
 import { landInputProblem } from "@/lib/landInput";
 import { recordSoilEstimate } from "@/lib/landSoil";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
+import { loginHrefHere } from "@/lib/loginHere";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -42,7 +43,7 @@ export async function registerLand(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -134,7 +135,7 @@ export async function setLandLocation(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -213,7 +214,7 @@ export async function rejectLand(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   // The database's answer, second factor included (AUTH-04): without it the update below would match no row and
   // say nothing.
@@ -251,7 +252,7 @@ export async function verifyLand(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   // The database's answer, second factor included (AUTH-04): without it the update below would match no row and
   // say nothing.
@@ -290,7 +291,7 @@ export async function addLandTest(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -343,7 +344,7 @@ export async function deleteLandTest(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const landId = str(formData, "land_id");
   await supabase.from("land_tests").delete().eq("id", str(formData, "test_id"));
   revalidatePath(`/lands/${landId}`);

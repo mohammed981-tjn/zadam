@@ -114,6 +114,15 @@ export function loginTo(path: string): string {
 }
 
 /**
+ * The sign-in link for a page in the browser, from its own path (`usePathname()`): back to that page afterwards, or
+ * plain on the sign-in and sign-up screens themselves, where there is nothing to come back to.
+ */
+export function signInFrom(pathname: string | null): string {
+  if (!pathname || pathname.startsWith("/login") || pathname.startsWith("/signup")) return "/login";
+  return loginTo(pathname);
+}
+
+/**
  * An investor's way in from an opportunity: a new account with «أستثمر»
  * already chosen, back to `path` after. Someone with an account signs in from
  * the same screen («لي حساب»), so one link serves both.

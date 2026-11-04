@@ -7,6 +7,7 @@ import { isSettleFrom, ledgerEntryInputMessage, parseLedgerEntryInput, parseSett
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { planSeason, type LedgerCategory } from "@/lib/season";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
 import { sanitisePhotoMetadata } from "@/lib/exif";
@@ -42,7 +43,7 @@ export async function createSeason(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const t = await translator();
 
   const name = str(formData, "name");
@@ -182,7 +183,7 @@ export async function addEvidence(args: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const t = await translator();
 
   if (!args.stageId || !args.storagePath) {
@@ -266,7 +267,7 @@ export async function addLedgerEntry(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const seasonId = str(formData, "season_id");
   const category = str(formData, "category") as LedgerCategory;
@@ -344,7 +345,7 @@ export async function settleLedgerEntry(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const seasonId = str(formData, "season_id");
   const entryId = str(formData, "entry_id");
@@ -384,7 +385,7 @@ export async function unsettleLedgerEntry(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const seasonId = str(formData, "season_id");
   const entryId = str(formData, "entry_id");
@@ -458,7 +459,7 @@ export async function setPublishRecord(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const publish = str(formData, "publish") === "true";
 

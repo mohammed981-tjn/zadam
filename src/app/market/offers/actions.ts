@@ -9,6 +9,7 @@ import { OFFER_UNITS, isNotYetCreated, type OfferUnit } from "@/lib/marketOffers
 import { SUDAN_STATES } from "@/lib/nafir";
 import { toE164, toWesternDigits } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 
 /**
  * Both steps are database functions (supabase/migrations/
@@ -38,7 +39,7 @@ async function session() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   return { supabase, locale, t: (ar: string, en: string) => tr(locale, ar, en) };
 }

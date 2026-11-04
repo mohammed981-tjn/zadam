@@ -3,6 +3,7 @@ import NafirShell, { button, field, ghost } from "@/components/nafir/NafirShell"
 import { nafirViewer } from "@/lib/nafirViewer";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginTo } from "@/lib/authEntry";
 import { ageAr, ar, typed, type ShuraItem } from "@/lib/nafir";
 import { answerShura, askShura, toggleSupport } from "../actions";
 import FilmPlayer from "@/components/FilmPlayer";
@@ -176,7 +177,7 @@ export default async function ShuraPage({
         </form>
       ) : (
         <p className="mt-5 text-sm">
-          <Link href="/login" className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+          <Link href={loginTo("/nafir/shura")} className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
           {t("لتسأل أو تقترح أو تؤيّد.", "to ask, propose or support.")}
         </p>
       )}

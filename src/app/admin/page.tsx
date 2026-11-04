@@ -2,6 +2,7 @@ import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { formatUsd, statusLabel } from "@/lib/format";
 import { activeProvider } from "@/lib/embedding";
 import { countStale } from "@/lib/backfillEmbeddings";
@@ -15,7 +16,7 @@ export default async function AdminPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const { data: profile } = await supabase
     .from("profiles")

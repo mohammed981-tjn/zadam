@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import ExportOfferDetail from "@/components/ExportOfferDetail";
 import { ReadinessPanel } from "@/components/ExportReadiness";
 import { fetchReadiness } from "@/lib/exportReadiness";
@@ -36,7 +37,7 @@ export default async function ExportOfferDetailPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 

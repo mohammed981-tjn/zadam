@@ -9,6 +9,7 @@ import { getLocale } from "@/lib/locale";
 import { OFFER_CROPS, OFFER_UNITS, OFFER_UNIT_NAME, isNotYetCreated } from "@/lib/marketOffers";
 import { SUDAN_STATES, stateName } from "@/lib/nafir";
 import { createClient } from "@/lib/supabase/server";
+import { loginTo } from "@/lib/authEntry";
 import { createOffer } from "../actions";
 import { field, label } from "@/lib/ui";
 
@@ -47,7 +48,7 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Pro
 
       {!user ? (
         <p className="rounded-2xl border border-border bg-card p-5 text-sm">
-          <Link href="/login" className="font-bold text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+          <Link href={loginTo("/market/offers/new")} className="font-bold text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
           {t("لتضيف عرضاً — حتى يُعرف صاحبه ويستطيع إغلاقه.", "to add an offer — so its owner is known and can close it.")}
         </p>
       ) : pending ? (

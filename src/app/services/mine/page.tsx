@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import Explain, { EmptyState } from "@/components/Explain";
 import OfferForm from "@/components/OfferForm";
 import { setProviderPaused } from "../actions";
@@ -39,7 +40,7 @@ export default async function MyProviderPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { FEEDBACK_KIND_LABEL, type FeedbackKind } from "@/lib/feedback";
 import type { Feedback, FeedbackStatus } from "@/types/database";
 import { replyToFeedback, deleteFeedback } from "./actions";
@@ -35,7 +36,7 @@ export default async function AdminFeedbackPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   // Same gate as every other admin screen: checked here so the page never
   // renders for a non-admin, and enforced again by RLS on every write.

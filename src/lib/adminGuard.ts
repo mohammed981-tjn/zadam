@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 
 export type AdminState = "ok" | "needs_second_factor" | "not_admin";
 
@@ -46,7 +47,7 @@ export async function requireAdmin() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const state = await adminState(supabase, user.id);
   if (state === "not_admin") redirect("/dashboard");

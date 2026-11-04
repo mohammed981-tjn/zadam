@@ -3,6 +3,7 @@ import NafirShell, { button, field } from "@/components/nafir/NafirShell";
 import { nafirViewer } from "@/lib/nafirViewer";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginTo } from "@/lib/authEntry";
 import { NAFIR_KINDS, NAFIR_KINDS_EN, SUDAN_STATES, stateName, tomorrowIso } from "@/lib/nafir";
 import { createCall } from "../actions";
 
@@ -51,7 +52,7 @@ export default async function NewCallPage({
       </p>
       {!user ? (
         <p className="rounded-2xl border border-border bg-card p-5 text-sm">
-          <Link href="/login" className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+          <Link href={loginTo(canal ? `/nafir/new?canal=${encodeURIComponent(canal)}` : "/nafir/new")} className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
           {t("لتدعو إلى نفير.", "to call a nafir.")}
         </p>
       ) : (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
@@ -162,7 +163,7 @@ export default async function VerifyPage({
         </p>
         {!user ? (
           <p className="mt-3 text-sm">
-            <Link href="/login" className="font-medium text-primary underline">
+            <Link href={loginTo(code ? `/verify?code=${encodeURIComponent(code)}` : "/verify")} className="font-medium text-primary underline">
               {t("سجّل الدخول", "Sign in")}
             </Link>{" "}
             {t("لترسل بلاغاً بصورة — حتى نستطيع أن نسألك إن احتاج المجلس تفاصيل.", "to send a report with a photo — so we can ask you if the Council needs details.")}

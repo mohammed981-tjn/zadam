@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
@@ -164,7 +165,7 @@ export default async function GroupOrdersPage({
         <h2 className="text-lg font-bold">{t("افتح طلباً جماعيّاً", "Open a group order")}</h2>
         {!user ? (
           <p className="mt-2 text-sm">
-            <Link href="/login" className="font-medium text-primary underline">
+            <Link href={loginTo(sp.supplier ? `/suppliers/orders?supplier=${encodeURIComponent(sp.supplier)}` : "/suppliers/orders")} className="font-medium text-primary underline">
               {t("سجّل الدخول", "Sign in")}
             </Link>{" "}
             {t("لتفتح طلباً لجمعيتك أو قسمك.", "to open an order for your cooperative or block.")}

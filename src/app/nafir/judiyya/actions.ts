@@ -4,6 +4,7 @@ import { dbMessage as translateDb } from "@/lib/dbMessages";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { JUDIYYA_KINDS, SUDAN_STATES } from "@/lib/nafir";
@@ -23,7 +24,7 @@ async function client() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   return supabase;
 }
 

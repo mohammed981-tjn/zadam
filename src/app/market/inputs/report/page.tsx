@@ -8,6 +8,7 @@ import { money } from "@/lib/marketCrops";
 import { isNotYetCreated } from "@/lib/marketOffers";
 import { SUDAN_STATES, stateName } from "@/lib/nafir";
 import { createClient } from "@/lib/supabase/server";
+import { loginTo } from "@/lib/authEntry";
 import {
   AVAILABILITY_LABEL,
   INPUT_ITEMS,
@@ -116,7 +117,7 @@ export default async function ReportInputPricePage({ searchParams }: { searchPar
 
       {!user ? (
         <p className="rounded-2xl border border-border bg-card p-5 text-sm">
-          <Link href="/login" className="font-bold text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+          <Link href={loginTo("/market/inputs/report")} className="font-bold text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
           {t("لتبلّغ — حتى لا يُغرق حسابٌ واحد اللوحة، وتستطيع سحب بلاغك.", "to report — so one account cannot flood the board, and you can withdraw your report.")}
         </p>
       ) : pending ? (

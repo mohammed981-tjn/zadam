@@ -9,6 +9,7 @@ import { evidenceFileExists } from "@/lib/evidenceFile";
 import { LAND_DOCUMENT_KINDS } from "@/lib/landDocuments";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginHrefHere } from "@/lib/loginHere";
 
 // القائمةُ نفسُها هي مصدرُ الحقيقة، ومنها تُشتقّ المفاتيحُ المقبولة — فلا
 // تفترقان. وهي في `lib/` لا هنا: وحدةُ `"use server"` لا تُصدّر إلّا دوالَّ
@@ -32,7 +33,7 @@ export async function addLandDocument(args: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);

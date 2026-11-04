@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import ActionNotice from "@/components/ActionNotice";
 import { ledgerToday } from "@/lib/ledger/today";
 import { money } from "@/lib/ledger/reports";
@@ -50,7 +51,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/dashboard");
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import PrintButton from "@/components/PrintButton";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { KIND_LABEL, TAG_STATUS_LABEL, healthItemName, tagCounts, type HealthRecord, type HerdTag } from "@/lib/herdHealth";
 import { PURPOSE_LABEL, PURPOSE_LABEL_EN, SPECIES_LABEL, SPECIES_LABEL_EN } from "@/lib/livestock";
 import { locustDay } from "@/lib/locust";
@@ -29,7 +30,7 @@ export default async function HerdFilePage({ params }: { params: Promise<{ id: s
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);

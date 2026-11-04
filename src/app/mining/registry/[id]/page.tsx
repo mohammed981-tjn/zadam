@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import {
   assessProvenance,
   CUSTODY_ROLE_LABEL,
@@ -38,7 +39,7 @@ export default async function LotPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const { data: lotRow } = await supabase
     .from("gold_lots")

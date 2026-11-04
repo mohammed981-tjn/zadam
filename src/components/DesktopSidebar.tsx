@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { signInFrom } from "@/lib/authEntry";
 import { activeHref, groupForPath, type NavGroup } from "@/lib/nav";
 import { OPEN_ASSISTANT_EVENT } from "@/lib/events";
 import { tr } from "@/lib/i18n";
@@ -110,7 +111,8 @@ export default function DesktopSidebar({
                     return (
                       <Link
                         key={item.href}
-                        href={item.href}
+                        // The menu is drawn once by the layout, so its sign-in item is pointed back at the page shown now, here.
+                        href={item.href === "/login" ? signInFrom(pathname) : item.href}
                         aria-current={active ? "page" : undefined}
                         className={`block rounded-lg py-1.5 pe-2 ps-13 text-[0.8125rem] transition ${
                           active ? "bg-rose/10 font-bold text-rose" : "text-foreground/85 hover:bg-background"

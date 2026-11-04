@@ -18,7 +18,7 @@
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { loginTo, safeNext } from "../src/lib/authEntry";
+import { loginTo, safeNext, signInFrom } from "../src/lib/authEntry";
 
 let fail = 0;
 const ok = (c: boolean, m: string) => {
@@ -72,6 +72,9 @@ for (const [value, want] of FRIENDLY) {
 }
 ok(safeNext("/login?next=/x") === null && safeNext("/signup") === null, "ولا يعود إلى شاشة الدخول نفسها (حلقة)");
 ok(safeNext("/حقول") !== null && lands(safeNext("/حقول")!) === SITE, "ومسارٌ عربيٌّ يمرّ مُرمَّزاً");
+ok(signInFrom("/contracts/9") === loginTo("/contracts/9") && signInFrom("/login") === "/login"
+     && signInFrom("/signup?as=investor") === "/login" && signInFrom(null) === "/login",
+   "و signInFrom (للمتصفّح) يعيد إلى الصفحة نفسها، ولا يعيد إلى شاشتَي الدخول والتسجيل");
 ok(safeNext(decodeURIComponent(new URL(loginTo("/seasons/7?x=1"), SITE).searchParams.get("next")!)) === "/seasons/7?x=1",
    "و loginTo ثمّ قراءةُ next تعيد المسارَ نفسه");
 
@@ -89,6 +92,10 @@ const mw = readFileSync("src/lib/supabase/middleware.ts", "utf8");
 ok(/headers\.set\(REQUEST_PATH_HEADER,/.test(mw), "يضع مسارَ الطلب بـ set (لا append): ما أرسله الزائر لا يبقى");
 ok(!/NextResponse\.next\(\{ request \}\)/.test(mw) && (mw.match(/passOn\(request\)/g) ?? []).length === 2,
    "وفي الموضعين: أوّلَ الطلب وبعد تجديد الجلسة");
+for (const menu of ["src/components/NavMenu.tsx", "src/components/DesktopSidebar.tsx"]) {
+  ok(/href=\{item\.href === "\/login" \? signInFrom\(pathname\) : item\.href\}/.test(readFileSync(menu, "utf8")),
+     `${menu.split("/").pop()}: بندُ الدخول في القائمة يعود إلى الصفحة المعروضة الآن`);
+}
 const here = readFileSync("src/lib/loginHere.ts", "utf8");
 ok(/safeNext\(\(await headers\(\)\)\.get\(REQUEST_PATH_HEADER\)\)/.test(here), "و loginHrefHere يقرؤه عبر safeNext");
 
@@ -102,6 +109,8 @@ section("هـ) لا إرسالَ إلى الدخول بلا مكان العود�
 const BARE_ALLOWED: Record<string, string> = {
   "src/app/login/actions.ts": "شاشةُ الدخول نفسُها: مزوّدٌ غير معروف يعيد إليها، وما من صفحةٍ يُعاد إليها",
   "src/app/reset/page.tsx": "صفحةُ استرجاع كلمة السرّ: من نسيها يدخل بعدها إلى بيته، لا إلى الاسترجاع",
+  "src/components/Navbar.tsx":
+    "بيانُ القائمة يُكتب مرّةً في التخطيط؛ ورابطُ الدخول فيه يُوجَّه إلى الصفحة الحاليّة حيث يُرسم (NavMenu وDesktopSidebar)",
 };
 
 function walk(dir: string): string[] {

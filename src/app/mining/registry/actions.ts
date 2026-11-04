@@ -4,6 +4,7 @@ import { dbText } from "@/lib/dbText";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import {
   assessProvenance,
   type CustodyEvent,
@@ -138,7 +139,7 @@ export async function registerSite(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -184,7 +185,7 @@ export async function registerLot(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
@@ -248,7 +249,7 @@ export async function addCustodyEvent(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const lotId = str(formData, "lot_id");
   const role = str(formData, "role") as CustodyRole;
@@ -296,7 +297,7 @@ export async function addCustodyEvidence(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const eventId = str(formData, "event_id");
   const lotId = str(formData, "lot_id");

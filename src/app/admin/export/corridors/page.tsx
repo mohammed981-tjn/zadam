@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { recordCorridorReview } from "./actions";
 
 export const metadata = { title: "مراجعة قواعد الممرّات | سوداقري" };
@@ -52,7 +53,7 @@ export default async function AdminCorridorsPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const { data: profile } = await supabase
     .from("profiles")

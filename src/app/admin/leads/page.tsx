@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import type { Lead } from "@/types/database";
 
 const roleLabel: Record<string, string> = {
@@ -14,7 +15,7 @@ export default async function LeadsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   const { data: profile } = await supabase
     .from("profiles")

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import NafirShell, { button, field } from "@/components/nafir/NafirShell";
 import { nafirViewer } from "@/lib/nafirViewer";
+import { loginTo } from "@/lib/authEntry";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { FAZA_CAUSES, FAZA_CAUSES_EN, FAZA_NEEDS, FAZA_NEEDS_EN, SUDAN_STATES, stateName } from "@/lib/nafir";
@@ -34,7 +35,7 @@ export default async function NewFazaPage({
       </p>
       {!user ? (
         <p className="rounded-2xl border border-border bg-card p-5 text-sm">
-          <Link href="/login" className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+          <Link href={loginTo("/nafir/faza/new")} className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
           {t("لتطلب فزعة.", "to ask for faza.")}
         </p>
       ) : (

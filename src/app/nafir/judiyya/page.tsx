@@ -3,6 +3,7 @@ import NafirShell, { button, field, ghost } from "@/components/nafir/NafirShell"
 import { nafirViewer } from "@/lib/nafirViewer";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginTo } from "@/lib/authEntry";
 import {
   JUDIYYA_KINDS,
   JUDIYYA_KINDS_EN,
@@ -173,7 +174,7 @@ export default async function JudiyyaPage({
         <h2 className="text-lg font-bold">{t("افتح طلب جودية", "Open a judiyya case")}</h2>
         {!user ? (
           <p className="mt-2 text-sm">
-            <Link href="/login" className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
+            <Link href={loginTo("/nafir/judiyya")} className="font-medium text-primary underline">{t("سجّل الدخول", "Sign in")}</Link>{" "}
             {t("لتفتح طلباً.", "to open a case.")}
           </p>
         ) : (

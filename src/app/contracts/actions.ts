@@ -10,6 +10,7 @@ import type { IrrigationMethod } from "@/lib/agronomy";
 import { evidenceFileExists } from "@/lib/evidenceFile";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginHrefHere } from "@/lib/loginHere";
 
 /** The reader's language for a message this action returns. */
 async function translator() {
@@ -193,7 +194,7 @@ export async function createContract(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const t = await translator();
 
   /*
@@ -403,7 +404,7 @@ export async function addMilestoneEvidence(args: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const t = await translator();
 
   if (!args.milestoneId || !args.storagePath) {

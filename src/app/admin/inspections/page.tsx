@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import PageHeader from "@/components/PageHeader";
@@ -51,7 +52,7 @@ export default async function AdminInspectionsPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if ((me as { role: string } | null)?.role !== "admin") redirect("/");
 

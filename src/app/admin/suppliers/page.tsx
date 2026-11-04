@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
 import { stateName } from "@/lib/nafir";
@@ -43,7 +44,7 @@ export default async function AdminSuppliersPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/Explain";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
+import { loginHrefHere } from "@/lib/loginHere";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -35,7 +36,7 @@ export default async function ContractsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 

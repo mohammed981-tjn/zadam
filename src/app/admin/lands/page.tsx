@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import { verifyLand, rejectLand } from "@/app/lands/actions";
 import type { Land, LandDocument } from "@/types/database";
 import { nearLands } from "@/lib/landNeighbours";
@@ -69,7 +70,7 @@ export default async function AdminLandsPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   // نفسُ حارس بقيّة شاشات الإدارة. ويُفحص هنا كي لا تُرسم الصفحةُ لغير مدير،
   // ويُفحص ثانيةً داخل الإجراء نفسِه — فطلبٌ مصنوعٌ باليد لا يمرّ.

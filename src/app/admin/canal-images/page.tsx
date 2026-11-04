@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loginHrefHere } from "@/lib/loginHere";
 import CanalImageUpload from "@/components/CanalImageUpload";
 import { publicMediaUrl } from "@/lib/media";
 import type { ArcCanalImage } from "@/types/database";
@@ -31,7 +32,7 @@ export default async function AdminCanalImagesPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(await loginHrefHere());
 
   // Same gate as every other admin screen: checked here so the page never
   // renders for a non-admin, and enforced again by RLS on every write.
