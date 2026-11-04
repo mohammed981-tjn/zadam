@@ -18,7 +18,8 @@ async function main() {
 
   const verifier = randomBytes(32).toString("base64url");
   const challenge = challengeOf(verifier);
-  const session = { access_token: "a.b.c", refresh_token: "r1", expires_at: 1_900_000_000 };
+  // Long enough that a random seal cannot contain them by chance ("r1" did, one run in eight).
+  const session = { access_token: "access.token.that-must-not-show", refresh_token: "refresh-token-that-must-not-show", expires_at: 1_900_000_000 };
   const now = 1_800_000_000_000;
 
   console.log("\nأ) من يحمل السرّ يأخذ جلسته");
@@ -26,9 +27,9 @@ async function main() {
      "البصمة بصمة PKCE نفسها (RFC 7636، الملحق ب)، كما يحسبها التطبيق (mobile/test/oauth_test.dart)");
   ok(CHALLENGE.test(challenge), "البصمة ٤٣ حرفاً base64url");
   const sealed = sealSession(session, challenge, now)!;
-  ok(typeof sealed === "string" && !sealed.includes("a.b.c") && !sealed.includes("r1"), "الختم لا يُظهر الجلسة");
+  ok(typeof sealed === "string" && !sealed.includes(session.access_token) && !sealed.includes(session.refresh_token), "الختم لا يُظهر الجلسة");
   const opened = openSession(sealed, verifier, now + 60_000);
-  ok(opened.ok && opened.session.refresh_token === "r1" && opened.session.expires_at === 1_900_000_000, "ويُفتح بالسرّ خلال دقيقة");
+  ok(opened.ok && opened.session.refresh_token === session.refresh_token && opened.session.expires_at === 1_900_000_000, "ويُفتح بالسرّ خلال دقيقة");
 
   console.log("\nب) ومن لا يحمله لا يأخذ شيئاً");
   const other = randomBytes(32).toString("base64url");
