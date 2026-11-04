@@ -28,6 +28,8 @@
  *     about the day's *increases* («أردب الدخن: 275.000 جنيه بزيادة 21.5%»),
  *     which are not prices. Only the list is read, through a fixed dictionary,
  *     and only crops the platform already follows, in their own unit.
+ *     Since 4 November 2026 the same list is also read from nksnews.net, which
+ *     publishes it at the source (sudafax's last copy was 14 October).
  *
  * Gedaref's bulletin comes as free prose. Its figures are read the same way
  * but never published on their own: they are held for an administrator to
