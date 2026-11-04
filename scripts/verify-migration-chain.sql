@@ -11,12 +11,13 @@ grant all on chain_failures to authenticated;
 --
 -- Not read as a member, and why:
 --   field_alerts_sent, push_keys  the server's alone (api/field-alerts and lib/push read them with the service key);
+--   research_uploads              the server's alone (api/research and lib/researchSweep, with the service key);
 --   system_health                 a view made on the site outside the migrations (the drift guard's other side).
 -- A name that is a storage bucket (`storage.from("evidence")`) is not a table.
 do $$
 declare
   t text; n int := 0;
-  server_only text[] := array['field_alerts_sent', 'push_keys', 'system_health'];
+  server_only text[] := array['field_alerts_sent', 'push_keys', 'research_uploads', 'system_health'];
 begin
   foreach t in array string_to_array(current_setting('chain.tables'), ',') loop
     continue when t = any (server_only) or exists (select 1 from storage.buckets b where b.id = t);
