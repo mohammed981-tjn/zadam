@@ -632,6 +632,7 @@ const MESSAGES: [string, string][] = [
   ["للإدارة وحدها، بالرمز الثاني.", "For administrators only, with the second code."],
   ["لم يُضَف نوع الإشعار password_reset", "The password_reset notification type was not added"],
   ["لم يُضَف نوع الإشعار system_alert", "The system_alert notification type was not added"],
+  ["الدخول بلا حساب مغلقٌ في سوداقري: أنشئ حساباً برقم جوالك أو بريدك.", "Signing in without an account is closed on Sudagri: create an account with your mobile number or email."],
   ["اكتب لماذا لم تُستعَد كلمة المرور.", "Write why the password was not reset."],
   ["هذا الطلب أُغلق من قبل.", "This request has already been closed."],
   ["تسجيل المزارعين لجمعيّةٍ أو شركةٍ موثّقة.", "Registering farmers is for a verified cooperative or company."],
