@@ -2,7 +2,7 @@
  "note": "Trimmed by scripts/wfp-prices-trim.py from WFP's Sudan price database on HDX. Each price is read in the file for the month given; prevMonth and yearAgo are the same item's figures one month and twelve months earlier, left out when the file has none. Prices are Sudanese pounds.",
  "source": "https://data.humdata.org/dataset/wfp-food-prices-for-sudan",
  "license": "CC BY-IGO",
- "fetched": "2026-10-20",
+ "fetched": "2026-11-04",
  "latest": "2026-09",
  "markets": [
   {
@@ -140,10 +140,10 @@
      "commodity": "Meat (goat)",
      "unit": "KG",
      "type": "retail",
-     "month": "2026-08",
-     "price": 51938,
-     "prevMonth": 52000,
-     "yearAgo": 25000
+     "month": "2026-09",
+     "price": 58750,
+     "prevMonth": 51938,
+     "yearAgo": 30000
     },
     {
      "commodity": "Milk (powder)",
@@ -411,6 +411,7 @@
      "type": "retail",
      "month": "2026-01",
      "price": 795,
+     "prevMonth": 2000,
      "yearAgo": 875
     },
     {
@@ -780,7 +781,9 @@
      "unit": "KG",
      "type": "retail",
      "month": "2026-07",
-     "price": 5091
+     "price": 5091,
+     "prevMonth": 5091,
+     "yearAgo": 3000
     },
     {
      "commodity": "Tomatoes (dried)",
@@ -904,7 +907,8 @@
      "type": "retail",
      "month": "2026-09",
      "price": 6000,
-     "prevMonth": 6000
+     "prevMonth": 6000,
+     "yearAgo": 4500
     },
     {
      "commodity": "Tomatoes (dried)",
@@ -937,9 +941,9 @@
      "commodity": "Beans (fava, egyptian)",
      "unit": "KG",
      "type": "retail",
-     "month": "2026-08",
-     "price": 13250,
-     "prevMonth": 12938,
+     "month": "2026-09",
+     "price": 14250,
+     "prevMonth": 13250,
      "yearAgo": 7688
     },
     {
@@ -1117,7 +1121,8 @@
      "type": "retail",
      "month": "2026-09",
      "price": 11875,
-     "prevMonth": 5333
+     "prevMonth": 5333,
+     "yearAgo": 9000
     },
     {
      "commodity": "Salt (iodised)",
@@ -1586,9 +1591,10 @@
      "commodity": "Oil (vegetable)",
      "unit": "L",
      "type": "retail",
-     "month": "2026-04",
-     "price": 5575,
-     "yearAgo": 4650
+     "month": "2026-05",
+     "price": 6294,
+     "prevMonth": 5575,
+     "yearAgo": 5025
     },
     {
      "commodity": "Onions",
@@ -1674,8 +1680,10 @@
      "commodity": "Meat (beef)",
      "unit": "KG",
      "type": "retail",
-     "month": "2026-08",
-     "price": 37083
+     "month": "2026-09",
+     "price": 40000,
+     "prevMonth": 37083,
+     "yearAgo": 24000
     },
     {
      "commodity": "Meat (goat)",
@@ -1690,8 +1698,10 @@
      "commodity": "Milk (powder)",
      "unit": "KG",
      "type": "retail",
-     "month": "2026-07",
-     "price": 35688
+     "month": "2026-09",
+     "price": 43938,
+     "prevMonth": 37000,
+     "yearAgo": 27500
     },
     {
      "commodity": "Millet",
@@ -2228,9 +2238,10 @@
      "commodity": "Wheat flour",
      "unit": "KG",
      "type": "retail",
-     "month": "2026-06",
-     "price": 4481,
-     "yearAgo": 3625
+     "month": "2026-09",
+     "price": 5838,
+     "prevMonth": 5950,
+     "yearAgo": 4725
     }
    ],
    "latest": "2026-09"
