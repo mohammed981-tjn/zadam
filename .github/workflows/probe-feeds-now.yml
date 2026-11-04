@@ -1,7 +1,8 @@
-# ما تجيب به مصادر الأسعار اليوم، بقرّائها هي (المالك، 4 نوفمبر: «ابدأ»). يعمل حين يتغيّر هذا الملفّ أو السكربت.
+# ما تجيب به مصادر الأسعار اليوم، بقرّائها هي (المالك، 4 نوفمبر: «ابدأ»). يعمل حين يتغيّر هذا الملفّ أو السكربت، أو بزرّ «Run workflow».
 name: Probe price feeds now
 
 on:
+  workflow_dispatch:
   push:
     branches: [claude/project-review-analysis-dt7lsy]
     paths: [".github/workflows/probe-feeds-now.yml", "scripts/probe-feeds-now.ts"]

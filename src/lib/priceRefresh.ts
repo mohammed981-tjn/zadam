@@ -52,7 +52,12 @@ const PARALLEL: Source[] = [
   // 25 أكتوبر 2026 (البند ١٩٦): خبرٌ شبه يوميّ بأسعار السوق الموازي، وواجهته المنظَّمة تردّ للأجهزة.
   { base: "https://alghadalsudani.com", search: "الدولار", days: FX_WINDOW_DAYS },
 ];
-const OBEID: Source[] = [{ base: "https://sudafax.com", search: "سوق الأبيض", days: CROP_WINDOW_DAYS }];
+const OBEID: Source[] = [
+  { base: "https://sudafax.com", search: "سوق الأبيض", days: CROP_WINDOW_DAYS },
+  // 4 نوفمبر 2026: «سوق الأبيض» تملؤه أخبار الحرب، فخرجت نشرة 14 أكتوبر من العشرة الأولى؛ «بورصة» وجدتها
+  // (scripts/probe-feeds-now.ts). ما يُقرأ مرّتين لا يُكتب مرّتين.
+  { base: "https://sudafax.com", search: "بورصة", days: CROP_WINDOW_DAYS },
+];
 const GEDAREF: Source[] = [{ base: "https://sudafax.com", search: "القضارف", days: CROP_WINDOW_DAYS }];
 
 const isPost = (p: unknown): p is WpPost => {
