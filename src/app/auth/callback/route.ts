@@ -3,7 +3,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr, type Locale } from "@/lib/i18n";
-import { homeFor } from "@/lib/authEntry";
+import { homeFor, safeNext } from "@/lib/authEntry";
 import { CHALLENGE, sealSession } from "@/lib/appHandoff";
 
 /**
@@ -51,33 +51,12 @@ const defaultNext = (locale: Locale): Record<string, string> => ({
   email_change: "/dashboard",
 });
 
-/**
- * Only same-origin relative paths are followed.
- *
- * `next` arrives in a URL anyone can craft and hand to a victim, so an
- * unchecked redirect here would let a link that genuinely comes from our domain
- * deposit someone on a site of the attacker's choosing, already signed in.
- * Requiring a leading "/" and rejecting "//" — which browsers read as
- * protocol-relative and therefore as another host — keeps every destination
- * inside this application.
+/*
+ * Only same-origin relative paths are followed: `next` arrives in a URL anyone can craft and hand to a victim, so an
+ * unchecked redirect here would deposit someone, already signed in, on a site of the attacker's choosing. The check is
+ * the sign-in screen's own (`safeNext` in @/lib/authEntry), so the two cannot drift apart again: this one refused "\"
+ * and that one only "/\" at the start, and neither refused the tab the browser silently drops (audit 3 November 2026).
  */
-function safeNext(value: string | null): string | null {
-  if (!value) return null;
-  // Must be a path on this site.
-  if (!value.startsWith("/")) return null;
-  // "//host" is protocol-relative — another origin wearing a leading slash.
-  if (value.startsWith("//")) return null;
-  /*
-   * Backslashes are rejected outright rather than inspected.
-   *
-   * Browsers normalise "\" to "/" in URLs, so "/\evil.com" is read as
-   * "//evil.com" — the check above passes it and the browser leaves the site
-   * anyway. This is the standard way an open redirect survives a check that
-   * only looked at the first two characters.
-   */
-  if (value.includes("\\")) return null;
-  return value;
-}
 
 function failure(origin: string, reason: string) {
   return NextResponse.redirect(
