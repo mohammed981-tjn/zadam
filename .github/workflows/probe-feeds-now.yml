@@ -1,0 +1,20 @@
+# ما تجيب به مصادر الأسعار اليوم، بقرّائها هي (المالك، 4 نوفمبر: «ابدأ»). يعمل حين يتغيّر هذا الملفّ أو السكربت.
+name: Probe price feeds now
+
+on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: [".github/workflows/probe-feeds-now.yml", "scripts/probe-feeds-now.ts"]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - run: npx --yes tsx@4 scripts/probe-feeds-now.ts
