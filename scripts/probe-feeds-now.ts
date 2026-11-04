@@ -20,6 +20,10 @@ const SOURCES: { base: string; search: string; read: (p: WpPost) => unknown }[] 
   { base: "https://sudafax.com", search: "بورصة", read: readObeidList },
   { base: "https://sudafax.com", search: "أسعار المحاصيل", read: readObeidList },
   { base: "https://sudafax.com", search: "الذرة", read: readGedarefProse },
+  // 4 نوفمبر: مرشّحٌ لنشرة الأبيض نفسها (رصد إسماعيل جبال)، وجده البحث.
+  { base: "https://nksnews.net", search: "بورصة", read: readObeidList },
+  { base: "https://nksnews.net", search: "المحاصيل", read: readObeidList },
+  { base: "https://elhadaf-sd.com", search: "القضارف", read: readGedarefProse },
 ];
 
 async function main() {
@@ -35,7 +39,7 @@ async function main() {
       console.log(`   ${body.length} posts in 30 days`);
       for (const p of body.slice(0, 6)) {
         const out = s.read(p);
-        const read = Array.isArray(out) ? `${out.length} figures` : out ? JSON.stringify(out) : "nothing read";
+        const read = Array.isArray(out) ? `${out.length} figures ${JSON.stringify(out.map((q) => [q.crop, q.unit, q.price, q.date]))}` : out ? JSON.stringify(out) : "nothing read";
         console.log(`   ${p.date.slice(0, 10)}  ${p.title.rendered.replace(/<[^>]+>/g, "").slice(0, 90)}\n      → ${read}`);
       }
     } catch (e) {
