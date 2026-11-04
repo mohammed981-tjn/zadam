@@ -4724,7 +4724,10 @@ begin
   -- The area a signature counts against is the area the administration verified, on land that is still verified
   -- (audit money-logic-2, 3 November 2026): raising the land's area after a first signature, then signing again,
   -- had let two investors hold the same feddans.
-  select case when verification = 'verified' then verified_feddans end into v_feddans from lands where id = v_a.land_id;
+  -- Locked first (BUG-14 below, and independent review): an owner's edit that sends the land back to review waits for
+  -- this signature, or this signature reads the land as it stands after the edit.
+  select case when verification = 'verified' then verified_feddans end into v_feddans
+    from lands where id = v_a.land_id for update;
   if v_feddans is null then
     raise exception 'الأرض ليست موثّقةً الآن (تغيّرت بياناتها أو لم تُراجَع بعد)، فلا يُوقَّع عليها حتى تعيد الإدارة توثيقها.';
   end if;
@@ -4733,7 +4736,6 @@ begin
   -- BUG-14 (backlog 162): a land is contracted once for a stretch of time. Two signatures
   -- at one moment meet at the land's row; then the area already held by SIGNED agreements
   -- on it is counted day by day, and the busiest day must still leave room for this one.
-  perform 1 from lands where id = v_a.land_id for update;
   v_start := (v_a.terms->>'start_date')::date;
   v_end := (v_a.terms->>'end_date')::date;
   select coalesce(max(h.held), 0) into v_peak
@@ -5403,7 +5405,9 @@ alter table public.lands
 -- لا سقف كان لما يرفعه حسابٌ من صورٍ ومستندات، والتخزين المجّانيّ كلّه 1 جيجابايت: حسابٌ واحد يوقف الرفع للجميع.
 -- ما رفعه الحساب يُعدّ قبل كلّ رفعٍ جديد؛ وكلّ ملفٍّ لا يتجاوز 10 ميجابايت (حدّ الدلو)، فأقصى ما يبلغه الحساب 110.
 -- والمدير بلا سقف.
-create function public.storage_used_by(p_user uuid)
+-- The caller's own uploads only (no one asks after another's), by either owner column: `owner` is the one Supabase
+-- deprecated, `owner_id` the one it keeps (both are filled on the site today).
+create function public.storage_used_by_me()
 returns bigint
 language sql
 stable
@@ -5412,16 +5416,16 @@ set search_path = public
 as $$
   select coalesce(sum((o.metadata ->> 'size')::bigint), 0)
     from storage.objects o
-   where o.owner = p_user
+   where o.owner = auth.uid() or o.owner_id = auth.uid()::text
 $$;
 
-comment on function public.storage_used_by(uuid) is 'ما رفعه حسابٌ إلى التخزين بالبايت. يسألها سقف storage_quota_per_account.';
-revoke all on function public.storage_used_by(uuid) from public, anon;
-grant execute on function public.storage_used_by(uuid) to authenticated, service_role;
+comment on function public.storage_used_by_me() is 'ما رفعه صاحب الجلسة إلى التخزين بالبايت. يسألها سقف storage_quota_per_account.';
+revoke all on function public.storage_used_by_me() from public, anon;
+grant execute on function public.storage_used_by_me() to authenticated;
 
 create policy storage_quota_per_account on storage.objects
   as restrictive for insert to authenticated
-  with check (public.is_admin() or public.storage_used_by(auth.uid()) < 100 * 1024 * 1024);
+  with check (public.is_admin() or public.storage_used_by_me() < 100 * 1024 * 1024);
 
 -- ── ٣. العرض على المستثمرين والشركاء للمالك والمدير وحدهما (db-b-4 / money-logic-5) ──
 -- الوكيل (20261026020000) يكتب في أرض المزارع الذي فوّضه، وكان يستطيع أيضاً عرضها على المستثمرين والشركاء. العرض قرار

@@ -16,6 +16,7 @@ alter table storage.buckets add column if not exists updated_at timestamptz defa
 alter table storage.objects add column if not exists updated_at timestamptz default now();
 alter table storage.objects add column if not exists metadata jsonb;
 alter table storage.objects add column if not exists path_tokens text[];
+alter table storage.objects add column if not exists owner_id text;
 -- Supabase Auth marks an account made by «anonymous sign-in» (20261104030000 refuses them).
 alter table auth.users add column if not exists is_anonymous boolean not null default false;
 -- Supabase keeps extensions in their own schema, on the search path.
