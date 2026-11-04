@@ -52,7 +52,12 @@ const PARALLEL: Source[] = [
   // 25 أكتوبر 2026 (البند ١٩٦): خبرٌ شبه يوميّ بأسعار السوق الموازي، وواجهته المنظَّمة تردّ للأجهزة.
   { base: "https://alghadalsudani.com", search: "الدولار", days: FX_WINDOW_DAYS },
 ];
-const OBEID: Source[] = [{ base: "https://sudafax.com", search: "سوق الأبيض", days: CROP_WINDOW_DAYS }];
+const OBEID: Source[] = [
+  { base: "https://sudafax.com", search: "سوق الأبيض", days: CROP_WINDOW_DAYS },
+  // 4 نوفمبر 2026: «سوق الأبيض» تملؤه أخبار الحرب، فخرجت نشرة 14 أكتوبر من العشرة الأولى؛ «بورصة» وجدتها
+  // (scripts/probe-feeds-now.ts). ما يُقرأ مرّتين لا يُكتب مرّتين.
+  { base: "https://sudafax.com", search: "بورصة", days: CROP_WINDOW_DAYS },
+];
 const GEDAREF: Source[] = [{ base: "https://sudafax.com", search: "القضارف", days: CROP_WINDOW_DAYS }];
 
 const isPost = (p: unknown): p is WpPost => {
@@ -160,7 +165,7 @@ const SOURCES_AGREE = 0.05;
  * disagrees may have been read on an earlier run, or the same source's row may already be stored: comparing within
  * one run only let the earlier row keep its place in the one click (backlog 198 C6).
  */
-async function storedSameDay(admin: SupabaseClient, row: Row, errors: string[]): Promise<{ q: { sell: number } }[]> {
+async function storedSameDay(admin: SupabaseClient, row: Row, errors: string[]): Promise<SameDay[]> {
   const { data, error } = await admin
     .from("market_quotes")
     .select("sell, source_url")
@@ -170,7 +175,63 @@ async function storedSameDay(admin: SupabaseClient, row: Row, errors: string[]):
   if (error) errors.push(`same day: ${error.message}`);
   return ((data ?? []) as { sell: number | null; source_url: string }[])
     .filter((d) => d.sell !== null && d.source_url !== row.source_url)
-    .map((d) => ({ q: { sell: Number(d.sell) } }));
+    .map((d) => ({ q: { sell: Number(d.sell) }, url: d.source_url }));
+}
+
+/** Another source's selling price for the same day, and where it was read. */
+export interface SameDay {
+  q: { sell: number };
+  url?: string;
+}
+
+const siteOf = (url: string): string | null => {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The other site that read the same day within SOURCES_AGREE, when none read it further apart. Another article of
+ * the same site is not a second source: a site repeating itself confirms nothing.
+ */
+export function corroboratedBy(sell: number, link: string, others: SameDay[]): string | null {
+  if (apartFrom(sell, others) !== null) return null;
+  const own = siteOf(link);
+  for (const o of others) {
+    const site = o.url ? siteOf(o.url) : null;
+    if (site && site !== own && Math.abs(o.q.sell - sell) / sell <= SOURCES_AGREE) return site;
+  }
+  return null;
+}
+
+/**
+ * One currency figure judged against the last one shown and against the other sources for its day.
+ *
+ * A jump beyond a day's movement waits for a person — unless two different sites read the same day within 5% of each
+ * other (the owner, 4 November 2026: «انشر القفزة إن اتّفق مصدران»; Bank of Khartoum went from 4,886 to 7,400 on
+ * 3 November in one site's words). Then only the movement is forgiven: the range, buying above selling, and buying
+ * far below selling still hold the figure, and so does a disagreement from any source.
+ */
+export function judgeFx(
+  kind: "fx_bank" | "fx_parallel",
+  q: FxQuote,
+  link: string,
+  last: { buy: number | null; sell: number } | null,
+  others: SameDay[],
+): { row: Row; apart: number | null } {
+  const row = fxRow(kind, q, link, last?.sell ?? null, last?.buy ?? null);
+  const apart = apartFrom(q.sell, others);
+  if (apart !== null) {
+    if (row.reason === AWAITING_REASON) row.reason = disagreeReason(q.sell, apart);
+    return { row, apart };
+  }
+  if (row.reason !== AWAITING_REASON && corroboratedBy(q.sell, link, others)) {
+    const agreed = fxRow(kind, q, link, last?.sell ?? null, last?.buy ?? null, false);
+    if (agreed.reason === AWAITING_REASON) return { row: agreed, apart: null };
+  }
+  return { row, apart: null };
 }
 
 /**
@@ -192,18 +253,17 @@ async function holdDayOut(admin: SupabaseClient, row: Row, reason: string, error
 async function fxFigure(
   admin: SupabaseClient,
   kind: "fx_bank" | "fx_parallel",
-  read: { q: FxQuote; post: WpPost; sameDay: { q: FxQuote }[] },
+  read: { q: FxQuote; post: WpPost; sameDay: { q: FxQuote; post: WpPost }[] },
   last: { buy: number | null; sell: number } | null,
   errors: string[],
 ): Promise<Row> {
-  const row = fxRow(kind, read.q, read.post.link, last?.sell ?? null, last?.buy ?? null);
-  const others = [...read.sameDay, ...(await storedSameDay(admin, row, errors))];
-  const apart = apartFrom(read.q.sell, others);
-  if (apart !== null) {
-    const reason = disagreeReason(read.q.sell, apart);
-    if (row.reason === AWAITING_REASON) row.reason = reason;
-    await holdDayOut(admin, row, reason, errors);
-  }
+  const probe = { kind, market_date: read.q.date, source_url: read.post.link } as unknown as Row;
+  const others: SameDay[] = [
+    ...read.sameDay.map((s) => ({ q: s.q, url: s.post.link })),
+    ...(await storedSameDay(admin, probe, errors)),
+  ];
+  const { row, apart } = judgeFx(kind, read.q, read.post.link, last, others);
+  if (apart !== null) await holdDayOut(admin, row, disagreeReason(read.q.sell, apart), errors);
   return row;
 }
 
@@ -325,11 +385,20 @@ function buyReason(q: FxQuote, lastBuy: number | null): string | null {
   return null;
 }
 
-export function fxRow(kind: "fx_bank" | "fx_parallel", q: FxQuote, link: string, lastSell: number | null, lastBuy: number | null = null): Row {
+/** `judgeMovement` false only when two sites agree on the day (judgeFx): the range and the rest are still judged. */
+export function fxRow(
+  kind: "fx_bank" | "fx_parallel",
+  q: FxQuote,
+  link: string,
+  lastSell: number | null,
+  lastBuy: number | null = null,
+  judgeMovement = true,
+): Row {
   // Selling and buying are both judged (backlog 198 C4: a buying price of 9.6 once passed, checked only against selling).
   const reason = q.buy > q.sell
     ? "سعر الشراء أعلى من البيع"
-    : (holdReason(q.sell, lastSell, 0.25, [500, 200_000]) ?? noBaseline(lastSell) ?? buyReason(q, lastBuy));
+    : (holdReason(q.sell, judgeMovement ? lastSell : null, 0.25, [500, 200_000]) ?? noBaseline(lastSell)
+      ?? buyReason(q, judgeMovement ? lastBuy : null));
   // Every row carries the same columns: PostgREST writes one batch with the union of the rows' keys and sets a
   // missing one to NULL, not to the column's default — and `market`/`crop` are NOT NULL (found 25 October 2026:
   // a run with a dollar and a crop figure wrote nothing).

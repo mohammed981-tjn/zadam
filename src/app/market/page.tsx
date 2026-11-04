@@ -329,8 +329,8 @@ export default async function MarketPage() {
               .map(([m, d]) => t(`آخر رقمٍ منشور من ${data!.markets[m].name_ar}: ${day(d)}`, `Last published figure from ${data!.markets[m].name_en}: ${day(d)}`))
               .join(t("، و", ", and "))}
             {t(
-              `. ${checked ? `بحثنا عن أحدث منها آخر مرّة في ${day(checked)} فلم نجد: ` : ""}البورصتان بين موسمين قبل الحصاد، ولم تُنشر لهما نشرةٌ بعدها في الأخبار. يعود النشر عادةً مع افتتاح موسم التسويق الجديد، ونضيفه يوم يظهر.`,
-              `. ${checked ? `We last searched for anything newer on ${day(checked)} and found none: ` : ""}both bourses are between seasons before the harvest, and no bulletin of theirs has appeared in the news since. Bulletins usually return when the new marketing season opens, and we add them the day they appear.`,
+              `. ${checked ? `بحثنا عن أحدث منها آخر مرّة في ${day(checked)} فلم نجد: ` : ""}لم تُنشر للبورصتين نشرةٌ بعدها في الأخبار التي نقرؤها. نضيفها يوم تظهر، وحتى ذلك الحين هذه أحدث الأرقام الموثّقة، شهريّةً من برنامج الأغذية العالمي.`,
+              `. ${checked ? `We last searched for anything newer on ${day(checked)} and found none: ` : ""}no bulletin from either bourse has appeared since in the news we read. We add one the day it appears; until then these are the newest dated figures, monthly, from the World Food Programme.`,
             )}
           </p>
           {wfp && (
