@@ -87,8 +87,12 @@ export function readMarketPrices(): MarketPrices | null {
 // WFP Market Monitor — the newest dated figures while the bourses are quiet
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** The newest bourse figure older than this means the bourses have gone quiet, not just missed a day. */
-export const BOURSE_QUIET_DAYS = 30;
+/**
+ * The newest bourse figure older than this means the bourses have gone quiet, not just missed a day. Ten days: the
+ * daily run looks back no further (CROP_WINDOW_DAYS), and the owner, 4 November 2026, chose WFP's monthly figures at
+ * the head of the page rather than three weeks of an empty board («الاثنان معاً»: WFP now, and a daily source sought).
+ */
+export const BOURSE_QUIET_DAYS = 10;
 
 export interface WfpMonthly {
   report: string;

@@ -16,7 +16,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AWAITING_REASON } from "../src/lib/priceFreshness";
-import { apartFrom, cropRow, disagreement, fxRow, NO_BASELINE_REASON, refreshPrices, type Row } from "../src/lib/priceRefresh";
+import { apartFrom, corroboratedBy, cropRow, disagreement, fxRow, judgeFx, NO_BASELINE_REASON, refreshPrices, type Row } from "../src/lib/priceRefresh";
 import type { CropQuote, FxQuote } from "../src/lib/priceFeeds";
 
 let failed = 0;
@@ -52,6 +52,35 @@ ok(fxRow("fx_parallel", { ...fx, buy: 9.6 }, "https://x.example/1", 10105).reaso
 ok(fxRow("fx_parallel", { ...fx, buy: 5000 }, "https://x.example/1", 10105).reason !== AWAITING_REASON, "buying half of selling waits under its own reason");
 ok(fxRow("fx_parallel", fx, "https://x.example/1", 10105, 6000).reason !== AWAITING_REASON, "buying 61% above the last buying price waits under its own reason");
 ok(fxRow("fx_parallel", fx, "https://x.example/1", 10105, 9500).reason === AWAITING_REASON, "buying within a day's movement keeps the one click");
+
+console.log("\nA jump two sites agree on (the owner, 4 November 2026: «انشر القفزة إن اتّفق مصدران»)");
+const jump: FxQuote = { date: "2026-11-03", buy: 7345, sell: 7400, quote: "…" };
+const bankLast = { buy: 4850, sell: 4886 };
+const lone = judgeFx("fx_bank", jump, "https://iqraa24.com/a", bankLast, []);
+ok(lone.row.reason?.toString().startsWith("تغيّر") === true, "one site alone: a 51% jump still waits for a person");
+const sameSite = judgeFx("fx_bank", jump, "https://iqraa24.com/a", bankLast, [{ q: { sell: 7390 }, url: "https://www.iqraa24.com/b" }]);
+ok(sameSite.row.reason !== AWAITING_REASON, "another article of the same site is not a second source");
+const noUrl = judgeFx("fx_bank", jump, "https://iqraa24.com/a", bankLast, [{ q: { sell: 7390 } }]);
+ok(noUrl.row.reason !== AWAITING_REASON, "nor is a figure whose site is unknown");
+const two = judgeFx("fx_bank", jump, "https://iqraa24.com/a", bankLast, [{ q: { sell: 7380 }, url: "https://bajnews.net/x" }]);
+ok(two.row.reason === AWAITING_REASON && two.apart === null, "two sites within 5%: the jump takes the one click, and publishes itself");
+ok(corroboratedBy(7400, "https://iqraa24.com/a", [{ q: { sell: 7380 }, url: "https://bajnews.net/x" }]) === "bajnews.net", "and the agreeing site is named");
+const split = judgeFx("fx_bank", jump, "https://iqraa24.com/a", bankLast,
+  [{ q: { sell: 7380 }, url: "https://bajnews.net/x" }, { q: { sell: 9000 }, url: "https://alghadalsudani.com/y" }]);
+ok(split.row.reason !== AWAITING_REASON && split.apart === 9000, "a third site that disagrees holds the day, agreement or not");
+const far = judgeFx("fx_bank", jump, "https://iqraa24.com/a", bankLast, [{ q: { sell: 7900 }, url: "https://bajnews.net/x" }]);
+ok(far.row.reason !== AWAITING_REASON, "two sites 7% apart are not in agreement");
+const wild: FxQuote = { ...jump, buy: 300_000, sell: 300_500 };
+ok(judgeFx("fx_bank", wild, "https://iqraa24.com/a", bankLast, [{ q: { sell: 300_000 }, url: "https://bajnews.net/x" }]).row.reason !== AWAITING_REASON,
+   "agreement does not forgive the range: 300,000 waits");
+const flipped: FxQuote = { ...jump, buy: 7500 };
+ok(judgeFx("fx_bank", flipped, "https://iqraa24.com/a", bankLast, [{ q: { sell: 7380 }, url: "https://bajnews.net/x" }]).row.reason === "سعر الشراء أعلى من البيع",
+   "nor buying above selling");
+const lowBuy: FxQuote = { ...jump, buy: 4000 };
+ok(judgeFx("fx_bank", lowBuy, "https://iqraa24.com/a", bankLast, [{ q: { sell: 7380 }, url: "https://bajnews.net/x" }]).row.reason !== AWAITING_REASON,
+   "nor buying far below selling");
+ok(judgeFx("fx_bank", jump, "https://iqraa24.com/a", null, [{ q: { sell: 7380 }, url: "https://bajnews.net/x" }]).row.reason === NO_BASELINE_REASON,
+   "nor the first figure of a series, which a person reads first");
 ok(apartFrom(10250, [{ q: { sell: 12000 } }]) === 12000 && apartFrom(10250, [{ q: { sell: 10300 } }]) === null, "apartFrom finds the source more than 5% away");
 const crop: CropQuote = { market: "obeid", crop: "millet", unit: "ardeb", date: "2026-10-14", price: 1575000, quote: "…" };
 ok(cropRow(crop, "https://x.example/2", 1500000, false).status === "held", "a crop figure is held too");
