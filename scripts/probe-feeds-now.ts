@@ -17,6 +17,9 @@ const SOURCES: { base: string; search: string; read: (p: WpPost) => unknown }[] 
   { base: "https://sudafax.com", search: "سوق الأبيض", read: readObeidList },
   { base: "https://sudafax.com", search: "الأبيض", read: readObeidList },
   { base: "https://sudafax.com", search: "القضارف", read: readGedarefProse },
+  { base: "https://sudafax.com", search: "بورصة", read: readObeidList },
+  { base: "https://sudafax.com", search: "أسعار المحاصيل", read: readObeidList },
+  { base: "https://sudafax.com", search: "الذرة", read: readGedarefProse },
 ];
 
 async function main() {
@@ -30,9 +33,9 @@ async function main() {
       if (!res.ok) continue;
       const body = (await res.json()) as WpPost[];
       console.log(`   ${body.length} posts in 30 days`);
-      for (const p of body.slice(0, 5)) {
+      for (const p of body.slice(0, 6)) {
         const out = s.read(p);
-        const read = Array.isArray(out) ? `${out.length} figures` : out ? JSON.stringify({ ...(out as object), quote: undefined }) : "nothing read";
+        const read = Array.isArray(out) ? `${out.length} figures` : out ? JSON.stringify(out) : "nothing read";
         console.log(`   ${p.date.slice(0, 10)}  ${p.title.rendered.replace(/<[^>]+>/g, "").slice(0, 90)}\n      → ${read}`);
       }
     } catch (e) {
