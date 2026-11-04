@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { SUDAGRI_LOGO } from "@/lib/brand";
 import { tr } from "@/lib/i18n";
@@ -15,14 +16,14 @@ import {
 import { SLIDES } from "@/lib/introSlides";
 
 /**
- * شاشةُ البداية — في كلّ تحميل، وشاشاتُ التعريف ثابتةٌ حتى يلمسها الزائر.
+ * شاشةُ البداية — مرّةً لأوّل زيارةٍ للرئيسيّة، وشاشاتُ التعريف ثابتةٌ حتى يلمسها الزائر.
  *
- * The owner, 26 October 2026: «السبلاشات لم ارها، تجعلها ثابتة في البداية: ثابتة بمعنى تظهر في كلّ تحميل، وثابتة
- * بمعنى لا تتغيّر تلقائيّاً إلّا بعد الضغط عليها». So the intro no longer remembers that it was seen, and its four
- * screens no longer turn every three seconds: a tap (or a key) moves to the next, and only the last tap opens the site.
- * «تخطَّ» or Escape skips the clip and the logo, not the screens («ولا يتخطى إلا بعدما يكمل باللمس»), and the button
- * goes once they show. The clip and the logo before them still run by themselves. What follows
- * is the reasoning of the once-per-visitor version, kept for the record of what it weighed.
+ * The owner, 3 November 2026 (audit question 11): «مرّة لأوّل زيارة للرئيسية». On every load it cost about 1 MB and
+ * five taps before any page, deep links and returns from sign-in included. So it shows once on this browser, only when
+ * the visit opens on the home page and the connection has not asked to save data; «تخطَّ» shows from the first moment
+ * and, like Escape, closes the whole intro. Its four screens still wait for a tap (26 October: «ثابتة بمعنى لا تتغيّر
+ * تلقائيّاً إلّا بعد الضغط عليها»), and the clip and the logo before them still run by themselves. What follows is the
+ * reasoning of the first once-per-visitor version, kept for the record of what it weighed.
  *
  * WHAT THE OWNER ASKED FOR, AND WHAT THIS IS INSTEAD
  *
@@ -95,13 +96,35 @@ import { SLIDES } from "@/lib/introSlides";
  * that exists only as a comment is not a ceiling.
  */
 
+/** Seen once on this browser (owner, 3 November 2026: «مرّة لأوّل زيارة للرئيسية»). */
+const SEEN_KEY = "sudagri.intro.seen";
+
+/**
+ * Whether this load may show the intro: the home page, a first visit, and a connection that has not asked to save data
+ * (audit perf-seo-a11y-1: on every load it cost about 1 MB and five taps before any page, deep links and sign-in returns
+ * included). Read once, on the client.
+ */
+function introWanted(pathname: string): boolean {
+  if (pathname !== "/") return false;
+  try {
+    if (window.localStorage.getItem(SEEN_KEY)) return false;
+  } catch {
+    // Storage refused (a private window): show it, and it will show again next time.
+  }
+  const net = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  if (net?.saveData || net?.effectiveType === "slow-2g" || net?.effectiveType === "2g") return false;
+  return true;
+}
+
 export default function SplashOnce() {
   const locale = useLocale();
+  const pathname = usePathname();
+  // The slides' photos are fetched only when their screen is reached, not all four the moment the intro opens.
+  const [reached, setReached] = useState(-1);
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
-  const skipRef = useRef<HTMLButtonElement>(null);
 
   /*
    * جسرٌ بين `onLoad` والمؤقّت.
@@ -113,6 +136,11 @@ export default function SplashOnce() {
    */
   const loaded = useRef(false);
   const announce = useRef<(() => void) | null>(null);
+  /*
+   * The decision, made once for this load. React's development mode runs the effect, undoes it and runs it again; the
+   * second run would read the «seen» mark the first one wrote and close an intro that has just opened.
+   */
+  const wanted = useRef<boolean | null>(null);
 
   const onImageLoad = () => {
     loaded.current = true;
@@ -122,9 +150,18 @@ export default function SplashOnce() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    wanted.current ??= introWanted(pathname);
+    if (!wanted.current) {
+      window.dispatchEvent(new Event("sudagri:intro-done"));
+      return;
+    }
+    try {
+      window.localStorage.setItem(SEEN_KEY, "1");
+    } catch {
+      // As above.
+    }
 
-    // From 26 October the intro is shown on every load (the owner); only a reader who asked for less motion skips
-    // the clip and starts at the logo.
+    // A reader who asked for less motion skips the clip and starts at the logo.
     const calm =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -147,6 +184,8 @@ export default function SplashOnce() {
       videoRef.current?.pause();
       done = window.setTimeout(() => {
         el.hidden = true;
+        // Gone for this visit: a film mounted later (back to the home page) must not wait for it.
+        delete document.documentElement.dataset.intro;
         // The homepage film waits for this rather than playing unseen beneath.
         window.dispatchEvent(new Event("sudagri:intro-done"));
       }, SPLASH_FADE_MS);
@@ -163,6 +202,7 @@ export default function SplashOnce() {
     const slides = slidesRef.current;
     const showSlide = (i: number) => {
       current = i;
+      setReached((r) => Math.max(r, i));
       slides?.querySelectorAll<HTMLElement>("[data-slide]").forEach((n) => {
         n.classList.toggle("opacity-0", Number(n.dataset.slide) !== i);
       });
@@ -176,7 +216,6 @@ export default function SplashOnce() {
       sliding = true;
       window.clearTimeout(hold);
       if (!slides) return end();
-      skipRef.current?.classList.add("hidden");
       logo?.classList.add("opacity-0");
       slides.classList.remove("opacity-0");
       showSlide(0);
@@ -236,25 +275,28 @@ export default function SplashOnce() {
       else end();
     };
     /*
-     * «تخطَّ» أو Escape تتخطّى المقطعَ والشعارَ إلى شاشات التعريف، لا الشاشاتِ نفسَها (المالك، 26 أكتوبر: «اريد الاسبلاس
-     * ثابت ولا يتخطى إلا بعدما يكمل باللمس»). ويختفي الزرّ حين تظهر الأولى.
+     * «تخطَّ» أو Escape تُغلق المقدّمة كلّها (فحص 3 نوفمبر، perf-seo-a11y-1؛ وكانت تتخطّى إلى الشاشات وحدها). والزرّ ظاهرٌ
+     * من أوّل لحظةٍ إلى آخر شاشة.
      */
-    const skip = () => {
-      if (ending || sliding) return;
-      if (!shown) toLogo();
-      toSlides();
-    };
+    const skip = () => end();
     const onTap = (e: PointerEvent) => {
       if ((e.target as HTMLElement | null)?.closest("[data-skip]")) skip();
       else advance();
     };
-    const onKey = (e: KeyboardEvent) => (e.key === "Escape" ? skip() : advance());
+    // Escape closes; Enter, Space and the arrows go on. Tab moves focus as it always does.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") skip();
+      else if (["Enter", " ", "ArrowLeft", "ArrowRight"].includes(e.key)) advance();
+    };
     el.addEventListener("pointerdown", onTap);
     window.addEventListener("keydown", onKey);
 
     return () => {
       // تفكيكٌ قبل أن تنتهي المقدّمة (وهو ما يفعله React في وضع التطوير الصارم): تُخفى، فيعرضها الأثرُ التالي من أوّلها.
-      if (!ending) el.hidden = true;
+      if (!ending) {
+        el.hidden = true;
+        delete document.documentElement.dataset.intro;
+      }
       // ولا يعمل بعدها شيءٌ من هذا الأثر: رفضُ `play()` قد يصل بعد التفكيك فيقلب الشاشات تحت الأثر التالي.
       ending = true;
       announce.current = null;
@@ -267,16 +309,18 @@ export default function SplashOnce() {
       el.removeEventListener("pointerdown", onTap);
       window.removeEventListener("keydown", onKey);
     };
+    // The path is read once: the intro is for the page the visit opened on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div
       ref={ref}
       hidden
-      // `aria-hidden` وليس حواراً: لا شيءَ هنا يُقرأ ولا يُفعل، والمحتوى
-      // الحقيقيُّ تحتها جاهزٌ لقارئ الشاشة من اللحظة الأولى. وحوارٌ يخطف
-      // التركيز كان سيقطع على القارئ الضريرَ صفحةً هو فيها أصلاً.
-      aria-hidden
+      // حوارٌ له اسم، لا `aria-hidden`: فيه زرٌّ يُضغط («تخطَّ»)، وما فيه زرٌّ لا يُخفى عن قارئ الشاشة (perf-seo-a11y-1).
+      role="dialog"
+      aria-modal="true"
+      aria-label={tr(locale, "مقدّمة سوداقري", "Sudagri introduction")}
       // داكنٌ دائماً (المالك، 12 أكتوبر: «يتغيّر مع الألوان الجديدة الغامقة») — يكمل شاشةَ
       // النظام الافتتاحيّة الداكنة في `manifest.ts` بلا ومضة.
       className="fixed inset-0 z-[110] bg-[#10160f] opacity-100 transition-opacity duration-500"
@@ -327,7 +371,7 @@ export default function SplashOnce() {
             data-slide={i}
             className="absolute inset-0 opacity-0 transition-opacity duration-700"
           >
-            <Image src={s.photo} alt="" fill sizes="100vw" className="object-cover" />
+            {reached >= i && <Image src={s.photo} alt="" fill sizes="100vw" className="object-cover" />}
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a1a12] via-[#0a1a12]/70 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 mx-auto max-w-2xl px-6 pb-20 text-center text-white sm:pb-24">
               <p className="mb-3 text-sm font-medium text-[#f6b26b]">
@@ -349,7 +393,6 @@ export default function SplashOnce() {
         {tr(locale, "المس الشاشة للتالي", "Tap the screen for the next")}
       </span>
       <button
-        ref={skipRef}
         type="button"
         data-skip
         className="absolute top-4 end-4 rounded-full bg-black/50 px-4 py-1.5 text-sm font-bold text-white"

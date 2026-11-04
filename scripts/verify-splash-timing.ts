@@ -120,18 +120,32 @@ ok(
   SPLASH_VIDEO_START_MS + SPLASH_MAX_MS + SPLASH_FADE_MS < 5000,
   "فشبكةٌ لا تحمل الفيديو لا تُبقي الزائر أكثر من خمس ثوانٍ",
 );
-section("ز) شاشاتُ التعريف بعد الشعار — ثابتةٌ حتى يلمسها الزائر (المالك، 26 أكتوبر)");
+section("ز) شاشاتُ التعريف بعد الشعار — ثابتةٌ حتى اللمس (26 أكتوبر)، ومرّةً لأوّل زيارةٍ للرئيسيّة (3 نوفمبر)");
 
 ok(SPLASH_SLIDES >= 3 && SPLASH_SLIDES <= 4, `وعددُها ${SPLASH_SLIDES} — «ثلاث او أربعة»`);
 ok(SPLASH_SLIDES === SLIDES.length, `والنصوصُ المكتوبة ${SLIDES.length} بعدد الشاشات`);
 const component = readFileSync("src/components/SplashOnce.tsx", "utf8");
-ok(!/localStorage\.(get|set)Item/.test(component), "وتظهر في كلّ تحميل: لا تتذكّر أنّها رُئيت");
+ok(/function introWanted\(pathname: string\)/.test(component) && /if \(pathname !== "\/"\) return false;/.test(component),
+   "وتظهر في الرئيسيّة وحدها: لا لرابطٍ مباشر ولا لعودةٍ من الدخول (المالك، 3 نوفمبر: «مرّة لأوّل زيارة للرئيسية»)");
+ok(/localStorage\.getItem\(SEEN_KEY\)\) return false;/.test(component) && /localStorage\.setItem\(SEEN_KEY, "1"\)/.test(component),
+   "ومرّةً واحدة: تتذكّر أنّها رُئيت");
+ok(/saveData/.test(component) && /effectiveType === "2g"/.test(component),
+   "ولا تظهر لاتّصالٍ طلب توفير البيانات أو بطيءٍ جدّاً");
+ok(/wanted\.current \?\?= introWanted\(pathname\);\s*if \(!wanted\.current\) \{\s*window\.dispatchEvent\(new Event\("sudagri:intro-done"\)\);/.test(component),
+   "والقرارُ مرّةً لكلّ تحميل، وحين لا تظهر تُعلن ذلك فلا ينتظرها فيلمُ الرئيسيّة");
+ok(/delete document\.documentElement\.dataset\.intro;/.test(component),
+   "وحين تنتهي تُرفع رايتُها، فلا ينتظرها فيلمٌ يُركَّب بعدها (العودة إلى الرئيسيّة)");
 ok(!/showSlide\(i \+ 1\)/.test(component) && /current \+ 1 < SLIDES\.length\) showSlide\(current \+ 1\)/.test(component),
    "ولا تتغيّر الشاشة وحدها: اللمسةُ تأتي بالتالية");
-ok(/data-skip/.test(component) && /e\.key === "Escape" \? skip\(\)/.test(component) && /closest\("\[data-skip\]"\)\) skip\(\)/.test(component),
-   "و«تخطَّ» أو Escape تتخطّى المقطعَ والشعار فقط");
-ok(/const skip = \(\) => \{\s*if \(ending \|\| sliding\) return;/.test(component) && /skipRef\.current\?\.classList\.add\("hidden"\)/.test(component),
-   "ولا تتخطّى شاشاتِ التعريف: لا تُغلق إلا بعد الأخيرة باللمس (المالك: «ولا يتخطى إلا بعدما يكمل باللمس»)");
+ok(/data-skip/.test(component) && /e\.key === "Escape"\) skip\(\)/.test(component) && /closest\("\[data-skip\]"\)\) skip\(\)/.test(component)
+     && /const skip = \(\) => end\(\);/.test(component),
+   "و«تخطَّ» أو Escape تُغلق المقدّمة كلّها");
+ok(!/classList\.add\("hidden"\)/.test(component),
+   "وزرُّ «تخطَّ» ظاهرٌ من أوّل لحظةٍ إلى آخر شاشة (لا يُخفى عند الشاشات)");
+ok(/reached >= i && <Image/.test(component),
+   "وصورُ الشاشات تُطلب حين تُبلغ شاشتُها، لا الأربعُ معاً");
+ok(/role="dialog"/.test(component) && !/aria-hidden\s*\n/.test(component),
+   "وهي حوارٌ له اسم، لا مخفيّةٌ عن قارئ الشاشة وفيها زرّ");
 
 section(fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`);
 process.exit(fail === 0 ? 0 : 1);
