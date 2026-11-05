@@ -10,6 +10,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *      في دفتر المنصّة. لا يسجّل إلا الفرق عمّا سُجّل، فتكراره في اليوم بلا أثر.
  *   4. `agreement_memo_sync` — يقيّد في الحسابات النظاميّة للمنصّة (٩١١٠/٩١٢٠) كلَّ عقد شراكةٍ وُقِّع بمبلغٍ معلَن ولم
  *      يُقيَّد بعد (البند ١٨٩). عقدٌ بالجنيه بلا سعر صرفٍ منشور ليومه يبقى للغد.
+ *   5. `ledger_depreciate_all` — يقيّد إهلاك كلّ أصلٍ ثابت لكلّ شهرٍ انتهى ولم يُقيَّد (البند ١٩٠). مفتاحُ كلّ شهرٍ يمنع
+ *      تكراره، والشهر الواقع في فترةٍ أقفلها صاحبها لا يُقيَّد.
  *
  * Each step is its own try: one that fails is logged and the next still runs. Nothing here throws, and the
  * health check that calls it goes on whatever happens.
@@ -24,12 +26,14 @@ export interface BookkeepingRun {
   snapshot: number | null;
   /** Signed agreements posted into the memorandum accounts; left for another day (no rate); with no amount to post. */
   agreements: { posted: number; skipped: number; withoutAmount: number } | null;
+  /** Months of fixed-asset depreciation booked. */
+  depreciation: number | null;
 }
 
 const count = (data: unknown): number | null => (typeof data === "number" && Number.isFinite(data) ? data : null);
 
 export async function runBookkeeping(admin: SupabaseClient): Promise<BookkeepingRun> {
-  const run: BookkeepingRun = { synced: null, mismatched: null, snapshot: null, agreements: null };
+  const run: BookkeepingRun = { synced: null, mismatched: null, snapshot: null, agreements: null, depreciation: null };
 
   try {
     const { data, error } = await admin.rpc("farm_book_sync");
@@ -68,6 +72,14 @@ export async function runBookkeeping(admin: SupabaseClient): Promise<Bookkeeping
     else if (posted !== null && skipped !== null && withoutAmount !== null) run.agreements = { posted, skipped, withoutAmount };
   } catch (e) {
     console.error("bookkeeping: agreements failed", e);
+  }
+
+  try {
+    const { data, error } = await admin.rpc("ledger_depreciate_all");
+    if (error) console.error("bookkeeping: depreciation", error);
+    else run.depreciation = count(data);
+  } catch (e) {
+    console.error("bookkeeping: depreciation failed", e);
   }
 
   return run;

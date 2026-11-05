@@ -65,7 +65,7 @@ select format('الموقع ينادي %s والعضو لا ينفّذها، و�
    and p.proname = any (string_to_array(current_setting('chain.rpcs'), ','))
    and p.proname <> all (array[
          'auth_account_closed', 'auth_account_exists', 'check_assistant_rate_limit', 'check_model_budget', 'farm_book_sync',
-         'farmer_season_records', 'feedback_awaiting_auto_reply', 'field_alert_send', 'land_set_soil_estimate',
+         'farmer_season_records', 'feedback_awaiting_auto_reply', 'field_alert_send', 'land_set_soil_estimate', 'ledger_depreciate_all',
          'log_assistant_question', 'market_quotes_publish_trusted', 'password_reset_request', 'price_alert_fire',
          'price_feeds_alert', 'prune_ephemeral_rows',
          'run_system_check'])
