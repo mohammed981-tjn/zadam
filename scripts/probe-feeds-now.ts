@@ -6,9 +6,9 @@
  *
  *   npx tsx scripts/probe-feeds-now.ts
  */
-import { readBank, readGedarefProse, readObeidList, readParallelMarket, type WpPost } from "../src/lib/priceFeeds";
+import { htmlToLines, readBank, readGedarefProse, readObeidList, readParallelMarket, type WpPost } from "../src/lib/priceFeeds";
 
-const SOURCES: { base: string; search: string; read: (p: WpPost) => unknown }[] = [
+const SOURCES: { base: string; search: string; read: (p: WpPost) => unknown; dump?: boolean }[] = [
   { base: "https://iqraa24.com", search: "بنك الخرطوم", read: readBank },
   { base: "https://bajnews.net", search: "بنك الخرطوم", read: readBank },
   { base: "https://bajnews.net", search: "الدولار", read: readBank },
@@ -25,11 +25,11 @@ const SOURCES: { base: string; search: string; read: (p: WpPost) => unknown }[] 
   { base: "https://nksnews.net", search: "المحاصيل", read: readObeidList },
   { base: "https://elhadaf-sd.com", search: "القضارف", read: readGedarefProse },
   // 5 نوفمبر: مرشّحون للسوق الموازي (وجدهم البحث)، وبنك الخرطوم في المقالات نفسها.
-  { base: "https://almndranews.com", search: "العملات", read: readParallelMarket },
+  { base: "https://almndranews.com", search: "العملات", read: readParallelMarket, dump: true },
   { base: "https://almndranews.com", search: "العملات", read: readBank },
-  { base: "https://alsudanalyoum.net", search: "الدولار", read: readParallelMarket },
+  { base: "https://alsudanalyoum.net", search: "الدولار", read: readParallelMarket, dump: true },
   { base: "https://alsudanalyoum.net", search: "الدولار", read: readBank },
-  { base: "https://sudantomorrow.com", search: "السوق السوداء", read: readParallelMarket },
+  { base: "https://sudantomorrow.com", search: "السوق السوداء", read: readParallelMarket, dump: true },
 ];
 
 async function main() {
@@ -47,6 +47,13 @@ async function main() {
         const out = s.read(p);
         const read = Array.isArray(out) ? `${out.length} figures ${JSON.stringify(out.map((q) => [q.crop, q.unit, q.price, q.date]))}` : out ? JSON.stringify(out) : "nothing read";
         console.log(`   ${p.date.slice(0, 10)}  ${p.title.rendered.replace(/<[^>]+>/g, "").slice(0, 90)}\n      → ${read}`);
+        // 5 نوفمبر: سطور الأسعار كما هي، والمقال كاملاً لصنع مثالٍ للفحص (fixture).
+        if (s.dump && /دولار|العملات/u.test(p.title.rendered)) {
+          for (const line of htmlToLines(p.content.rendered)) {
+            if (/دولار/u.test(line) && /[\d٠-٩]{3}/u.test(line)) console.log(`      | ${line}`);
+          }
+          console.log(`DUMP ${JSON.stringify({ id: p.id, date: p.date, link: p.link, title: p.title, content: p.content })}`);
+        }
       }
     } catch (e) {
       console.log(`   failed: ${(e as Error).message}`);
