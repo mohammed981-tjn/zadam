@@ -24,6 +24,12 @@ const SOURCES: { base: string; search: string; read: (p: WpPost) => unknown }[] 
   { base: "https://nksnews.net", search: "بورصة", read: readObeidList },
   { base: "https://nksnews.net", search: "المحاصيل", read: readObeidList },
   { base: "https://elhadaf-sd.com", search: "القضارف", read: readGedarefProse },
+  // 5 نوفمبر: مرشّحون للسوق الموازي (وجدهم البحث)، وبنك الخرطوم في المقالات نفسها.
+  { base: "https://almndranews.com", search: "العملات", read: readParallelMarket },
+  { base: "https://almndranews.com", search: "العملات", read: readBank },
+  { base: "https://alsudanalyoum.net", search: "الدولار", read: readParallelMarket },
+  { base: "https://alsudanalyoum.net", search: "الدولار", read: readBank },
+  { base: "https://sudantomorrow.com", search: "السوق السوداء", read: readParallelMarket },
 ];
 
 async function main() {
@@ -37,7 +43,7 @@ async function main() {
       if (!res.ok) continue;
       const body = (await res.json()) as WpPost[];
       console.log(`   ${body.length} posts in 30 days`);
-      for (const p of body.slice(0, 6)) {
+      for (const p of body.slice(0, 8)) {
         const out = s.read(p);
         const read = Array.isArray(out) ? `${out.length} figures ${JSON.stringify(out.map((q) => [q.crop, q.unit, q.price, q.date]))}` : out ? JSON.stringify(out) : "nothing read";
         console.log(`   ${p.date.slice(0, 10)}  ${p.title.rendered.replace(/<[^>]+>/g, "").slice(0, 90)}\n      → ${read}`);
