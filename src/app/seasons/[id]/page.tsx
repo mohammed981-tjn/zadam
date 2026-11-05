@@ -32,6 +32,7 @@ import { addLedgerEntry, completeSeason, completeStage, settleLedgerEntry, unset
 import StageEvidenceUpload from "@/components/StageEvidence";
 import YieldBenchmark from "@/components/YieldBenchmark";
 import OfflineForm from "@/components/OfflineForm";
+import { revalueOpenPounds } from "@/lib/fxRevalue";
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -110,6 +111,19 @@ export default async function SeasonPage({
   const creditRows = [...ledger]
     .filter((l) => settledOn.has(l.id))
     .sort((a, b) => a.entry_date.localeCompare(b.entry_date) || a.created_at.localeCompare(b.created_at));
+  // البند ١٩٠: ما بقي بالجنيه على الآجل، بسعر اليوم. لا يُكتب شيء؛ الفرق يُقيَّد يوم السداد كما كان.
+  const revaluation = suggested
+    ? revalueOpenPounds(
+        creditRows
+          .filter((l) => !settledOn.get(l.id) && l.currency === "SDG" && l.entered_amount !== null)
+          .map((l) => ({
+            pounds: Number(l.entered_amount),
+            bookedUsd: Number(l.amount),
+            receivable: l.category === "revenue",
+          })),
+        Number(suggested.rate),
+      )
+    : null;
   const recent = [...ledger]
     .sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.created_at.localeCompare(a.created_at))
     .slice(0, 8);
@@ -666,6 +680,47 @@ export default async function SeasonPage({
         {creditRows.length > 0 && (
           <div className="mt-6">
             <h3 className="mb-2 text-sm font-bold">{t("الآجل", "On credit")}</h3>
+            {revaluation && suggested && (
+              <div className="mb-3 rounded-xl bg-background p-3 text-xs leading-relaxed ring-1 ring-border">
+                <p className="font-bold">
+                  {t(
+                    `بسعر اليوم (${Number(suggested.rate).toLocaleString("en-US")} جنيهاً للدولار، السوق الموازي، ${suggested.rate_date})`,
+                    `At today's rate (${Number(suggested.rate).toLocaleString("en-US")} pounds per dollar, parallel market, ${suggested.rate_date})`,
+                  )}
+                </p>
+                <ul className="mt-1 list-disc ps-5">
+                  {revaluation.payableBooked > 0 && (
+                    <li>
+                      {t(
+                        `ما عليك بالجنيه قُيِّد بـ$${n0(revaluation.payableBooked)}، ويساوي اليوم $${n0(revaluation.payableToday)}.`,
+                        `What you owe in pounds was booked at $${n0(revaluation.payableBooked)}; today it is $${n0(revaluation.payableToday)}.`,
+                      )}
+                    </li>
+                  )}
+                  {revaluation.receivableBooked > 0 && (
+                    <li>
+                      {t(
+                        `ما لك بالجنيه قُيِّد بـ$${n0(revaluation.receivableBooked)}، ويساوي اليوم $${n0(revaluation.receivableToday)}.`,
+                        `What you are owed in pounds was booked at $${n0(revaluation.receivableBooked)}; today it is $${n0(revaluation.receivableToday)}.`,
+                      )}
+                    </li>
+                  )}
+                </ul>
+                <p className={`mt-1 font-bold ${revaluation.difference < 0 ? "text-danger" : "text-primary"}`}>
+                  {Math.abs(revaluation.difference) < 0.5
+                    ? t("لا فرق يُذكر.", "No difference worth mentioning.")
+                    : revaluation.difference > 0
+                      ? t(`فرق الصرف لصالحك: $${n0(revaluation.difference)}`, `Exchange difference in your favour: $${n0(revaluation.difference)}`)
+                      : t(`فرق الصرف عليك: $${n0(-revaluation.difference)}`, `Exchange difference against you: $${n0(-revaluation.difference)}`)}
+                </p>
+                <p className="mt-1 text-muted">
+                  {t(
+                    "تقديرٌ لا يُكتب في الدفتر: الفرق يُقيَّد يوم السداد بسعر ذلك اليوم.",
+                    "An estimate, not written in the ledger: the difference is booked on the day of settlement, at that day's rate.",
+                  )}
+                </p>
+              </div>
+            )}
             <ul className="space-y-2">
               {creditRows.map((l) => {
                 const done = settledOn.get(l.id);
