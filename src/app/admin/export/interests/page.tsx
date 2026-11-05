@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/adminGuard";
 import InterestCard from "@/components/InterestCard";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
+import { referenceName } from "@/lib/exportOffers";
 
 export const metadata = { title: "طلبات المشترين · سوداقري" };
 
@@ -21,8 +24,8 @@ interface Row {
     quantity: string;
     uom_code: string;
     corridor: {
-      commodity: { name_ar: string } | null;
-      destination: { name_ar: string } | null;
+      commodity: { code: string; name_ar: string } | null;
+      destination: { code: string; name_ar: string } | null;
     } | null;
   } | null;
 }
@@ -47,6 +50,8 @@ interface Row {
  */
 export default async function AdminInterestsPage() {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const { data } = await supabase
     .from("export_offer_interests")
@@ -54,7 +59,7 @@ export default async function AdminInterestsPage() {
       "id, buyer_name, buyer_company, buyer_email, buyer_phone, buyer_country, " +
         "quantity_wanted, message, status, handled_note, created_at, " +
         "offer:export_offers(reference, quantity, uom_code, " +
-        "corridor:export_corridors(commodity:export_commodities(name_ar), destination:export_destinations(name_ar)))",
+        "corridor:export_corridors(commodity:export_commodities(code, name_ar), destination:export_destinations(code, name_ar)))",
     )
     .order("created_at", { ascending: false });
 
@@ -65,27 +70,38 @@ export default async function AdminInterestsPage() {
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-2xl font-bold">
-          طلبات المشترين {fresh.length > 0 && `(${fresh.length} جديد)`}
+          {t("طلبات المشترين", "Buyer requests")}{" "}
+          {fresh.length > 0 && t(`(${fresh.length} جديد)`, `(${fresh.length} new)`)}
         </h1>
         <div className="flex gap-3">
           <Link href="/admin/export" className="text-sm text-primary underline">
-            طابور المراجعة
+            {t("طابور المراجعة", "Review queue")}
           </Link>
           <Link href="/admin" className="text-sm text-primary underline">
-            لوحة الإدارة
+            {t("لوحة الإدارة", "Admin panel")}
           </Link>
         </div>
       </div>
 
       <p className="mb-6 text-sm leading-7 text-muted">
-        الأحدثُ أوّلاً — مشترٍ ينتظر ثلاثة أيام يكون قد اشترى من غيرك.{" "}
-        <strong>وأنت من يقرّر متى يُعرَّف الطرفان ببعضهما</strong>، وتلك لحظةُ
-        قيمتك: منصّةٌ تسلّم العنوانين في أوّل ردٍّ لا تحتاجها الصفقةُ الثانية.
+        {locale === "en" ? (
+          <>
+            Newest first — a buyer who waits three days has bought from someone else.{" "}
+            <strong>You decide when the two sides are introduced</strong>, and that is the moment your value lies
+            in: a platform that hands over both addresses in its first reply is not needed for the second deal.
+          </>
+        ) : (
+          <>
+            الأحدثُ أوّلاً — مشترٍ ينتظر ثلاثة أيام يكون قد اشترى من غيرك.{" "}
+            <strong>وأنت من يقرّر متى يُعرَّف الطرفان ببعضهما</strong>، وتلك لحظةُ
+            قيمتك: منصّةٌ تسلّم العنوانين في أوّل ردٍّ لا تحتاجها الصفقةُ الثانية.
+          </>
+        )}
       </p>
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
-          لا طلباتٍ بعد.
+          {t("لا طلباتٍ بعد.", "No requests yet.")}
         </p>
       ) : (
         <ul className="flex flex-col gap-4">
@@ -109,8 +125,12 @@ export default async function AdminInterestsPage() {
                 r.offer
                   ? {
                       reference: r.offer.reference,
-                      commodity: r.offer.corridor?.commodity?.name_ar ?? "—",
-                      destination: r.offer.corridor?.destination?.name_ar ?? "—",
+                      commodity: r.offer.corridor?.commodity
+                        ? referenceName(r.offer.corridor.commodity.code, r.offer.corridor.commodity.name_ar, locale)
+                        : "—",
+                      destination: r.offer.corridor?.destination
+                        ? referenceName(r.offer.corridor.destination.code, r.offer.corridor.destination.name_ar, locale)
+                        : "—",
                       quantity: `${r.offer.quantity} ${r.offer.uom_code}`,
                     }
                   : null

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { safeSourceUrl } from "@/lib/media";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 /**
  * Recording, editing and removing the canal page's images.
@@ -37,12 +39,23 @@ const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
  * in a query string on a redirect. Same treatment as admin/providers: log the
  * detail, show a fixed line.
  */
-function canalError(error: { message: string }, where: string) {
+function canalError(error: { message: string }, where: string, t: T) {
   console.error(`canal-images: ${where} failed`, error);
-  return "تعذّر تنفيذ العملية. حاول مرة أخرى.";
+  return t("تعذّر تنفيذ العملية. حاول مرة أخرى.", "The operation failed. Please try again.");
 }
 
-const REFUSED = "تعذّر تنفيذ العملية — لم يتغيّر شيء. تأكّد أنك ما زلت مسجّل الدخول كمدير.";
+type T = (ar: string, en: string) => string;
+
+async function translator(): Promise<T> {
+  const locale = await getLocale();
+  return (ar, en) => tr(locale, ar, en);
+}
+
+const refused = (t: T) =>
+  t(
+    "تعذّر تنفيذ العملية — لم يتغيّر شيء. تأكّد أنك ما زلت مسجّل الدخول كمدير.",
+    "The operation failed — nothing changed. Make sure you are still signed in as an administrator.",
+  );
 
 function refresh() {
   revalidatePath("/admin/canal-images");
@@ -62,11 +75,12 @@ export async function recordCanalImage(args: {
   sourceUrl: string;
   takenOn: string;
 }): Promise<UploadResult> {
+  const t = await translator();
   if (!args.storagePath.startsWith("canal/")) {
-    return { ok: false, message: "مسار غير متوقّع." };
+    return { ok: false, message: t("مسار غير متوقّع.", "Unexpected path.") };
   }
   if (!args.caption.trim() || !args.credit.trim()) {
-    return { ok: false, message: "الوصف والمصدر مطلوبان." };
+    return { ok: false, message: t("الوصف والمصدر مطلوبان.", "Caption and source are required.") };
   }
 
   const supabase = await createClient();
@@ -83,7 +97,7 @@ export async function recordCanalImage(args: {
     taken_on: args.takenOn || null,
   });
 
-  if (error) return { ok: false, message: canalError(error, "insert") };
+  if (error) return { ok: false, message: canalError(error, "insert", t) };
 
   refresh();
   return { ok: true };
@@ -91,6 +105,7 @@ export async function recordCanalImage(args: {
 
 export async function updateCanalImage(formData: FormData) {
   const supabase = await createClient();
+  const t = await translator();
 
   const id = str(formData, "image_id");
   if (!id) redirect("/admin/canal-images");
@@ -113,13 +128,13 @@ export async function updateCanalImage(formData: FormData) {
 
   if (error) {
     redirect(
-      `/admin/canal-images?error=${encodeURIComponent(canalError(error, "update"))}`,
+      `/admin/canal-images?error=${encodeURIComponent(canalError(error, "update", t))}`,
     );
   }
   if (!data?.length) {
-    redirect(`/admin/canal-images?error=${encodeURIComponent(REFUSED)}`);
+    redirect(`/admin/canal-images?error=${encodeURIComponent(refused(t))}`);
   }
-  redirect(`/admin/canal-images?message=${encodeURIComponent("حُفظ.")}`);
+  redirect(`/admin/canal-images?message=${encodeURIComponent(t("حُفظ.", "Saved."))}`);
 }
 
 /**
@@ -133,6 +148,7 @@ export async function updateCanalImage(formData: FormData) {
  */
 export async function deleteCanalImage(formData: FormData) {
   const supabase = await createClient();
+  const t = await translator();
 
   const id = str(formData, "image_id");
   const path = str(formData, "storage_path");
@@ -146,7 +162,7 @@ export async function deleteCanalImage(formData: FormData) {
 
   if (error) {
     redirect(
-      `/admin/canal-images?error=${encodeURIComponent(canalError(error, "delete"))}`,
+      `/admin/canal-images?error=${encodeURIComponent(canalError(error, "delete", t))}`,
     );
   }
 
@@ -155,7 +171,7 @@ export async function deleteCanalImage(formData: FormData) {
   // survived would produce exactly the broken image on a public page that
   // ordering the two deletes this way was meant to prevent.
   if (!data?.length) {
-    redirect(`/admin/canal-images?error=${encodeURIComponent(REFUSED)}`);
+    redirect(`/admin/canal-images?error=${encodeURIComponent(refused(t))}`);
   }
 
   const { error: storageError } = await supabase.storage
@@ -173,9 +189,12 @@ export async function deleteCanalImage(formData: FormData) {
     });
     redirect(
       `/admin/canal-images?error=${encodeURIComponent(
-        `حُذف السجلّ ولم يُحذف الملف (${path}). سُجّل التفصيل للمراجعة.`,
+        t(
+          `حُذف السجلّ ولم يُحذف الملف (${path}). سُجّل التفصيل للمراجعة.`,
+          `The record was deleted but the file was not (${path}). The details were logged for review.`,
+        ),
       )}`,
     );
   }
-  redirect(`/admin/canal-images?message=${encodeURIComponent("حُذفت الصورة.")}`);
+  redirect(`/admin/canal-images?message=${encodeURIComponent(t("حُذفت الصورة.", "Image deleted."))}`);
 }

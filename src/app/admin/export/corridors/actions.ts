@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -35,6 +37,9 @@ export async function recordCorridorReview(formData: FormData) {
     .single();
   if ((profile as { role: string } | null)?.role !== "admin") return;
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
   const corridorId = str(formData, "corridor_id");
   const note = str(formData, "source_note");
   const outcome = str(formData, "outcome") === "amended" ? "amended" : "unchanged";
@@ -42,7 +47,10 @@ export async function recordCorridorReview(formData: FormData) {
   if (note.length < 10) {
     redirect(
       `/admin/export/corridors?error=${encodeURIComponent(
-        "اكتب المصدر الذي راجعتَ عليه — عشرة أحرف على الأقل. «تمّ» ليست مراجعة.",
+        t(
+          "اكتب المصدر الذي راجعتَ عليه — عشرة أحرف على الأقل. «تمّ» ليست مراجعة.",
+          "Write the source you checked against — at least ten characters. “Done” is not a review.",
+        ),
       )}`,
     );
   }
@@ -60,7 +68,7 @@ export async function recordCorridorReview(formData: FormData) {
   if (error) {
     console.error("corridor review: insert failed", error);
     redirect(
-      `/admin/export/corridors?error=${encodeURIComponent("تعذّر تسجيل المراجعة.")}`,
+      `/admin/export/corridors?error=${encodeURIComponent(t("تعذّر تسجيل المراجعة.", "The review could not be recorded."))}`,
     );
   }
 
@@ -68,7 +76,7 @@ export async function recordCorridorReview(formData: FormData) {
   if (!data || data.length === 0) {
     redirect(
       `/admin/export/corridors?error=${encodeURIComponent(
-        "لم تُسجَّل المراجعة — الصلاحيةُ مرفوضة.",
+        t("لم تُسجَّل المراجعة — الصلاحيةُ مرفوضة.", "The review was not recorded — permission denied."),
       )}`,
     );
   }

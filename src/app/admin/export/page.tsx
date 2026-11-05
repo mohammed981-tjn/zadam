@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/adminGuard";
 import ExportReviewCard from "@/components/ExportReviewCard";
-import { formatMinor } from "@/lib/exportOffers";
+import { formatMinor, referenceName } from "@/lib/exportOffers";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export const metadata = { title: "طابور مراجعة الصادر · سوداقري" };
 
@@ -34,7 +36,7 @@ interface EvidenceRow {
 interface RequirementRow {
   offer_id: string;
   mode: string;
-  document_type: { name_ar: string } | null;
+  document_type: { code: string; name_ar: string } | null;
 }
 
 /**
@@ -56,6 +58,8 @@ interface RequirementRow {
  */
 export default async function AdminExportQueuePage() {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const { data: queueRows } = await supabase
     .from("export_offers")
@@ -76,7 +80,7 @@ export default async function AdminExportQueuePage() {
           .in("offer_id", ids),
         supabase
           .from("export_offer_requirements")
-          .select("offer_id, mode, document_type:export_document_types(name_ar)")
+          .select("offer_id, mode, document_type:export_document_types(code, name_ar)")
           .in("offer_id", ids),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
@@ -88,22 +92,34 @@ export default async function AdminExportQueuePage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-2xl font-bold">طابور مراجعة الصادر</h1>
+        <h1 className="text-2xl font-bold">{t("طابور مراجعة الصادر", "Export review queue")}</h1>
         <Link href="/admin" className="text-sm text-primary underline">
-          لوحة الإدارة
+          {t("لوحة الإدارة", "Admin panel")}
         </Link>
       </div>
 
       <p className="mb-6 text-sm leading-7 text-muted">
-        الأقدمُ أوّلاً. وما تشهد به بالنشر أنّ <strong>الأدلّة تسند الدعاوى</strong>:
-        المستنداتُ موجودة، والدرجةُ تطابق ما تُظهره الصور، وإحداثيّةُ المنشأ
-        مكتملة. لا تشهد بجودة البضاعة ولا بعدالة السعر — تلك للمشتري وفحصِه، وشارةٌ
-        تَعِد بأكثر ممّا فُحص تجعل أوّلَ شحنةٍ تُردّ مسؤوليّتنا.
+        {locale === "en" ? (
+          <>
+            Oldest first. What you certify by publishing is that <strong>the evidence supports the claims</strong>:
+            the documents are present, the grade matches what the pictures show, and the origin coordinates are
+            complete. You do not certify the quality of the goods or the fairness of the price — those belong to the
+            buyer and their inspection, and a badge that promises more than was checked makes the first rejected
+            shipment our liability.
+          </>
+        ) : (
+          <>
+            الأقدمُ أوّلاً. وما تشهد به بالنشر أنّ <strong>الأدلّة تسند الدعاوى</strong>:
+            المستنداتُ موجودة، والدرجةُ تطابق ما تُظهره الصور، وإحداثيّةُ المنشأ
+            مكتملة. لا تشهد بجودة البضاعة ولا بعدالة السعر — تلك للمشتري وفحصِه، وشارةٌ
+            تَعِد بأكثر ممّا فُحص تجعل أوّلَ شحنةٍ تُردّ مسؤوليّتنا.
+          </>
+        )}
       </p>
 
       {queue.length === 0 ? (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted">
-          لا عروضَ تنتظر المراجعة.
+          {t("لا عروضَ تنتظر المراجعة.", "No offers are waiting for review.")}
         </p>
       ) : (
         <ul className="flex flex-col gap-4">
@@ -118,33 +134,33 @@ export default async function AdminExportQueuePage() {
                   <span className="font-mono text-sm">{o.reference}</span>
                   <span className="text-xs text-muted">
                     {o.submitted_at
-                      ? `أُرسل: ${new Date(o.submitted_at).toLocaleString("ar-EG")}`
+                      ? `${t("أُرسل:", "Submitted:")} ${new Date(o.submitted_at).toLocaleString(locale === "en" ? "en-GB" : "ar-EG")}`
                       : "—"}
                   </span>
                 </div>
 
                 <p className="mt-1 text-sm">
-                  {o.quantity} {o.uom_code} · {formatMinor(o.value_minor)} دولار
+                  {o.quantity} {o.uom_code} · {formatMinor(o.value_minor)} {t("دولار", "USD")}
                 </p>
 
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <div>
-                    <h3 className="text-sm font-medium">المنشأ</h3>
+                    <h3 className="text-sm font-medium">{t("المنشأ", "Origin")}</h3>
                     {offerOrigins.length === 0 ? (
                       <p className="text-sm text-danger">
-                        بلا إحداثيّة — لا تنشره.
+                        {t("بلا إحداثيّة — لا تنشره.", "No coordinates — do not publish it.")}
                       </p>
                     ) : (
                       <ul className="mt-1 space-y-1 text-xs text-muted">
                         {offerOrigins.map((g, i) => (
                           <li key={i}>
                             {g.plot_ref} · {g.latitude}, {g.longitude}
-                            {g.area_hectares ? ` · ${g.area_hectares} هكتار` : ""}
+                            {g.area_hectares ? ` · ${g.area_hectares} ${t("هكتار", "ha")}` : ""}
                             {/* The polygon rule is enforced by a constraint, so
                                 this cannot be missing when it is required. It is
                                 shown because a reviewer checking EUDR readiness
                                 should see which form the origin took. */}
-                            {g.boundary ? " · بمضلَّع" : " · نقطة"}
+                            {g.boundary ? ` · ${t("بمضلَّع", "polygon")}` : ` · ${t("نقطة", "point")}`}
                           </li>
                         ))}
                       </ul>
@@ -152,17 +168,17 @@ export default async function AdminExportQueuePage() {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium">الأدلّة</h3>
+                    <h3 className="text-sm font-medium">{t("الأدلّة", "Evidence")}</h3>
                     {offerEvidence.length === 0 ? (
                       <p className="text-sm text-danger">
-                        بلا أدلّة — لا شيء يسند الدعوى.
+                        {t("بلا أدلّة — لا شيء يسند الدعوى.", "No evidence — nothing supports the claim.")}
                       </p>
                     ) : (
                       <ul className="mt-1 space-y-1 text-xs text-muted">
                         {offerEvidence.map((e, i) => (
                           <li key={i}>
                             {e.kind}
-                            {e.sha256 ? ` · ${e.sha256.slice(0, 12)}…` : " · بلا بصمة"}
+                            {e.sha256 ? ` · ${e.sha256.slice(0, 12)}…` : ` · ${t("بلا بصمة", "no hash")}`}
                           </li>
                         ))}
                       </ul>
@@ -172,11 +188,14 @@ export default async function AdminExportQueuePage() {
 
                 <div className="mt-3">
                   <h3 className="text-sm font-medium">
-                    المستندات المطلوبة — مجمَّدةٌ لحظةَ الإرسال
+                    {t("المستندات المطلوبة — مجمَّدةٌ لحظةَ الإرسال", "Required documents — frozen at submission")}
                   </h3>
                   {offerRequirements.length === 0 ? (
                     <p className="text-sm text-danger">
-                      بلا متطلّباتٍ مجمَّدة — لا يُعرف ما كان مطلوباً لهذه الإرسالية.
+                      {t(
+                        "بلا متطلّباتٍ مجمَّدة — لا يُعرف ما كان مطلوباً لهذه الإرسالية.",
+                        "No frozen requirements — what this shipment required is unknown.",
+                      )}
                     </p>
                   ) : (
                     <ul className="mt-1 flex flex-wrap gap-2 text-xs">
@@ -185,8 +204,8 @@ export default async function AdminExportQueuePage() {
                           key={i}
                           className="rounded-full border border-border px-2 py-0.5"
                         >
-                          {r.document_type?.name_ar}
-                          {r.mode !== "required" ? " (مشروط)" : ""}
+                          {r.document_type ? referenceName(r.document_type.code, r.document_type.name_ar, locale) : null}
+                          {r.mode !== "required" ? ` ${t("(مشروط)", "(conditional)")}` : ""}
                         </li>
                       ))}
                     </ul>

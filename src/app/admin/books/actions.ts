@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { explain, signedIn, str } from "@/lib/supplyActions";
+import { explain, signedIn, str, translator } from "@/lib/supplyActions";
 import { ledgerToday } from "@/lib/ledger/today";
 import { feeFormMessage, parseFeeForm } from "@/lib/ledger/platformBook";
 
@@ -18,6 +18,7 @@ function done(key: "ok" | "error", message: string): never {
 
 export async function proposeFee(fd: FormData) {
   const { supabase } = await signedIn();
+  const { locale, t } = await translator();
   const parsed = parseFeeForm(
     {
       payer: str(fd, "payer"),
@@ -47,21 +48,29 @@ export async function proposeFee(fd: FormData) {
   });
   if (error) {
     console.error("proposeFee failed", { error });
-    done("error", explain("ar", error));
+    done("error", explain(locale, error));
   }
-  done("ok", "سُجّل الرسم وأُخطر الدافع. لا يُقيَّد في أيّ دفترٍ حتى يؤكّده.");
+  done("ok", t("سُجّل الرسم وأُخطر الدافع. لا يُقيَّد في أيّ دفترٍ حتى يؤكّده.", "The fee was recorded and the payer notified. It is not booked in any book until they confirm it."));
 }
 
 export async function cancelFee(fd: FormData) {
   const { supabase } = await signedIn();
+  const { locale, t } = await translator();
   const { error } = await supabase.rpc("ledger_fee_cancel", { p_fee: str(fd, "fee_id") });
-  if (error) done("error", explain("ar", error));
-  done("ok", "أُلغي الرسم، ولم يُقيَّد منه شيء.");
+  if (error) done("error", explain(locale, error));
+  done("ok", t("أُلغي الرسم، ولم يُقيَّد منه شيء.", "The fee was cancelled; nothing from it was booked."));
 }
 
 export async function inspectBook(fd: FormData) {
   const { supabase } = await signedIn();
+  const { locale, t } = await translator();
   const { error } = await supabase.rpc("ledger_inspect_open", { p_book: str(fd, "book_id"), p_reason: str(fd, "reason"), p_hours: null });
-  if (error) done("error", explain("ar", error));
-  done("ok", "فُتح الفحص وأُخطر صاحب الدفتر. اقرأه من «دفتر الحسابات» بالرابط في قائمة الفحوص.");
+  if (error) done("error", explain(locale, error));
+  done(
+    "ok",
+    t(
+      "فُتح الفحص وأُخطر صاحب الدفتر. اقرأه من «دفتر الحسابات» بالرابط في قائمة الفحوص.",
+      "The inspection is open and the book's owner notified. Read it from “Books” via the link in the inspections list.",
+    ),
+  );
 }

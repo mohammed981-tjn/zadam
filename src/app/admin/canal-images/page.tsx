@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
 import CanalImageUpload from "@/components/CanalImageUpload";
 import { publicMediaUrl } from "@/lib/media";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 import type { ArcCanalImage } from "@/types/database";
 import {
   recordCanalImage,
@@ -43,6 +45,9 @@ export default async function AdminCanalImagesPage({
     .single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
   const { data } = await supabase
     .from("arc_canal_images")
     .select("*")
@@ -58,11 +63,12 @@ export default async function AdminCanalImagesPage({
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold">صور صفحة القناة القوسية</h1>
+        <h1 className="text-2xl font-bold">{t("صور صفحة القناة القوسية", "Arc Canal page images")}</h1>
         <p className="leading-relaxed text-muted">
-          {images.length} صورة، منها {published} منشورة. ولا تُنشر صورة بلا
-          مصدرٍ مذكور — الصفحة كلّها مبنيّة على أن لكل ما فيها سنداً، والصورة
-          ليست استثناءً.
+          {t(
+            `${images.length} صورة، منها ${published} منشورة. ولا تُنشر صورة بلا مصدرٍ مذكور — الصفحة كلّها مبنيّة على أن لكل ما فيها سنداً، والصورة ليست استثناءً.`,
+            `${images.length} images, ${published} of them published. No image is published without a stated source — the whole page rests on everything in it having a reference, and images are no exception.`,
+          )}
         </p>
       </header>
 
@@ -78,16 +84,16 @@ export default async function AdminCanalImagesPage({
       )}
 
       <section className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="mb-4 text-lg font-semibold">أضف صورة</h2>
+        <h2 className="mb-4 text-lg font-semibold">{t("أضف صورة", "Add an image")}</h2>
         <CanalImageUpload onUploaded={recordCanalImage} />
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">الصور المرفوعة</h2>
+        <h2 className="text-lg font-semibold">{t("الصور المرفوعة", "Uploaded images")}</h2>
 
         {images.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm leading-relaxed text-muted">
-            لا صور بعد. أضف واحدة من الأعلى.
+            {t("لا صور بعد. أضف واحدة من الأعلى.", "No images yet. Add one above.")}
           </p>
         ) : (
           <ul className="flex flex-col gap-4">
@@ -120,7 +126,7 @@ export default async function AdminCanalImagesPage({
                     name="caption"
                     defaultValue={img.caption}
                     className={field}
-                    placeholder="الوصف"
+                    placeholder={t("الوصف", "Caption")}
                   />
 
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -128,7 +134,7 @@ export default async function AdminCanalImagesPage({
                       name="credit"
                       defaultValue={img.credit}
                       className={field}
-                      placeholder="المصدر أو المُلتقِط"
+                      placeholder={t("المصدر أو المُلتقِط", "Source or photographer")}
                     />
                     <input
                       name="source_url"
@@ -141,7 +147,7 @@ export default async function AdminCanalImagesPage({
 
                   <div className="flex flex-wrap items-center gap-4">
                     <label className="flex items-center gap-2 text-sm">
-                      <span className="text-muted">الترتيب</span>
+                      <span className="text-muted">{t("الترتيب", "Order")}</span>
                       <input
                         name="sort_order"
                         type="number"
@@ -156,19 +162,19 @@ export default async function AdminCanalImagesPage({
                         type="checkbox"
                         defaultChecked={img.published}
                       />
-                      منشورة
+                      {t("منشورة", "Published")}
                     </label>
 
                     <button
                       type="submit"
                       className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
                     >
-                      احفظ
+                      {t("احفظ", "Save")}
                     </button>
 
                     {img.taken_on && (
                       <span className="text-xs text-muted">
-                        التُقطت {img.taken_on}
+                        {t("التُقطت", "Taken")} {img.taken_on}
                       </span>
                     )}
                   </div>
@@ -185,7 +191,7 @@ export default async function AdminCanalImagesPage({
                     type="submit"
                     className="rounded-lg border border-danger/40 px-3 py-1.5 text-sm text-danger hover:bg-danger/5"
                   >
-                    حذف
+                    {t("حذف", "Delete")}
                   </button>
                 </form>
               </li>
