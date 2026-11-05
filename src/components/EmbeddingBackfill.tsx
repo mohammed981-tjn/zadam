@@ -5,6 +5,8 @@ import {
   runEmbeddingBackfill,
   type EmbeddingRunResult,
 } from "@/app/admin/embeddings/actions";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 /**
  * زرُّ حساب المتّجهات الناقصة.
@@ -38,6 +40,8 @@ export default function EmbeddingBackfill({
 }) {
   const [result, setResult] = useState<EmbeddingRunResult | null>(null);
   const [pending, setPending] = useState(false);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   // Before any press, the page's own count. After one, the server's.
   const remaining = result?.remaining ?? initialPending;
@@ -53,7 +57,10 @@ export default function EmbeddingBackfill({
       // action chose to report. Say which it is rather than showing nothing.
       setResult({
         ok: false,
-        message: "تعذّر الوصول إلى الخادم. تحقّق من الاتصال وأعد المحاولة.",
+        message: t(
+          "تعذّر الوصول إلى الخادم. تحقّق من الاتصال وأعد المحاولة.",
+          "Could not reach the server. Check the connection and try again.",
+        ),
       });
     } finally {
       setPending(false);
@@ -62,20 +69,26 @@ export default function EmbeddingBackfill({
 
   return (
     <section className="mb-6 rounded-xl border border-border bg-card p-4">
-      <h2 className="font-medium">متّجهات قاعدة المعرفة</h2>
+      <h2 className="font-medium">{t("متّجهات قاعدة المعرفة", "Knowledge base embeddings")}</h2>
 
       <p className="mt-2 text-sm leading-6 text-muted">
-        المُدخل بلا متّجه ليس معطوباً — يجده البحث اللفظي. لكنّ البحث الدلالي
-        يتخطّاه، وهو النصف الذي يجده حين لا يستعمل السائل كلماته.
+        {t(
+          "المُدخل بلا متّجه ليس معطوباً — يجده البحث اللفظي. لكنّ البحث الدلالي يتخطّاه، وهو النصف الذي يجده حين لا يستعمل السائل كلماته.",
+          "An entry without an embedding is not broken — keyword search finds it. But semantic search skips it, and that is the half that finds it when the asker does not use its words.",
+        )}
       </p>
 
       <p className="mt-3 text-sm">
         {done ? (
-          <span className="font-medium">لا مُدخلَ ينتظر حساباً.</span>
+          <span className="font-medium">{t("لا مُدخلَ ينتظر حساباً.", "No entry is waiting to be embedded.")}</span>
         ) : (
           <>
-            <span className="font-medium">{remaining}</span> مُدخلاً ينتظر
-            حساباً.
+            <span className="font-medium">{remaining}</span>{" "}
+            {locale === "en"
+              ? remaining === 1
+                ? "entry waiting to be embedded."
+                : "entries waiting to be embedded."
+              : "مُدخلاً ينتظر حساباً."}
           </>
         )}
       </p>
@@ -86,7 +99,11 @@ export default function EmbeddingBackfill({
         disabled={pending || done}
         className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pending ? "جارٍ الحساب…" : done ? "مكتملة" : "احسب المتّجهات الناقصة"}
+        {pending
+          ? t("جارٍ الحساب…", "Embedding…")
+          : done
+            ? t("مكتملة", "Complete")
+            : t("احسب المتّجهات الناقصة", "Embed the missing entries")}
       </button>
 
       {result && (
@@ -103,7 +120,7 @@ export default function EmbeddingBackfill({
           </p>
 
           {result.model && (
-            <p className="mt-1 text-xs text-muted">المزوّد: {result.model}</p>
+            <p className="mt-1 text-xs text-muted">{t("المزوّد:", "Provider:")} {result.model}</p>
           )}
 
           {/* Failures are named, not folded into a count nobody can act on. */}

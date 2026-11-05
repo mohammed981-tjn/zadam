@@ -5,6 +5,8 @@ import { requireAdmin } from "@/lib/adminGuard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { activeProvider } from "@/lib/embedding";
 import { backfillEmbeddings } from "@/lib/backfillEmbeddings";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 /**
  * زرُّ حساب المتّجهات — البديل عن أمرٍ طرفيٍّ لا يملك صاحبُ المنصّة حاسوباً لتشغيله.
@@ -53,14 +55,18 @@ export async function runEmbeddingBackfill(): Promise<EmbeddingRunResult> {
   // Server Functions are reachable by direct POST, not only from the page that
   // renders the form — so the action establishes the caller itself.
   await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const provider = activeProvider();
   if (!provider) {
     return {
       ok: false,
-      message:
+      message: t(
         "لا مزوّدَ متّجهاتٍ مُعرَّفٌ على هذا النشر. أضف JINA_API_KEY (من jina.ai/embeddings) " +
-        "أو GEMINI_API_KEY في إعدادات المشروع، ثم أعد المحاولة.",
+          "أو GEMINI_API_KEY في إعدادات المشروع، ثم أعد المحاولة.",
+        "No embedding provider is set on this deployment. Add JINA_API_KEY (from jina.ai/embeddings) or GEMINI_API_KEY in the project settings, then try again.",
+      ),
     };
   }
 
@@ -71,9 +77,11 @@ export async function runEmbeddingBackfill(): Promise<EmbeddingRunResult> {
   if (!supabase) {
     return {
       ok: false,
-      message:
+      message: t(
         "مفتاحُ الخدمة (SUPABASE_SERVICE_ROLE_KEY) غير مُعرَّفٍ على هذا النشر، " +
-        "فلا يمكن الكتابة في قاعدة المعرفة.",
+          "فلا يمكن الكتابة في قاعدة المعرفة.",
+        "The service key (SUPABASE_SERVICE_ROLE_KEY) is not set on this deployment, so the knowledge base cannot be written.",
+      ),
     };
   }
 
@@ -90,14 +98,20 @@ export async function runEmbeddingBackfill(): Promise<EmbeddingRunResult> {
     console.error("admin: embedding backfill failed", err);
     return {
       ok: false,
-      message: "تعذّر حسابُ المتّجهات. راجع سجلّ الخادم — فُصِّل الخطأ هناك.",
+      message: t(
+        "تعذّر حسابُ المتّجهات. راجع سجلّ الخادم — فُصِّل الخطأ هناك.",
+        "Could not compute the embeddings. The server log has the details.",
+      ),
     };
   }
 
   if (outcome.pending === 0) {
     return {
       ok: true,
-      message: `لا شيء ينتظر. المُدخلات الـ${outcome.scanned} كلُّها محسوبةٌ بـ${outcome.model}.`,
+      message: t(
+        `لا شيء ينتظر. المُدخلات الـ${outcome.scanned} كلُّها محسوبةٌ بـ${outcome.model}.`,
+        `Nothing waiting. All ${outcome.scanned} entries are computed with ${outcome.model}.`,
+      ),
       remaining: 0,
       embedded: 0,
       scanned: outcome.scanned,
@@ -107,13 +121,13 @@ export async function runEmbeddingBackfill(): Promise<EmbeddingRunResult> {
 
   revalidatePath("/admin");
 
-  const done = `حُسبت ${outcome.embedded} من ${outcome.pending}`;
+  const done = t(`حُسبت ${outcome.embedded} من ${outcome.pending}`, `Computed ${outcome.embedded} of ${outcome.pending}`);
   const left =
     outcome.remaining > 0
-      ? ` — بقي ${outcome.remaining}. اضغط مرّةً أخرى.`
-      : " — اكتملت جميعها.";
+      ? t(` — بقي ${outcome.remaining}. اضغط مرّةً أخرى.`, ` — ${outcome.remaining} left. Press again.`)
+      : t(" — اكتملت جميعها.", " — all done.");
   const failedNote =
-    outcome.failed > 0 ? ` وفشلت ${outcome.failed}؛ التفصيل أدناه.` : "";
+    outcome.failed > 0 ? t(` وفشلت ${outcome.failed}؛ التفصيل أدناه.`, ` ${outcome.failed} failed; details below.`) : "";
 
   return {
     ok: outcome.failed === 0,
