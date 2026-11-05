@@ -51,6 +51,11 @@ const PARALLEL: Source[] = [
   { base: "https://bajnews.net", search: "الدولار", days: FX_WINDOW_DAYS },
   // 25 أكتوبر 2026 (البند ١٩٦): خبرٌ شبه يوميّ بأسعار السوق الموازي، وواجهته المنظَّمة تردّ للأجهزة.
   { base: "https://alghadalsudani.com", search: "الدولار", days: FX_WINDOW_DAYS },
+  // 5 نوفمبر 2026 (المالك: «كمّل بنودك»؛ القواعد نفسها التي اختارها لمصدر الأبيض): bajnews والغد سكتا منذ 21 و29
+  // أكتوبر. المندرة نيوز ترصد السوق كلّ يومٍ أو يومين («سجل الدولار … للشراء و… للبيع»)، والسودان اليوم كلّ يومين أو
+  // ثلاثة. قرأهما PARALLEL_FOR_EACH وPARALLEL_SELL_FIRST على GitHub (scripts/probe-feeds-now.ts).
+  { base: "https://almndranews.com", search: "العملات", days: FX_WINDOW_DAYS },
+  { base: "https://alsudanalyoum.net", search: "الدولار", days: FX_WINDOW_DAYS },
 ];
 const OBEID: Source[] = [
   { base: "https://sudafax.com", search: "سوق الأبيض", days: CROP_WINDOW_DAYS },
