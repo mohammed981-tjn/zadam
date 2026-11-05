@@ -8,6 +8,7 @@
 
 import { formatRate, isCurrency, parseAmount, parseRate, type CurrencyCode } from "./money";
 import { isIsoDate } from "./reportParams";
+import type { Locale } from "../i18n";
 
 export const FEE_KINDS = ["inspection", "agreement", "service"] as const;
 export type FeeKind = (typeof FEE_KINDS)[number];
@@ -73,7 +74,25 @@ export function parseFeeForm(
   };
 }
 
-export function feeFormMessage(e: FeeFormError): string {
+export function feeFormMessage(e: FeeFormError, locale: Locale = "ar"): string {
+  if (locale === "en") {
+    switch (e) {
+      case "payer":
+        return "Choose the payer from the search results.";
+      case "payer_kind":
+        return "Choose the payer's book: the farm or the investor.";
+      case "kind":
+        return "Choose the fee type.";
+      case "currency":
+        return "Choose the currency.";
+      case "amount":
+        return "Enter the amount as a positive number (at most two decimal places).";
+      case "date":
+        return "Enter the payment day (not a future day).";
+      case "rate":
+        return "The exchange rate is a number between 1 and 100,000,000 (at most six decimal places), or leave it blank.";
+    }
+  }
   switch (e) {
     case "payer":
       return "اختر الدافع من نتائج البحث.";

@@ -52,7 +52,7 @@ export default async function AdminPage() {
   const problems = check?.details?.problems ?? [];
   const scheduleStalled = check?.stale === true;
   // GAP-3: a price feed that has gone quiet shows here, not only in a table nobody opens.
-  const stalePrices = staleLines(await loadFeedStates(supabase));
+  const stalePrices = staleLines(await loadFeedStates(supabase), locale);
 
   /*
    * How many knowledge entries are waiting for a vector.

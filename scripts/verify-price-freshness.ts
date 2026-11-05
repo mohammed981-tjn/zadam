@@ -37,6 +37,12 @@ const lines = staleLines(over);
 ok(lines.length === 2 && lines[0].includes("بنك الخرطوم") && lines[0].includes("5") && lines[1].includes("الأبيض"), "each stale feed gets a line naming it and its age");
 ok(staleLines(none)[0].includes("لا رقمَ منشور"), "and a feed with nothing says so");
 
+const arabic = /[\u0600-\u06FF]/;
+const linesEn = [...staleLines(over, "en"), ...staleLines(none, "en")];
+ok(linesEn.length === 3 && linesEn[0].includes("Bank of Khartoum") && linesEn[0].includes("5") && linesEn[2].includes("no published figure"), "in English the same lines name the feed and its age");
+ok(linesEn.every((l) => !arabic.test(l)), "and carry no Arabic letters");
+ok(staleLines(over).join() === staleLines(over, "ar").join(), "Arabic stays the default");
+
 if (failed) {
   console.error(`\n${failed} check(s) failed`);
   process.exit(1);

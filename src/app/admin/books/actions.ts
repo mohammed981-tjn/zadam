@@ -32,7 +32,7 @@ export async function proposeFee(fd: FormData) {
     },
     ledgerToday(),
   );
-  if (!parsed.ok) done("error", feeFormMessage(parsed.error));
+  if (!parsed.ok) done("error", feeFormMessage(parsed.error, locale));
   const a = parsed.args;
   const { error } = await supabase.rpc("ledger_fee_propose", {
     p_payer: a.payer,
