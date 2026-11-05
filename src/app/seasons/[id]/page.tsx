@@ -33,6 +33,9 @@ import StageEvidenceUpload from "@/components/StageEvidence";
 import YieldBenchmark from "@/components/YieldBenchmark";
 import OfflineForm from "@/components/OfflineForm";
 import { revalueOpenPounds } from "@/lib/fxRevalue";
+import { boursePriceFor, standingCropValue } from "@/lib/cropValue";
+import { loadCropMarkets } from "@/lib/marketData";
+import { currentMarketPrices } from "@/lib/livePrices";
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
@@ -124,6 +127,22 @@ export default async function SeasonPage({
         Number(suggested.rate),
       )
     : null;
+  // قرار المالك (6 نوفمبر): قيمة المحصول القائم تقديراً، تُعرض لصاحب الموسم ولا تُقيَّد في الدفتر.
+  const [cropMarkets, bourse] =
+    isOwner && season.status === "active" ? await Promise.all([loadCropMarkets(), currentMarketPrices()]) : [null, null];
+  const cropMarket = cropMarkets?.[season.crop_key] ?? null;
+  const boursePrice = bourse ? boursePriceFor(season.crop_key, bourse.series) : null;
+  const cropValue = cropMarket
+    ? standingCropValue({
+        feddans: Number(season.feddans),
+        sudanKgPerHa: cropMarket.sudanKgPerHa,
+        yieldYear: cropMarket.year,
+        bourse: boursePrice,
+        faostat: { usdPerTonne: cropMarket.usdPerTonne, basis: cropMarket.priceBasis, year: cropMarket.year },
+        poundsPerDollar: suggested ? Number(suggested.rate) : null,
+      })
+    : null;
+  const bourseMarket = boursePrice && bourse ? bourse.markets[boursePrice.market] : null;
   const recent = [...ledger]
     .sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.created_at.localeCompare(a.created_at))
     .slice(0, 8);
@@ -285,6 +304,50 @@ export default async function SeasonPage({
           </div>
         ))}
       </div>
+
+      {cropValue && (
+        <section className="mt-6 rounded-2xl border border-border bg-card p-4">
+          <h2 className="mb-1 font-bold">{t("قيمة محصولك القائم — تقدير", "Your standing crop — an estimate")}</h2>
+          <p className="text-2xl font-black">
+            {cropValue.usd != null && `$${n0(cropValue.usd)}`}
+            {cropValue.usd != null && cropValue.pounds != null && " · "}
+            {cropValue.pounds != null && `${n0(cropValue.pounds)} ${t("جنيه", "SDG")}`}
+          </p>
+          <p className="mt-2 text-sm text-muted">
+            {t(
+              `نحو ${n0(cropValue.kg)} كجم: ${n0(cropValue.kgPerFeddan)} كجم للفدان، وهو متوسّط غلّة السودان (FAOSTAT${cropValue.yieldYear ? ` ${cropValue.yieldYear}` : ""})، × ${season.feddans} فدان.`,
+              `About ${n0(cropValue.kg)} kg: ${n0(cropValue.kgPerFeddan)} kg a feddan, Sudan's average yield (FAOSTAT${cropValue.yieldYear ? ` ${cropValue.yieldYear}` : ""}), × ${season.feddans} feddans.`,
+            )}{" "}
+            {cropValue.basis === "bourse" && boursePrice
+              ? t(
+                  `بسعر ${bourseMarket?.bourse_ar ?? boursePrice.market} يوم ${boursePrice.date}: ${n0(boursePrice.poundsPerKg)} جنيه للكيلو.`,
+                  `At the ${bourseMarket?.bourse_en ?? boursePrice.market} price of ${boursePrice.date}: ${n0(boursePrice.poundsPerKg)} pounds a kg.`,
+                )
+              : cropValue.basis === "sudan_export"
+                ? t(
+                    `بسعر صادر السودان لهذا المحصول (FAOSTAT ${cropValue.priceWhen}).`,
+                    `At Sudan's export price for this crop (FAOSTAT ${cropValue.priceWhen}).`,
+                  )
+                : t(
+                    `بسعر المنتج في بلدٍ مجاور (FAOSTAT ${cropValue.priceWhen})، فلا سعر سودانيّاً منشوراً لهذا المحصول.`,
+                    `At a neighbouring country's producer price (FAOSTAT ${cropValue.priceWhen}): no Sudanese price is published for this crop.`,
+                  )}
+            {suggested
+              ? " " +
+                t(
+                  `والتحويل بسعر الموازي ${n0(Number(suggested.rate))} جنيه للدولار (${suggested.rate_date}).`,
+                  `Converted at the parallel rate, ${n0(Number(suggested.rate))} pounds a dollar (${suggested.rate_date}).`,
+                )
+              : ""}
+          </p>
+          <p className="mt-2 text-xs text-muted">
+            {t(
+              "تقديرٌ يُعرض ولا يُكتب في الدفتر: الدفتر يبقى بالتكلفة، وقيمة المحصول تُقيَّد يوم البيع. غلّتك الحقيقيّة وسعر يوم البيع قد يختلفان كثيراً.",
+              "Shown, never written to the books: the books stay at cost, and the crop is valued on the day it is sold. Your real yield and the sale-day price can differ a lot.",
+            )}
+          </p>
+        </section>
+      )}
 
       {/* البند ١٦٥: التكلفة والهامش لكلّ فدان، بجانب الخطّة. */}
       {summary.costs > 0 && (
