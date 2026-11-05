@@ -368,6 +368,55 @@ export function summariseLedger(
   };
 }
 
+/** One stage of the plan against what was spent on it (backlog 190: the budget against the actual). */
+export interface StageVariance {
+  stageId: string;
+  planned: number;
+  spent: number;
+  /** planned − spent: what is left, or below zero what was spent over the plan. */
+  left: number;
+  /** spent ÷ planned, 0–1 and uncapped above; null when the stage had no budget. */
+  used: number | null;
+}
+
+export interface BudgetVsActual {
+  stages: StageVariance[];
+  /** Costs not tied to any stage of this season, or tied to a stage it does not have. */
+  unassigned: number;
+  planned: number;
+  spent: number;
+}
+
+/**
+ * The plan's budget, stage by stage, against the costs recorded for each stage. A cost names its stage when the farmer
+ * chose one; any other cost (none chosen, or a stage that is not this season's) is counted apart, never spread over the
+ * stages by a guess. Revenue is not a cost and is not counted.
+ */
+export function budgetVsActual(
+  stages: { id: string; budget: number }[],
+  entries: { stage_id: string | null; category: LedgerCategory; amount: number }[],
+): BudgetVsActual {
+  const spentBy = new Map<string, number>();
+  let unassigned = 0;
+  const own = new Set(stages.map((s) => s.id));
+  for (const e of entries) {
+    if (e.category === "revenue" || !Number.isFinite(e.amount)) continue;
+    if (e.stage_id && own.has(e.stage_id)) spentBy.set(e.stage_id, (spentBy.get(e.stage_id) ?? 0) + e.amount);
+    else unassigned += e.amount;
+  }
+  const rows = stages.map((s) => {
+    const planned = Number.isFinite(s.budget) ? s.budget : 0;
+    const spent = spentBy.get(s.id) ?? 0;
+    return { stageId: s.id, planned, spent, left: planned - spent, used: planned > 0 ? spent / planned : null };
+  });
+  return {
+    stages: rows,
+    unassigned,
+    planned: rows.reduce((n, r) => n + r.planned, 0),
+    spent: rows.reduce((n, r) => n + r.spent, 0) + unassigned,
+  };
+}
+
 /**
  * Decides whether a stage's money may be released.
  *

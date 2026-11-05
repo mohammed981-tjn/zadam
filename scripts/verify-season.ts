@@ -1,6 +1,7 @@
 import {
   planSeason,
   summariseLedger,
+  budgetVsActual,
   disbursementDecision,
   STAGE_TEMPLATES,
   type StageKey,
@@ -253,6 +254,32 @@ ok(
   !disbursementDecision(s3, 99).released,
   "out-of-range index refused, not crashed",
 );
+
+console.log("\n" + "=".repeat(76));
+console.log("The budget against the actual, stage by stage (backlog 190)");
+{
+  const st = [{ id: "a", budget: 100 }, { id: "b", budget: 200 }, { id: "c", budget: 0 }];
+  const v = budgetVsActual(st, [
+    { stage_id: "a", category: "seeds", amount: 60 },
+    { stage_id: "a", category: "labour", amount: 70 },
+    { stage_id: "b", category: "fertiliser", amount: 50 },
+    { stage_id: "b", category: "revenue", amount: 999 },
+    { stage_id: null, category: "transport", amount: 15 },
+    { stage_id: "other-season", category: "other", amount: 5 },
+    { stage_id: "c", category: "other", amount: Number.NaN },
+  ]);
+  const a = v.stages.find((r) => r.stageId === "a")!;
+  const b = v.stages.find((r) => r.stageId === "b")!;
+  const c = v.stages.find((r) => r.stageId === "c")!;
+  ok(a.spent === 130 && a.left === -30 && a.used === 1.3, "a stage spent over its plan shows the overrun (130 of 100: 30 over)");
+  ok(b.spent === 50 && b.left === 150, "revenue is not a cost of its stage");
+  ok(c.spent === 0 && c.used === null, "a stage with no budget has no share used, and an unreadable amount is not counted");
+  ok(v.unassigned === 20, "a cost with no stage, or with another season's stage, is counted apart, not spread by a guess");
+  ok(v.planned === 300 && v.spent === 200, "the totals: planned 300, spent 200 including what has no stage");
+  ok(v.stages.map((r) => r.stageId).join() === "a,b,c", "the stages keep the plan's order");
+  const empty = budgetVsActual([], [{ stage_id: null, category: "seeds", amount: 10 }]);
+  ok(empty.stages.length === 0 && empty.unassigned === 10 && empty.planned === 0, "a season without stages counts every cost apart");
+}
 
 console.log(
   "\n" + (fail === 0 ? "ALL CHECKS PASSED" : `${fail} CHECK(S) FAILED`),

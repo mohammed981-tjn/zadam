@@ -308,8 +308,31 @@ export async function addLedgerEntry(formData: FormData) {
   const today = ledgerToday();
   const entryDate = ledgerEntryDate(str(formData, "entry_date"), today);
 
+  // The stage a cost was for (backlog 190: the budget against the actual), when the farmer chose one. It must be a
+  // stage of this season: the column only checks that the stage exists, so a stage from another season is refused
+  // here rather than counted against a plan it is not part of. Revenue belongs to no stage.
+  const stageChoice = category === "revenue" ? "" : str(formData, "stage_id");
+  let stageId: string | null = null;
+  if (stageChoice) {
+    const { data: stage } = await supabase
+      .from("season_stages")
+      .select("id")
+      .eq("id", stageChoice)
+      .eq("season_id", seasonId)
+      .maybeSingle();
+    if (!stage) {
+      redirect(
+        `/seasons/${seasonId}?error=${encodeURIComponent(
+          t("المرحلة المختارة ليست من مراحل هذا الموسم. لم يُحفظ شيء.", "The chosen stage is not one of this season's. Nothing was saved."),
+        )}`,
+      );
+    }
+    stageId = stageChoice;
+  }
+
   const { error } = await supabase.from("ledger_entries").insert({
     season_id: seasonId,
+    stage_id: stageId,
     category,
     ...parsed.money,
     description: str(formData, "description") || null,
