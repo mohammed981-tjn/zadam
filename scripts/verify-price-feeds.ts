@@ -103,6 +103,30 @@ const parallelLine = (line: string): WpPost => ({
   content: { rendered: `<p>أسعار السوق الموازية اليوم</p><p>${line}</p>` },
 });
 const bankLine = (line: string): WpPost => ({ ...parallelLine(line), content: { rendered: `<p>${line}</p>` } });
+
+console.log("\nThe parallel market — «N جنيه للشراء وN جنيه للبيع» (5 November 2026: المندرة نيوز, السودان اليوم)");
+const mndra = readParallelMarket(fixture("almndranews-94492.json"));
+eq(mndra && { date: mndra.date, buy: mndra.buy, sell: mndra.sell }, { date: "2026-11-03", buy: 10300, sell: 10500 },
+  "«سجل الدولار الأمريكي 10300 جنيه للشراء و10500 جنيه للبيع»");
+const mndraCompared = readParallelMarket(fixture("almndranews-94193.json"));
+eq(mndraCompared && { date: mndraCompared.date, buy: mndraCompared.buy, sell: mndraCompared.sell }, { date: "2026-10-28", buy: 10100, sell: 10400 },
+  "«رصد للدولار 10100 للشراء و10400 للبيع، مقارنة بـ9600… و9800…» — today's figures, not the day before's");
+eq(readParallelMarket(fixture("almndranews-94359.json")), null, "a review of the whole month gives no day's figure");
+const youm = readParallelMarket(fixture("alsudanalyoum-89860.json"));
+eq(youm && { date: youm.date, buy: youm.buy, sell: youm.sell }, { date: "2026-11-01", buy: 9535, sell: 10120 },
+  "«وسجل الدولار الأمريكي 9,535 جنيهاً للشراء و10,120 جنيهاً للبيع» — the riyal after it is not taken");
+eq(readBank(fixture("almndranews-94492.json")), null, "the parallel market's article is not the Bank of Khartoum's");
+for (const [line, why] of [
+  ["وكان الدولار قد سجل مساء الخميس 10300 جنيه للشراء و10500 جنيه للبيع", "an earlier day («كان … قد سجل»)"],
+  ["ولم يكن مسار الصعود منتظماً، فقد بلغ الدولار في 8 أكتوبر 8700 جنيه للشراء و8863.01 جنيه للبيع", "a date in the month («في 8 أكتوبر»)"],
+  ["ارتفع سعر بيع الدولار الرقمي 9,970 جنيهاً للشراء و10,570 جنيهاً للبيع", "the digital dollar"],
+  ["بلغ الريال السعودي 2558.09 جنيه للشراء و2611.38 جنيه للبيع", "the riyal"],
+] as const) {
+  eq(readParallelMarket(parallelLine(line)), null, `not taken: ${why}`);
+}
+const evening = readParallelMarket(parallelLine("إذ سجل الدولار مساء الجمعة 10300 جنيه للشراء و10500 جنيه للبيع"));
+eq(evening && { buy: evening.buy, sell: evening.sell }, { buy: 10300, sell: 10500 }, "the time of the reading («مساء الجمعة») between the dollar and its figures is allowed");
+
 eq(readParallelMarket(parallelLine("بلغ سعر شراء الدولار 9,600 جنيه، فيما بلغ سعر شراء اليورو 10,900 جنيه وسعر بيع 11,300 جنيه")), null,
   "C3: the euro's selling price is not the dollar's");
 eq(readParallelMarket(parallelLine("بلغ سعر بيع الدولار 10,250 جنيه وسعر بيع الريال 2,700 جنيه، مقابل 9,670 جنيه للشراء")), null,

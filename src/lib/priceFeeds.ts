@@ -276,6 +276,15 @@ const PARALLEL_SELL_FIRST = new RegExp(
   "u",
 );
 
+// «سجل الدولار الأمريكي 10300 جنيه للشراء و10500 جنيه للبيع» (المندرة نيوز والسودان اليوم، أكتوبر–نوفمبر 2026):
+// الدولار، ثمّ رقمٌ «للشراء» ورقمٌ «للبيع». لا يُقبل بين «الدولار» والرقم إلا نعتُه ووقتُ الرصد («مساء الجمعة»)، فلا تُقرأ
+// «وكان الدولار قد سجل مساء الخميس…» (يومٌ سابق) ولا «بلغ الدولار في 8 أكتوبر…» (شهرٌ مضى) ولا «مقارنة بـ9600 جنيه
+// للشراء…» ولا «الدولار الرقمي» ولا «الدولار في البنك الأهلي».
+const PARALLEL_FOR_EACH = new RegExp(
+  String.raw`(?:ال|لل)دولار(?:\s+(?:الأمريكي|الامريكي|الأميركي|الاميركي))?(?:\s+(?:مساء|صباح|ظهر)\s+(?:يوم\s+)?(?:ال)?(?:سبت|أحد|احد|اثنين|إثنين|ثلاثاء|أربعاء|اربعاء|خميس|جمعة))?(?:\s+(?:عند|نحو))?\s+(${NUMBER})${SCALE}\s*جنيه[^\s،,.]*\s+للشراء\s*و\s*(${NUMBER})${SCALE}\s*جنيه[^\s،,.]*\s+للبيع`,
+  "u",
+);
+
 /**
  * The parallel market's dollar: a sentence naming «الموازي/الموازية» or the
  * one after it, never a sentence naming a bank — the bank's figures sit in the
@@ -287,10 +296,10 @@ export function readParallelMarket(post: WpPost): FxQuote | null {
     if (!/الموازي/u.test(lines[i])) continue;
     for (const line of lines.slice(i, i + 3)) {
       if (/بنك/u.test(line)) continue;
-      const m = line.match(PARALLEL_SENTENCE);
+      const m = line.match(PARALLEL_SENTENCE) ?? line.match(PARALLEL_FOR_EACH);
       const s = m ? null : line.match(PARALLEL_SELL_FIRST);
       if (!m && !s) continue;
-      // The first sentence gives the buying price first; the second gives the selling price first.
+      // The first two give the buying price first; the third gives the selling price first.
       const buy = m ? amount(m[1], m[2]) : amount(s![3], s![4]);
       const sell = m ? amount(m[3], m[4]) : amount(s![1], s![2]);
       if (buy === null || sell === null) continue;
