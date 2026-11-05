@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminGuard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { dbText } from "@/lib/dbText";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export interface IssueResult {
   ok: boolean;
@@ -25,22 +27,30 @@ function temporaryPassword(): string {
  */
 export async function issueTemporaryPassword(_prev: IssueResult | null, fd: FormData): Promise<IssueResult> {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const id = String(fd.get("id") ?? "");
   if (fd.get("called") !== "on") {
-    return { ok: false, message: "اتّصل بالرقم المسجَّل في الحساب أوّلاً، وتأكّد أنّ من يجيب صاحبه." };
+    return {
+      ok: false,
+      message: t(
+        "اتّصل بالرقم المسجَّل في الحساب أوّلاً، وتأكّد أنّ من يجيب صاحبه.",
+        "Call the number registered on the account first, and make sure the person who answers owns it.",
+      ),
+    };
   }
   const { data: rows } = await supabase.rpc("password_reset_pending");
   const request = ((rows ?? []) as { id: string; user_id: string }[]).find((r) => r.id === id);
-  if (!request) return { ok: false, message: "هذا الطلب أُغلق من قبل." };
+  if (!request) return { ok: false, message: t("هذا الطلب أُغلق من قبل.", "This request was already closed.") };
 
   const admin = createAdminClient();
-  if (!admin) return { ok: false, message: "مفتاح الخادم غير مضبوط على هذا النشر." };
+  if (!admin) return { ok: false, message: t("مفتاح الخادم غير مضبوط على هذا النشر.", "The server key is not set on this deployment.") };
   const password = temporaryPassword();
   const { error } = await admin.auth.admin.updateUserById(request.user_id, {
     password,
     user_metadata: { must_change_password: true },
   });
-  if (error) return { ok: false, message: `تعذّر وضع الكلمة: ${await dbText(error.message)}` };
+  if (error) return { ok: false, message: `${t("تعذّر وضع الكلمة", "Could not set the password")}: ${await dbText(error.message)}` };
 
   const { error: closeError } = await supabase.rpc("password_reset_close", { p_id: id, p_reset: true, p_note: null });
   revalidatePath("/admin/resets");
@@ -48,8 +58,14 @@ export async function issueTemporaryPassword(_prev: IssueResult | null, fd: Form
     ok: true,
     password,
     message: closeError
-      ? "وُضعت الكلمة، لكن تعذّر إغلاق الطلب؛ أغلقه بعد قليل."
-      : "وُضعت الكلمة. اقرأها له الآن؛ لن تظهر مرّةً ثانية، وسيُطلب منه أن يغيّرها حين يدخل.",
+      ? t(
+          "وُضعت الكلمة، لكن تعذّر إغلاق الطلب؛ أغلقه بعد قليل.",
+          "The password is set, but the request could not be closed; close it in a moment.",
+        )
+      : t(
+          "وُضعت الكلمة. اقرأها له الآن؛ لن تظهر مرّةً ثانية، وسيُطلب منه أن يغيّرها حين يدخل.",
+          "The password is set. Read it out to them now; it will not be shown again, and they will be asked to change it when they sign in.",
+        ),
   };
 }
 
@@ -62,5 +78,5 @@ export async function refuseReset(_prev: IssueResult | null, fd: FormData): Prom
   });
   revalidatePath("/admin/resets");
   if (error) return { ok: false, message: await dbText(error.message) };
-  return { ok: true, message: "أُغلق الطلب بسببه." };
+  return { ok: true, message: tr(await getLocale(), "أُغلق الطلب بسببه.", "Request closed, with its reason.") };
 }

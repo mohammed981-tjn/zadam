@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * «المسجَّلون» (البند ١٥٤): من سجّل في سوداقري ومتى وبأيّ طريقة، للمدير وحده.
@@ -35,11 +37,13 @@ type Summary = Record<
 const PAGE = 50;
 
 const WAY: Record<string, string> = { phone: "جوّال", email: "بريد", google: "Google", facebook: "Facebook" };
+const WAY_EN: Record<string, string> = { phone: "Phone", email: "Email", google: "Google", facebook: "Facebook" };
 const SIDE: Record<string, string> = { farmer: "🌾 أرضي", investor: "📈 استثماري", admin: "مدير", field_agent: "مندوب" };
+const SIDE_EN: Record<string, string> = { farmer: "🌾 Land", investor: "📈 Investor", admin: "Admin", field_agent: "Field agent" };
 
-const when = (iso: string | null) =>
+const when = (iso: string | null, locale: Locale) =>
   iso
-    ? new Date(iso).toLocaleString("ar-EG", { timeZone: "Africa/Khartoum", dateStyle: "medium", timeStyle: "short" })
+    ? new Date(iso).toLocaleString(locale === "en" ? "en-GB" : "ar-EG", { timeZone: "Africa/Khartoum", dateStyle: "medium", timeStyle: "short" })
     : "—";
 
 export default async function UsersPage({
@@ -60,6 +64,11 @@ export default async function UsersPage({
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/dashboard");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const way = locale === "en" ? WAY_EN : WAY;
+  const side = locale === "en" ? SIDE_EN : SIDE;
+
   const [{ data: summary }, { data: rows, error }] = await Promise.all([
     supabase.rpc("admin_users_summary"),
     supabase.rpc("admin_users_list", { p_limit: PAGE, p_offset: (page - 1) * PAGE, p_q: q || null }),
@@ -69,31 +78,34 @@ export default async function UsersPage({
   const link = (p: number) => `/admin/users?${new URLSearchParams({ ...(q ? { q } : {}), page: String(p) })}`;
 
   const counters: [string, number | undefined][] = [
-    ["كلّ المسجَّلين", s?.total],
-    ["اليوم", s?.today],
-    ["آخر ٧ أيّام", s?.week],
-    ["آخر ٣٠ يوماً", s?.month],
-    ["بالجوّال", s?.phone],
-    ["ببريد", s?.email],
-    ["دخلوا بـGoogle", s?.google],
-    ["دخلوا بـFacebook", s?.facebook],
-    ["🌾 أرضي", s?.farmers],
-    ["📈 استثماري", s?.investors],
-    ["بريدٌ لم يُؤكَّد", s?.unconfirmed],
+    [t("كلّ المسجَّلين", "All sign-ups"), s?.total],
+    [t("اليوم", "Today"), s?.today],
+    [t("آخر ٧ أيّام", "Last 7 days"), s?.week],
+    [t("آخر ٣٠ يوماً", "Last 30 days"), s?.month],
+    [t("بالجوّال", "By phone"), s?.phone],
+    [t("ببريد", "By email"), s?.email],
+    [t("دخلوا بـGoogle", "Via Google"), s?.google],
+    [t("دخلوا بـFacebook", "Via Facebook"), s?.facebook],
+    [t("🌾 أرضي", "🌾 Land"), s?.farmers],
+    [t("📈 استثماري", "📈 Investor"), s?.investors],
+    [t("بريدٌ لم يُؤكَّد", "Email not confirmed"), s?.unconfirmed],
   ];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">المسجَّلون</h1>
+        <h1 className="text-2xl font-bold">{t("المسجَّلون", "Sign-ups")}</h1>
         <Link href="/admin" className="text-sm text-primary underline">
-          العودة للوحة الإدارة
+          {t("العودة للوحة الإدارة", "Back to the admin dashboard")}
         </Link>
       </div>
 
       {error && (
         <p className="mb-4 rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm">
-          تعذّر قراءة القائمة. إن كنتَ مديراً فالدالّتان `admin_users_list` و`admin_users_summary` تنتظران التطبيق على القاعدة.
+          {t(
+            "تعذّر قراءة القائمة. إن كنتَ مديراً فالدالّتان `admin_users_list` و`admin_users_summary` تنتظران التطبيق على القاعدة.",
+            "Could not read the list. If you are an administrator, the functions `admin_users_list` and `admin_users_summary` are waiting to be applied to the database.",
+          )}
         </p>
       )}
 
@@ -110,16 +122,16 @@ export default async function UsersPage({
         <input
           name="q"
           defaultValue={q}
-          placeholder="ابحث بالاسم أو الجوّال أو البريد"
+          placeholder={t("ابحث بالاسم أو الجوّال أو البريد", "Search by name, phone or email")}
           className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm"
         />
         <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white">
-          بحث
+          {t("بحث", "Search")}
         </button>
       </form>
 
       {list.length === 0 ? (
-        <p className="text-sm text-muted">{q ? "لا نتيجة لهذا البحث." : "لا مسجَّلين بعد."}</p>
+        <p className="text-sm text-muted">{q ? t("لا نتيجة لهذا البحث.", "No results for this search.") : t("لا مسجَّلين بعد.", "No sign-ups yet.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {list.map((r) => (
@@ -127,30 +139,30 @@ export default async function UsersPage({
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-semibold">{r.full_name}</p>
-                  <p className="break-all text-sm text-muted" dir="ltr" style={{ textAlign: "right" }}>
+                  <p className="break-all text-sm text-muted" dir="ltr" style={{ textAlign: locale === "en" ? "left" : "right" }}>
                     {r.phone ?? r.email ?? "—"}
                     {r.phone && r.email ? ` · ${r.email}` : ""}
                   </p>
                 </div>
                 <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                  {SIDE[r.role ?? ""] ?? r.role ?? "—"}
+                  {side[r.role ?? ""] ?? r.role ?? "—"}
                 </span>
               </div>
               <p className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 {(r.ways ?? []).map((w) => (
                   <span key={w} className="rounded-full border border-border px-2 py-0.5">
-                    {WAY[w] ?? w}
+                    {way[w] ?? w}
                   </span>
                 ))}
                 {!r.confirmed && (
-                  <span className="rounded-full border border-accent/50 bg-accent/10 px-2 py-0.5">بريدٌ لم يُؤكَّد</span>
+                  <span className="rounded-full border border-accent/50 bg-accent/10 px-2 py-0.5">{t("بريدٌ لم يُؤكَّد", "Email not confirmed")}</span>
                 )}
                 <span className="text-muted">
-                  أراضٍ {r.lands} · فرص {r.projects} · مواسم {r.seasons}
+                  {t("أراضٍ", "Lands")} {r.lands} · {t("فرص", "Opportunities")} {r.projects} · {t("مواسم", "Seasons")} {r.seasons}
                 </span>
               </p>
               <p className="mt-1 text-xs text-muted">
-                سجّل: {when(r.created_at)} · آخر دخول: {when(r.last_sign_in_at)}
+                {t("سجّل:", "Signed up:")} {when(r.created_at, locale)} · {t("آخر دخول:", "Last sign-in:")} {when(r.last_sign_in_at, locale)}
               </p>
             </li>
           ))}
@@ -160,14 +172,14 @@ export default async function UsersPage({
       <nav className="mt-6 flex items-center justify-between text-sm">
         {page > 1 ? (
           <Link href={link(page - 1)} className="text-primary underline">
-            السابق
+            {t("السابق", "Previous")}
           </Link>
         ) : (
           <span />
         )}
         {list.length === PAGE ? (
           <Link href={link(page + 1)} className="text-primary underline">
-            التالي
+            {t("التالي", "Next")}
           </Link>
         ) : (
           <span />

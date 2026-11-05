@@ -3,6 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminGuard";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
+
+async function translator() {
+  const locale = await getLocale();
+  return (ar: string, en: string) => tr(locale, ar, en);
+}
 
 function slugify(name: string) {
   return (
@@ -47,6 +54,7 @@ export async function createProject(formData: FormData) {
 
 export async function updateProjectStatus(formData: FormData) {
   const { supabase } = await requireAdmin();
+  const t = await translator();
 
   const projectId = String(formData.get("project_id") ?? "");
   const status = String(formData.get("status") ?? "");
@@ -69,7 +77,7 @@ export async function updateProjectStatus(formData: FormData) {
     console.error("updateProjectStatus failed", error);
     redirect(
       `/admin/projects/${projectId}?error=${encodeURIComponent(
-        "تعذّر تحديث حالة المشروع.",
+        t("تعذّر تحديث حالة المشروع.", "Could not update the project's status."),
       )}`,
     );
   }
@@ -78,7 +86,10 @@ export async function updateProjectStatus(formData: FormData) {
     console.error("updateProjectStatus: no row updated", { projectId });
     redirect(
       `/admin/projects/${projectId}?error=${encodeURIComponent(
-        "لم يتغيّر شيء — المشروع غير موجود أو لا تملك صلاحية تعديله.",
+        t(
+          "لم يتغيّر شيء — المشروع غير موجود أو لا تملك صلاحية تعديله.",
+          "Nothing changed — the project does not exist, or you may not edit it.",
+        ),
       )}`,
     );
   }
@@ -90,6 +101,7 @@ export async function updateProjectStatus(formData: FormData) {
 
 export async function addProjectUpdate(formData: FormData) {
   const { supabase, user } = await requireAdmin();
+  const t = await translator();
 
   const projectId = String(formData.get("project_id") ?? "");
   const { error } = await supabase.from("project_updates").insert({
@@ -105,7 +117,7 @@ export async function addProjectUpdate(formData: FormData) {
     console.error("addProjectUpdate failed", error);
     redirect(
       `/admin/projects/${projectId}?error=${encodeURIComponent(
-        "تعذّر نشر التقرير.",
+        t("تعذّر نشر التقرير.", "Could not publish the report."),
       )}`,
     );
   }
@@ -116,6 +128,7 @@ export async function addProjectUpdate(formData: FormData) {
 
 export async function confirmInvestment(formData: FormData) {
   const { supabase } = await requireAdmin();
+  const t = await translator();
   const investmentId = String(formData.get("investment_id") ?? "");
   const projectId = String(formData.get("project_id") ?? "");
 
@@ -142,7 +155,10 @@ export async function confirmInvestment(formData: FormData) {
     console.error("confirm_investment failed", { investmentId, error });
     redirect(
       `/admin/projects/${projectId}?error=${encodeURIComponent(
-        "تعذّر تأكيد الاستثمار. راجع سجل الخادم للسبب.",
+        t(
+          "تعذّر تأكيد الاستثمار. راجع سجل الخادم للسبب.",
+          "Could not confirm the investment. Check the server log for the reason.",
+        ),
       )}`,
     );
   }
@@ -155,19 +171,28 @@ export async function confirmInvestment(formData: FormData) {
    * reading is "it did not happen".
    */
   const outcomes: Record<string, string> = {
-    not_found: "لم أجد هذا الاستثمار. لعلّه حُذف.",
-    not_pending:
+    not_found: t("لم أجد هذا الاستثمار. لعلّه حُذف.", "This investment was not found. It may have been deleted."),
+    not_pending: t(
       "هذا الاستثمار غير معلّق — أُكِّد أو أُلغي من قبل. لم يتغيّر شيء.",
-    over_allocated:
+      "This investment is not pending — it was already confirmed or cancelled. Nothing changed.",
+    ),
+    over_allocated: t(
       "الحصص المتبقّية في المشروع أقلّ ممّا يطلبه هذا الاستثمار. لم يتغيّر شيء.",
-    not_open:
+      "The project has fewer shares left than this investment asks for. Nothing changed.",
+    ),
+    not_open: t(
       "المشروع غير مفتوحٍ للاستثمار (تجريبيّ أو مسوّدة). لم يتغيّر شيء.",
+      "The project is not open for investment (demo or draft). Nothing changed.",
+    ),
   };
 
   if (data !== "confirmed") {
     const message =
       outcomes[String(data)] ??
-      "لم يُؤكَّد الاستثمار، ولم يتغيّر شيء. راجع سجل الخادم.";
+      t(
+        "لم يُؤكَّد الاستثمار، ولم يتغيّر شيء. راجع سجل الخادم.",
+        "The investment was not confirmed, and nothing changed. Check the server log.",
+      );
     console.error("confirm_investment refused", { investmentId, outcome: data });
     redirect(
       `/admin/projects/${projectId}?error=${encodeURIComponent(message)}`,

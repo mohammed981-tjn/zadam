@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminGuard";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
+import { dbMessage } from "@/lib/dbMessages";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -15,10 +18,10 @@ const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
  * refusal, which describes the schema to whoever asked. Those get a fixed
  * string and the detail goes to the log.
  */
-function providerError(error: { code?: string; message: string }) {
-  if (error.code === "P0001") return error.message;
+function providerError(error: { code?: string; message: string }, locale: Locale) {
+  if (error.code === "P0001") return locale === "en" ? dbMessage(error.message, locale) : error.message;
   console.error("provider action failed", error);
-  return "تعذّر تنفيذ العملية. حاول مرة أخرى.";
+  return tr(locale, "تعذّر تنفيذ العملية. حاول مرة أخرى.", "The action failed. Please try again.");
 }
 
 /**
@@ -39,6 +42,8 @@ function providerError(error: { code?: string; message: string }) {
  */
 export async function verifyProvider(formData: FormData) {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const id = str(formData, "provider_id");
   if (!id) redirect("/admin/providers");
 
@@ -52,21 +57,27 @@ export async function verifyProvider(formData: FormData) {
   revalidatePath("/services");
 
   if (error) {
-    redirect(`/admin/providers?error=${encodeURIComponent(providerError(error))}`);
+    redirect(`/admin/providers?error=${encodeURIComponent(providerError(error, locale))}`);
   }
 
   if (!data || data.length === 0) {
     console.error("verifyProvider: no row updated", { id });
     redirect(
       `/admin/providers?error=${encodeURIComponent(
-        "لم يتغيّر شيء — الجهة غير موجودة أو لا تملك صلاحية توثيقها.",
+        t(
+          "لم يتغيّر شيء — الجهة غير موجودة أو لا تملك صلاحية توثيقها.",
+          "Nothing changed — the provider does not exist, or you may not verify it.",
+        ),
       )}`,
     );
   }
 
   redirect(
     `/admin/providers?message=${encodeURIComponent(
-      "تم توثيق الجهة. ظهرت الآن في الكتالوج ويمكن التعاقد معها.",
+      t(
+        "تم توثيق الجهة. ظهرت الآن في الكتالوج ويمكن التعاقد معها.",
+        "Provider verified. It now appears in the catalogue and can be contracted.",
+      ),
     )}`,
   );
 }
@@ -81,6 +92,8 @@ export async function verifyProvider(formData: FormData) {
  */
 export async function unverifyProvider(formData: FormData) {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const id = str(formData, "provider_id");
   if (!id) redirect("/admin/providers");
 
@@ -94,21 +107,27 @@ export async function unverifyProvider(formData: FormData) {
   revalidatePath("/services");
 
   if (error) {
-    redirect(`/admin/providers?error=${encodeURIComponent(providerError(error))}`);
+    redirect(`/admin/providers?error=${encodeURIComponent(providerError(error, locale))}`);
   }
 
   if (!data || data.length === 0) {
     console.error("unverifyProvider: no row updated", { id });
     redirect(
       `/admin/providers?error=${encodeURIComponent(
-        "لم يتغيّر شيء — الجهة غير موجودة أو لا تملك صلاحية تعديلها.",
+        t(
+          "لم يتغيّر شيء — الجهة غير موجودة أو لا تملك صلاحية تعديلها.",
+          "Nothing changed — the provider does not exist, or you may not edit it.",
+        ),
       )}`,
     );
   }
 
   redirect(
     `/admin/providers?message=${encodeURIComponent(
-      "سُحب التوثيق. لم تعد الجهة في الكتالوج، والعقود القائمة كما هي.",
+      t(
+        "سُحب التوثيق. لم تعد الجهة في الكتالوج، والعقود القائمة كما هي.",
+        "Verification withdrawn. The provider is no longer in the catalogue; existing contracts are unchanged.",
+      ),
     )}`,
   );
 }
@@ -124,6 +143,8 @@ export async function unverifyProvider(formData: FormData) {
  */
 export async function setProviderActive(formData: FormData) {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const id = str(formData, "provider_id");
   const active = str(formData, "active") === "true";
   if (!id) redirect("/admin/providers");
@@ -138,21 +159,24 @@ export async function setProviderActive(formData: FormData) {
   revalidatePath("/services");
 
   if (error) {
-    redirect(`/admin/providers?error=${encodeURIComponent(providerError(error))}`);
+    redirect(`/admin/providers?error=${encodeURIComponent(providerError(error, locale))}`);
   }
 
   if (!data || data.length === 0) {
     console.error("setProviderActive: no row updated", { id, active });
     redirect(
       `/admin/providers?error=${encodeURIComponent(
-        "لم يتغيّر شيء — الجهة غير موجودة أو لا تملك صلاحية تعديلها.",
+        t(
+          "لم يتغيّر شيء — الجهة غير موجودة أو لا تملك صلاحية تعديلها.",
+          "Nothing changed — the provider does not exist, or you may not edit it.",
+        ),
       )}`,
     );
   }
 
   redirect(
     `/admin/providers?message=${encodeURIComponent(
-      active ? "أُعيد تفعيل الجهة." : "أُوقفت الجهة مؤقتاً.",
+      active ? t("أُعيد تفعيل الجهة.", "Provider reactivated.") : t("أُوقفت الجهة مؤقتاً.", "Provider suspended."),
     )}`,
   );
 }
