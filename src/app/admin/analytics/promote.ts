@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminGuard";
 import { KNOWLEDGE_TOPICS } from "@/lib/knowledgeTopics";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export interface PromoteResult {
   ok: boolean;
@@ -40,21 +42,26 @@ export async function promoteAnswer(
   formData: FormData,
 ): Promise<PromoteResult> {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const str = (k: string) => String(formData.get(k) ?? "").trim();
 
   const topic = str("topic");
   if (!(KNOWLEDGE_TOPICS as readonly string[]).includes(topic)) {
-    return { ok: false, message: "موضوع غير معروف." };
+    return { ok: false, message: t("موضوع غير معروف.", "Unknown topic.") };
   }
 
   const sourceNote = str("source_note");
   if (!sourceNote) {
     return {
       ok: false,
-      message:
+      message: t(
         "المصدر مطلوب. مُدخلٌ بلا مصدرٍ يجعل المساعد بعد شهرٍ يستشهد بنفسه — " +
-        "اكتب من أين جاءت هذه المعلومة، ولو «مراجعة يدوية من الإدارة».",
+          "اكتب من أين جاءت هذه المعلومة، ولو «مراجعة يدوية من الإدارة».",
+        "A source is required. An entry without one has the assistant citing itself within a month — " +
+          "write where this came from, even just “manual review by the administration”.",
+      ),
     };
   }
 
@@ -83,8 +90,11 @@ export async function promoteAnswer(
   revalidatePath("/knowledge");
   return {
     ok: true,
-    message:
+    message: t(
       "اعتُمد المُدخل ودخل قاعدة المعرفة. احسب متّجهاته من لوحة الإدارة ليجده " +
-      "البحث الدلالي أيضاً.",
+        "البحث الدلالي أيضاً.",
+      "The entry was approved and is now in the knowledge base. Compute its embeddings from the admin panel " +
+        "so semantic search finds it too.",
+    ),
   };
 }

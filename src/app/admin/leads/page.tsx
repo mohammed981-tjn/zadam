@@ -3,11 +3,19 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
 import type { Lead } from "@/types/database";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 const roleLabel: Record<string, string> = {
   investor: "مستثمر",
   farmer: "مزارع",
   other: "أخرى",
+};
+
+const roleLabelEn: Record<string, string> = {
+  investor: "Investor",
+  farmer: "Farmer",
+  other: "Other",
 };
 
 export default async function LeadsPage() {
@@ -24,6 +32,9 @@ export default async function LeadsPage() {
     .single();
   if (profile?.role !== "admin") redirect("/dashboard");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
   const { data: leads } = await supabase
     .from("leads")
     .select("*")
@@ -32,15 +43,18 @@ export default async function LeadsPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">العملاء المحتملون</h1>
+        <h1 className="text-2xl font-bold">{t("العملاء المحتملون", "Leads")}</h1>
         <Link href="/admin" className="text-sm text-primary underline">
-          العودة للوحة الإدارة
+          {t("العودة للوحة الإدارة", "Back to the admin panel")}
         </Link>
       </div>
 
       {!leads || leads.length === 0 ? (
         <p className="text-sm text-muted">
-          لا يوجد عملاء محتملون بعد — تظهر هنا فور تواصل أي زائر عبر المساعد.
+          {t(
+            "لا يوجد عملاء محتملون بعد — تظهر هنا فور تواصل أي زائر عبر المساعد.",
+            "No leads yet — they appear here as soon as a visitor gets in touch through the assistant.",
+          )}
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -55,16 +69,16 @@ export default async function LeadsPage() {
                   <p className="text-sm text-muted">{lead.contact}</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                  {roleLabel[lead.role] ?? lead.role}
+                  {(locale === "en" ? roleLabelEn : roleLabel)[lead.role] ?? lead.role}
                 </span>
               </div>
               {lead.interest && (
                 <p className="mt-2 text-sm text-foreground/80">
-                  الاهتمام: {lead.interest}
+                  {t("الاهتمام:", "Interest:")} {lead.interest}
                 </p>
               )}
               <time className="mt-2 block text-xs text-muted">
-                {new Date(lead.created_at).toLocaleString("ar-EG")}
+                {new Date(lead.created_at).toLocaleString(locale === "en" ? "en-GB" : "ar-EG")}
               </time>
             </li>
           ))}

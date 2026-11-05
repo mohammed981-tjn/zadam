@@ -53,6 +53,12 @@ console.log("\nأ) نموذج الرسم");
   fail({ date: "2026-02-30" }, "date", "ويومٌ ليس في التقويم");
   fail({ rate: "0.5" }, "rate", "وسعرٌ دون الواحد");
   ok(feeFormMessage("rate").includes("فارغاً"), "والرسالة تقول ما يُفعل");
+  const kinds = ["payer", "payer_kind", "kind", "currency", "amount", "date", "rate"] as const;
+  ok(
+    kinds.every((k) => feeFormMessage(k, "en").length > 0 && !/[\u0600-\u06FF]/.test(feeFormMessage(k, "en"))),
+    "وبالإنجليزية لكلّ خطأٍ رسالةٌ بلا حرفٍ عربيّ",
+  );
+  ok(feeFormMessage("rate", "en").includes("blank"), "والإنجليزيّة تقول ما يُفعل أيضاً");
 }
 
 console.log("\nب) خلاصة المطابقة");

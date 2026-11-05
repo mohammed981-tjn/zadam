@@ -5,6 +5,8 @@ import { FEEDBACK_KIND_LABEL, type FeedbackKind } from "@/lib/feedback";
 import type { Feedback, FeedbackStatus } from "@/types/database";
 import { replyToFeedback, deleteFeedback } from "./actions";
 import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
 
 export const metadata = { title: "ملاحظات الزوّار | سوداقري" };
 export const dynamic = "force-dynamic";
@@ -16,8 +18,21 @@ const STATUS_LABEL: Record<FeedbackStatus, string> = {
   declined: "لن يُنفَّذ",
 };
 
-const date = (iso: string) =>
-  new Date(iso).toLocaleString("ar-EG", {
+const STATUS_LABEL_EN: Record<FeedbackStatus, string> = {
+  new: "Under review",
+  planned: "Planned",
+  done: "Done",
+  declined: "Won't be done",
+};
+
+const KIND_LABEL_EN: Record<FeedbackKind, string> = {
+  suggestion: "Suggestion",
+  problem: "Problem",
+  question: "Question",
+};
+
+const date = (iso: string, locale: Locale) =>
+  new Date(iso).toLocaleString(locale === "en" ? "en-GB" : "ar-EG", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -47,6 +62,9 @@ export default async function AdminFeedbackPage({
     .single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
   const [{ data }, { data: contactRows }] = await Promise.all([
     supabase
       .from("feedback")
@@ -67,9 +85,10 @@ export default async function AdminFeedbackPage({
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-10">
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold">ملاحظات الزوّار</h1>
+        <h1 className="text-2xl font-bold">{t("ملاحظات الزوّار", "Visitor feedback")}</h1>
         <p className="text-sm text-muted">
-          {notes.length} ملاحظة · <strong>{unanswered}</strong> بلا ردّ
+          {t(`${notes.length} ملاحظة`, `${notes.length} notes`)} · <strong>{unanswered}</strong>{" "}
+          {t("بلا ردّ", "without a reply")}
         </p>
       </header>
 
@@ -86,9 +105,12 @@ export default async function AdminFeedbackPage({
 
       {notes.length === 0 && (
         <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm leading-relaxed text-muted">
-          لا ملاحظات بعد. النموذج مفتوح للجميع على{" "}
-          <code className="rounded bg-background px-1">/feedback</code> بلا
-          حساب، فأول ملاحظة ستصل بمجرّد أن يزور أحدهم الصفحة.
+          {t("لا ملاحظات بعد. النموذج مفتوح للجميع على", "No feedback yet. The form is open to everyone at")}{" "}
+          <code className="rounded bg-background px-1">/feedback</code>{" "}
+          {t(
+            "بلا حساب، فأول ملاحظة ستصل بمجرّد أن يزور أحدهم الصفحة.",
+            "with no account needed, so the first note will arrive as soon as someone visits the page.",
+          )}
         </p>
       )}
 
@@ -102,10 +124,10 @@ export default async function AdminFeedbackPage({
           >
             <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted">
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">
-                {FEEDBACK_KIND_LABEL[note.kind as FeedbackKind] ?? note.kind}
+                {(locale === "en" ? KIND_LABEL_EN : FEEDBACK_KIND_LABEL)[note.kind as FeedbackKind] ?? note.kind}
               </span>
-              <span>{date(note.created_at)}</span>
-              {note.page_path && <span>من {note.page_path}</span>}
+              <span>{date(note.created_at, locale)}</span>
+              {note.page_path && <span>{t("من", "from")} {note.page_path}</span>}
               {note.display_name && <span>· {note.display_name}</span>}
               {note.contact && (
                 <span className="font-medium text-foreground">
@@ -115,12 +137,12 @@ export default async function AdminFeedbackPage({
               <span>
                 ·{" "}
                 {note.author_id
-                  ? "صاحب حساب — سيصله إشعار بالردّ"
-                  : "زائر مجهول"}
+                  ? t("صاحب حساب — سيصله إشعار بالردّ", "Account holder — will be notified of the reply")
+                  : t("زائر مجهول", "Anonymous visitor")}
               </span>
               {note.published && (
                 <span className="rounded-full bg-emerald-600/10 px-2 py-0.5 text-emerald-800">
-                  منشورة
+                  {t("منشورة", "Published")}
                 </span>
               )}
             </div>
@@ -131,20 +153,20 @@ export default async function AdminFeedbackPage({
               <input type="hidden" name="feedback_id" value={note.id} />
 
               <label className="flex flex-col gap-1 text-sm">
-                الردّ
+                {t("الردّ", "Reply")}
                 <textarea
                   name="admin_reply"
                   rows={3}
                   maxLength={2000}
                   defaultValue={note.admin_reply ?? ""}
-                  placeholder="اتركه فارغاً لمسح الردّ"
+                  placeholder={t("اتركه فارغاً لمسح الردّ", "Leave empty to clear the reply")}
                   className={field}
                 />
               </label>
 
               <div className="flex flex-wrap items-end gap-3">
                 <label className="flex flex-col gap-1 text-sm">
-                  الحالة
+                  {t("الحالة", "Status")}
                   <select
                     name="status"
                     defaultValue={note.status}
@@ -154,7 +176,7 @@ export default async function AdminFeedbackPage({
                       Object.keys(STATUS_LABEL) as FeedbackStatus[]
                     ).map((s) => (
                       <option key={s} value={s}>
-                        {STATUS_LABEL[s]}
+                        {locale === "en" ? STATUS_LABEL_EN[s] : STATUS_LABEL[s]}
                       </option>
                     ))}
                   </select>
@@ -167,14 +189,14 @@ export default async function AdminFeedbackPage({
                     defaultChecked={note.published}
                     className="size-4"
                   />
-                  انشرها للجميع
+                  {t("انشرها للجميع", "Publish for everyone")}
                 </label>
 
                 <button
                   type="submit"
                   className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
                 >
-                  حفظ
+                  {t("حفظ", "Save")}
                 </button>
               </div>
             </form>
@@ -185,7 +207,7 @@ export default async function AdminFeedbackPage({
                 type="submit"
                 className="text-xs text-danger underline"
               >
-                حذف (للرسائل المزعجة)
+                {t("حذف (للرسائل المزعجة)", "Delete (for spam)")}
               </button>
             </form>
           </li>

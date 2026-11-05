@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
 import Explain, { EmptyState } from "@/components/Explain";
-import { SERVICE_KIND_LABEL, SERVICE_UNIT_LABEL, SERVICE_BY_KEY } from "@/lib/services";
+import { serviceKindLabel, serviceUnitLabel, serviceName } from "@/lib/services";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
 import type { ProviderService, ServiceProvider } from "@/types/database";
 import { verifyProvider, unverifyProvider, setProviderActive } from "./actions";
 
@@ -11,8 +13,8 @@ export const metadata = { title: "توثيق مقدّمي الخدمة | سود�
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
-const date = (iso: string) =>
-  new Date(iso).toLocaleDateString("ar-EG", {
+const date = (iso: string, locale: Locale) =>
+  new Date(iso).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -55,16 +57,19 @@ export default async function AdminProvidersPage({
 
   const offers = (offerRows ?? []) as ProviderService[];
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
   const pending = providers.filter((p) => !p.verified_at);
   const verified = providers.filter((p) => p.verified_at);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold">توثيق مقدّمي الخدمة</h1>
+      <h1 className="text-2xl font-bold">{t("توثيق مقدّمي الخدمة", "Verifying service providers")}</h1>
       <p className="mb-6 mt-2 text-sm leading-relaxed text-muted">
         {pending.length === 0
-          ? "لا توجد جهات بانتظار التوثيق."
-          : `${pending.length} جهة بانتظار قرارك.`}
+          ? t("لا توجد جهات بانتظار التوثيق.", "No providers are waiting for verification.")
+          : t(`${pending.length} جهة بانتظار قرارك.`, `${pending.length} provider(s) waiting for your decision.`)}
       </p>
 
       {message && (
@@ -81,17 +86,30 @@ export default async function AdminProvidersPage({
       <Explain tone="why">
         {/* Said once, at the top: this is the only act that opens the catalogue,
             and an admin who does not know that treats it as a formality. */}
-        التوثيق هو ما يُدخل الجهة إلى الكتالوج ويسمح بالتعاقد معها. الجهة غير
-        الموثّقة تستطيع التسجيل وإدراج عروضها، ولا يراها أحد ولا يمكن بناء عقد
-        معها — <strong>فلا خدمة تظهر للمزارعين قبل قرارك هنا</strong>.
+        {locale === "en" ? (
+          <>
+            Verification is what puts a provider into the catalogue and lets it be contracted. An
+            unverified provider can sign up and list its offers, but nobody sees it and no contract
+            can be built with it — <strong>so no service reaches farmers before your decision here</strong>.
+          </>
+        ) : (
+          <>
+            التوثيق هو ما يُدخل الجهة إلى الكتالوج ويسمح بالتعاقد معها. الجهة غير
+            الموثّقة تستطيع التسجيل وإدراج عروضها، ولا يراها أحد ولا يمكن بناء عقد
+            معها — <strong>فلا خدمة تظهر للمزارعين قبل قرارك هنا</strong>.
+          </>
+        )}
       </Explain>
 
       {/* ── بانتظار التوثيق ─────────────────────────────────────────────── */}
-      <h2 className="mb-3 mt-8 text-lg font-bold">بانتظار التوثيق</h2>
+      <h2 className="mb-3 mt-8 text-lg font-bold">{t("بانتظار التوثيق", "Awaiting verification")}</h2>
 
       {pending.length === 0 ? (
-        <EmptyState title="لا شيء ينتظر">
-          كل الجهات المسجّلة تمّت مراجعتها. الجهات الجديدة تظهر هنا فور تسجيلها.
+        <EmptyState title={t("لا شيء ينتظر", "Nothing waiting")}>
+          {t(
+            "كل الجهات المسجّلة تمّت مراجعتها. الجهات الجديدة تظهر هنا فور تسجيلها.",
+            "Every registered provider has been reviewed. New ones appear here as soon as they sign up.",
+          )}
         </EmptyState>
       ) : (
         <ul className="flex flex-col gap-4">
@@ -100,6 +118,7 @@ export default async function AdminProvidersPage({
               key={p.id}
               provider={p}
               offers={offers.filter((o) => o.provider_id === p.id)}
+              locale={locale}
             />
           ))}
         </ul>
@@ -107,11 +126,11 @@ export default async function AdminProvidersPage({
 
       {/* ── الموثّقة ─────────────────────────────────────────────────────── */}
       <h2 className="mb-3 mt-10 text-lg font-bold">
-        الجهات الموثّقة ({verified.length})
+        {t("الجهات الموثّقة", "Verified providers")} ({verified.length})
       </h2>
 
       {verified.length === 0 ? (
-        <p className="text-sm text-muted">لا توجد جهات موثّقة بعد.</p>
+        <p className="text-sm text-muted">{t("لا توجد جهات موثّقة بعد.", "No verified providers yet.")}</p>
       ) : (
         <ul className="flex flex-col gap-4">
           {verified.map((p) => (
@@ -119,6 +138,7 @@ export default async function AdminProvidersPage({
               key={p.id}
               provider={p}
               offers={offers.filter((o) => o.provider_id === p.id)}
+              locale={locale}
             />
           ))}
         </ul>
@@ -126,7 +146,7 @@ export default async function AdminProvidersPage({
 
       <p className="mt-8 text-sm">
         <Link href="/services" className="text-primary underline">
-          عرض الكتالوج كما يراه الزائر ←
+          {t("عرض الكتالوج كما يراه الزائر ←", "See the catalogue as a visitor sees it →")}
         </Link>
       </p>
     </div>
@@ -136,10 +156,13 @@ export default async function AdminProvidersPage({
 function ProviderCard({
   provider,
   offers,
+  locale,
 }: {
   provider: ServiceProvider;
   offers: ProviderService[];
+  locale: Locale;
 }) {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const isVerified = Boolean(provider.verified_at);
 
   return (
@@ -156,16 +179,16 @@ function ProviderCard({
           }`}
         >
           {!provider.active
-            ? "موقوفة"
+            ? t("موقوفة", "Suspended")
             : isVerified
-              ? `موثّقة — ${date(provider.verified_at!)}`
-              : "بانتظار التوثيق"}
+              ? `${t("موثّقة", "Verified")} — ${date(provider.verified_at!, locale)}`
+              : t("بانتظار التوثيق", "Awaiting verification")}
         </span>
       </div>
 
       <p className="mt-1 text-xs text-muted">
-        {SERVICE_KIND_LABEL[provider.kind]}
-        {provider.regions.length > 0 && ` — ${provider.regions.join("، ")}`}
+        {serviceKindLabel(provider.kind, locale)}
+        {provider.regions.length > 0 && ` — ${provider.regions.join(locale === "en" ? ", " : "، ")}`}
         {provider.phone && ` — ${provider.phone}`}
       </p>
 
@@ -178,25 +201,26 @@ function ProviderCard({
           soil test is a different proposition from one listing neither. */}
       <div className="mt-4 border-t border-border pt-3">
         <p className="mb-2 text-xs font-medium">
-          العروض المدرجة ({offers.length})
+          {t("العروض المدرجة", "Listed offers")} ({offers.length})
         </p>
         {offers.length === 0 ? (
           <p className="text-xs text-muted">
-            لم تُدرج أي خدمة بعد. التوثيق ممكن الآن، ولن تظهر في الكتالوج حتى
-            تضيف عرضاً واحداً على الأقل.
+            {t(
+              "لم تُدرج أي خدمة بعد. التوثيق ممكن الآن، ولن تظهر في الكتالوج حتى تضيف عرضاً واحداً على الأقل.",
+              "No service listed yet. It can be verified now, but it will not appear in the catalogue until it adds at least one offer.",
+            )}
           </p>
         ) : (
           <ul className="flex flex-col gap-1 text-xs">
             {offers.map((o) => {
-              const def = SERVICE_BY_KEY[o.service_key];
               return (
                 <li key={o.id} className="flex justify-between gap-2">
                   <span className={o.active ? "" : "text-muted line-through"}>
-                    {def?.name ?? o.service_key}
+                    {serviceName(o.service_key, locale)}
                   </span>
                   <span className="shrink-0">
                     {n0(Number(o.price_per_unit))} /{" "}
-                    {SERVICE_UNIT_LABEL[o.unit]}
+                    {serviceUnitLabel(o.unit, locale)}
                   </span>
                 </li>
               );
@@ -213,7 +237,7 @@ function ProviderCard({
               type="submit"
               className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground"
             >
-              وثّق الجهة
+              {t("وثّق الجهة", "Verify provider")}
             </button>
           </form>
         ) : (
@@ -223,7 +247,7 @@ function ProviderCard({
               type="submit"
               className="rounded-lg border border-border px-4 py-2 text-sm text-muted"
             >
-              اسحب التوثيق
+              {t("اسحب التوثيق", "Withdraw verification")}
             </button>
           </form>
         )}
@@ -243,14 +267,17 @@ function ProviderCard({
                 : "border-primary text-primary"
             }`}
           >
-            {provider.active ? "أوقف مؤقتاً" : "أعد التفعيل"}
+            {provider.active ? t("أوقف مؤقتاً", "Suspend") : t("أعد التفعيل", "Reactivate")}
           </button>
         </form>
       </div>
 
       {isVerified && (
         <p className="mt-3 text-xs text-muted">
-          سحب التوثيق يُخرجها من الكتالوج ولا يمسّ عقودها القائمة.
+          {t(
+            "سحب التوثيق يُخرجها من الكتالوج ولا يمسّ عقودها القائمة.",
+            "Withdrawing verification takes it out of the catalogue and leaves its existing contracts untouched.",
+          )}
         </p>
       )}
     </li>

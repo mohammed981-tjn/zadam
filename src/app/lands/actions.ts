@@ -229,7 +229,7 @@ export async function rejectLand(formData: FormData) {
   // «مرفوضة» بلا كلمة.
   if (note.length < 10) {
     redirect(
-      `/admin/lands?error=${encodeURIComponent("اكتب سبب الردّ — عشرة أحرف على الأقل، فالمزارع يصلح على أساسه.")}`,
+      `/admin/lands?error=${encodeURIComponent(tr(await getLocale(), "اكتب سبب الردّ — عشرة أحرف على الأقل، فالمزارع يصلح على أساسه.", "Write the reason for returning it, at least ten characters: the farmer fixes the land from it."))}`,
     );
   }
 

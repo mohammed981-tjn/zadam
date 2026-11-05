@@ -9,6 +9,8 @@ import { countStale } from "@/lib/backfillEmbeddings";
 import EmbeddingBackfill from "@/components/EmbeddingBackfill";
 import { loadFeedStates, staleLines } from "@/lib/priceFreshness";
 import type { Project } from "@/types/database";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -25,6 +27,9 @@ export default async function AdminPage() {
     .single();
 
   if (profile?.role !== "admin") redirect("/dashboard");
+
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const [{ data: projects }, { data: lastCheck }] = await Promise.all([
     supabase.from("projects").select(MEMBER_COLUMNS.projects).order("created_at", { ascending: false }),
@@ -47,7 +52,7 @@ export default async function AdminPage() {
   const problems = check?.details?.problems ?? [];
   const scheduleStalled = check?.stale === true;
   // GAP-3: a price feed that has gone quiet shows here, not only in a table nobody opens.
-  const stalePrices = staleLines(await loadFeedStates(supabase));
+  const stalePrices = staleLines(await loadFeedStates(supabase), locale);
 
   /*
    * How many knowledge entries are waiting for a vector.
@@ -69,7 +74,7 @@ export default async function AdminPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">لوحة إدارة المشاريع</h1>
+        <h1 className="text-2xl font-bold">{t("لوحة إدارة المشاريع", "Projects admin")}</h1>
         {/* Wraps, because the list of admin screens has outgrown one line on a
             phone — and a row that overflows hides whichever screen was added
             last, which is always the one nobody knows about yet. */}
@@ -78,49 +83,49 @@ export default async function AdminPage() {
             href="/admin/analytics"
             className="text-sm text-primary underline"
           >
-            التحليلات
+            {t("التحليلات", "Analytics")}
           </Link>
           <Link href="/admin/news" className="text-sm text-primary underline">
-            الأخبار
+            {t("الأخبار", "News")}
           </Link>
           <Link href="/admin/review" className="text-sm text-primary underline">
-            مراجعة الفرص
+            {t("مراجعة الفرص", "Opportunity review")}
           </Link>
           <Link href="/admin/leads" className="text-sm text-primary underline">
-            العملاء المحتملون
+            {t("العملاء المحتملون", "Leads")}
           </Link>
           <Link href="/admin/users" className="text-sm text-primary underline">
-            المسجَّلون
+            {t("المسجَّلون", "Sign-ups")}
           </Link>
           <Link href="/admin/oversight" className="text-sm text-primary underline">
-            الرقابة الماليّة
+            {t("الرقابة الماليّة", "Financial oversight")}
           </Link>
           <Link href="/admin/books" className="text-sm text-primary underline">
-            دفتر المنصّة والرسوم
+            {t("دفتر المنصّة والرسوم", "Platform ledger and fees")}
           </Link>
           <Link
             href="/admin/feedback"
             className="text-sm text-primary underline"
           >
-            ملاحظات الزوّار
+            {t("ملاحظات الزوّار", "Visitor feedback")}
           </Link>
           <Link
             href="/admin/suppliers"
             className="text-sm text-primary underline"
           >
-            الموردون والناقلون والبلاغات
+            {t("الموردون والناقلون والبلاغات", "Suppliers, carriers and reports")}
           </Link>
           <Link
             href="/admin/canal-images"
             className="text-sm text-primary underline"
           >
-            صور القناة
+            {t("صور القناة", "Canal images")}
           </Link>
           <Link
             href="/admin/projects/new"
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            + مشروع جديد
+            {t("+ مشروع جديد", "+ New project")}
           </Link>
         </div>
       </div>
@@ -131,12 +136,15 @@ export default async function AdminPage() {
         className="mb-6 flex items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-4 text-primary-foreground shadow-card hover:opacity-95"
       >
         <span>
-          <span className="block text-lg font-black">قائمة المراجعة</span>
+          <span className="block text-lg font-black">{t("قائمة المراجعة", "Review queue")}</span>
           <span className="block text-xs opacity-90">
-            الأراضي والفرص ومقدّمو الخدمة والموردون والشركات والصادر والنفير — في مكانٍ واحد
+            {t(
+              "الأراضي والفرص ومقدّمو الخدمة والموردون والشركات والصادر والنفير — في مكانٍ واحد",
+              "Lands, opportunities, service providers, suppliers, companies, export and nafir — in one place",
+            )}
           </span>
         </span>
-        <span className="text-2xl font-black">←</span>
+        <span className="text-2xl font-black">{locale === "en" ? "→" : "←"}</span>
       </Link>
 
       <section
@@ -147,31 +155,35 @@ export default async function AdminPage() {
         }`}
       >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-medium">حالة المنصة</h2>
+          <h2 className="font-medium">{t("حالة المنصة", "Platform health")}</h2>
           <span className="text-xs text-muted">
             {check
-              ? `آخر فحص: ${new Date(check.checked_at).toLocaleString("ar-EG")}`
-              : "لم يُجرَ أي فحص بعد"}
+              ? `${t("آخر فحص", "Last check")}: ${new Date(check.checked_at).toLocaleString(locale === "en" ? "en-GB" : "ar-EG")}`
+              : t("لم يُجرَ أي فحص بعد", "No check has run yet")}
           </span>
         </div>
 
         {!check && (
           <p className="mt-2 text-sm text-danger">
-            الفحص اليومي لم يعمل ولا مرة. تأكّد من إعداد المهمة المجدولة — بدونها
-            تتوقف قاعدة البيانات المجانية بعد سبعة أيام من عدم النشاط.
+            {t(
+              "الفحص اليومي لم يعمل ولا مرة. تأكّد من إعداد المهمة المجدولة — بدونها تتوقف قاعدة البيانات المجانية بعد سبعة أيام من عدم النشاط.",
+              "The daily check has never run. Make sure the scheduled job is set up — without it the free database pauses after seven days of inactivity.",
+            )}
           </p>
         )}
 
         {scheduleStalled && (
           <p className="mt-2 text-sm text-danger">
-            مضى على آخر فحص أكثر من يومين. المهمة المجدولة توقفت على الأرجح، وهي
-            وحدها ما يمنع إيقاف قاعدة البيانات.
+            {t(
+              "مضى على آخر فحص أكثر من يومين. المهمة المجدولة توقفت على الأرجح، وهي وحدها ما يمنع إيقاف قاعدة البيانات.",
+              "The last check was more than two days ago. The scheduled job has most likely stopped, and it alone keeps the database from being paused.",
+            )}
           </p>
         )}
 
         {check && check.ok && !scheduleStalled && (
           <p className="mt-2 text-sm text-muted">
-            كل الفحوص سليمة، وقاعدة البيانات نشطة.
+            {t("كل الفحوص سليمة، وقاعدة البيانات نشطة.", "All checks pass, and the database is active.")}
           </p>
         )}
 
@@ -191,7 +203,7 @@ export default async function AdminPage() {
               ))}
             </ul>
             <Link href="/admin/prices" className="mt-1 inline-block text-xs text-primary underline">
-              شاشة الأسعار
+              {t("شاشة الأسعار", "Prices screen")}
             </Link>
           </div>
         )}
@@ -202,16 +214,16 @@ export default async function AdminPage() {
       )}
 
       {!projects || projects.length === 0 ? (
-        <p className="text-sm text-muted">لا توجد مشاريع بعد.</p>
+        <p className="text-sm text-muted">{t("لا توجد مشاريع بعد.", "No projects yet.")}</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
-            <thead className="bg-card text-right">
+            <thead className="bg-card text-start">
               <tr>
-                <th className="px-4 py-3">المشروع</th>
-                <th className="px-4 py-3">الحالة</th>
-                <th className="px-4 py-3">التمويل</th>
-                <th className="px-4 py-3">سعر الحصة</th>
+                <th className="px-4 py-3">{t("المشروع", "Project")}</th>
+                <th className="px-4 py-3">{t("الحالة", "Status")}</th>
+                <th className="px-4 py-3">{t("التمويل", "Funding")}</th>
+                <th className="px-4 py-3">{t("سعر الحصة", "Share price")}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -219,19 +231,19 @@ export default async function AdminPage() {
               {(projects as unknown as Project[]).map((project) => (
                 <tr key={project.id} className="border-t border-border">
                   <td className="px-4 py-3 font-medium">{project.name}</td>
-                  <td className="px-4 py-3">{statusLabel(project.status)}</td>
+                  <td className="px-4 py-3">{statusLabel(project.status, locale)}</td>
                   <td className="px-4 py-3">
                     {project.shares_sold}/{project.total_shares}
                   </td>
                   <td className="px-4 py-3">
-                    {formatUsd(project.price_per_share)}
+                    {formatUsd(project.price_per_share, locale)}
                   </td>
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/projects/${project.id}`}
                       className="text-primary underline"
                     >
-                      إدارة
+                      {t("إدارة", "Manage")}
                     </Link>
                   </td>
                 </tr>

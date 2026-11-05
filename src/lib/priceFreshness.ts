@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ageInDays, readFxReference } from "@/lib/fxRates";
 import { readMarketPrices } from "@/lib/marketPrices";
+import type { Locale } from "@/lib/i18n";
 
 /**
  * How fresh the prices shown to visitors are (GAP-3, backlog 163).
@@ -86,7 +87,21 @@ export async function loadFeedStates(supabase: SupabaseClient, now: Date = new D
 }
 
 /** One line per stale feed, for the run's error list and the server log. */
-export function staleLines(states: FeedState[]): string[] {
+export function staleLines(states: FeedState[], locale: Locale = "ar"): string[] {
+  if (locale === "en") {
+    const nameEn: Record<FeedKey, string> = {
+      fx_bank: "Bank of Khartoum rate",
+      fx_parallel: "Parallel market rate",
+      crop_obeid: "El Obeid market bulletin",
+    };
+    return states
+      .filter((s) => s.stale)
+      .map((s) =>
+        s.newest
+          ? `Stale: ${nameEn[s.key]} — latest figure ${s.newest} (${s.ageDays} days, limit ${s.limitDays})`
+          : `Stale: ${nameEn[s.key]} — no published figure`,
+      );
+  }
   const name: Record<FeedKey, string> = {
     fx_bank: "سعر بنك الخرطوم",
     fx_parallel: "سعر السوق الموازي",

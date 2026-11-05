@@ -5,6 +5,8 @@ import { loginHrefHere } from "@/lib/loginHere";
 import { normalizeArabic } from "@/lib/retrieval";
 import type { KnowledgeEntry, Lead } from "@/types/database";
 import PromoteAnswer from "@/components/PromoteAnswer";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 interface QuestionRow {
   id: string;
@@ -43,6 +45,19 @@ const SOURCE_LABEL: Record<string, string> = {
   model: "نموذج لغوي",
   no_engine: "بلا محرّك",
   engine_failed: "أخفقت المحرّكات",
+};
+
+const SOURCE_LABEL_EN: Record<string, string> = {
+  canal: "Canal file",
+  calculator: "FAO-56 calculator",
+  climate: "Weather stations",
+  market: "FAOSTAT",
+  knowledge: "Knowledge base",
+  platform: "Platform status",
+  cache: "Cache",
+  model: "Language model",
+  no_engine: "No engine",
+  engine_failed: "Engines failed",
 };
 
 /** Words that carry no signal when counting what visitors ask about. */
@@ -121,6 +136,10 @@ export default async function AnalyticsPage() {
     .single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const pct = locale === "en" ? "%" : "٪";
+
   const [{ data: questionRows }, { data: leadRows }, { data: kbRows }] =
     await Promise.all([
       supabase
@@ -190,29 +209,31 @@ export default async function AnalyticsPage() {
 
   const cards = [
     {
-      l: "أسئلة مسجّلة",
+      l: t("أسئلة مسجّلة", "Questions logged"),
       v: questions.length,
-      s: `${recentQuestions} خلال أسبوع`,
+      s: t(`${recentQuestions} خلال أسبوع`, `${recentQuestions} in the past week`),
     },
-    { l: "بلا إجابة في القاعدة", v: gaps.length, s: "فجوات معرفية" },
+    { l: t("بلا إجابة في القاعدة", "No match in the base"), v: gaps.length, s: t("فجوات معرفية", "Knowledge gaps") },
     {
-      l: "أُجيب بلا نموذج",
-      v: localShare === null ? "—" : `${localShare}٪`,
+      l: t("أُجيب بلا نموذج", "Answered without a model"),
+      v: localShare === null ? "—" : `${localShare}${pct}`,
       s:
         attributed.length === 0
-          ? "لا قياس بعد"
-          : `من ${attributed.length} سؤالاً مسنداً`,
+          ? t("لا قياس بعد", "Not measured yet")
+          : t(`من ${attributed.length} سؤالاً مسنداً`, `of ${attributed.length} attributed questions`),
     },
-    { l: "عملاء محتملون", v: leads.length, s: `${recentLeads} خلال أسبوع` },
-    { l: "مُدخلات المعرفة", v: kb.length, s: `${cropCounts.size} موضوعاً` },
+    { l: t("عملاء محتملون", "Leads"), v: leads.length, s: t(`${recentLeads} خلال أسبوع`, `${recentLeads} in the past week`) },
+    { l: t("مُدخلات المعرفة", "Knowledge entries"), v: kb.length, s: t(`${cropCounts.size} موضوعاً`, `${cropCounts.size} topics`) },
   ];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold">تحليلات المنصة</h1>
+      <h1 className="text-2xl font-bold">{t("تحليلات المنصة", "Platform analytics")}</h1>
       <p className="mb-8 mt-2 text-sm text-muted">
-        ما يسأل عنه الزوار هو أرخص بحث سوق ممكن — والأسئلة التي عجزت قاعدة
-        المعرفة عن مطابقتها هي قائمة جاهزة بما يجب كتابته تالياً.
+        {t(
+          "ما يسأل عنه الزوار هو أرخص بحث سوق ممكن — والأسئلة التي عجزت قاعدة المعرفة عن مطابقتها هي قائمة جاهزة بما يجب كتابته تالياً.",
+          "What visitors ask is the cheapest market research there is — and the questions the knowledge base could not match are a ready list of what to write next.",
+        )}
       </p>
 
       <div className="grid gap-4 sm:grid-cols-4">
@@ -230,11 +251,12 @@ export default async function AnalyticsPage() {
 
       {sourceRows.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-1 text-lg font-bold">من أجاب، ولكم مرّة</h2>
+          <h2 className="mb-1 text-lg font-bold">{t("من أجاب، ولكم مرّة", "Who answered, and how often")}</h2>
           <p className="mb-4 text-sm leading-relaxed text-muted">
-            كل طبقة فوق «نموذج لغوي» تُجيب بلا كلفة وبلا احتمال هلوسة. وما
-            يصل إلى النموذج هو قائمة ما يستحقّ أن يُبنى له مُجيب — وهذه هي
-            الفائدة العملية من هذا الجدول.
+            {t(
+              "كل طبقة فوق «نموذج لغوي» تُجيب بلا كلفة وبلا احتمال هلوسة. وما يصل إلى النموذج هو قائمة ما يستحقّ أن يُبنى له مُجيب — وهذه هي الفائدة العملية من هذا الجدول.",
+              "Every layer above “Language model” answers at no cost and cannot hallucinate. What reaches the model is the list of what deserves its own answerer — that is the practical use of this table.",
+            )}
           </p>
 
           <ul className="flex flex-col gap-2">
@@ -243,7 +265,7 @@ export default async function AnalyticsPage() {
               return (
                 <li key={src} className="flex items-center gap-3 text-sm">
                   <span className="w-32 shrink-0">
-                    {SOURCE_LABEL[src] ?? src}
+                    {(locale === "en" ? SOURCE_LABEL_EN : SOURCE_LABEL)[src] ?? src}
                   </span>
                   {/* A bar rather than a chart library: one dimension, ten
                       rows, and it has to render inside a server component. */}
@@ -256,7 +278,7 @@ export default async function AnalyticsPage() {
                     />
                   </span>
                   <span className="w-20 shrink-0 text-start text-xs text-muted">
-                    {count} · {share}٪
+                    {count} · {share}{pct}
                   </span>
                 </li>
               );
@@ -265,8 +287,10 @@ export default async function AnalyticsPage() {
 
           {questions.length > attributed.length && (
             <p className="mt-3 text-xs text-muted">
-              و{questions.length - attributed.length} سؤالاً بلا طبقة مسجّلة —
-              سُجّلت قبل إضافة العمود، ولا تُحتسب في النسبة أعلاه.
+              {t(
+                `و${questions.length - attributed.length} سؤالاً بلا طبقة مسجّلة — سُجّلت قبل إضافة العمود، ولا تُحتسب في النسبة أعلاه.`,
+                `And ${questions.length - attributed.length} questions with no recorded layer — logged before the column was added, and not counted in the share above.`,
+              )}
             </p>
           )}
         </section>
@@ -274,16 +298,17 @@ export default async function AnalyticsPage() {
 
       <section className="mt-10">
         <h2 className="mb-1 text-lg font-bold">
-          فجوات قاعدة المعرفة ({gaps.length})
+          {t("فجوات قاعدة المعرفة", "Knowledge base gaps")} ({gaps.length})
         </h2>
         <p className="mb-4 text-sm text-muted">
-          أسئلة لم يجد لها المسترجِع أي مُدخل مطابق. كل سطر هنا مُدخل معرفة
-          ينقصك — ومعه ما أجاب به المساعد، محفوظاً بانتظار أن تراجعه وتنسبه إلى
-          مصدرٍ فيدخل القاعدة.
+          {t(
+            "أسئلة لم يجد لها المسترجِع أي مُدخل مطابق. كل سطر هنا مُدخل معرفة ينقصك — ومعه ما أجاب به المساعد، محفوظاً بانتظار أن تراجعه وتنسبه إلى مصدرٍ فيدخل القاعدة.",
+            "Questions the retriever found no matching entry for. Each line is a knowledge entry you are missing — with what the assistant answered, kept until you review it and attribute it to a source so it enters the base.",
+          )}
         </p>
         {gaps.length === 0 ? (
           <p className="rounded-2xl border border-border bg-card p-5 text-sm text-muted">
-            لا توجد فجوات مسجّلة — كل سؤال حتى الآن وجد ما يطابقه.
+            {t("لا توجد فجوات مسجّلة — كل سؤال حتى الآن وجد ما يطابقه.", "No gaps logged — every question so far found a match.")}
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -302,10 +327,10 @@ export default async function AnalyticsPage() {
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-4 text-lg font-bold">أكثر ما يسأل عنه الزوار</h2>
+        <h2 className="mb-4 text-lg font-bold">{t("أكثر ما يسأل عنه الزوار", "What visitors ask about most")}</h2>
         {topTerms.length === 0 ? (
           <p className="rounded-2xl border border-border bg-card p-5 text-sm text-muted">
-            لم تُسجّل أسئلة بعد.
+            {t("لم تُسجّل أسئلة بعد.", "No questions logged yet.")}
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -315,7 +340,7 @@ export default async function AnalyticsPage() {
                 className="rounded-full border border-border bg-card px-3 py-1.5 text-sm"
               >
                 {term}
-                <span className="mr-2 text-xs font-bold text-primary">
+                <span className="ms-2 text-xs font-bold text-primary">
                   {count}
                 </span>
               </span>
@@ -327,7 +352,7 @@ export default async function AnalyticsPage() {
       {failed.length > 0 && (
         <section className="mt-10">
           <h2 className="mb-4 text-lg font-bold">
-            أسئلة فشل المحرّك في الرد عليها ({failed.length})
+            {t("أسئلة فشل المحرّك في الرد عليها", "Questions the engine failed to answer")} ({failed.length})
           </h2>
           <ul className="flex flex-col gap-2">
             {failed.slice(0, 10).map((q) => (
@@ -343,13 +368,13 @@ export default async function AnalyticsPage() {
       )}
 
       <section className="mt-10">
-        <h2 className="mb-4 text-lg font-bold">تغطية قاعدة المعرفة</h2>
+        <h2 className="mb-4 text-lg font-bold">{t("تغطية قاعدة المعرفة", "Knowledge base coverage")}</h2>
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
-            <thead className="bg-card text-right">
+            <thead className="bg-card text-start">
               <tr>
-                <th className="px-4 py-3">الموضوع</th>
-                <th className="px-4 py-3">عدد المُدخلات</th>
+                <th className="px-4 py-3">{t("الموضوع", "Topic")}</th>
+                <th className="px-4 py-3">{t("عدد المُدخلات", "Entries")}</th>
               </tr>
             </thead>
             <tbody>
@@ -368,7 +393,7 @@ export default async function AnalyticsPage() {
 
       <p className="mt-8 text-sm">
         <Link href="/admin/leads" className="text-primary underline">
-          عرض بيانات العملاء المحتملين
+          {t("عرض بيانات العملاء المحتملين", "View lead details")}
         </Link>
       </p>
     </div>

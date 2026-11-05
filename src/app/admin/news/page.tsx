@@ -11,6 +11,8 @@ import {
   setAnnouncementPublished,
   deleteAnnouncement,
 } from "./actions";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export const metadata = { title: "الأخبار | إدارة سوداقري" };
 
@@ -50,6 +52,18 @@ export default async function AdminNewsPage({
     .single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const publishedOn = (iso: string) =>
+    locale === "en"
+      ? new Date(iso).toLocaleDateString("en-GB", {
+          timeZone: "Africa/Khartoum",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : announcementDate(iso);
+
   const { data: rows } = await supabase
     .from("announcements")
     .select("id, title, body, summary, link_path, link_label, published_at, created_at, updated_at")
@@ -66,15 +80,24 @@ export default async function AdminNewsPage({
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold">أخبار المنصّة</h1>
+        <h1 className="text-2xl font-bold">{t("أخبار المنصّة", "Platform news")}</h1>
         <Link href="/news" className="text-sm text-primary hover:underline">
-          اعرض الصفحة العامّة ←
+          {t("اعرض الصفحة العامّة ←", "View the public page →")}
         </Link>
       </div>
       <p className="mt-2 text-sm leading-7 text-muted">
-        ما تنشره هنا يظهر في <strong>أعلى الصفحة الرئيسيّة</strong> (أحدثُ ثلاثة)
-        وفي <code className="text-xs">/news</code> كاملاً. والمسوّدةُ لا يراها
-        أحدٌ حتّى تنشرها.
+        {locale === "en" ? (
+          <>
+            What you publish here appears at the <strong>top of the home page</strong> (the latest three) and in full at{" "}
+            <code className="text-xs">/news</code>. No one sees a draft until you publish it.
+          </>
+        ) : (
+          <>
+            ما تنشره هنا يظهر في <strong>أعلى الصفحة الرئيسيّة</strong> (أحدثُ ثلاثة)
+            وفي <code className="text-xs">/news</code> كاملاً. والمسوّدةُ لا يراها
+            أحدٌ حتّى تنشرها.
+          </>
+        )}
       </p>
 
       {error && (
@@ -88,20 +111,20 @@ export default async function AdminNewsPage({
         className="mt-6 flex flex-col gap-3 rounded-2xl border border-border bg-card p-5"
       >
         <label className="text-xs">
-          <span className="mb-1 block text-muted">العنوان</span>
+          <span className="mb-1 block text-muted">{t("العنوان", "Title")}</span>
           <input
             name="title"
             required
             minLength={3}
             maxLength={200}
-            placeholder="مثال: أُضيفت أسعار المنتِج من FAOSTAT لعام ٢٠٢٥"
+            placeholder={t("مثال: أُضيفت أسعار المنتِج من FAOSTAT لعام ٢٠٢٥", "Example: FAOSTAT producer prices for 2025 added")}
             className={field}
           />
         </label>
 
         <label className="text-xs">
           <span className="mb-1 block text-muted">
-            سطرٌ مختصر — يظهر في الرئيسيّة تحت العنوان (اختياريّ)
+            {t("سطرٌ مختصر — يظهر في الرئيسيّة تحت العنوان (اختياريّ)", "Short summary — shown on the home page under the title (optional)")}
           </span>
           <input
             name="summary"
@@ -112,13 +135,13 @@ export default async function AdminNewsPage({
         </label>
 
         <label className="text-xs">
-          <span className="mb-1 block text-muted">النصّ</span>
+          <span className="mb-1 block text-muted">{t("النصّ", "Text")}</span>
           <textarea
             name="body"
             required
             minLength={20}
             rows={6}
-            placeholder="ما الذي تغيّر، ولماذا يهمّ المزارع أو المستثمر."
+            placeholder={t("ما الذي تغيّر، ولماذا يهمّ المزارع أو المستثمر.", "What changed, and why it matters to farmers or investors.")}
             className={field}
           />
         </label>
@@ -126,7 +149,7 @@ export default async function AdminNewsPage({
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-xs">
             <span className="mb-1 block text-muted">
-              رابطٌ داخل المنصّة (اختياريّ)
+              {t("رابطٌ داخل المنصّة (اختياريّ)", "Link within the platform (optional)")}
             </span>
             <input
               name="link_path"
@@ -137,11 +160,11 @@ export default async function AdminNewsPage({
             />
           </label>
           <label className="text-xs">
-            <span className="mb-1 block text-muted">اسمُ الرابط</span>
+            <span className="mb-1 block text-muted">{t("اسمُ الرابط", "Link label")}</span>
             <input
               name="link_label"
               maxLength={40}
-              placeholder="تصفّح قاعدة المعرفة"
+              placeholder={t("تصفّح قاعدة المعرفة", "Browse the knowledge base")}
               className={field}
             />
           </label>
@@ -151,7 +174,7 @@ export default async function AdminNewsPage({
           type="submit"
           className="self-start rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
         >
-          احفظ مسوّدة
+          {t("احفظ مسوّدة", "Save draft")}
         </button>
         {/* ولا يُنشر من هنا: الحفظُ فعلٌ والنشرُ فعلٌ آخر، وخبرٌ يُنشر بضغطةٍ
             واحدةٍ مع كتابته يُنشر ناقصاً يوماً ما. */}
@@ -160,7 +183,7 @@ export default async function AdminNewsPage({
       {drafts.length > 0 && (
         <>
           <h2 className="mt-10 text-sm font-bold text-muted">
-            مسوّدات ({drafts.length}) — لا يراها أحد
+            {t(`مسوّدات (${drafts.length}) — لا يراها أحد`, `Drafts (${drafts.length}) — no one sees these`)}
           </h2>
           <ul className="mt-3 flex flex-col gap-3">
             {drafts.map((a) => (
@@ -177,13 +200,13 @@ export default async function AdminNewsPage({
                     <input type="hidden" name="id" value={a.id} />
                     <input type="hidden" name="publish" value="1" />
                     <button className="rounded-lg bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground">
-                      انشرها الآن
+                      {t("انشرها الآن", "Publish now")}
                     </button>
                   </form>
                   <form action={deleteAnnouncement}>
                     <input type="hidden" name="id" value={a.id} />
                     <button className="rounded-lg border border-danger/40 px-4 py-1.5 text-xs text-danger">
-                      احذف المسوّدة
+                      {t("احذف المسوّدة", "Delete draft")}
                     </button>
                   </form>
                 </div>
@@ -194,11 +217,14 @@ export default async function AdminNewsPage({
       )}
 
       <h2 className="mt-10 text-sm font-bold text-muted">
-        منشورة ({live.length})
+        {t("منشورة", "Published")} ({live.length})
       </h2>
       {live.length === 0 ? (
         <p className="mt-3 text-sm text-muted">
-          لا خبرَ منشورٌ بعد — والرئيسيّةُ تبقى كما هي حتّى تنشر أوّلَه.
+          {t(
+            "لا خبرَ منشورٌ بعد — والرئيسيّةُ تبقى كما هي حتّى تنشر أوّلَه.",
+            "Nothing published yet — the home page stays as it is until you publish the first item.",
+          )}
         </p>
       ) : (
         <ul className="mt-3 flex flex-col gap-3">
@@ -208,14 +234,14 @@ export default async function AdminNewsPage({
               className="rounded-2xl border border-border bg-card p-4"
             >
               <p className="text-xs text-muted">
-                نُشر {announcementDate(a.published_at!)}
+                {t("نُشر", "Published")} {publishedOn(a.published_at!)}
               </p>
               <p className="mt-1 font-medium">{a.title}</p>
               <form action={setAnnouncementPublished} className="mt-3">
                 <input type="hidden" name="id" value={a.id} />
                 <input type="hidden" name="publish" value="0" />
                 <button className="rounded-lg border border-border px-4 py-1.5 text-xs">
-                  اسحبها من النشر
+                  {t("اسحبها من النشر", "Unpublish")}
                 </button>
               </form>
               {/* ولا زرَّ حذفٍ هنا: خبرٌ قرأه الناس يُسحب ولا يُمحى، والقاعدةُ

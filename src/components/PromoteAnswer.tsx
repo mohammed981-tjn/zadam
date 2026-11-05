@@ -6,6 +6,8 @@ import {
   promoteAnswer,
   type PromoteResult,
 } from "@/app/admin/analytics/promote";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 const TOPIC_LABEL: Record<string, string> = {
   agronomy: "زراعة",
@@ -18,6 +20,19 @@ const TOPIC_LABEL: Record<string, string> = {
   variety: "أصناف",
   technology: "تقنية",
   general: "عام",
+};
+
+const TOPIC_LABEL_EN: Record<string, string> = {
+  agronomy: "Agronomy",
+  economics: "Economics",
+  institutional: "Institutional and regulatory",
+  livestock: "Livestock",
+  water: "Water and irrigation",
+  soil: "Soil",
+  pest: "Pests",
+  variety: "Varieties",
+  technology: "Technology",
+  general: "General",
 };
 
 /**
@@ -60,6 +75,8 @@ export default function PromoteAnswer({
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<PromoteResult | null>(null);
   const [pending, setPending] = useState(false);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   async function submit(formData: FormData) {
     if (pending) return;
@@ -69,7 +86,7 @@ export default function PromoteAnswer({
       setResult(outcome);
       if (outcome.ok) setOpen(false);
     } catch {
-      setResult({ ok: false, message: "تعذّر الوصول إلى الخادم." });
+      setResult({ ok: false, message: t("تعذّر الوصول إلى الخادم.", "Could not reach the server.") });
     } finally {
       setPending(false);
     }
@@ -83,23 +100,26 @@ export default function PromoteAnswer({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span>{question}</span>
         <span className="text-xs text-muted">
-          {new Date(createdAt).toLocaleDateString("ar-EG")}
+          {new Date(createdAt).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG")}
         </span>
       </div>
 
       {promoted ? (
-        <p className="mt-2 text-xs text-muted">✓ اعتُمد مُدخلَ معرفة.</p>
+        <p className="mt-2 text-xs text-muted">✓ {t("اعتُمد مُدخلَ معرفة.", "Promoted to a knowledge entry.")}</p>
       ) : answer ? (
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="mt-2 text-xs text-primary underline"
         >
-          {open ? "إخفاء" : "اقرأ الجواب واعتمده مُدخلاً"}
+          {open ? t("إخفاء", "Hide") : t("اقرأ الجواب واعتمده مُدخلاً", "Read the answer and promote it to an entry")}
         </button>
       ) : (
         <p className="mt-2 text-xs text-muted">
-          بلا جوابٍ محفوظ — سُجّل قبل حفظ الأجوبة، أو عجزت المحرّكات عنه.
+          {t(
+            "بلا جوابٍ محفوظ — سُجّل قبل حفظ الأجوبة، أو عجزت المحرّكات عنه.",
+            "No saved answer — logged before answers were kept, or the engines failed on it.",
+          )}
         </p>
       )}
 
@@ -108,23 +128,23 @@ export default function PromoteAnswer({
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label className="block text-xs font-medium" htmlFor={`crop-${questionId}`}>
-                المحصول أو الباب
+                {t("المحصول أو الباب", "Crop or section")}
               </label>
               <input
                 id={`crop-${questionId}`}
                 name="crop"
                 className={field}
-                placeholder="عام"
+                placeholder={t("عام", "General")}
               />
             </div>
             <div>
               <label className="block text-xs font-medium" htmlFor={`topic-${questionId}`}>
-                الموضوع
+                {t("الموضوع", "Topic")}
               </label>
               <select id={`topic-${questionId}`} name="topic" className={field} defaultValue="general">
-                {KNOWLEDGE_TOPICS.map((t) => (
-                  <option key={t} value={t}>
-                    {TOPIC_LABEL[t] ?? t}
+                {KNOWLEDGE_TOPICS.map((topic) => (
+                  <option key={topic} value={topic}>
+                    {(locale === "en" ? TOPIC_LABEL_EN : TOPIC_LABEL)[topic] ?? topic}
                   </option>
                 ))}
               </select>
@@ -134,20 +154,20 @@ export default function PromoteAnswer({
                 className="block text-xs font-medium"
                 htmlFor={`country-${questionId}`}
               >
-                بلد المرجع
+                {t("بلد المرجع", "Source country")}
               </label>
               <input
                 id={`country-${questionId}`}
                 name="source_country"
                 className={field}
-                placeholder="السودان"
+                placeholder={t("السودان", "Sudan")}
               />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-medium" htmlFor={`title-${questionId}`}>
-              العنوان
+              {t("العنوان", "Title")}
             </label>
             <input
               id={`title-${questionId}`}
@@ -160,7 +180,7 @@ export default function PromoteAnswer({
 
           <div>
             <label className="block text-xs font-medium" htmlFor={`content-${questionId}`}>
-              المحتوى — راجعه قبل الاعتماد
+              {t("المحتوى — راجعه قبل الاعتماد", "Content — review it before promoting")}
             </label>
             <textarea
               id={`content-${questionId}`}
@@ -174,18 +194,23 @@ export default function PromoteAnswer({
 
           <div>
             <label className="block text-xs font-medium" htmlFor={`source-${questionId}`}>
-              المصدر — إلزامي
+              {t("المصدر — إلزامي", "Source — required")}
             </label>
             <input
               id={`source-${questionId}`}
               name="source_note"
               className={field}
-              placeholder="من أين جاءت هذه المعلومة؟ ولو «مراجعة يدوية من الإدارة»"
+              placeholder={t(
+                "من أين جاءت هذه المعلومة؟ ولو «مراجعة يدوية من الإدارة»",
+                "Where did this information come from? Even “manual review by the administration”",
+              )}
               required
             />
             <p className="mt-1 text-xs text-muted">
-              قيمةُ قاعدة المعرفة كلُّها أنّ كلَّ سطرٍ فيها منسوبٌ إلى مصدر.
-              ومُدخلٌ بلا مصدرٍ يجعل المساعد بعد شهرٍ يستشهد بنفسه.
+              {t(
+                "قيمةُ قاعدة المعرفة كلُّها أنّ كلَّ سطرٍ فيها منسوبٌ إلى مصدر. ومُدخلٌ بلا مصدرٍ يجعل المساعد بعد شهرٍ يستشهد بنفسه.",
+                "The whole value of the knowledge base is that every line in it is attributed to a source. An entry without one has the assistant citing itself a month later.",
+              )}
             </p>
           </div>
 
@@ -194,7 +219,7 @@ export default function PromoteAnswer({
             disabled={pending}
             className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {pending ? "جارٍ الاعتماد…" : "اعتمده مُدخلَ معرفة"}
+            {pending ? t("جارٍ الاعتماد…", "Promoting…") : t("اعتمده مُدخلَ معرفة", "Promote to a knowledge entry")}
           </button>
         </form>
       )}

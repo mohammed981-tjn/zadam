@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/imageCompress";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 /**
  * Uploads one image to the public media bucket and records it.
@@ -60,6 +62,8 @@ export default function CanalImageUpload({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const field =
     "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary";
@@ -70,25 +74,28 @@ export default function CanalImageUpload({
 
     const file = fileRef.current?.files?.[0];
     if (!file) {
-      setError("اختر صورة أولاً.");
+      setError(t("اختر صورة أولاً.", "Choose an image first."));
       return;
     }
     if (!caption.trim()) {
-      setError("اكتب وصفاً للصورة — الصورة بلا وصف لا تشرح شيئاً.");
+      setError(t("اكتب وصفاً للصورة — الصورة بلا وصف لا تشرح شيئاً.", "Write a caption — an image without one explains nothing."));
       return;
     }
     if (!credit.trim()) {
       setError(
-        "اكتب مصدر الصورة أو مُلتقِطها. لا تُنشر على هذه الصفحة صورة بلا سند.",
+        t(
+          "اكتب مصدر الصورة أو مُلتقِطها. لا تُنشر على هذه الصفحة صورة بلا سند.",
+          "Write the image's source or photographer. No image without a basis is published on this page.",
+        ),
       );
       return;
     }
     if (file.size > MAX_SOURCE_BYTES) {
-      setError(`الملف ${mb(file.size)} ميجابايت، وهو أكبر من أن يُعالَج.`);
+      setError(t(`الملف ${mb(file.size)} ميجابايت، وهو أكبر من أن يُعالَج.`, `The file is ${mb(file.size)} MB, too large to process.`));
       return;
     }
     if (!ACCEPTED.includes(file.type)) {
-      setError("الصيغ المقبولة: JPG أو PNG أو WEBP.");
+      setError(t("الصيغ المقبولة: JPG أو PNG أو WEBP.", "Accepted formats: JPG, PNG or WEBP."));
       return;
     }
 
@@ -100,7 +107,10 @@ export default function CanalImageUpload({
 
       if (toUpload.size > MAX_BYTES) {
         setError(
-          `الملف ${mb(toUpload.size)} ميجابايت بعد المعالجة، والحد الأقصى 10.`,
+          t(
+            `الملف ${mb(toUpload.size)} ميجابايت بعد المعالجة، والحد الأقصى 10.`,
+            `The file is ${mb(toUpload.size)} MB after processing; the limit is 10.`,
+          ),
         );
         return;
       }
@@ -119,7 +129,7 @@ export default function CanalImageUpload({
         });
 
       if (uploadError) {
-        setError(`تعذّر رفع الصورة: ${uploadError.message}`);
+        setError(t(`تعذّر رفع الصورة: ${uploadError.message}`, `Could not upload the image: ${uploadError.message}`));
         return;
       }
 
@@ -132,14 +142,17 @@ export default function CanalImageUpload({
       });
 
       if (result && !result.ok) {
-        setError(result.message ?? "رُفعت الصورة ولم يُحفظ سجلّها.");
+        setError(result.message ?? t("رُفعت الصورة ولم يُحفظ سجلّها.", "The image was uploaded but its record was not saved."));
         return;
       }
 
       setNotice(
         compressed
-          ? `رُفعت، وضُغطت من ${mb(originalBytes)} إلى ${mb(toUpload.size)} ميجابايت.`
-          : "رُفعت الصورة.",
+          ? t(
+              `رُفعت، وضُغطت من ${mb(originalBytes)} إلى ${mb(toUpload.size)} ميجابايت.`,
+              `Uploaded, compressed from ${mb(originalBytes)} to ${mb(toUpload.size)} MB.`,
+            )
+          : t("رُفعت الصورة.", "Image uploaded."),
       );
       setCaption("");
       setCredit("");
@@ -147,7 +160,7 @@ export default function CanalImageUpload({
       setTakenOn("");
       if (fileRef.current) fileRef.current.value = "";
     } catch (e) {
-      setError(e instanceof Error ? e.message : "خطأ غير متوقّع أثناء الرفع.");
+      setError(e instanceof Error ? e.message : t("خطأ غير متوقّع أثناء الرفع.", "Unexpected error during upload."));
     } finally {
       setBusy(false);
     }
@@ -157,7 +170,7 @@ export default function CanalImageUpload({
     <div className="flex flex-col gap-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">الصورة</span>
+          <span className="font-medium">{t("الصورة", "Image")}</span>
           <input
             ref={fileRef}
             type="file"
@@ -167,7 +180,7 @@ export default function CanalImageUpload({
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">تاريخ الالتقاط</span>
+          <span className="font-medium">{t("تاريخ الالتقاط", "Date taken")}</span>
           <input
             type="date"
             value={takenOn}
@@ -175,32 +188,35 @@ export default function CanalImageUpload({
             className={field}
           />
           <span className="text-xs text-muted">
-            اتركه فارغاً إن كان مجهولاً — تاريخٌ مخترع أسوأ من لا تاريخ.
+            {t(
+              "اتركه فارغاً إن كان مجهولاً — تاريخٌ مخترع أسوأ من لا تاريخ.",
+              "Leave it blank if unknown — an invented date is worse than none.",
+            )}
           </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          <span className="font-medium">الوصف</span>
+          <span className="font-medium">{t("الوصف", "Caption")}</span>
           <input
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            placeholder="ماذا تُظهر الصورة، وأين"
+            placeholder={t("ماذا تُظهر الصورة، وأين", "What the image shows, and where")}
             className={field}
           />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">المصدر أو المُلتقِط ★</span>
+          <span className="font-medium">{t("المصدر أو المُلتقِط ★", "Source or photographer ★")}</span>
           <input
             value={credit}
             onChange={(e) => setCredit(e.target.value)}
-            placeholder="اسم المصوّر، أو الجهة، أو الترخيص"
+            placeholder={t("اسم المصوّر، أو الجهة، أو الترخيص", "Photographer's name, organisation, or licence")}
             className={field}
           />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">رابط المصدر</span>
+          <span className="font-medium">{t("رابط المصدر", "Source link")}</span>
           <input
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
@@ -218,10 +234,13 @@ export default function CanalImageUpload({
           disabled={busy}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          {busy ? "جارٍ الرفع..." : "ارفع الصورة"}
+          {busy ? t("جارٍ الرفع...", "Uploading...") : t("ارفع الصورة", "Upload image")}
         </button>
         <p className="text-xs text-muted">
-          تُرفع غير منشورة. النشر قرار ثانٍ، من القائمة أدناه.
+          {t(
+            "تُرفع غير منشورة. النشر قرار ثانٍ، من القائمة أدناه.",
+            "Uploaded unpublished. Publishing is a second decision, from the list below.",
+          )}
         </p>
       </div>
 

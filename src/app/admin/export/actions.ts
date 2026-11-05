@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminGuard";
 import { MIN_REJECTION_REASON } from "@/lib/exportOffers";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export interface ReviewResult {
   ok: boolean;
@@ -39,15 +41,20 @@ export async function reviewOffer(
 ): Promise<ReviewResult> {
   // requireAdmin returns the session client deliberately — see above.
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   if (decision === "return") {
     const trimmed = reason.trim();
     if (trimmed.length < MIN_REJECTION_REASON) {
       return {
         ok: false,
-        message:
+        message: t(
           `اكتب سبباً لا يقلّ عن ${MIN_REJECTION_REASON} أحرف. ` +
-          "المزارع سيقرأه ليصلح العرض، ورفضٌ بلا سببٍ يجعله يكرّر الخطأ نفسه.",
+            "المزارع سيقرأه ليصلح العرض، ورفضٌ بلا سببٍ يجعله يكرّر الخطأ نفسه.",
+          `Write a reason of at least ${MIN_REJECTION_REASON} characters. ` +
+            "The farmer will read it to fix the offer; a rejection without a reason means the same mistake again.",
+        ),
       };
     }
   }
@@ -68,7 +75,7 @@ export async function reviewOffer(
 
   if (error) {
     console.error("export: review failed", error);
-    return { ok: false, message: "تعذّر تنفيذ القرار." };
+    return { ok: false, message: t("تعذّر تنفيذ القرار.", "The decision could not be carried out.") };
   }
 
   // Zero rows is the answer to watch for, not the error: a policy refusal and
@@ -76,7 +83,10 @@ export async function reviewOffer(
   if (!data || data.length === 0) {
     return {
       ok: false,
-      message: "لم يتغيّر شيء — قد يكون العرض بُتّ فيه بالفعل. حدّث الصفحة.",
+      message: t(
+        "لم يتغيّر شيء — قد يكون العرض بُتّ فيه بالفعل. حدّث الصفحة.",
+        "Nothing changed — the offer may already have been decided. Refresh the page.",
+      ),
     };
   }
 
@@ -84,6 +94,9 @@ export async function reviewOffer(
   revalidatePath("/export/offers");
   return {
     ok: true,
-    message: decision === "publish" ? "نُشر العرض." : "أُعيد العرض لصاحبه بالسبب.",
+    message:
+      decision === "publish"
+        ? t("نُشر العرض.", "The offer is published.")
+        : t("أُعيد العرض لصاحبه بالسبب.", "The offer was returned to its owner with the reason."),
   };
 }

@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
 import { formatUsd, statusLabel } from "@/lib/format";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 import type { Investment, Profile, Project, ProjectUpdate } from "@/types/database";
 import { addProjectUpdate, confirmInvestment, updateProjectStatus } from "../../actions";
 
@@ -30,6 +32,9 @@ export default async function AdminProjectPage({
     .eq("id", user.id)
     .single();
   if (profile?.role !== "admin") redirect("/dashboard");
+
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const { data: project } = await supabase
     .from("projects")
@@ -67,28 +72,28 @@ export default async function AdminProjectPage({
       <form action={updateProjectStatus} className="mt-4 flex items-center gap-3">
         <input type="hidden" name="project_id" value={typedProject.id} />
         <label className="text-sm">
-          حالة المشروع:{" "}
+          {t("حالة المشروع:", "Project status:")}{" "}
           <select
             name="status"
             defaultValue={typedProject.status}
             className="rounded-lg border border-border bg-card px-2 py-1"
           >
-            <option value="draft">مسودة</option>
-            <option value="open">مفتوح للاستثمار</option>
-            <option value="funded">تم تمويله بالكامل</option>
-            <option value="in_progress">قيد التنفيذ</option>
-            <option value="completed">مكتمل</option>
+            <option value="draft">{t("مسودة", "Draft")}</option>
+            <option value="open">{t("مفتوح للاستثمار", "Open for investment")}</option>
+            <option value="funded">{t("تم تمويله بالكامل", "Fully funded")}</option>
+            <option value="in_progress">{t("قيد التنفيذ", "In progress")}</option>
+            <option value="completed">{t("مكتمل", "Completed")}</option>
           </select>
         </label>
         <button type="submit" className="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground">
-          تحديث
+          {t("تحديث", "Update")}
         </button>
       </form>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-bold">طلبات الاستثمار ({investmentRows.length})</h2>
+        <h2 className="mb-3 text-lg font-bold">{t("طلبات الاستثمار", "Investment requests")} ({investmentRows.length})</h2>
         {investmentRows.length === 0 ? (
-          <p className="text-sm text-muted">لا توجد طلبات استثمار بعد.</p>
+          <p className="text-sm text-muted">{t("لا توجد طلبات استثمار بعد.", "No investment requests yet.")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {investmentRows.map((row) => (
@@ -97,9 +102,9 @@ export default async function AdminProjectPage({
                 className="flex items-center justify-between rounded-xl border border-border bg-card p-3 text-sm"
               >
                 <div>
-                  <p className="font-medium">{row.profiles?.full_name || "مستثمر"}</p>
+                  <p className="font-medium">{row.profiles?.full_name || t("مستثمر", "Investor")}</p>
                   <p className="text-xs text-muted">
-                    {row.shares} حصة · {formatUsd(row.amount)} · {statusLabel(row.status)}
+                    {row.shares} {t("حصة", "shares")} · {formatUsd(row.amount, locale)} · {statusLabel(row.status, locale)}
                   </p>
                 </div>
                 {row.status === "pending" && (
@@ -110,7 +115,7 @@ export default async function AdminProjectPage({
                       type="submit"
                       className="rounded-lg border border-primary px-3 py-1.5 text-xs text-primary hover:bg-primary/10"
                     >
-                      تأكيد الاستثمار
+                      {t("تأكيد الاستثمار", "Confirm investment")}
                     </button>
                   </form>
                 )}
@@ -121,18 +126,18 @@ export default async function AdminProjectPage({
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-bold">إضافة تقرير ميداني</h2>
+        <h2 className="mb-3 text-lg font-bold">{t("إضافة تقرير ميداني", "Add a field report")}</h2>
         <form action={addProjectUpdate} className="flex flex-col gap-3">
           <input type="hidden" name="project_id" value={typedProject.id} />
           <input
             name="title"
-            placeholder="عنوان التقرير"
+            placeholder={t("عنوان التقرير", "Report title")}
             required
             className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
           />
           <textarea
             name="body"
-            placeholder="تفاصيل التقرير..."
+            placeholder={t("تفاصيل التقرير...", "Report details...")}
             rows={3}
             className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
           />
@@ -140,7 +145,7 @@ export default async function AdminProjectPage({
             type="submit"
             className="w-fit rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            نشر التقرير
+            {t("نشر التقرير", "Publish report")}
           </button>
         </form>
 

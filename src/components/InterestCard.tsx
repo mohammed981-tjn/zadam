@@ -2,11 +2,19 @@
 
 import { useState } from "react";
 import { markInterest, type MarkResult } from "@/app/admin/export/interests/actions";
+import { useLocale } from "@/components/LocaleProvider";
+import { tr } from "@/lib/i18n";
 
 const STATUS_LABEL: Record<string, string> = {
   new: "جديد",
   contacted: "تواصلتُ معه",
   closed: "مُغلق",
+};
+
+const STATUS_LABEL_EN: Record<string, string> = {
+  new: "New",
+  contacted: "Contacted",
+  closed: "Closed",
 };
 
 /**
@@ -51,6 +59,8 @@ export default function InterestCard({
   const [current, setCurrent] = useState(status);
   const [result, setResult] = useState<MarkResult | null>(null);
   const [pending, setPending] = useState(false);
+  const locale = useLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   async function mark(next: "contacted" | "closed" | "new") {
     if (pending) return;
@@ -60,7 +70,7 @@ export default function InterestCard({
       setResult(outcome);
       if (outcome.ok) setCurrent(next);
     } catch {
-      setResult({ ok: false, message: "تعذّر الوصول إلى الخادم." });
+      setResult({ ok: false, message: t("تعذّر الوصول إلى الخادم.", "Could not reach the server.") });
     } finally {
       setPending(false);
     }
@@ -82,7 +92,8 @@ export default function InterestCard({
           )}
         </h2>
         <span className="text-xs text-muted">
-          {STATUS_LABEL[current]} · {new Date(createdAt).toLocaleString("ar-EG")}
+          {(locale === "en" ? STATUS_LABEL_EN : STATUS_LABEL)[current]} ·{" "}
+          {new Date(createdAt).toLocaleString(locale === "en" ? "en-GB" : "ar-EG")}
         </span>
       </div>
 
@@ -102,12 +113,13 @@ export default function InterestCard({
 
       {offer && (
         <p className="mt-2 text-sm text-muted">
-          عن <span className="font-mono">{offer.reference}</span> ·{" "}
-          {offer.commodity} ← {offer.destination} · معروض {offer.quantity}
+          {t("عن", "About")} <span className="font-mono">{offer.reference}</span> ·{" "}
+          {offer.commodity} {locale === "en" ? "→" : "←"} {offer.destination} ·{" "}
+          {t("معروض", "Offered")} {offer.quantity}
           {wanted && (
             <>
               {" "}
-              · <strong>يطلب {wanted}</strong>
+              · <strong>{t("يطلب", "Wants")} {wanted}</strong>
             </>
           )}
         </p>
@@ -120,14 +132,17 @@ export default function InterestCard({
       )}
 
       <label className="mt-3 block text-xs font-medium" htmlFor={`note-${id}`}>
-        ملاحظتك — ماذا حدث مع هذا الطلب
+        {t("ملاحظتك — ماذا حدث مع هذا الطلب", "Your note — what happened with this request")}
       </label>
       <input
         id={`note-${id}`}
         value={note}
         onChange={(e) => setNote(e.target.value)}
         className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
-        placeholder="مثال: أرسلتُ له ملفّ الإرسالية، ينتظر عيّنة."
+        placeholder={t(
+          "مثال: أرسلتُ له ملفّ الإرسالية، ينتظر عيّنة.",
+          "Example: sent him the consignment file, he is waiting for a sample.",
+        )}
       />
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -138,7 +153,7 @@ export default function InterestCard({
             disabled={pending}
             className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            تواصلتُ معه
+            {t("تواصلتُ معه", "Contacted")}
           </button>
         )}
         {current !== "closed" && (
@@ -148,7 +163,7 @@ export default function InterestCard({
             disabled={pending}
             className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-background disabled:opacity-50"
           >
-            أغلِق
+            {t("أغلِق", "Close")}
           </button>
         )}
         {current !== "new" && (
@@ -158,7 +173,7 @@ export default function InterestCard({
             disabled={pending}
             className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-background disabled:opacity-50"
           >
-            أعِده جديداً
+            {t("أعِده جديداً", "Mark as new")}
           </button>
         )}
       </div>

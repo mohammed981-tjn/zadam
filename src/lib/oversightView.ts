@@ -63,6 +63,7 @@ export function closedMonthEnd(today: string): string {
  * agreements behind it, or one of them most of it — the page used to name the first only (review 198 B4).
  */
 export const agreementsWithheld = (floorWord: string) => `محجوب (أقلّ من ${floorWord} عقود، أو يغلب عليه عقدٌ واحد)`;
+export const agreementsWithheldEn = (floor: number) => `Withheld (fewer than ${floor} agreements, or one agreement is most of it)`;
 
 /**
  * What a difference between the two dues means and who can mend it (review 198 B5). Confirmed linked entries match
@@ -72,6 +73,8 @@ export const agreementsWithheld = (floorWord: string) => `محجوب (أقلّ �
  */
 export const RECONCILE_REMEDY =
   "القيود المتقابلة المؤكَّدة تتطابق دائماً، فالفرق قيدٌ في جانبٍ واحد: قيدٌ يدويٌّ على حساب الشريك (٢١٣٠ في دفتر المزرعة أو ١٢٣٠ في دفتر المستثمر)، أو عكسٌ قديم لقيدٍ متقابل في دفترٍ واحد. طلب الإلغاء باتّفاق الطرفين لا يصلحه (يعكس الدفترين معاً فيبقى الفرق)؛ يصلحه صاحب الدفتر بعكس قيده اليدويّ، ويُعرف الدفتر بفحصٍ تكتب سببه.";
+export const RECONCILE_REMEDY_EN =
+  "Confirmed linked entries always match, so a difference is an entry on one side only: a hand-made entry on the partner account (2130 in the farm book or 1230 in the investor book), or an old reversal of a linked entry in one book. A cancellation by agreement does not mend it (it reverses both books, so the difference stays); the book's owner mends it by reversing the hand-made entry, and an inspection with a written reason shows which book.";
 
 /** What an inspection is, for the list: running, ended by time, or closed by the administrator. */
 export function inspectionState(i: { closed_at: string | null; expires_at: string }, now: Date): "active" | "expired" | "closed" {
@@ -93,6 +96,10 @@ export interface StaleRow {
 export const STALE_LABEL: Record<StaleRow["what"], string> = {
   pending_link: "اقتراحات قيودٍ معلّقة",
   pending_reversal: "طلبات إلغاءٍ معلّقة",
+};
+export const STALE_LABEL_EN: Record<StaleRow["what"], string> = {
+  pending_link: "Pending entry proposals",
+  pending_reversal: "Pending cancellation requests",
 };
 
 /** A row of `oversight_reconcile` (a single row): the two sides' balances on the partner accounts, in dollars' cents. */

@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
 import { formatUsd, riskLabel } from "@/lib/format";
-import { MONTH_NAMES, CROPS, STATIONS } from "@/lib/agronomy";
-import {
-  assessProject,
-  WATER_SOURCE_LABEL,
-  type WaterSource,
-} from "@/lib/risk";
+import { MONTH_NAMES } from "@/lib/agronomy";
+import { assessProject, type WaterSource } from "@/lib/risk";
+import { cropName as cropLabel, stationName as stationLabel, waterSourceLabel } from "@/lib/farmLabelsEn";
+import { MONTH_EN } from "@/lib/enNames";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 import type { IrrigationMethod } from "@/lib/agronomy";
 import type { Project } from "@/types/database";
 import { approveOpportunity, rejectOpportunity } from "./actions";
@@ -34,14 +34,19 @@ export default async function ReviewPage() {
     .order("created_at", { ascending: true });
 
   const pending = (data ?? []) as unknown as Project[];
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold">مراجعة الفرص المرفوعة</h1>
+      <h1 className="text-2xl font-bold">{t("مراجعة الفرص المرفوعة", "Reviewing submitted opportunities")}</h1>
       <p className="mb-8 mt-2 text-sm text-muted">
         {pending.length === 0
-          ? "لا توجد فرص بانتظار المراجعة."
-          : `${pending.length} فرصة بانتظار قرارك. الدرجة أدناه مُعاد حسابها الآن من بيانات الفرصة.`}
+          ? t("لا توجد فرص بانتظار المراجعة.", "No opportunities are waiting for review.")
+          : t(
+              `${pending.length} فرصة بانتظار قرارك. الدرجة أدناه مُعاد حسابها الآن من بيانات الفرصة.`,
+              `${pending.length} opportunity(ies) waiting for your decision. The score below is recalculated now from the opportunity's data.`,
+            )}
       </p>
 
       <div className="flex flex-col gap-6">
@@ -58,13 +63,10 @@ export default async function ReviewPage() {
             operatorSeasons: 0,
             operatorReportingRate: 0,
             kmToMarket: p.km_to_market ?? 0,
-          });
+          }, locale);
 
-          const cropName =
-            CROPS.find((c) => c.key === p.crop_key)?.name ?? p.crop_key;
-          const stationName =
-            STATIONS.find((s) => s.key === p.station_key)?.name ??
-            p.station_key;
+          const cropName = p.crop_key ? cropLabel(p.crop_key, locale) : p.crop_key;
+          const stationName = p.station_key ? stationLabel(p.station_key, locale) : p.station_key;
 
           return (
             <article
@@ -76,13 +78,13 @@ export default async function ReviewPage() {
                   <h2 className="text-lg font-bold">{p.name}</h2>
                   <p className="text-sm text-muted">{p.location}</p>
                 </div>
-                <div className="text-left">
+                <div className="text-end">
                   <p className="text-2xl font-black text-primary">
                     {assessment.score}
                     <span className="text-sm text-muted">/100</span>
                   </p>
                   <p className="text-xs text-muted">
-                    خطر {riskLabel(assessment.level)}
+                    {t("خطر", "Risk:")} {riskLabel(assessment.level, locale)}
                   </p>
                 </div>
               </div>
@@ -95,21 +97,19 @@ export default async function ReviewPage() {
 
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
                 {[
-                  ["المحصول", cropName],
-                  ["المنطقة", stationName],
-                  ["شهر الزراعة", MONTH_NAMES[p.planting_month ?? 0]],
+                  [t("المحصول", "Crop"), cropName],
+                  [t("المنطقة", "Region"), stationName],
+                  [t("شهر الزراعة", "Planting month"), (locale === "en" ? MONTH_EN : MONTH_NAMES)[p.planting_month ?? 0]],
                   [
-                    "مصدر المياه",
-                    WATER_SOURCE_LABEL[
-                      (p.water_source ?? "canal") as WaterSource
-                    ],
+                    t("مصدر المياه", "Water source"),
+                    waterSourceLabel(p.water_source ?? "canal", locale),
                   ],
-                  ["المساحة", `${p.total_feddans} فدان`],
+                  [t("المساحة", "Area"), `${p.total_feddans} ${t("فدان", "feddans")}`],
                   [
-                    "الحصص",
-                    `${p.total_shares} × ${formatUsd(p.price_per_share)}`,
+                    t("الحصص", "Shares"),
+                    `${p.total_shares} × ${formatUsd(p.price_per_share, locale)}`,
                   ],
-                  ["التوثيق", `${p.documents_on_file}/${p.documents_required}`],
+                  [t("التوثيق", "Documents"), `${p.documents_on_file}/${p.documents_required}`],
                 ].map(([k, v]) => (
                   <div key={k}>
                     <dt className="text-xs text-muted">{k}</dt>
@@ -130,7 +130,7 @@ export default async function ReviewPage() {
               </div>
 
               {assessment.blockers.length > 0 && (
-                <ul className="mt-4 list-disc space-y-1 rounded-xl border border-danger/40 bg-danger/10 p-4 pr-8 text-sm text-danger">
+                <ul className="mt-4 list-disc space-y-1 rounded-xl border border-danger/40 bg-danger/10 p-4 ps-8 text-sm text-danger">
                   {assessment.blockers.map((b) => (
                     <li key={b}>{b}</li>
                   ))}
@@ -145,7 +145,7 @@ export default async function ReviewPage() {
                     disabled={assessment.blockers.length > 0}
                     className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-40"
                   >
-                    اعتمد وانشر
+                    {t("اعتمد وانشر", "Approve and publish")}
                   </button>
                 </form>
 
@@ -155,7 +155,7 @@ export default async function ReviewPage() {
                 >
                   <input type="hidden" name="id" value={p.id} />
                   <label className="flex flex-col gap-1 text-xs">
-                    سبب الرفض
+                    {t("سبب الرفض", "Reason for rejection")}
                     <input
                       name="note"
                       className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
@@ -165,7 +165,7 @@ export default async function ReviewPage() {
                     type="submit"
                     className="rounded-lg border border-danger/40 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"
                   >
-                    ارفض
+                    {t("ارفض", "Reject")}
                   </button>
                 </form>
               </div>
