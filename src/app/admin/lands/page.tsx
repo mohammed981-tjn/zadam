@@ -4,11 +4,13 @@ import { loginHrefHere } from "@/lib/loginHere";
 import { verifyLand, rejectLand } from "@/app/lands/actions";
 import type { Land, LandDocument } from "@/types/database";
 import { nearLands } from "@/lib/landNeighbours";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
 
 export const metadata = { title: "توثيق الأراضي | سوداقري" };
 
-const date = (iso: string) =>
-  new Date(iso).toLocaleDateString("ar-EG", {
+const date = (iso: string, locale: Locale) =>
+  new Date(iso).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -26,6 +28,20 @@ const TENURE_LABEL: Record<string, string> = {
   leased: "مستأجرة",
   communal: "مشاع",
   unspecified: "غير محدّدة",
+};
+
+const DOC_LABEL_EN: Record<string, string> = {
+  tenure: "Proof of tenure",
+  photo: "Photo of the land",
+  permit: "Permit",
+  inspection: "Inspection report",
+};
+
+const TENURE_LABEL_EN: Record<string, string> = {
+  owned: "Owned",
+  leased: "Leased",
+  communal: "Communal",
+  unspecified: "Not specified",
 };
 
 /**
@@ -81,6 +97,11 @@ export default async function AdminLandsPage({
     .single();
   if ((profile as { role: string } | null)?.role !== "admin") redirect("/");
 
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const docLabel = locale === "en" ? DOC_LABEL_EN : DOC_LABEL;
+  const tenureLabel = locale === "en" ? TENURE_LABEL_EN : TENURE_LABEL;
+
   const { data: landRows } = await supabase
     .from("lands")
     .select("*")
@@ -123,31 +144,31 @@ export default async function AdminLandsPage({
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="font-bold">{land.name}</h3>
           <span className="text-xs text-muted">
-            {date(land.created_at)} · {TENURE_LABEL[land.tenure] ?? land.tenure}
+            {date(land.created_at, locale)} · {tenureLabel[land.tenure] ?? land.tenure}
           </span>
         </div>
 
         <p className="mt-1 text-sm text-muted">
           {[land.state, land.locality, land.village].filter(Boolean).join(" · ")}
           {" · "}
-          {land.feddans} فدان
+          {land.feddans} {t("فدان", "feddans")}
           {land.latitude ? ` · ${land.latitude}, ${land.longitude}` : ""}
         </p>
 
         <p className="mt-3 text-sm">
-          المستندات{" "}
+          {t("المستندات", "Documents")}{" "}
           <strong className={enough ? "text-primary" : "text-danger"}>
             {land.documents_on_file}/{land.documents_required}
           </strong>{" "}
           <span className="text-xs text-muted">
             {/* العدّادُ يعدّ الأنواع لا الملفّات، وزنادٌ في القاعدة يحسبه —
                 فلا يقول الرقمُ أكثر ممّا ترفعه الملفّات. */}
-            (تُعدّ الأنواع لا عدد الملفّات)
+            {t("(تُعدّ الأنواع لا عدد الملفّات)", "(counts document types, not files)")}
           </span>
         </p>
 
         {mine.length === 0 ? (
-          <p className="mt-2 text-sm text-danger">لم يُرفع أيّ مستند.</p>
+          <p className="mt-2 text-sm text-danger">{t("لم يُرفع أيّ مستند.", "No document uploaded.")}</p>
         ) : (
           <ul className="mt-2 space-y-1 text-sm">
             {kinds.map((k) =>
@@ -156,10 +177,10 @@ export default async function AdminLandsPage({
                 .map((d) => (
                   <li key={d.id} className="flex flex-wrap items-center gap-2">
                     <span className={opened.has(d.id) ? "text-primary" : "text-muted"}>
-                      {opened.has(d.id) ? "✓ فُتح" : "○ لم يُفتح"}
+                      {opened.has(d.id) ? t("✓ فُتح", "✓ Opened") : t("○ لم يُفتح", "○ Not opened")}
                     </span>
                     <span>
-                      {DOC_LABEL[k] ?? k}
+                      {docLabel[k] ?? k}
                       {d.caption ? ` — ${d.caption}` : ""}
                     </span>
                     <a
@@ -168,7 +189,7 @@ export default async function AdminLandsPage({
                       rel="noopener noreferrer"
                       className="text-primary underline"
                     >
-                      افتح
+                      {t("افتح", "Open")}
                     </a>
                   </li>
                 )),
@@ -178,7 +199,7 @@ export default async function AdminLandsPage({
 
         {land.verification === "rejected" && land.verification_note && (
           <p className="mt-3 rounded-lg border border-danger/40 bg-danger/5 p-3 text-sm text-danger">
-            رُدَّت سابقاً: {land.verification_note}
+            {t("رُدَّت سابقاً:", "Previously returned:")} {land.verification_note}
           </p>
         )}
 
@@ -192,12 +213,19 @@ export default async function AdminLandsPage({
         {/* والنزاعُ يُكشف قبل التوثيق: أرضٌ قريبة من أرضٍ باسمِ مالكٍ آخر. */}
         {near.length > 0 && (
           <div className="mt-3 rounded-lg border border-danger/40 bg-danger/5 p-3 text-sm">
-            <p className="font-bold text-danger">قريبةٌ من أرضٍ مسجّلة لمالكٍ آخر — تحقّق من الحيازة والحدود قبل التوثيق:</p>
+            <p className="font-bold text-danger">
+              {t(
+                "قريبةٌ من أرضٍ مسجّلة لمالكٍ آخر — تحقّق من الحيازة والحدود قبل التوثيق:",
+                "Close to land registered to another owner — check tenure and boundaries before verifying:",
+              )}
+            </p>
             <ul className="mt-1 space-y-0.5">
               {near.slice(0, 5).map(({ land: other, metres }) => (
                 <li key={other.id}>
-                  «{other.name}» على نحو {Math.round(metres)} متر
-                  {other.verification === "verified" ? " (موثّقة)" : ""}
+                  {locale === "en"
+                    ? `“${other.name}”, about ${Math.round(metres)} m away`
+                    : `«${other.name}» على نحو ${Math.round(metres)} متر`}
+                  {other.verification === "verified" ? t(" (موثّقة)", " (verified)") : ""}
                 </li>
               ))}
             </ul>
@@ -207,10 +235,19 @@ export default async function AdminLandsPage({
         {/* تُوثَّق الأرض بعد فتح مستنداتها كلّها، ولا يوثّق المدير أرضه (فحص 3 نوفمبر: web-flows-3 وdata-quality-5). */}
         <p className="mt-3 text-xs text-muted">
           {own
-            ? "هذه أرضك: لا توثّقها أنت، بل مديرٌ آخر أو معاينةٌ مدفوعة."
+            ? t(
+                "هذه أرضك: لا توثّقها أنت، بل مديرٌ آخر أو معاينةٌ مدفوعة.",
+                "This is your land: another administrator or a paid inspection verifies it, not you.",
+              )
             : unread > 0
-              ? `افتح المستندات قبل التوثيق — بقي ${unread}. كلّ فتحٍ يُسجَّل باسمك، والرابط يعيش دقيقتين.`
-              : "فتحتَ المستندات كلّها. يُسجَّل التوثيق باسمك وبمساحة الأرض اليوم."}
+              ? t(
+                  `افتح المستندات قبل التوثيق — بقي ${unread}. كلّ فتحٍ يُسجَّل باسمك، والرابط يعيش دقيقتين.`,
+                  `Open the documents before verifying — ${unread} left. Each opening is recorded in your name, and the link lasts two minutes.`,
+                )
+              : t(
+                  "فتحتَ المستندات كلّها. يُسجَّل التوثيق باسمك وبمساحة الأرض اليوم.",
+                  "You have opened every document. The verification is recorded in your name, with the land's area as of today.",
+                )}
         </p>
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
@@ -226,16 +263,16 @@ export default async function AdminLandsPage({
               disabled={!enough || unread > 0 || own}
               title={
                 !enough
-                  ? "الزنادُ في القاعدة يرفض النشر بمستنداتٍ ناقصة"
+                  ? t("الزنادُ في القاعدة يرفض النشر بمستنداتٍ ناقصة", "The database refuses to publish with missing documents")
                   : own
-                    ? "لا يوثّق المدير أرضاً يملكها"
+                    ? t("لا يوثّق المدير أرضاً يملكها", "An administrator cannot verify land they own")
                     : unread > 0
-                      ? "افتح المستندات كلّها أوّلاً"
+                      ? t("افتح المستندات كلّها أوّلاً", "Open every document first")
                       : undefined
               }
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              وثّق وانشر
+              {t("وثّق وانشر", "Verify and publish")}
             </button>
           </form>
 
@@ -243,22 +280,24 @@ export default async function AdminLandsPage({
             <input type="hidden" name="id" value={land.id} />
             <input
               name="verification_note"
-              placeholder="سبب الردّ — يقرأه صاحب الأرض"
+              placeholder={t("سبب الردّ — يقرأه صاحب الأرض", "Reason for returning — the owner will read it")}
               className={`${field} min-w-48 flex-1`}
             />
             <button
               type="submit"
               className="rounded-lg border border-danger/40 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/5"
             >
-              ردّ
+              {t("ردّ", "Return")}
             </button>
           </form>
         </div>
 
         {!enough && (
           <p className="mt-2 text-xs text-muted">
-            التوثيقُ معطَّل حتى تكتمل المستندات — والقاعدةُ ترفضه أيضاً، فالزرُّ
-            هنا يوافق الحارسَ لا يسبقه.
+            {t(
+              "التوثيقُ معطَّل حتى تكتمل المستندات — والقاعدةُ ترفضه أيضاً، فالزرُّ هنا يوافق الحارسَ لا يسبقه.",
+              "Verification is off until the documents are complete — the database refuses it too, so this button follows the guard rather than getting ahead of it.",
+            )}
           </p>
         )}
       </li>
@@ -267,11 +306,21 @@ export default async function AdminLandsPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold">توثيق الأراضي</h1>
+      <h1 className="text-2xl font-bold">{t("توثيق الأراضي", "Land verification")}</h1>
       <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">
-        ما يُوثَّق هنا يصير <strong>منشوراً</strong>: يظهر في جواز صاحبه، ويصلح
-        سنداً لعرض تصدير. وما تشهد به المنصّةُ هو أنّ المستنداتِ موجودةٌ ومطابقةٌ
-        لما تقوله الأرض — لا صحّةُ الملكيّة أمام القضاء.
+        {locale === "en" ? (
+          <>
+            What is verified here becomes <strong>published</strong>: it shows on its owner&apos;s passport and can back
+            an export offer. What the platform attests is that the documents exist and match what the land record says —
+            not that the ownership would stand in court.
+          </>
+        ) : (
+          <>
+            ما يُوثَّق هنا يصير <strong>منشوراً</strong>: يظهر في جواز صاحبه، ويصلح
+            سنداً لعرض تصدير. وما تشهد به المنصّةُ هو أنّ المستنداتِ موجودةٌ ومطابقةٌ
+            لما تقوله الأرض — لا صحّةُ الملكيّة أمام القضاء.
+          </>
+        )}
       </p>
 
       {error && (
@@ -281,10 +330,10 @@ export default async function AdminLandsPage({
       )}
 
       <h2 className="mt-8 mb-4 text-lg font-bold">
-        بانتظار المراجعة ({waiting.length})
+        {t("بانتظار المراجعة", "Awaiting review")} ({waiting.length})
       </h2>
       {waiting.length === 0 ? (
-        <p className={`${card} text-sm text-muted`}>لا أراضٍ تنتظر.</p>
+        <p className={`${card} text-sm text-muted`}>{t("لا أراضٍ تنتظر.", "No land is waiting.")}</p>
       ) : (
         <ul className="flex flex-col gap-4">
           {waiting.map((l) => (
@@ -294,21 +343,21 @@ export default async function AdminLandsPage({
       )}
 
       <h2 className="mt-10 mb-4 text-lg font-bold">
-        موثّقة ({done.length})
+        {t("موثّقة", "Verified")} ({done.length})
       </h2>
       {done.length === 0 ? (
-        <p className={`${card} text-sm text-muted`}>لا شيء بعد.</p>
+        <p className={`${card} text-sm text-muted`}>{t("لا شيء بعد.", "Nothing yet.")}</p>
       ) : (
         <ul className="flex flex-col gap-4">
           {done.map((l) => (
             <li key={l.id} className={card}>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 className="font-bold">{l.name}</h3>
-                <span className="text-xs text-primary">موثّقة ومنشورة</span>
+                <span className="text-xs text-primary">{t("موثّقة ومنشورة", "Verified and published")}</span>
               </div>
               <p className="mt-1 text-sm text-muted">
                 {[l.state, l.locality].filter(Boolean).join(" · ")} · {l.feddans}{" "}
-                فدان · المستندات {l.documents_on_file}/{l.documents_required}
+                {t("فدان", "feddans")} · {t("المستندات", "Documents")} {l.documents_on_file}/{l.documents_required}
               </p>
             </li>
           ))}

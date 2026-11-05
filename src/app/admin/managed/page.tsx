@@ -3,6 +3,8 @@ import { requireAdmin } from "@/lib/adminGuard";
 import ManagedFarmerCard from "@/components/ManagedFarmerCard";
 import { AGENT_SCOPE_SHORT, type AgentScope } from "@/lib/agent";
 import { card } from "@/lib/ui";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 export const metadata = { title: "مزارعون بلا جوّال | سوداقري" };
 
@@ -29,6 +31,8 @@ type Row = {
  */
 export default async function AdminManagedPage() {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const { data, error } = await supabase.rpc("managed_farmers_pending");
   if (error) console.error("admin/managed: pending failed", error.message);
   const rows = (data ?? []) as Row[];
@@ -46,30 +50,38 @@ export default async function AdminManagedPage() {
   const item = (r: Row) => (
     <li key={r.user_id} className={card}>
       <p className="text-xs text-muted">
-        {new Date(r.created_at).toLocaleString("ar-EG")} · سجّلته «{r.company_name}»
+        {new Date(r.created_at).toLocaleString(locale === "en" ? "en-GB" : "ar-EG")} ·{" "}
+        {locale === "en" ? `Registered by “${r.company_name}”` : `سجّلته «${r.company_name}»`}
       </p>
       <p className="mt-1 text-lg font-black">{r.full_name}</p>
       <p className="text-sm text-muted">
-        {[r.village, r.locality, r.state].filter(Boolean).join("، ")}
+        {[r.village, r.locality, r.state].filter(Boolean).join(locale === "en" ? ", " : "، ")}
         {r.national_id && (
           <>
             {" "}
-            · الرقم الوطنيّ <span dir="ltr">{r.national_id}</span>
+            · {t("الرقم الوطنيّ", "National ID")} <span dir="ltr">{r.national_id}</span>
           </>
         )}
         {r.contact_phone && (
           <>
             {" "}
-            · جوّال للتواصل <span dir="ltr">{r.contact_phone}</span>
+            · {t("جوّال للتواصل", "Contact phone")} <span dir="ltr">{r.contact_phone}</span>
           </>
         )}
       </p>
-      {r.scopes && <p className="text-sm">الإذن: {r.scopes.map((s) => AGENT_SCOPE_SHORT[s][0]).join(" و")}</p>}
+      {r.scopes && (
+        <p className="text-sm">
+          {t("الإذن:", "Permission:")}{" "}
+          {locale === "en"
+            ? r.scopes.map((s) => AGENT_SCOPE_SHORT[s][1]).join(" and ")
+            : r.scopes.map((s) => AGENT_SCOPE_SHORT[s][0]).join(" و")}
+        </p>
+      )}
       {r.note && <p className="text-sm text-muted">«{r.note}»</p>}
       <div className="mt-3 grid grid-cols-2 gap-3">
         {[
-          [r.consent_path, "ورقة الموافقة"],
-          [r.photo_path, "صورة المزارع"],
+          [r.consent_path, t("ورقة الموافقة", "Consent form")],
+          [r.photo_path, t("صورة المزارع", "Farmer's photo")],
         ].map(([p, name]) =>
           signed.get(p) ? (
             <a key={p} href={signed.get(p)} target="_blank" rel="noreferrer" className="block">
@@ -79,7 +91,7 @@ export default async function AdminManagedPage() {
             </a>
           ) : (
             <p key={p} className="text-xs text-danger">
-              تعذّر فتح {name}
+              {t("تعذّر فتح", "Could not open:")} {name}
             </p>
           ),
         )}
@@ -91,23 +103,43 @@ export default async function AdminManagedPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <Link href="/admin" className="text-sm text-primary underline">
-        → لوحة الإدارة
+        {t("→ لوحة الإدارة", "← Admin panel")}
       </Link>
       <h1 className="mt-4 font-black" style={{ fontSize: "var(--text-title)" }}>
-        مزارعون بلا جوّال
+        {t("مزارعون بلا جوّال", "Farmers without a phone")}
       </h1>
       <ol className="mt-3 list-decimal space-y-1 ps-5 text-sm leading-7 text-muted">
-        <li>افتح ورقة الموافقة: فيها اسم الجمعيّة واسم المزارع، وموقَّعة أو مبصومة.</li>
-        <li>قارن صورة المزارع والاسم والقرية؛ وإن كان له جوّال للتواصل فاتّصل به.</li>
-        <li>اعتمد، أو ردّ بسببٍ تقرؤه الجمعيّة. لا تعمل الجمعيّة عنه قبل الاعتماد.</li>
-        <li>حين يصير للمزارع جوّال: اتّصل به وتأكّد، ثمّ اربط رقمه واقرأ له الكلمة المؤقّتة.</li>
+        <li>
+          {t(
+            "افتح ورقة الموافقة: فيها اسم الجمعيّة واسم المزارع، وموقَّعة أو مبصومة.",
+            "Open the consent form: it carries the association's name and the farmer's, signed or thumbprinted.",
+          )}
+        </li>
+        <li>
+          {t(
+            "قارن صورة المزارع والاسم والقرية؛ وإن كان له جوّال للتواصل فاتّصل به.",
+            "Compare the farmer's photo, name and village; if there is a contact phone, call it.",
+          )}
+        </li>
+        <li>
+          {t(
+            "اعتمد، أو ردّ بسببٍ تقرؤه الجمعيّة. لا تعمل الجمعيّة عنه قبل الاعتماد.",
+            "Approve, or return it with a reason the association will read. The association cannot act for the farmer before approval.",
+          )}
+        </li>
+        <li>
+          {t(
+            "حين يصير للمزارع جوّال: اتّصل به وتأكّد، ثمّ اربط رقمه واقرأ له الكلمة المؤقّتة.",
+            "When the farmer gets a phone: call and confirm, then link the number and read them the temporary password.",
+          )}
+        </li>
       </ol>
 
-      <h2 className="mt-8 font-bold">ينتظر الاعتماد</h2>
-      {pending.length === 0 ? <p className="mt-2 text-muted">لا أحد ينتظر.</p> : <ul className="mt-3 grid gap-4">{pending.map(item)}</ul>}
+      <h2 className="mt-8 font-bold">{t("ينتظر الاعتماد", "Awaiting approval")}</h2>
+      {pending.length === 0 ? <p className="mt-2 text-muted">{t("لا أحد ينتظر.", "No one is waiting.")}</p> : <ul className="mt-3 grid gap-4">{pending.map(item)}</ul>}
 
-      <h2 className="mt-10 font-bold">معتمَدون لم يُربطوا بجوّال بعد</h2>
-      {approved.length === 0 ? <p className="mt-2 text-muted">لا أحد.</p> : <ul className="mt-3 grid gap-4">{approved.map(item)}</ul>}
+      <h2 className="mt-10 font-bold">{t("معتمَدون لم يُربطوا بجوّال بعد", "Approved, not yet linked to a phone")}</h2>
+      {approved.length === 0 ? <p className="mt-2 text-muted">{t("لا أحد.", "No one.")}</p> : <ul className="mt-3 grid gap-4">{approved.map(item)}</ul>}
     </div>
   );
 }

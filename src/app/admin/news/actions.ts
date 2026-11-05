@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale } from "@/lib/locale";
+import { tr, type Locale } from "@/lib/i18n";
+import { dbMessage } from "@/lib/dbMessages";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const orNull = (v: string) => (v.length > 0 ? v : null);
@@ -27,8 +30,13 @@ function back(error?: string): never {
   redirect(error ? `/admin/news?error=${encodeURIComponent(error)}` : "/admin/news");
 }
 
+/** The database's own reason: as raised for Arabic readers, in English for English ones. */
+const dbReason = (locale: Locale, message: string) => (locale === "en" ? dbMessage(message, "en") : message);
+
 export async function saveAnnouncement(formData: FormData) {
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const id = str(formData, "id");
 
   const row = {
@@ -39,8 +47,8 @@ export async function saveAnnouncement(formData: FormData) {
     link_label: orNull(str(formData, "link_label")),
   };
 
-  if (row.title.length < 3) back("العنوان قصير جداً.");
-  if (row.body.length < 20) back("النصّ قصير جداً — اكتب عشرين حرفاً على الأقلّ.");
+  if (row.title.length < 3) back(t("العنوان قصير جداً.", "The title is too short."));
+  if (row.body.length < 20) back(t("النصّ قصير جداً — اكتب عشرين حرفاً على الأقلّ.", "The text is too short — write at least twenty characters."));
 
   /*
    * والرابطُ واسمُه معاً أو لا واحدَ منهما.
@@ -50,7 +58,7 @@ export async function saveAnnouncement(formData: FormData) {
    * arrives as `announcement_link_is_whole`, which tells the owner nothing.
    */
   if ((row.link_path === null) !== (row.link_label === null)) {
-    back("الرابط واسمه يُكتبان معاً أو يُتركان معاً.");
+    back(t("الرابط واسمه يُكتبان معاً أو يُتركان معاً.", "Fill in the link and its label together, or leave both empty."));
   }
 
   const query = id
@@ -64,9 +72,9 @@ export async function saveAnnouncement(formData: FormData) {
 
   const { data, error } = await query;
 
-  if (error) back(error.message);
+  if (error) back(dbReason(locale, error.message));
   // ورفضُ سياسة الصفوف لا يرفع خطأً: صفٌّ لم يُمسّ هو «لست مديراً»، لا نجاح.
-  if ((data ?? []).length === 0) back("لم يُحفظ شيء — الكتابة من صلاحية الإدارة.");
+  if ((data ?? []).length === 0) back(t("لم يُحفظ شيء — الكتابة من صلاحية الإدارة.", "Nothing was saved — only administrators can write news."));
 
   refresh();
   back();
@@ -82,6 +90,8 @@ export async function saveAnnouncement(formData: FormData) {
  */
 export async function setAnnouncementPublished(formData: FormData) {
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const id = str(formData, "id");
   const publish = str(formData, "publish") === "1";
 
@@ -93,8 +103,8 @@ export async function setAnnouncementPublished(formData: FormData) {
     .eq("id", id)
     .select("id");
 
-  if (error) back(error.message);
-  if ((data ?? []).length === 0) back("لم يتغيّر شيء — النشر من صلاحية الإدارة.");
+  if (error) back(dbReason(locale, error.message));
+  if ((data ?? []).length === 0) back(t("لم يتغيّر شيء — النشر من صلاحية الإدارة.", "Nothing changed — only administrators can publish."));
 
   refresh();
   back();
@@ -109,6 +119,8 @@ export async function setAnnouncementPublished(formData: FormData) {
  */
 export async function deleteAnnouncement(formData: FormData) {
   const supabase = await createClient();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
   const id = str(formData, "id");
   if (!id) back();
 
@@ -119,9 +131,9 @@ export async function deleteAnnouncement(formData: FormData) {
     .is("published_at", null)
     .select("id");
 
-  if (error) back(error.message);
+  if (error) back(dbReason(locale, error.message));
   if ((data ?? []).length === 0) {
-    back("لم يُحذف شيء — المنشورُ يُسحب من النشر ولا يُمحى.");
+    back(t("لم يُحذف شيء — المنشورُ يُسحب من النشر ولا يُمحى.", "Nothing was deleted — a published item is unpublished, never erased."));
   }
 
   refresh();

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminGuard";
+import { getLocale } from "@/lib/locale";
+import { tr } from "@/lib/i18n";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -23,6 +25,8 @@ const STATUSES = ["new", "planned", "done", "declined"];
  */
 export async function replyToFeedback(formData: FormData) {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const id = str(formData, "feedback_id");
   if (!id) redirect("/admin/feedback");
@@ -48,7 +52,7 @@ export async function replyToFeedback(formData: FormData) {
   if (error) {
     console.error("replyToFeedback failed", { id, error });
     redirect(
-      `/admin/feedback?error=${encodeURIComponent("تعذّر حفظ الردّ.")}`,
+      `/admin/feedback?error=${encodeURIComponent(t("تعذّر حفظ الردّ.", "Could not save the reply."))}`,
     );
   }
 
@@ -57,12 +61,15 @@ export async function replyToFeedback(formData: FormData) {
     console.error("replyToFeedback: no row updated", { id });
     redirect(
       `/admin/feedback?error=${encodeURIComponent(
-        "لم يُحفظ شيء — الملاحظة غير موجودة أو لا تملك صلاحية تعديلها.",
+        t(
+          "لم يُحفظ شيء — الملاحظة غير موجودة أو لا تملك صلاحية تعديلها.",
+          "Nothing was saved — the note does not exist or you may not edit it.",
+        ),
       )}`,
     );
   }
 
-  redirect(`/admin/feedback?message=${encodeURIComponent("حُفظ الردّ.")}`);
+  redirect(`/admin/feedback?message=${encodeURIComponent(t("حُفظ الردّ.", "Reply saved."))}`);
 }
 
 /**
@@ -75,6 +82,8 @@ export async function replyToFeedback(formData: FormData) {
  */
 export async function deleteFeedback(formData: FormData) {
   const { supabase } = await requireAdmin();
+  const locale = await getLocale();
+  const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const id = str(formData, "feedback_id");
   if (!id) redirect("/admin/feedback");
@@ -91,7 +100,7 @@ export async function deleteFeedback(formData: FormData) {
   if (error) {
     console.error("deleteFeedback failed", { id, error });
     redirect(
-      `/admin/feedback?error=${encodeURIComponent("تعذّر حذف الملاحظة.")}`,
+      `/admin/feedback?error=${encodeURIComponent(t("تعذّر حذف الملاحظة.", "Could not delete the note."))}`,
     );
   }
 
@@ -99,10 +108,13 @@ export async function deleteFeedback(formData: FormData) {
     console.error("deleteFeedback: no row deleted", { id });
     redirect(
       `/admin/feedback?error=${encodeURIComponent(
-        "لم يُحذف شيء — الملاحظة غير موجودة أو لا تملك صلاحية حذفها.",
+        t(
+          "لم يُحذف شيء — الملاحظة غير موجودة أو لا تملك صلاحية حذفها.",
+          "Nothing was deleted — the note does not exist or you may not delete it.",
+        ),
       )}`,
     );
   }
 
-  redirect(`/admin/feedback?message=${encodeURIComponent("حُذفت الملاحظة.")}`);
+  redirect(`/admin/feedback?message=${encodeURIComponent(t("حُذفت الملاحظة.", "Note deleted."))}`);
 }
