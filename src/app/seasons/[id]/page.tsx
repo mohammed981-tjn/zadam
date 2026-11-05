@@ -7,6 +7,7 @@ import {
   summariseLedger,
   LEDGER_LABEL,
   type LedgerCategory,
+  budgetVsActual,
 } from "@/lib/season";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
@@ -131,6 +132,13 @@ export default async function SeasonPage({
     Number(season.feddans),
     plannedBudget,
   );
+
+  // البند ١٩٠: الميزانيّة مقابل الفعليّ، مرحلةً مرحلة. ما لم يُنسب إلى مرحلةٍ يُعدّ وحده، لا يُوزَّع بالتخمين.
+  const variance = budgetVsActual(
+    stages.map((s) => ({ id: s.id, budget: Number(s.budget) })),
+    ledger.map((l) => ({ stage_id: l.stage_id, category: l.category, amount: Number(l.amount) })),
+  );
+  const spentOn = new Map(variance.stages.map((v) => [v.stageId, v]));
 
   const band = returnBand(season.crop_key);
   const cropName = cropLabel(season.crop_key, locale);
@@ -334,6 +342,18 @@ export default async function SeasonPage({
                   </div>
                   <div className="text-end">
                     <p className="font-bold">${n0(Number(s.budget))}</p>
+                    {(spentOn.get(s.id)?.spent ?? 0) > 0 && (
+                      <p
+                        className={`text-xs ${
+                          (spentOn.get(s.id)?.left ?? 0) < 0 ? "font-bold text-danger" : "text-muted"
+                        }`}
+                      >
+                        {t(
+                          `صُرف $${n0(spentOn.get(s.id)!.spent)}`,
+                          `$${n0(spentOn.get(s.id)!.spent)} spent`,
+                        )}
+                      </p>
+                    )}
                     <p
                       className={`text-xs font-medium ${
                         decision.released ? "text-primary" : "text-accent"
@@ -412,6 +432,65 @@ export default async function SeasonPage({
           )}
         </div>
 
+        {variance.spent > 0 && stages.length > 0 && (
+          <div className="mb-4 overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <caption className="bg-card px-4 pt-3 text-start font-bold">
+                {t("الميزانيّة مقابل الفعليّ", "Budget against actual")}
+              </caption>
+              <thead className="bg-card text-start">
+                <tr>
+                  <th className="px-4 py-3">{t("المرحلة", "Stage")}</th>
+                  <th className="px-4 py-3">{t("الخطّة", "Planned")}</th>
+                  <th className="px-4 py-3">{t("صُرف", "Spent")}</th>
+                  <th className="px-4 py-3">{t("الباقي", "Left")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stages.map((s) => {
+                  const v = spentOn.get(s.id)!;
+                  return (
+                    <tr key={s.id} className="border-t border-border">
+                      <td className="px-4 py-2">{stageName(s.stage_key, locale)}</td>
+                      <td className="px-4 py-2">${n0(v.planned)}</td>
+                      <td className="px-4 py-2">${n0(v.spent)}</td>
+                      <td className={`px-4 py-2 ${v.left < 0 ? "font-bold text-danger" : ""}`}>
+                        {v.left < 0 ? t(`تجاوز $${n0(-v.left)}`, `$${n0(-v.left)} over`) : `$${n0(v.left)}`}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {variance.unassigned > 0 && (
+                  <tr className="border-t border-border text-muted">
+                    <td className="px-4 py-2">{t("بلا مرحلة", "No stage")}</td>
+                    <td className="px-4 py-2">—</td>
+                    <td className="px-4 py-2">${n0(variance.unassigned)}</td>
+                    <td className="px-4 py-2">—</td>
+                  </tr>
+                )}
+                <tr className="border-t border-border bg-card font-bold">
+                  <td className="px-4 py-2">{t("المجموع", "Total")}</td>
+                  <td className="px-4 py-2">${n0(variance.planned)}</td>
+                  <td className="px-4 py-2">${n0(variance.spent)}</td>
+                  <td className={`px-4 py-2 ${variance.planned - variance.spent < 0 ? "text-danger" : ""}`}>
+                    {variance.planned - variance.spent < 0
+                      ? t(`تجاوز $${n0(variance.spent - variance.planned)}`, `$${n0(variance.spent - variance.planned)} over`)
+                      : `$${n0(variance.planned - variance.spent)}`}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            {variance.unassigned > 0 && (
+              <p className="bg-card px-4 pb-3 text-xs text-muted">
+                {t(
+                  "«بلا مرحلة»: قيودٌ لم تُختر لها مرحلة. اختر المرحلة عند القيد فيُحسب على خطّتها.",
+                  "“No stage”: entries recorded without a stage. Choose the stage when you record a cost and it counts against that stage's plan.",
+                )}
+              </p>
+            )}
+          </div>
+        )}
+
         {summary.byCategory.length > 0 && (
           <div className="mb-4 overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">
@@ -468,6 +547,23 @@ export default async function SeasonPage({
                 ))}
               </select>
             </label>
+            {stages.length > 0 && (
+              <label className="flex flex-col gap-1 text-xs">
+                {t("المرحلة (للمصروف)", "Stage (for a cost)")}
+                <select
+                  name="stage_id"
+                  className={field}
+                  defaultValue={stages.find((s) => !s.completed)?.id ?? ""}
+                >
+                  <option value="">{t("بلا مرحلة", "No stage")}</option>
+                  {stages.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {stageName(s.stage_key, locale)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="flex flex-col gap-1 text-xs">
               {t("المبلغ", "Amount")}
               <input
