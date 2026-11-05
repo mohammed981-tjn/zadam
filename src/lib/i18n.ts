@@ -61,8 +61,6 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/how-we-work",
   "/partners",
   "/partners/*",
-  "/admin/partners",
-  "/admin/land-groups",
   "/services",
   "/services/*",
   "/contracts",
@@ -91,11 +89,6 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/suppliers",
   "/suppliers/*",
   "/verify",
-  "/admin/suppliers",
-  "/admin/inspections",
-  "/admin/prices",
-  "/admin/faostat",
-  "/admin/accounts",
   "/account/close",
   "/account/agents",
   "/agent",
@@ -114,6 +107,9 @@ export const TRANSLATED_ROUTES: readonly string[] = [
   "/market/forward",
   "/market/forward/*",
   "/mining/registry/*",
+  // Administration: every admin page (item 94, 6 November)
+  "/admin",
+  "/admin/*",
 ];
 
 export function isTranslated(pathname: string): boolean {

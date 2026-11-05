@@ -7,13 +7,16 @@ import { ledgerToday } from "@/lib/ledger/today";
 import { money } from "@/lib/ledger/reports";
 import {
   agreementsWithheld,
+  agreementsWithheldEn,
   closedMonthEnd,
   inspectionState,
   lastClosedMonths,
   pivotFlows,
   RECONCILE_REMEDY,
+  RECONCILE_REMEDY_EN,
   reconcileVerdict,
   STALE_LABEL,
+  STALE_LABEL_EN,
   type FlowRow,
   type ReconcileRow,
   type StaleRow,
@@ -224,7 +227,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
                   <td className={td}>{LINK_KIND_LABEL[r.kind]?.[locale] ?? r.kind}</td>
                   <td className={td}>{LINK_STATUS_LABEL[r.status]?.[locale] ?? r.status}</td>
                   {r.suppressed ? (
-                    <td className={`${td} text-muted`} colSpan={3}>{agreementsWithheld(floorWord)}</td>
+                    <td className={`${td} text-muted`} colSpan={3}>{t(agreementsWithheld(floorWord), agreementsWithheldEn(minBooks))}</td>
                   ) : (
                     <>
                       <td className={num}>{r.links}</td>
@@ -256,9 +259,9 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
             <tbody>
               {stale.map((r) => (
                 <tr key={r.what} className="border-t border-border">
-                  <td className={td}>{STALE_LABEL[r.what] ?? r.what}</td>
+                  <td className={td}>{(locale === "en" ? STALE_LABEL_EN : STALE_LABEL)[r.what] ?? r.what}</td>
                   {r.suppressed ? (
-                    <td className={`${td} text-muted`} colSpan={3}>{agreementsWithheld(floorWord)}</td>
+                    <td className={`${td} text-muted`} colSpan={3}>{t(agreementsWithheld(floorWord), agreementsWithheldEn(minBooks))}</td>
                   ) : (
                     <>
                       <td className={num}>{r.items}</td>
@@ -306,7 +309,7 @@ export default async function OversightPage({ searchParams }: { searchParams: Pr
                     "The investors' books show more owed to them than the farmers' books show",
                   )}{" "}
               {t("بمقدار", "by")}{" "}
-              <span className="font-bold tabular-nums">{money(verdict.difference)}</span>. {RECONCILE_REMEDY}
+              <span className="font-bold tabular-nums">{money(verdict.difference)}</span>. {t(RECONCILE_REMEDY, RECONCILE_REMEDY_EN)}
             </span>
           )}
         </p>
