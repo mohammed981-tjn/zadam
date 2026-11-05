@@ -54,3 +54,22 @@ export async function depreciateNow() {
   const n = typeof data === "number" ? data : 0;
   back("ok", n > 0 ? t(`قُيِّد إهلاك ${n} شهراً.`, `${n} month(s) of depreciation booked.`) : t("لا إهلاك مستحقّاً لم يُقيَّد.", "No depreciation due that is not booked."));
 }
+
+export async function disposeAsset(fd: FormData) {
+  const { locale, t } = await translator();
+  const { supabase } = await signedIn();
+  const proceeds = Number(str(fd, "proceeds").replace(/[,٬\s]/g, "").replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))) || 0);
+  const { error } = await supabase.rpc("ledger_asset_dispose", {
+    p_asset: str(fd, "asset_id"),
+    p_date: str(fd, "disposed_on"),
+    p_proceeds: proceeds,
+    p_received_into: proceeds > 0 ? str(fd, "received_into") : null,
+  });
+  if (error) {
+    console.error("disposeAsset failed", { error });
+    back("error", explain(locale, error));
+  }
+  back("ok", proceeds > 0
+    ? t("قُيِّد البيع: خرج الأصل من الدفتر، والفرق عن قيمته الدفتريّة ربحٌ أو خسارة.", "The sale was booked: the asset left the book, and the difference from its book value is a gain or a loss.")
+    : t("قُيِّد الاستبعاد: خرج الأصل من الدفتر، وقيمته الدفتريّة خسارة.", "The write-off was booked: the asset left the book, and its book value is a loss."));
+}

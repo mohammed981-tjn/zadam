@@ -160,6 +160,59 @@ begin
   perform _eq(ledger_depreciate_all(), 0, 'وتكراره في اليوم لا يقيّد شيئاً');
   perform _eq((select sum(case side when 'D' then base_minor else -base_minor end) from journal_lines)::bigint, 0::bigint, 'الدفاتر كلّها متوازنة: المدين = الدائن');
 end $$;
+\echo ''
+\echo '=========================================================================='
+\echo 'هـ) البيع والاستبعاد: قيدٌ واحد، والفرق ربحٌ أو خسارة، والإهلاك يقف'
+\echo '=========================================================================='
+set role authenticated;
+do $$
+declare b uuid := _bk('a1000000-0000-0000-0000-0000000000a1'); bb uuid := _bk('b2000000-0000-0000-0000-0000000000b2');
+        tractor uuid := (select id from _ids where k = 'tractor'); well uuid := (select id from _ids where k = 'well');
+        pump uuid; acq date := (date_trunc('month', ledger_today()) - interval '2 months')::date + 2;
+        accum_well bigint; e uuid;
+begin
+  perform _act_as('a1000000-0000-0000-0000-0000000000a1');
+  perform _eq((select count(*)::int from ledger_accounts where book_id = b and system_key = 'asset_disposal_loss'), 1, 'حساب خسائر البيع في دفترٍ قائم');
+
+  -- The tractor: fully depreciated (900$ of 1000$), sold for 250$ into the bank: 150$ gain.
+  e := ledger_asset_dispose(tractor, ledger_today(), 250, 'bank');
+  perform _eq(_bal(b, 'other_income'), -15000::bigint, 'بِيع الجرّار بـ٢٥٠$ وقيمته الدفتريّة ١٠٠$: ربحٌ ١٥٠$ في الإيرادات الأخرى');
+  perform _eq(_bal(b, 'machinery'), 0::bigint, 'وخرج من حساب الآلات بثمنه كلّه');
+  perform _eq(_bal(b, 'bank'), 25000::bigint, 'ودخل البنكَ ثمنُه');
+  perform _eq((select book_value_minor from ledger_fixed_assets_summary(b) where id = tractor), 0::bigint, 'وقيمته الدفتريّة في السجلّ صفر');
+  perform _eq((select proceeds_minor from ledger_fixed_assets_summary(b) where id = tractor), 25000::bigint, 'وثمن بيعه مسجَّل');
+  begin perform ledger_asset_dispose(tractor, ledger_today(), 100, 'cash_on_hand'); perform _fail('بيعٌ ثانٍ', 'قُبل');
+  exception when others then perform _pass('لا يُباع الأصل مرّتين'); end;
+
+  -- The well: written off today with nothing received: a loss of what is left of it.
+  accum_well := (select accumulated_minor from ledger_fixed_assets_summary(b) where id = well);
+  perform ledger_asset_dispose(well, ledger_today(), 0, null);
+  perform _eq(_bal(b, 'asset_disposal_loss'), 600000 - accum_well, 'استُبعدت البئر بلا ثمن: خسارةٌ بقيمتها الدفتريّة');
+  perform _eq(_bal(b, 'land_improvements'), 0::bigint, 'وخرجت من حساب التحسينات');
+  perform _eq(_bal(b, 'accumulated_depreciation'), 0::bigint, 'ولم يبقَ في المجمّع شيءٌ لأصلٍ خرج');
+
+  -- A pump depreciated for some months cannot be sold on a day before the last of them.
+  pump := ledger_asset_add(b, 'مضخّة ري', 'machinery', acq, 800, 0, 24, 'cash_on_hand');
+  perform ledger_asset_depreciate(b);
+  begin perform ledger_asset_dispose(pump, acq + 1, 0, null); perform _fail('بيعٌ قبل آخر إهلاك', 'قُبل');
+  exception when others then perform _pass('ولا يُباع بتاريخٍ قبل آخر شهرٍ قُيِّد إهلاكه'); end;
+  begin perform ledger_asset_dispose(pump, ledger_today(), 300, null); perform _fail('ثمنٌ بلا مكان', 'قُبل');
+  exception when others then perform _pass('وثمنٌ مقبوض بلا مكانٍ قُبض فيه يُرفض'); end;
+  perform _eq(ledger_asset_depreciate(b), 0, 'ولا إهلاك بعد البيع للأصلين المبيعين');
+
+  perform _act_as('b2000000-0000-0000-0000-0000000000b2');
+  begin perform ledger_asset_dispose(pump, ledger_today(), 0, null); perform _fail('بيع أصل غيره', 'قُبل');
+  exception when others then perform _pass('ولا يبيع أحدٌ أصل غيره'); end;
+  perform _eq((select count(*)::int from ledger_accounts where book_id = bb and system_key = 'asset_disposal_loss'), 1, 'ودفترٌ فُتح بعد الهجرة فيه الحساب من القالب');
+end $$;
+reset role;
+do $$
+begin
+  perform _eq((select sum(case side when 'D' then base_minor else -base_minor end) from journal_lines)::bigint, 0::bigint, 'وبعد البيع كلّه: الدفاتر متوازنة');
+  perform _eq(has_function_privilege('anon', 'ledger_asset_dispose(uuid,date,numeric,text)', 'execute'), false, 'الزائر لا يبيع');
+  perform _eq(has_function_privilege('authenticated', '_ledger_ensure_disposal_loss(uuid)', 'execute'), false, 'ولا يستدعي المسجَّل إنشاء الحساب مباشرةً');
+end $$;
+
 do $$
 begin
   perform _eq(has_function_privilege('anon', 'ledger_asset_add(uuid,text,text,date,numeric,numeric,integer,text)', 'execute')

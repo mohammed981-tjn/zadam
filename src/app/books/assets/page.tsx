@@ -8,7 +8,7 @@ import ActionNotice from "@/components/ActionNotice";
 import { formatMoney } from "@/lib/ledger/money";
 import { ledgerToday } from "@/lib/ledger/today";
 import { button, card, field, label } from "@/lib/ui";
-import { addAsset, depreciateNow } from "./actions";
+import { addAsset, depreciateNow, disposeAsset } from "./actions";
 
 /**
  * الأصول الثابتة (البند ١٩٠). A tractor, a pump, a well: what the farm owns for more than a season. Its purchase is booked
@@ -28,6 +28,8 @@ type Asset = {
   months_posted: number;
   accumulated_minor: number;
   book_value_minor: number;
+  disposed_on: string | null;
+  proceeds_minor: number | null;
 };
 
 export default async function AssetsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -88,6 +90,37 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
                         {t(`${a.months_posted} من ${a.life_months} شهراً`, `${a.months_posted} of ${a.life_months} months`)}
                         {Number(a.salvage_minor) > 0 && ` · ${t("خردة", "salvage")} ${usd(a.salvage_minor)}`}
                       </div>
+                      {a.disposed_on ? (
+                        <div className="mt-1 text-xs font-bold text-accent">
+                          {Number(a.proceeds_minor) > 0
+                            ? t(`بِيع في ${a.disposed_on} بـ${usd(Number(a.proceeds_minor))}`, `Sold on ${a.disposed_on} for ${usd(Number(a.proceeds_minor))}`)
+                            : t(`استُبعد في ${a.disposed_on}`, `Written off on ${a.disposed_on}`)}
+                        </div>
+                      ) : (
+                        <details className="mt-1 text-xs">
+                          <summary className="cursor-pointer text-primary">{t("بيع أو استبعاد", "Sell or write off")}</summary>
+                          <form action={disposeAsset} className="mt-2 flex flex-wrap items-end gap-2">
+                            <input type="hidden" name="asset_id" value={a.id} />
+                            <label className="flex flex-col gap-1">
+                              {t("التاريخ", "Date")}
+                              <input name="disposed_on" type="date" required min={a.acquired_on} max={ledgerToday()} defaultValue={ledgerToday()} className={field} />
+                            </label>
+                            <label className="flex flex-col gap-1">
+                              {t("ما قُبض بالدولار (0 إن استُبعد)", "Received in dollars (0 if written off)")}
+                              <input name="proceeds" inputMode="decimal" defaultValue="0" className={field} />
+                            </label>
+                            <label className="flex flex-col gap-1">
+                              {t("قُبض في", "Received into")}
+                              <select name="received_into" className={field} defaultValue="cash_on_hand">
+                                <option value="cash_on_hand">{t("النقد", "Cash")}</option>
+                                <option value="bank">{t("البنك", "Bank")}</option>
+                                <option value="wallet">{t("محفظة إلكترونيّة", "Mobile wallet")}</option>
+                              </select>
+                            </label>
+                            <button className="rounded-lg border border-border px-3 py-2 hover:bg-card">{t("قيّد", "Book it")}</button>
+                          </form>
+                        </details>
+                      )}
                     </td>
                     <td className="px-3 py-2" dir="ltr">{usd(a.cost_minor)}</td>
                     <td className="px-3 py-2" dir="ltr">{usd(a.accumulated_minor)}</td>

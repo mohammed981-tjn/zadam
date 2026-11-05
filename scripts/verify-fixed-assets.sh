@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# بوّابةُ الأصول الثابتة والإهلاك (البند ١٩٠): الشراء قيدٌ واحد، والإهلاك شهريٌّ بالقسط الثابت يبلغ (التكلفة − الخردة) تماماً،
+# بوّابةُ الأصول الثابتة والإهلاك والبيع (البند ١٩٠): الشراء قيدٌ واحد، والإهلاك شهريٌّ بالقسط الثابت يبلغ (التكلفة − الخردة) تماماً،
 # ولا يتكرّر، ولا يدخل فترةً مقفلة، ولا يكتب أحدٌ في دفتر غيره.
 #
 #   ./scripts/verify-fixed-assets.sh
@@ -20,6 +20,7 @@ FARM="$(pg_stage "$ROOT/supabase/migrations/20261024120000_farm_book.sql" farm.s
 OVERSIGHT="$(pg_stage "$ROOT/supabase/migrations/20261024130000_oversight.sql" oversight.sql)"
 REPORTS="$(pg_stage "$ROOT/supabase/migrations/20261024150000_ledger_reports.sql" reports.sql)"
 ASSETS="$(pg_stage "$ROOT/supabase/migrations/20261106010000_fixed_assets.sql" assets.sql)"
+DISPOSAL="$(pg_stage "$ROOT/supabase/migrations/20261106020000_fixed_asset_disposal.sql" disposal.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-fixed-assets.sql" checks.sql)"
 
 # Supabase's own defaults, so that a revoke in a migration is what the checks meet.
@@ -49,6 +50,7 @@ echo "── دفتر المزرعة"; pg_run_quiet "$FARM"
 echo "── الإشراف";      pg_run_quiet "$OVERSIGHT"
 echo "── التقارير";     pg_run_quiet "$REPORTS"
 echo "── الأصول";       pg_run "$ASSETS" >/dev/null
+echo "── البيع";        pg_run "$DISPOSAL" >/dev/null
 
 echo "── الفحوص"
 pg_run "$CHECKS"
