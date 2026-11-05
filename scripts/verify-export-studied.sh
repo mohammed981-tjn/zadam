@@ -21,6 +21,7 @@ READY="$(pg_stage "$ROOT/supabase/migrations/20260904230000_export_readiness.sql
 AGE="$(pg_stage "$ROOT/supabase/migrations/20260905160000_rules_declare_their_own_age.sql" age.sql)"
 PAIRS="$(pg_stage "$ROOT/supabase/migrations/20261021120000_export_all_products_destinations.sql" pairs.sql)"
 STUDIED="$(pg_stage "$ROOT/supabase/migrations/20261106030000_export_corridors_studied.sql" studied.sql)"
+HIBISCUS="$(pg_stage "$ROOT/supabase/migrations/20261106040000_hibiscus_eu_phyto_recommended.sql" hibiscus.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-export-studied.sql" checks.sql)"
 
 DEFAULTS="$(printf '%s\n' \
@@ -37,6 +38,8 @@ echo "── عمرُ القواعد";       pg_run_quiet "$AGE"
 echo "── المنتجات والوجهات";  pg_run_quiet "$PAIRS"
 echo "── الطرق المدروسة";     pg_run "$STUDIED" >/dev/null
 echo "── وثانيةً، فلا يتكرّر شيء"; pg_run "$STUDIED" >/dev/null
+echo "── الكركديه إلى أوروبا";  pg_run "$HIBISCUS" >/dev/null
+echo "── وثانيةً";              pg_run "$HIBISCUS" >/dev/null
 
 echo "── الفحوص"
 pg_run "$CHECKS"
