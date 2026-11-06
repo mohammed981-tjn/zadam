@@ -3,7 +3,17 @@ import { updateSession } from "@/lib/supabase/middleware";
 
 export async function proxy(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/video/")) return guardVideo(request);
-  return await updateSession(request);
+  const response = await updateSession(request);
+  // A signed-in person's pages carry their name and, on the home page since item 206, their seasons, money and lands.
+  // The service worker (public/sw.js) keeps public pages for the field; it must never keep one of these, or the next
+  // person to pick up a shared phone reads it offline. This header is how it tells them apart.
+  if (hasSession(request)) response.headers.set("x-sudagri-private", "1");
+  return response;
+}
+
+/** A Supabase session cookie is present (its name is sb-<project>-auth-token, possibly split into .0/.1 chunks). */
+function hasSession(request: NextRequest): boolean {
+  return request.cookies.getAll().some((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name) && c.value !== "");
 }
 
 /**
