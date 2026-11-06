@@ -101,6 +101,25 @@ jobs:
           path: ${{ runner.temp }}/app-preview
           retention-days: 14
 
+      # إشعارات الجوّال (البند ٢٠٧): إعداد مشروع Firebase من سرّ المستودع GOOGLE_SERVICES_JSON، إن ضبطه المالك
+      # (docs/push-setup-ar.md). الملفّ ليس سرّاً، لكنّه خاصٌّ بمشروعه والمستودع عامّ، فيبقى في الأسرار لا في الشجرة.
+      # وبلا السرّ يُبنى التطبيق كما كان والإشعارات مطفأة: Gradle لا يطبّق إضافة Google إلا حين يوجد الملفّ.
+      - name: Firebase configuration for phone notifications (if set)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            if ! python3 -c 'import json,sys; d=json.load(open("android/app/google-services.json")); sys.exit(0 if any(c["client_info"]["android_client_info"]["package_name"]=="sd.sudagri.sudagri" for c in d["client"]) else 1)'; then
+              echo "::error::GOOGLE_SERVICES_JSON is not a google-services.json for the package sd.sudagri.sudagri."
+              exit 1
+            fi
+            echo "Phone notifications: on (google-services.json written from the secret)."
+          else
+            echo "::notice::GOOGLE_SERVICES_JSON is not set — this APK builds with phone notifications off."
+          fi
+
       # None of these are secrets — the Supabase anon key is publishable by
       # design and every table it reaches is guarded by row-level security on
       # the server. They live in repository variables so a fork building this

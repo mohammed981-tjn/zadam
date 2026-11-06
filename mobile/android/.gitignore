@@ -24,3 +24,7 @@ key.properties
 # only. An upload key for a store listing is a different key, belongs to
 # whoever owns the listing, and must stay out of this repository.
 !app/sudagri-debug.keystore
+
+# إعداد مشروع Firebase (البند ٢٠٧): خاصٌّ بمشروع المالك، يكتبه البناء من السرّ GOOGLE_SERVICES_JSON، أو يضعه المالك
+# هنا لبناءٍ على جهازه (docs/push-setup-ar.md). ليس سرّاً، لكنّه لا يُرفع إلى مستودعٍ عامّ.
+app/google-services.json

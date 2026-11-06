@@ -13,6 +13,8 @@
     <!-- «حدّد أرضك» (البند ١٣٤): المشي حول الأرض بالـGPS، والتطبيق مفتوح فقط. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- إشعارات الجوّال (البند ٢٠٧): أندرويد ١٣ فما بعده يسأل صاحب الجوّال قبل أن يُظهر إشعاراً. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="سوداقري"
         android:name="${applicationName}"
@@ -46,6 +48,13 @@
                 <data android:scheme="sudagri" android:host="auth"/>
             </intent-filter>
         </activity>
+        <!-- أيقونة الإشعار في شريط الحالة: ورقةٌ بلونٍ واحد (أندرويد يرسم الأيقونة الملوّنة مربّعاً أبيض). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_sudagri" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/sudagri_notification" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -14,6 +14,7 @@ import {
 } from "@/lib/fieldAlerts";
 import { stageReminders, type PlannedCycle } from "@/lib/stageReminders";
 import { pushToUser } from "@/lib/push";
+import { dispatchPushes } from "@/lib/fcm";
 
 /**
  * التنبيهاتُ الحقليّة اليوميّة (البند ١١٥): جرادٌ قرب الأرض، ومرضُ ماشيةٍ في الولاية؛
@@ -158,9 +159,14 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // And to the phone app (backlog 207): whatever any notification of the day left for it — the bell from the database
+  // sends at once; this is the sweep for what it missed. Nothing without FCM_SERVICE_ACCOUNT, and never twice.
+  const app = await dispatchPushes(supabase, { budgetMs: 15_000 });
+
   return NextResponse.json({
     ok: failed === 0,
     checkedAt: new Date().toISOString(),
+    app,
     lands: lands.length,
     cycles: cycles.length,
     // null: FAO could not be read this run, so that half was skipped, not empty.

@@ -48,3 +48,18 @@ export async function markAllRead(): Promise<void> {
     console.error("notifications: mark all read failed", result.message);
   }
 }
+
+/**
+ * «إشعارات الجوّال» (البند ٢٠٧): the account's switch for the phone app's notifications, the same one «حسابي» shows
+ * in the app. The database files it under the session's own user (push_app_set); nothing to check here.
+ */
+export async function setAppPush(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(await loginHrefHere());
+  const { error } = await supabase.rpc("push_app_set", { p_enabled: formData.get("enabled") === "on" });
+  if (error) console.error("notifications: phone switch failed", error.message);
+  revalidatePath("/notifications");
+}

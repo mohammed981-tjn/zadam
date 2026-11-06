@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- لون أيقونة الإشعار (البند ٢٠٧): أخضر المنصّة نفسه (lib/theme.dart، primary). -->
+    <color name="sudagri_notification">#0F5A32</color>
+</resources>

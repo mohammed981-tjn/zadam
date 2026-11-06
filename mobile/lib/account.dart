@@ -785,9 +785,21 @@ class AccountController extends ValueNotifier<Session?> {
     }
   }
 
+  /// Run by [signOut] before the session ends, while it still works (lib/push.dart sets it).
+  Future<void> Function()? beforeSignOut;
+
   /// Signs out on the server too, so the refresh token kept on this phone
   /// stops working even if it was copied; then forgets it here.
   Future<void> signOut() async {
+    // Phone notifications (backlog 207): the server forgets this phone's token while the session still works.
+    final before = beforeSignOut;
+    if (before != null) {
+      try {
+        await before();
+      } catch (_) {
+        // Never a reason not to sign out.
+      }
+    }
     final s = value;
     if (s != null && _supabase.isNotEmpty) {
       try {

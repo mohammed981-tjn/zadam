@@ -648,6 +648,9 @@ const MESSAGES: [string, string][] = [
   ["لم يُضَف نوع الإشعار system_alert", "The system_alert notification type was not added"],
   ["لحسابك عشرة أجهزةٍ تصلها التنبيهات. أوقفها في جهازٍ لا تستعمله ثمّ أعد المحاولة.", "Ten devices already receive your alerts. Turn them off on a device you no longer use, then try again."],
   ["مزوّد إشعاراتٍ غير معروف", "Unknown push notification service"],
+  // Phone notifications from the app (backlog 207, 20261106090000).
+  ["رمز الجهاز غير صالح", "The device token is not valid"],
+  ["نوع الجهاز غير معروف", "Unknown device type"],
   ["عرض الأرض على المستثمرين أو الشركاء قرارُ صاحبها وحده.", "Offering the land to investors or partners is its owner's decision alone."],
   ["الدخول بلا حساب مغلقٌ في سوداقري: أنشئ حساباً برقم جوالك أو بريدك.", "Signing in without an account is closed on Sudagri: create an account with your mobile number or email."],
   ["اكتب لماذا لم تُستعَد كلمة المرور.", "Write why the password was not reset."],

@@ -11,13 +11,14 @@ grant all on chain_failures to authenticated;
 --
 -- Not read as a member, and why:
 --   field_alerts_sent, push_keys  the server's alone (api/field-alerts and lib/push read them with the service key);
+--   push_hook                     the server's alone (api/push/dispatch reads the bell's secret with the service key);
 --   research_uploads              the server's alone (api/research and lib/researchSweep, with the service key);
 --   system_health                 a view made on the site outside the migrations (the drift guard's other side).
 -- A name that is a storage bucket (`storage.from("evidence")`) is not a table.
 do $$
 declare
   t text; n int := 0;
-  server_only text[] := array['field_alerts_sent', 'push_keys', 'research_uploads', 'system_health'];
+  server_only text[] := array['field_alerts_sent', 'push_hook', 'push_keys', 'research_uploads', 'system_health'];
 begin
   foreach t in array string_to_array(current_setting('chain.tables'), ',') loop
     continue when t = any (server_only) or exists (select 1 from storage.buckets b where b.id = t);
@@ -67,7 +68,7 @@ select format('الموقع ينادي %s والعضو لا ينفّذها، و�
          'auth_account_closed', 'auth_account_exists', 'check_assistant_rate_limit', 'check_model_budget', 'farm_book_sync',
          'farmer_season_records', 'feedback_awaiting_auto_reply', 'field_alert_send', 'land_set_soil_estimate', 'ledger_depreciate_all',
          'log_assistant_question', 'market_quotes_publish_trusted', 'password_reset_request', 'price_alert_fire',
-         'price_feeds_alert', 'prune_ephemeral_rows',
+         'price_feeds_alert', 'prune_ephemeral_rows', 'push_claim',
          'run_system_check'])
    -- An overload the site no longer calls (the 3-argument investor_express_interest) may stay closed.
    and not exists (select 1 from pg_proc q where q.proname = p.proname and q.pronamespace = p.pronamespace

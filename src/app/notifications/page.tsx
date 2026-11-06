@@ -4,6 +4,7 @@ import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import { markAllRead } from "./actions";
 import PushToggle from "@/components/PushToggle";
+import AppPushSetting from "@/components/AppPushSetting";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { timeAgo } from "@/lib/timeAgo";
@@ -98,6 +99,7 @@ export default async function NotificationsPage() {
       </div>
 
       <PushToggle />
+      <AppPushSetting locale={locale} />
 
       {error && (
         <p className="rounded-xl border border-danger/40 bg-danger/5 p-4 text-sm text-danger">

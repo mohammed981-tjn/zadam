@@ -62,6 +62,11 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *      and passes who asked, and the function checks that person owns the land
  *      or is an administrator.
  *
+ *   9. Phone notifications for the app (backlog 207): /api/push/dispatch and the daily /api/field-alerts run hand what
+ *      `notifications` holds to FCM (lib/fcm). Only the service role may call push_claim — every user's
+ *      notifications, each handed out once — and read the bell's secret in push_hook; the route is closed by that
+ *      secret or CRON_SECRET.
+ *
  * A further caller is a decision, not a detail. Add it to this list.
  */
 

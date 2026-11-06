@@ -22,6 +22,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'account.dart';
 import 'i18n.dart';
 import 'ledger_autosend.dart';
+import 'push.dart';
+import 'push_route.dart';
 import 'screens/account_screen.dart';
 import 'screens/assistant_screen.dart';
 import 'screens/home_screen.dart';
@@ -45,6 +47,9 @@ void main() {
     accountController.handleLink,
     onError: (_) {},
   );
+  // Phone notifications with the app closed (backlog 207). Without a Firebase configuration in this build it turns
+  // itself off and nothing else changes.
+  pushController.start();
   runApp(const SudagriApp());
 }
 
@@ -108,6 +113,52 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    pushController.tapped.addListener(_openTapped);
+    pushController.notice.addListener(_showNotice);
+    // A tap that started the app may have arrived before this screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openTapped());
+  }
+
+  @override
+  void dispose() {
+    pushController.tapped.removeListener(_openTapped);
+    pushController.notice.removeListener(_showNotice);
+    super.dispose();
+  }
+
+  /// A tapped phone notification opens its own screen (lib/push_route.dart).
+  void _openTapped() {
+    final link = pushController.tapped.value;
+    if (link == null || !mounted) return;
+    pushController.tapped.value = null;
+    _open(link);
+  }
+
+  void _open(String link) {
+    final t = pushTarget(link);
+    if (t.tab != null) {
+      setState(() => _index = t.tab!);
+    } else if (t.screen != null) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => pushScreen(t)));
+    } else if (t.site != null) {
+      openOnSite(context, t.site!);
+    }
+  }
+
+  /// With the app open, Android shows no notification of its own: it is said here, with the way to it.
+  void _showNotice() {
+    final n = pushController.notice.value;
+    if (n == null || !mounted) return;
+    pushController.notice.value = null;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(n.body.isEmpty ? n.title : '${n.title}\n${n.body}', maxLines: 3, overflow: TextOverflow.ellipsis),
+      action: SnackBarAction(label: tr('افتح', 'Open'), onPressed: () => _open(n.link)),
+    ));
+  }
 
   // IndexedStack rather than swapping the child, so a half-finished
   // calculation or a conversation survives a glance at another tab. The home

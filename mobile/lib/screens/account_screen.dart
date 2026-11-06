@@ -19,6 +19,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../account.dart';
 import '../api.dart';
 import '../i18n.dart';
+import '../push.dart';
 import '../theme.dart';
 import '../ui.dart';
 import 'invest_screen.dart';
@@ -524,6 +525,8 @@ class _SignedInState extends State<_SignedIn> {
               const SizedBox(height: 16),
               _NoticesCard(account: a, onChanged: _reload),
               const SizedBox(height: 16),
+              const PhonePushCard(),
+              const SizedBox(height: 16),
               _LandsCard(account: a, onChanged: _reload),
               const SizedBox(height: 16),
               const _LanguageCard(),
@@ -769,6 +772,95 @@ class _NoticesCard extends StatelessWidget {
                         builder: (_) => ThreadScreen(id: n.link!.substring('/messages/'.length))))
                     : openOnSite(context, n.link!),
           ),
+      ],
+    );
+  }
+}
+
+/// «إشعارات الجوّال» (البند ٢٠٧): the account's switch for notifications that reach this app with it closed — the
+/// same switch as on the website's notifications page.
+class PhonePushCard extends StatefulWidget {
+  const PhonePushCard({super.key, this.push});
+
+  /// The app's own when null.
+  final PushController? push;
+
+  @override
+  State<PhonePushCard> createState() => _PhonePushCardState();
+}
+
+class _PhonePushCardState extends State<PhonePushCard> {
+  late final PushController _push = widget.push ?? pushController;
+  bool? _enabled;
+  int _devices = 0;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final s = await _push.status();
+      if (!mounted) return;
+      setState(() {
+        _enabled = s.enabled;
+        _devices = s.devices;
+        _error = null;
+      });
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    }
+  }
+
+  Future<void> _set(bool on) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final now = await _push.setEnabled(on);
+      if (mounted) setState(() => _enabled = now);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = TextStyle(color: mutedOn(context), height: 1.6);
+    return _Section(
+      title: tr('إشعارات الجوّال', 'Phone notifications'),
+      icon: Icons.notifications_active_outlined,
+      children: [
+        Text(
+            tr('تصلك والتطبيق مغلق: تنبيه سعر، جرادٌ قرب أرضك، قيدٌ ينتظر اعتمادك، عقدٌ ينتظر توقيعك، رسالةٌ جديدة.',
+                'They reach you with the app closed: a price alert, locusts near your land, an entry awaiting your approval, a contract awaiting your signature, a new message.'),
+            style: muted),
+        if (_enabled == null && _error == null)
+          const Padding(padding: EdgeInsets.all(8), child: Center(child: CircularProgressIndicator()))
+        else if (_enabled != null)
+          SwitchListTile(
+            key: const Key('phone-push-switch'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(_enabled! ? tr('مفعَّلة', 'On') : tr('مطفأة', 'Off'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(_devices > 0
+                ? tr('مسجَّلة على $_devices جوّال.', 'Registered on $_devices phone(s).')
+                : tr('لم يُسجَّل هذا الجوّال بعد.', 'This phone is not registered yet.')),
+            value: _enabled!,
+            onChanged: _busy ? null : _set,
+          ),
+        if (!_push.available)
+          Text(
+              tr('لا تصل الإشعارات إلى هذه النسخة من التطبيق بعد؛ تصل حين تُضبط في نسخةٍ قادمة. والإشعارات في «حسابي» كما هي.',
+                  'Notifications do not reach this version of the app yet; they will once a coming version is set up. The notifications in «My account» are unchanged.'),
+              key: const Key('phone-push-unavailable'), style: muted),
+        if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
       ],
     );
   }
