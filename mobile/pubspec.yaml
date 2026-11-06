@@ -58,6 +58,14 @@ dependencies:
   geolocator: ^14.1.2
   app_links: ^7.2.2
   crypto: ^3.0.8
+  # «الخرائط» (البند ٢٠٣): the website's street ground is OpenFreeMap's «liberty», a
+  # vector style with no raster tiles, so the app draws it from the same vector
+  # tiles. 9.0.0-beta.13 is the only line that takes flutter_map 8 and latlong2
+  # 0.10 (8.0.0 wants flutter_map 7; 10.x wants latlong2 0.9): pinned exactly.
+  # The renderer is named too, to read the style after the app adjusts it as
+  # the website does (Arabic names, Halaib inside Sudan, colours under labels).
+  vector_map_tiles: 9.0.0-beta.13
+  vector_tile_renderer: ^6.1.0
 
 dev_dependencies:
   flutter_test:
