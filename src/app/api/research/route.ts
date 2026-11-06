@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { clientFromBearer } from "@/lib/supabase/bearer";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 import { checkResearch, RESEARCH_MAX_BYTES, type ResearchInput } from "@/lib/research";
 
@@ -122,10 +123,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Who sent it: the website's session cookie, or — from the phone app (item 203), which sends the same two steps
+  // here — its session as a bearer token, checked with the auth server. Neither is required: a visitor may send.
+  const bearer = req.headers.get("authorization") ? await clientFromBearer(req) : null;
+  const user = bearer?.user ?? (await (await createClient()).auth.getUser()).data.user;
 
   // No .select() on this insert: the row is pending, which no reader may see, and RETURNING would be refused.
   const { error } = await admin.from("research_items").insert({ ...row, submitted_by: user?.id ?? null });

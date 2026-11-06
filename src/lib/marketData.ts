@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import {
   FAOSTAT_ITEM,
@@ -55,11 +56,11 @@ function resolvePrice(row: CropMarketRow): {
  *
  * That is a statement about the crops. The truth was a statement about us.
  */
-export async function loadCropMarkets(): Promise<Record<
-  string,
-  CropMarket
-> | null> {
-  const supabase = await createClient();
+export async function loadCropMarkets(
+  // The phone app's route reads with a plain public client (no cookies); the website's pages with their own.
+  client?: SupabaseClient,
+): Promise<Record<string, CropMarket> | null> {
+  const supabase = client ?? (await createClient());
   const { data, error } = await supabase
     .from("crop_market")
     .select(

@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import PageHeader from "@/components/PageHeader";
-import { RESEARCH_KINDS, RESEARCH_KIND_LABEL, type ResearchKind } from "@/lib/research";
+import { RESEARCH_KINDS, RESEARCH_KIND_LABEL } from "@/lib/research";
+import { listPublishedResearch, researchFilter } from "@/lib/researchLibrary";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -17,22 +18,6 @@ export async function generateMetadata() {
   };
 }
 
-/** The columns everyone may read (the migration's grant): no contact, no sender, no reviewer. */
-const COLUMNS = "id, kind, title, authors, institution, year, language, crop, state, abstract, file_path, link_url, published_at";
-
-type Item = {
-  id: string;
-  kind: ResearchKind;
-  title: string;
-  authors: string;
-  institution: string | null;
-  year: number | null;
-  crop: string | null;
-  state: string | null;
-  abstract: string;
-  published_at: string;
-};
-
 /**
  * مكتبة الدراسات والبحوث (البند ٢٠٢): ما نُشر، بفرزٍ حسب النوع وبحثٍ في العنوان والملخّص والمحصول، وزرّ «شارك دراستك».
  * The table answers only what is published, whoever asks; the page asks for the public columns by name.
@@ -41,19 +26,11 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const sp = await searchParams;
-  const kind = typeof sp.kind === "string" && (RESEARCH_KINDS as readonly string[]).includes(sp.kind) ? sp.kind : null;
-  const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 80) : "";
+  const { kind, q } = researchFilter(sp.kind, sp.q);
 
-  const supabase = await createClient();
-  let query = supabase.from("research_items").select(COLUMNS).eq("status", "published").order("published_at", { ascending: false }).limit(200);
-  if (kind) query = query.eq("kind", kind);
-  if (q) {
-    const like = `%${q.replace(/[%_,()]/g, " ")}%`;
-    query = query.or(`title.ilike.${like},abstract.ilike.${like},crop.ilike.${like},authors.ilike.${like}`);
-  }
-  const { data, error } = await query;
-  if (error) console.error("library: list failed", error.message);
-  const items = (data ?? []) as Item[];
+  // The same read as the phone app's /api/app/library (lib/researchLibrary.ts).
+  const { items, error } = await listPublishedResearch(await createClient(), { kind, q });
+  if (error) console.error("library: list failed", error);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
