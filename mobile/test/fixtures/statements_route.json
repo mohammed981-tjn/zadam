@@ -1,0 +1,628 @@
+{
+  "today": "2026-11-06",
+  "params": {
+    "basis": "year",
+    "year": 2026,
+    "month": "2026-11",
+    "season": null,
+    "compare": true,
+    "book": null
+  },
+  "seasons": [
+    {
+      "id": "5b000000-0000-0000-0000-00000000005b",
+      "name": "ذرة ٢٠٢٦",
+      "planting_date": "2026-06-01"
+    }
+  ],
+  "period": "سنة 2026 (2026-01-01 — 2026-10-31)",
+  "previous_period": "سنة 2025 (2025-01-01 — 2025-10-31)",
+  "fingerprint_groups": "dd8d23ba fd39378b 31b8249c a05873ad 8461ba51 268ef5c2 8b4d7a3b f8d27463",
+  "pdf": "/api/app/books/statements/pdf",
+  "statements": {
+    "book": {
+      "id": "b0000000-0000-0000-0000-0000000000b0",
+      "kind": "farm",
+      "heading": {
+        "ar": "دفتر مزرعتك",
+        "en": "Your farm book"
+      },
+      "ownerName": "المزارع",
+      "closedThrough": null
+    },
+    "basis": "year",
+    "current": {
+      "from": "2026-01-01",
+      "to": "2026-10-31",
+      "season": null
+    },
+    "previous": {
+      "from": "2025-01-01",
+      "to": "2025-10-31",
+      "season": null
+    },
+    "income": {
+      "revenue": [
+        {
+          "code": "4110",
+          "name": {
+            "ar": "ح4110",
+            "en": "A4110"
+          },
+          "v": {
+            "current": 47000,
+            "previous": 40000,
+            "change": 7000,
+            "pct": 17.5
+          }
+        }
+      ],
+      "expense": [
+        {
+          "code": "5110",
+          "name": {
+            "ar": "ح5110",
+            "en": "A5110"
+          },
+          "v": {
+            "current": 15000,
+            "previous": 10000,
+            "change": 5000,
+            "pct": 50
+          }
+        },
+        {
+          "code": "5120",
+          "name": {
+            "ar": "ح5120",
+            "en": "A5120"
+          },
+          "v": {
+            "current": 6000,
+            "previous": 0,
+            "change": 6000,
+            "pct": null
+          }
+        },
+        {
+          "code": "5140",
+          "name": {
+            "ar": "ح5140",
+            "en": "A5140"
+          },
+          "v": {
+            "current": 8000,
+            "previous": 0,
+            "change": 8000,
+            "pct": null
+          }
+        },
+        {
+          "code": "5900",
+          "name": {
+            "ar": "ح5900",
+            "en": "A5900"
+          },
+          "v": {
+            "current": -29000,
+            "previous": -10000,
+            "change": -19000,
+            "pct": -190
+          }
+        }
+      ],
+      "totalRevenue": {
+        "current": 47000,
+        "previous": 40000,
+        "change": 7000,
+        "pct": 17.5
+      },
+      "totalExpense": {
+        "current": 0,
+        "previous": 0,
+        "change": 0,
+        "pct": null
+      },
+      "net": {
+        "current": 47000,
+        "previous": 40000,
+        "change": 7000,
+        "pct": 17.5
+      }
+    },
+    "balance": {
+      "assets": [
+        {
+          "code": "1110",
+          "name": {
+            "ar": "ح1110",
+            "en": "A1110"
+          },
+          "v": {
+            "current": 4000,
+            "previous": 30000,
+            "change": -26000,
+            "pct": -86.7
+          }
+        },
+        {
+          "code": "1120",
+          "name": {
+            "ar": "ح1120",
+            "en": "A1120"
+          },
+          "v": {
+            "current": 130000,
+            "previous": 100000,
+            "change": 30000,
+            "pct": 30
+          }
+        },
+        {
+          "code": "1210",
+          "name": {
+            "ar": "ح1210",
+            "en": "A1210"
+          },
+          "v": {
+            "current": 44000,
+            "previous": 0,
+            "change": 44000,
+            "pct": null
+          }
+        },
+        {
+          "code": "1410",
+          "name": {
+            "ar": "ح1410",
+            "en": "A1410"
+          },
+          "v": {
+            "current": 29000,
+            "previous": 10000,
+            "change": 19000,
+            "pct": 190
+          }
+        }
+      ],
+      "liabilities": [
+        {
+          "code": "2110",
+          "name": {
+            "ar": "ح2110",
+            "en": "A2110"
+          },
+          "v": {
+            "current": 6000,
+            "previous": 0,
+            "change": 6000,
+            "pct": null
+          }
+        }
+      ],
+      "equity": [
+        {
+          "code": "3110",
+          "name": {
+            "ar": "ح3110",
+            "en": "A3110"
+          },
+          "v": {
+            "current": 120000,
+            "previous": 100000,
+            "change": 20000,
+            "pct": 20
+          }
+        },
+        {
+          "code": "3130",
+          "name": {
+            "ar": "ح3130",
+            "en": "A3130"
+          },
+          "v": {
+            "current": -5000,
+            "previous": 0,
+            "change": -5000,
+            "pct": null
+          }
+        },
+        {
+          "code": "3210",
+          "name": {
+            "ar": "ح3210",
+            "en": "A3210"
+          },
+          "v": {
+            "current": -1000,
+            "previous": 0,
+            "change": -1000,
+            "pct": null
+          }
+        },
+        {
+          "code": "3990",
+          "name": {
+            "ar": "ح3990",
+            "en": "A3990"
+          },
+          "v": {
+            "current": 40000,
+            "previous": 0,
+            "change": 40000,
+            "pct": null
+          }
+        },
+        {
+          "code": "3991",
+          "name": {
+            "ar": "ح3991",
+            "en": "A3991"
+          },
+          "v": {
+            "current": 47000,
+            "previous": 40000,
+            "change": 7000,
+            "pct": 17.5
+          }
+        }
+      ],
+      "totalAssets": {
+        "current": 207000,
+        "previous": 140000,
+        "change": 67000,
+        "pct": 47.9
+      },
+      "totalLiabilities": {
+        "current": 6000,
+        "previous": 0,
+        "change": 6000,
+        "pct": null
+      },
+      "totalEquity": {
+        "current": 201000,
+        "previous": 140000,
+        "change": 61000,
+        "pct": 43.6
+      },
+      "balanced": true
+    },
+    "cash": {
+      "operating": [
+        {
+          "code": "4110",
+          "name": {
+            "ar": "ح4110",
+            "en": "A4110"
+          },
+          "v": {
+            "current": 40000,
+            "previous": 40000,
+            "change": 0,
+            "pct": 0
+          }
+        },
+        {
+          "code": "5110",
+          "name": {
+            "ar": "ح5110",
+            "en": "A5110"
+          },
+          "v": {
+            "current": -15000,
+            "previous": -10000,
+            "change": -5000,
+            "pct": -50
+          }
+        }
+      ],
+      "investing": [],
+      "financing": [
+        {
+          "code": "3110",
+          "name": {
+            "ar": "ح3110",
+            "en": "A3110"
+          },
+          "v": {
+            "current": 20000,
+            "previous": 100000,
+            "change": -80000,
+            "pct": -80
+          }
+        },
+        {
+          "code": "3130",
+          "name": {
+            "ar": "ح3130",
+            "en": "A3130"
+          },
+          "v": {
+            "current": -5000,
+            "previous": 0,
+            "change": -5000,
+            "pct": null
+          }
+        },
+        {
+          "code": "3210",
+          "name": {
+            "ar": "ح3210",
+            "en": "A3210"
+          },
+          "v": {
+            "current": -1000,
+            "previous": 0,
+            "change": -1000,
+            "pct": null
+          }
+        }
+      ],
+      "totalOperating": {
+        "current": 25000,
+        "previous": 30000,
+        "change": -5000,
+        "pct": -16.7
+      },
+      "totalInvesting": {
+        "current": 0,
+        "previous": 0,
+        "change": 0,
+        "pct": null
+      },
+      "totalFinancing": {
+        "current": 14000,
+        "previous": 100000,
+        "change": -86000,
+        "pct": -86
+      },
+      "net": {
+        "current": 39000,
+        "previous": 130000,
+        "change": -91000,
+        "pct": -70
+      },
+      "opening": {
+        "current": 130000,
+        "previous": 0,
+        "change": 130000,
+        "pct": null
+      },
+      "closing": {
+        "current": 169000,
+        "previous": 130000,
+        "change": 39000,
+        "pct": 30
+      },
+      "ties": true
+    },
+    "equity": {
+      "rows": [
+        {
+          "line": "opening",
+          "name": {
+            "ar": "أوّل",
+            "en": "open"
+          },
+          "amount": 140000
+        },
+        {
+          "line": "contributions",
+          "name": {
+            "ar": "مساهمات",
+            "en": "c"
+          },
+          "amount": 20000
+        },
+        {
+          "line": "drawings",
+          "name": {
+            "ar": "سحوبات",
+            "en": "d"
+          },
+          "amount": -5000
+        },
+        {
+          "line": "profit",
+          "name": {
+            "ar": "ربح",
+            "en": "p"
+          },
+          "amount": 47000
+        },
+        {
+          "line": "other",
+          "name": {
+            "ar": "أخرى",
+            "en": "o"
+          },
+          "amount": -1000
+        },
+        {
+          "line": "closing",
+          "name": {
+            "ar": "آخر",
+            "en": "close"
+          },
+          "amount": 201000
+        }
+      ],
+      "closing": 201000,
+      "closesToBalance": true
+    },
+    "ageing": {
+      "asOf": "2026-10-31",
+      "receivable": {
+        "accounts": [
+          {
+            "code": "1210",
+            "name": {
+              "ar": "مشترو المحصول",
+              "en": "Crop buyers"
+            },
+            "buckets": {
+              "0_30": 12000,
+              "31_60": 0,
+              "61_90": 0,
+              "90_plus": 32000,
+              "advance": 0
+            },
+            "items": 3,
+            "total": 44000
+          }
+        ],
+        "buckets": {
+          "0_30": 12000,
+          "31_60": 0,
+          "61_90": 0,
+          "90_plus": 32000,
+          "advance": 0
+        },
+        "total": 44000
+      },
+      "payable": {
+        "accounts": [
+          {
+            "code": "2110",
+            "name": {
+              "ar": "موردون",
+              "en": "Suppliers"
+            },
+            "buckets": {
+              "0_30": 0,
+              "31_60": 0,
+              "61_90": 6000,
+              "90_plus": 0,
+              "advance": 0
+            },
+            "items": 1,
+            "total": 6000
+          },
+          {
+            "code": "2120",
+            "name": {
+              "ar": "أجور مستحقة",
+              "en": "Accrued wages"
+            },
+            "buckets": {
+              "0_30": 0,
+              "31_60": 0,
+              "61_90": 0,
+              "90_plus": 0,
+              "advance": -500
+            },
+            "items": 0,
+            "total": -500
+          }
+        ],
+        "buckets": {
+          "0_30": 0,
+          "31_60": 0,
+          "61_90": 6000,
+          "90_plus": 0,
+          "advance": -500
+        },
+        "total": 5500
+      }
+    },
+    "budget": [
+      {
+        "seasonId": "s1",
+        "name": "ذرة ٢٠٢٦",
+        "stages": [
+          {
+            "stageKey": "land_prep",
+            "name": {
+              "ar": "تحضير الأرض",
+              "en": "Land preparation"
+            },
+            "budget": 30000,
+            "actual": 15000,
+            "variance": 15000,
+            "usedPct": 50
+          },
+          {
+            "stageKey": "planting",
+            "name": {
+              "ar": "الزراعة",
+              "en": "Planting"
+            },
+            "budget": 20000,
+            "actual": 8000,
+            "variance": 12000,
+            "usedPct": 40
+          },
+          {
+            "stageKey": null,
+            "name": {
+              "ar": "بلا مرحلة",
+              "en": "No stage"
+            },
+            "budget": 0,
+            "actual": 6000,
+            "variance": -6000,
+            "usedPct": null
+          }
+        ],
+        "budget": 50000,
+        "actual": 29000,
+        "variance": 21000,
+        "usedPct": 58
+      }
+    ],
+    "notes": [
+      {
+        "title": {
+          "ar": "أساس الإعداد",
+          "en": "Basis of preparation"
+        },
+        "body": {
+          "ar": "حساباتٌ إداريّة من دفترٍ مزدوج القيد لا يُعدَّل قيده ولا يُحذف بل يُعكس، بأساس الاستحقاق والتكلفة التاريخيّة: البيع والشراء يُقيَّدان يوم وقوعهما ولو آجلاً، والمحاصيل القائمة تُحمل بتكلفتها حتى تُباع، وتقدير قيمة المحصول يُعرض ولا يُقيَّد. ليست قوائم قانونيّة مدقَّقة.",
+          "en": "Management accounts from a double-entry book whose entries are never edited or deleted, only reversed; on the accrual basis at historical cost: sales and purchases are booked on the day they happen, on credit or not; growing crops are carried at cost until sold, and a crop's estimated value is shown, never booked. Not audited statutory statements."
+        }
+      },
+      {
+        "title": {
+          "ar": "العملة وسعر الصرف",
+          "en": "Currency and exchange rate"
+        },
+        "body": {
+          "ar": "وحدة القياس الدولار الأمريكيّ. 4 سطراً في الفترة كُتبت بالجنيه السودانيّ وحُوِّلت بسعر يوم القيد (من 590 إلى 610.5 جنيهاً للدولار): سعر السوق الموازي المنشور على المنصّة في 1 قيداً، وسعر البنك في 0، وسعرٌ كتبه صاحب القيد في 1. لا يُعاد تقويم القيد بعد يومه؛ وفرق الصرف بين يوم الدين ويوم سداده يُقيَّد يوم السداد، وصافيه في الفترة خسارةٌ 1.50 $.",
+          "en": "The unit of measure is the US dollar. 4 lines in the period were written in Sudanese pounds and converted at the rate of the entry's day (from 590 to 610.5 pounds per dollar): the parallel-market rate published on the platform in 1 entries, the bank rate in 0, and a rate the writer typed in 1. An entry is not revalued after its day; the exchange difference between the day a debt arose and the day it was paid is booked on the day it is paid, a net loss of 1.50 $ in the period."
+        }
+      },
+      {
+        "title": {
+          "ar": "الأصول الثابتة والإهلاك",
+          "en": "Fixed assets and depreciation"
+        },
+        "body": {
+          "ar": "1 أصلاً ثابتاً قائماً بتكلفة 3,000.00 $ وقيمة خردة 300.00 $. يُهلك كلٌّ بالقسط الثابت شهراً بشهر من الشهر التالي لشرائه: (التكلفة − الخردة) ÷ العمر بالأشهر (60 شهراً)، والشهر الأخير يأخذ الباقي. إهلاك الفترة 45.00 $.",
+          "en": "1 fixed asset(s) in use at a cost of 3,000.00 $, scrap value 300.00 $. Each is depreciated on a straight line, month by month from the month after purchase: (cost − scrap) ÷ life in months (60 months), the last month taking what is left. Depreciation for the period: 45.00 $."
+        }
+      },
+      {
+        "title": {
+          "ar": "بنودٌ تستحقّ الانتباه",
+          "en": "Significant items"
+        },
+        "body": {
+          "ar": "أكبر الإيراد «ح4110» 470.00 $ (100٪ من المجموع). لك على غيرك 440.00 $ يوم 2026-10-31، منها 320.00 $ مضى عليها أكثر من ٩٠ يوماً. وعليك لغيرك 55.00 $، منها 0.00 $ مضى عليها أكثر من ٩٠ يوماً. محاصيل قائمة بتكلفتها 290.00 $: تكلفةٌ تُنقل إلى «تكلفة المباع» يوم يُقفل موسمها، لا ربحٌ ولا خسارة بعد. 14 قيداً في الفترة، منها 5 بيد صاحب الدفتر و1 قيداً عاكساً يصحّح قيداً سبقه.",
+          "en": "Largest revenue “A4110”: 470.00 $ (100% of the total). Owed to you: 440.00 $ on 2026-10-31, of which 320.00 $ is over 90 days old. You owe: 55.00 $, of which 0.00 $ is over 90 days old. Growing crops at cost: 290.00 $ — cost moved to “cost of crop sold” when the season closes, not yet a profit or a loss. 14 entries in the period, 5 of them by hand and 1 reversing an earlier entry."
+        }
+      },
+      {
+        "title": {
+          "ar": "المقارنة",
+          "en": "Comparison"
+        },
+        "body": {
+          "ar": "العمود المقابل: الأيّام نفسها من السنة السابقة، من 2025-01-01 إلى 2025-10-31. التغيّر = هذه الفترة − السابقة، ونسبته إلى السابقة؛ ولا نسبة لما كان صفراً.",
+          "en": "The comparison column: the same days of the year before, 2025-01-01 to 2025-10-31. Change = this period − the previous, and its share of the previous; no percentage where the previous was zero."
+        }
+      }
+    ],
+    "fingerprint": "dd8d23bafd39378b31b8249ca05873ad8461ba51268ef5c28b4d7a3bf8d27463",
+    "generatedAt": "2026-11-06T07:30:00.000Z"
+  }
+}

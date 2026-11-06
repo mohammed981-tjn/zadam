@@ -12,8 +12,10 @@ import '../books.dart';
 import '../theme.dart';
 import '../ui.dart';
 import 'account_screen.dart';
+import 'books_review_screen.dart';
 import 'season_screen.dart';
 import 'seasons_screen.dart';
+import 'statements_screen.dart';
 
 class BooksScreen extends StatelessWidget {
   const BooksScreen({super.key, this.api});
@@ -111,6 +113,17 @@ class _BooksBodyState extends State<_BooksBody> {
                   ),
                 ),
               Wrap(spacing: 8, runSpacing: 8, children: [
+                FilledButton.icon(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JournalHubScreen())).then((_) => _reload()),
+                  icon: const Icon(Icons.edit_note_outlined, size: 18),
+                  label: const Text('القيود والمراجعة'),
+                ),
+                if (v.book != null)
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => StatementsScreen(book: _q.book))),
+                    icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                    label: const Text('القوائم الماليّة'),
+                  ),
                 OutlinedButton.icon(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AssetsScreen(api: widget.api))),
                   icon: const Icon(Icons.agriculture_outlined, size: 18),
