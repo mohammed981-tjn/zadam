@@ -256,7 +256,7 @@ export default async function Home() {
        */}
       <section className="hero-band">
         <div className="relative mx-auto max-w-6xl px-5 pb-9 pt-7 sm:pb-14 sm:pt-12">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/45 px-3 py-1 text-sm font-bold">
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-card/80 px-3 py-1 text-sm font-bold text-rose ring-1 ring-border">
             {/* A green touch: a sprout-coloured dot. */}
             <span aria-hidden className="size-2 rounded-full bg-[#5c6b30]" />
             {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
@@ -270,7 +270,7 @@ export default async function Home() {
             <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="#5c6b30" strokeWidth="5" strokeLinecap="round" />
           </svg>
 
-          <p className="mt-4 max-w-2xl text-base leading-relaxed opacity-90 sm:text-lg">
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
             {t(
               "سوداقري منصّة معرفة زراعية وبيانات للسودان. لا يُعرض رقمٌ دون مصدره ومنهجه: الغلّة من FAOSTAT، والمناخ من NASA POWER، والتربة من SoilGrids، والاحتياج المائي محسوبٌ بمحرّك FAO-56 داخل المنصّة نفسها.",
               "Sudagri is an agricultural knowledge and data platform for Sudan. No number is shown without its source and method: yields from FAOSTAT, climate from NASA POWER, soil from SoilGrids, and crop water needs computed by an FAO-56 engine on the platform itself.",
@@ -282,13 +282,13 @@ export default async function Home() {
           <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
             <Link
               href="/lands/new"
-              className="rounded-2xl bg-white px-6 py-3.5 text-center font-extrabold text-primary shadow-float transition hover:bg-white/95 active:scale-[0.98]"
+              className="rounded-2xl bg-primary px-6 py-3.5 text-center font-extrabold text-primary-foreground shadow-float transition hover:opacity-90 active:scale-[0.98]"
             >
               {t("سجّل أرضك ووثّق موسمك", "Register your land and record your season")}
             </Link>
             <Link
               href="/arc-canal"
-              className="rounded-2xl border-[1.5px] border-[#1c2b1e]/40 bg-white/25 px-6 py-3.5 text-center font-bold transition hover:bg-white/40"
+              className="rounded-2xl border-[1.5px] border-primary bg-card/70 px-6 py-3.5 text-center font-bold transition hover:bg-white/40"
             >
               {t("اقرأ دراسة القناة القوسية", "Read the Arc Canal study")}
             </Link>
