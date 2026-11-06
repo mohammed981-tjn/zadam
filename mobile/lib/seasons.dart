@@ -570,6 +570,13 @@ class LedgerOutbox {
   /// Whether a send is under way or waiting its turn. The automatic sender does not queue behind one.
   static bool get busy => _sends > 0;
 
+  /// A widget test's frozen clock can end with a send still queued; the next test starts with the lock free.
+  @visibleForTesting
+  static void resetLockForTesting() {
+    _lock = Future<void>.value();
+    _sends = 0;
+  }
+
   /// Rings each time an entry is kept, so the automatic sender knows something waits.
   static final kept = ValueNotifier<int>(0);
 

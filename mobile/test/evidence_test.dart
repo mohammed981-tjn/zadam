@@ -98,6 +98,7 @@ final landJson = <String, dynamic>{
 };
 
 void main() {
+  setUp(LedgerOutbox.resetLockForTesting);
   test("the file is held to the website's upload: a photo or a PDF, up to ten megabytes", () {
     expect(evidenceFileProblem(const EvidenceFile(bytes: [], name: 'x', pdf: false)), 'اختر ملفاً أولاً — صورة أو مستند PDF.');
     expect(evidenceFileProblem(EvidenceFile(bytes: jpeg, name: 'a.jpg', pdf: false)), isNull);
