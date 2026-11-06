@@ -664,6 +664,20 @@ class AccountController extends ValueNotifier<Session?> {
     throw ApiException('انتهت جلستك. ادخل من جديد.');
   }
 
+  /// One signed-in request to a route under /api/app, for the sections the app shows natively (item 203): seasons,
+  /// books, prices, export, contracts, investment, lands and herds. [method] is 'GET' or 'POST'. The reply's JSON is
+  /// returned on 200; any other status throws [ApiException] with the route's own `error` message, so every section
+  /// shows the website's wording for a refusal rather than a status code.
+  Future<Map<String, dynamic>> call(String method, String path, {Map<String, dynamic>? body}) async {
+    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    final res = await _authed(method, path, body: body);
+    final json = _json(res);
+    if (res.statusCode != 200) {
+      throw ApiException(json['error'] as String? ?? 'تعذّر الطلب (${res.statusCode}).');
+    }
+    return json;
+  }
+
   Future<Account> me() async {
     if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
     final res = await _authed('GET', '/api/app/me');
