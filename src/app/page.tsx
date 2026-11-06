@@ -258,7 +258,7 @@ export default async function Home() {
         <div className="relative mx-auto max-w-6xl px-5 pb-9 pt-7 sm:pb-14 sm:pt-12">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-card/80 px-3 py-1 text-sm font-bold text-rose ring-1 ring-border">
             {/* A green touch: a sprout-coloured dot. */}
-            <span aria-hidden className="size-2 rounded-full bg-[#5c6b30]" />
+            <span aria-hidden className="size-2 rounded-full bg-[#1f7a3d]" />
             {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
           </p>
 
@@ -267,7 +267,7 @@ export default async function Home() {
           </h1>
           {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان — أخضرَ فاتحاً على الوردي، لمسةُ الأخضر في الواجهة. */}
           <svg className="nile-line mt-3 h-4 w-52 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>
-            <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="#5c6b30" strokeWidth="5" strokeLinecap="round" />
+            <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="#1f7a3d" strokeWidth="5" strokeLinecap="round" />
           </svg>
 
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">

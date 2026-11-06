@@ -29,22 +29,21 @@
    */
   /* البيج والأخضر الفاتح من جديد (المالك، 6 نوفمبر 2026: «لون الهوية سيتغير الى اللون القديم البيج والاخضر
      الفاتح»): بيجٌ أرضيّة، وأخضر للفعل (#1f7a3d يحمل 5.4:1 تحت الأبيض)، وأخضر فاتح (--leaf) للمسات التي لا
-     تحمل نصّاً، و--rose (لمسة العناوين، وكانت ورديّة) صار زيتونيّاً يُقرأ نصّاً (5.3:1 على البيج). */
+     تحمل نصّاً، و--rose (لمسة العناوين، وكانت ورديّة) صار أخضر يُقرأ نصّاً كما كان قبل الوردي. */
   --background: #f7f5ef;
   --foreground: #1c2b1e;
   --card: #ffffff;
   --border: #e2ded0;
-  /* A calm olive that sits with the beige (owner, 6 November 2026, chosen from four swatches: «زيتونيّ هادئ»):
-     a fill with dark type on it (4.9:1). Olive that is itself the text — a link, a title, an icon on beige — is
-     --primary-ink, 5.3:1. */
-  --primary: #8a9a5b;
-  --primary-foreground: #1c2b1e;
-  --primary-ink: #5c6b30;
+  /* The site's colours as they were before 21 October (owner, 6 November 2026, with screenshots of the old site:
+     «هذه ألوان الموقع القديمة»): beige ground, #1f7a3d green with white type (5.4:1). */
+  --primary: #1f7a3d;
+  --primary-foreground: #ffffff;
+  --primary-ink: #1f7a3d;
   /* Green as a touch: the sprout, a dot, the tip of a bar, a price that rose.
      The site's green, a shade lighter than the #1f7a3d it was. */
-  --leaf: #5c6b30;
+  --leaf: #1b8043;
   /* الأخضر الفاتح: للمسات التي لا تحمل نصّاً (الخلفيّات الهادئة، والخطوط، والنقاط). */
-  --leaf-light: #b5c08a;
+  --leaf-light: #3fae66;
   --muted: #6b6558;
   --accent: #b8860b;
   /* No red on the site, and no orange (the owner, 21 October: «لا تستعمل
@@ -68,7 +67,7 @@
    * which reads as crimson on a phone, to a true pink. #ca2c72 holds 4.6:1 as
    * text on every ground the site uses and 5:1 under white.
    */
-  --rose: #5c6b30;
+  --rose: #1f7a3d;
 
   /*
    * Elevation, as light rather than as outline.
@@ -108,14 +107,14 @@
     --foreground: #eef1e8;
     --card: #172018;
     --border: #2a3527;
-    --primary: #a3b26b;
-    --primary-foreground: #10160f;
-    --primary-ink: #b2bf80;
-    --leaf: #b2bf80;
-    --leaf-light: #8a9a5b;
+    --primary: #3fae66;
+    --primary-foreground: #08130a;
+    --primary-ink: #3fae66;
+    --leaf: #3fae66;
+    --leaf-light: #3fae66;
     --muted: #a3a698;
     --accent: #d4a72c;
-    --rose: #b2bf80;
+    --rose: #3fae66;
     --danger: #e0b440;
 
     /* Shadow alone cannot lift a surface on a dark ground — the card is also
@@ -376,9 +375,9 @@ html {
 .tab-on {
   /* Green since 6 November 2026 (owner: the old beige and light green): #1f7a3d is 5.4:1 and #17642f 7:1 under
      white. */
-  background: linear-gradient(135deg, #9aa86a, #8a9a5b);
-  color: #1c2b1e;
-  box-shadow: 0 3px 10px rgb(138 154 91 / 0.35);
+  background: linear-gradient(135deg, #2a8a47, #1f7a3d);
+  color: #fff;
+  box-shadow: 0 3px 10px rgb(31 122 61 / 0.3);
 }
 
 /*
@@ -394,9 +393,9 @@ html {
      القديمة»): the page's own beige with soft pools of olive and gold, as the old `.mesh` hero had, and dark type. */
   background-color: var(--background);
   background-image:
-    radial-gradient(60rem 30rem at 85% -10%, color-mix(in oklab, var(--primary) 26%, transparent), transparent 60%),
-    radial-gradient(45rem 25rem at 10% 110%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 60%),
-    radial-gradient(30rem 18rem at 50% 45%, color-mix(in oklab, var(--leaf-light) 18%, transparent), transparent 65%);
+    radial-gradient(60rem 30rem at 85% -10%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%),
+    radial-gradient(45rem 25rem at 10% 110%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 60%),
+    radial-gradient(30rem 18rem at 50% 45%, color-mix(in oklab, var(--leaf-light) 7%, transparent), transparent 65%);
   color: var(--foreground);
   border-end-start-radius: 2.25rem;
   border-end-end-radius: 2.25rem;

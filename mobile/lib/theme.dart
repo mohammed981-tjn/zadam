@@ -5,23 +5,16 @@
 /// who uses the site on a laptop and the app on a phone should not feel they
 /// are looking at two different products.
 ///
-/// The brand (owner, 6 November 2026: «الوان الهوية بيج أخضر فاتح», then
-/// chosen from swatches the same day): a beige ground and a calm OLIVE green
-/// that sits with it — «أخضر يميل للبيج، لكن البيج ظاهر». The beige stays the
-/// ground everywhere, the hero included (soft pools of olive and gold over it,
-/// see HeroBand). The olive fills only buttons, the selected tab and other
-/// selected states, and chips; what sits on it is the dark ink #1C2B1E, not
-/// white (white on #8A9A5B is 3.1:1). Cards and tiles stay white. Olive that is itself text or a line
-/// icon on the beige is the deeper #5C6B30. A lighter olive (#B5C08A, #9AA86A)
-/// carries the soft touches: tints and gradients. Gold is the accent. No red
-/// and no orange anywhere (the owner's standing rule): errors and warnings are
-/// a dark gold.
+/// The brand (owner, 6 November 2026, after olive and light-green trials, with screenshots of the old site:
+/// «هذه ألوان الموقع القديمة»): the beige ground and the site's green as it was before 21 October, #1F7A3D, with
+/// white on it. The beige stays the ground everywhere, the hero included (soft pools of green and gold over it,
+/// see HeroBand). The green fills buttons, the selected tab, selected states and chips, and is also the colour of
+/// green text and line icons on the beige. A lighter green (#3FAE66, #2A8A47) carries the soft touches. Gold is
+/// the accent. No red and no orange anywhere (the owner's standing rule): errors and warnings are a dark gold.
 ///
-/// Contrast, measured (WCAG 2.1): ink #1C2B1E on #8A9A5B 4.9:1, on #B5C08A
-/// 7.7:1; #5C6B30 on the beige 5.3:1, on white 5.8:1 and on the chip tint
-/// 4.7:1; muted #6B6558 on the beige 5.3:1; warning #8A6508 on the beige
-/// 4.9:1. Dark: #10160F on #A3B26B 8.0:1, olive text #B2BF80 on the card
-/// 8.5:1, #E0B440 on the card 8.6:1.
+/// Contrast, measured (WCAG 2.1): white on #1F7A3D 5.4:1; #1F7A3D on the beige 4.9:1, on white 5.4:1; muted
+/// #6B6558 on the beige 5.3:1; warning #8A6508 on the beige 4.9:1. Dark: #08130A on #3FAE66 7.6:1, #3FAE66 on
+/// the card 6.4:1, #E0B440 on the card 8.6:1.
 library;
 
 import 'package:flutter/material.dart';
@@ -35,21 +28,22 @@ class SudagriColors {
   static const card = Color(0xFFFFFFFF);
   static const border = Color(0xFFE2DED0);
 
-  /// The olive that leads: fills, never small text on the beige.
-  static const primary = Color(0xFF8A9A5B);
+  /// The site's green as it was before 21 October (owner, 6 November 2026, with screenshots: «هذه ألوان الموقع
+  /// القديمة»): fills with white type on them (5.4:1), and text and icons on the beige (4.9:1).
+  static const primary = Color(0xFF1F7A3D);
 
-  /// The dark ink for anything drawn on [primary] or the hero.
-  static const primaryForeground = Color(0xFF1C2B1E);
+  /// White on [primary].
+  static const primaryForeground = Color(0xFFFFFFFF);
 
-  /// Olive that is text, a link or a line icon on the beige or a card.
-  static const textGreen = Color(0xFF5C6B30);
+  /// Green that is text, a link or a line icon on the beige or a card.
+  static const textGreen = Color(0xFF1F7A3D);
 
-  /// The lighter olive, for soft touches and gradients.
-  static const lightOlive = Color(0xFFB5C08A);
-  static const midOlive = Color(0xFF9AA86A);
+  /// The lighter greens, for soft touches and gradients that carry no text.
+  static const lightOlive = Color(0xFF3FAE66);
+  static const midOlive = Color(0xFF2A8A47);
 
-  /// A soft tint of the light olive, for icon chips and selected fills.
-  static const leafTint = Color(0xFFE5E9D6);
+  /// A soft green tint, for icon chips and selected fills.
+  static const leafTint = Color(0xFFE2EFE3);
   static const muted = Color(0xFF6B6558);
   static const accent = Color(0xFFB8860B);
 
@@ -62,10 +56,10 @@ class SudagriColors {
   static const darkForeground = Color(0xFFEEF1E8);
   static const darkCard = Color(0xFF172018);
   static const darkBorder = Color(0xFF2A3527);
-  static const darkPrimary = Color(0xFFA3B26B);
-  static const darkPrimaryForeground = Color(0xFF10160F);
-  static const darkTextGreen = Color(0xFFB2BF80);
-  static const darkLeafTint = Color(0xFF303A27);
+  static const darkPrimary = Color(0xFF3FAE66);
+  static const darkPrimaryForeground = Color(0xFF08130A);
+  static const darkTextGreen = Color(0xFF3FAE66);
+  static const darkLeafTint = Color(0xFF1E3324);
   static const darkMuted = Color(0xFFA3A698);
   static const darkAccent = Color(0xFFD4A72C);
   static const darkWarn = Color(0xFFE0B440);
@@ -329,10 +323,11 @@ Color textGreenOn(BuildContext context) =>
 Color leafTintOn(BuildContext context) =>
     _isDark(context) ? SudagriColors.darkLeafTint : SudagriColors.leafTint;
 
-/// The ink for text on a tint or on the olive.
+/// The ink for text on a soft tint (a chip, a pill, a note). Text on the green fill itself is white
+/// ([SudagriColors.primaryForeground]).
 Color inkOn(BuildContext context) => _isDark(context)
     ? SudagriColors.darkForeground
-    : SudagriColors.primaryForeground;
+    : SudagriColors.foreground;
 
 /// Dark gold for errors and warnings, and small gold text.
 Color warnOn(BuildContext context) =>
