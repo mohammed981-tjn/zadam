@@ -218,7 +218,7 @@ class _WaterScreenState extends State<WaterScreen> {
           // under-sized pump fails in the worst month, which is the month the
           // crop can least afford it.
           _ResultCard(
-            icon: Icons.trending_up_rounded,
+            icon: Icons.speed_rounded,
             title: 'أعلى شهر طلباً — ${monthNames[r.peakMonthIndex]}',
             primary:
                 '${_n(r.peakM3PerFeddanPerDay * _feddans, 1)} م³ / يوم',
