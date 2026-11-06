@@ -95,7 +95,7 @@ export default async function KnowledgePage({
     "rounded-full border px-3 py-1.5 text-sm transition hover:border-primary";
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-10 xl:max-w-7xl">
       <h1 className="text-2xl font-bold sm:text-3xl">{t("قاعدة المعرفة الزراعية", "Agricultural knowledge base")}</h1>
       {en ? (
         <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">

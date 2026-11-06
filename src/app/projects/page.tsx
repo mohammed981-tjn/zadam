@@ -72,7 +72,7 @@ export default async function ProjectsPage() {
   const projects = (data ?? []) as unknown as Project[];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-10 xl:max-w-7xl">
       <InvestTabs active="/projects" locale={locale} />
       <h1 className="text-2xl font-bold sm:text-3xl">{t("المشاريع المطروحة", "Projects on offer")}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">

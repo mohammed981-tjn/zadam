@@ -73,7 +73,7 @@ export default async function RatesPage() {
   const rows = Object.keys(bankTable) as FxCurrency[];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 lg:max-w-5xl">
       <MarketTabs active="/rates" locale={locale} />
       <PageHeader icon="chart" eyebrow={t("السوق والأسعار", "Market and prices")} title={t("أسعار العملات مقابل الجنيه السوداني", "Exchange rates against the Sudanese pound")}>
         {t(

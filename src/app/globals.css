@@ -566,6 +566,12 @@ html {
       linear-gradient(to top, rgb(var(--scrim) / 0.45), rgb(var(--scrim) / 0) 75%);
   }
 }
+/* From `xl` the page's frame is 80rem and the text column 46rem (page.tsx), so the solid part follows them. */
+@media (min-width: 1280px) {
+  .hero-scrim {
+    --solid: calc(max(0px, (100% - 80rem) / 2) + 48rem);
+  }
+}
 /* The line above the headline: darker than the scrim around it, so its small type holds whatever plays behind. */
 .hero-pill {
   background: rgb(var(--scrim) / 0.75);

@@ -32,7 +32,7 @@ export default async function NafirShell({
 }) {
   const locale = await getLocale();
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 lg:max-w-6xl xl:max-w-7xl">
       <SectionTabs
         label={tr(locale, "أقسام النفير", "Nafir sections")}
         moreLabel={tr(locale, "المزيد", "More")}
