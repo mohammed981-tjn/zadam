@@ -23,7 +23,8 @@ export async function clientFromBearer(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: { headers: { Authorization: `Bearer ${token}` } },
+      // `x-sudagri-via` tells the ledger's audit log a write came from the app (informational; who wrote it is the token).
+      global: { headers: { Authorization: `Bearer ${token}`, "x-sudagri-via": "app" } },
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     },
   );

@@ -9,6 +9,7 @@ import { loadReport, pickBook } from "@/lib/ledger/load";
 import ActionNotice from "@/components/ActionNotice";
 import PrintButton from "@/components/PrintButton";
 import LinksPanel from "@/components/books/LinksPanel";
+import JournalLinks from "@/components/books/JournalLinks";
 import { reversalAction } from "@/lib/ledgerLinks";
 import { loadLinks } from "@/lib/ledgerLinksLoad";
 import { bookHeading, PAGE_SIZE, parseReportParams, reportHref, type ReportKey, type ReportParams } from "@/lib/ledger/reportParams";
@@ -131,6 +132,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
           </p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
+          <JournalLinks supabase={supabase} me={user.id} locale={locale} />
           {book && book.owner_id === user.id && (
             <Link href={`/books/reconcile${p.kind ? `?book=${p.kind}` : ""}`} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
               {t("مطابقة الكشف", "Match a statement")}
