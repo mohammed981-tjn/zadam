@@ -331,7 +331,7 @@ export default function LiveMap({
           el.dir = locale === "en" ? "ltr" : "rtl";
           if (o.tone === "green") {
             el.className =
-              "flex size-9 items-center justify-center rounded-full bg-[#2a6424] text-sm font-black text-white shadow-float ring-2 ring-white";
+              "flex size-9 items-center justify-center rounded-full bg-[#0f5a32] text-sm font-black text-white shadow-float ring-2 ring-white";
           } else {
             // A tag with a point under it. Far out it shows the value alone,
             // so sixteen towns fit a phone; closer in, the town's name too.
@@ -384,7 +384,7 @@ export default function LiveMap({
         pinRef.current = null;
         return;
       }
-      if (!pinRef.current) pinRef.current = new ml.Marker({ color: "#1f7a3d" }).setLngLat(marker).addTo(map);
+      if (!pinRef.current) pinRef.current = new ml.Marker({ color: "#0f5a32" }).setLngLat(marker).addTo(map);
       else pinRef.current.setLngLat(marker);
     })();
   }, [marker, ready]);

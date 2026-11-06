@@ -30,7 +30,7 @@ export default function LandBoundaryMap({ boundary, label }: { boundary: [number
         type: "FeatureCollection",
         features: [{ type: "Feature", properties: { title: label }, geometry: { type: "Polygon", coordinates: [ring] } }],
       },
-      color: "#1f7a3d",
+      color: "#0f5a32",
       opacity: 0.25,
       outline: "#ffffff",
     },

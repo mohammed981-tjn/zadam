@@ -7,8 +7,10 @@ import SplashOnce from "@/components/SplashOnce";
 import AssistantWidget from "@/components/AssistantWidget";
 import ServiceWorker from "@/components/ServiceWorker";
 import { SITE_URL } from "@/lib/site";
+import { cookies } from "next/headers";
 import { getLocale } from "@/lib/locale";
 import { dirOf, tr } from "@/lib/i18n";
+import { PALETTE_COOKIE, toPalette } from "@/lib/palette";
 import LocaleProvider from "@/components/LocaleProvider";
 import PageLang from "@/components/PageLang";
 import SupportWhatsApp from "@/components/SupportWhatsApp";
@@ -79,10 +81,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
+  // لوحة الألوان التي اختارها الزائر (المالك، 6 نوفمبر 2026)، من الكوكي كما اللغة: على <html> من أوّل إطار، فلا
+  // يومض الموقع بالألوان الافتراضيّة قبل أن يتبدّل.
+  const palette = toPalette((await cookies()).get(PALETTE_COOKIE)?.value);
   return (
     <html
       lang={locale}
       dir={dirOf(locale)}
+      data-palette={palette}
       className={`${tajawal.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col lg:ps-64">
