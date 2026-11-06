@@ -136,6 +136,9 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
               {t("مطابقة الكشف", "Match a statement")}
             </Link>
           )}
+          <Link href={`/books/statements${p.bookId ? `?id=${p.bookId}` : p.kind ? `?book=${p.kind}` : ""}`} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
+            {t("القوائم الماليّة وحزمة PDF", "Financial statements and PDF")}
+          </Link>
           <Link href="/books/assets" className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-card">
             {t("الأصول الثابتة", "Fixed assets")}
           </Link>

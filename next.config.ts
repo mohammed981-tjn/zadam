@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/health": ["./data/faostat-*.tsv"],
     "/admin/faostat": ["./data/faostat-*.tsv"],
+    // حزمة القوائم الماليّة PDF (البند ٢٠٥): الخطّ والشعار يُقرآن من القرص (src/lib/ledger/statementsPdf.ts).
+    "/books/statements/pdf": ["./assets/fonts/Tajawal-Regular.ttf", "./assets/fonts/Tajawal-Bold.ttf", "./assets/sudagri-logo-pdf.jpg"],
+    "/api/app/books/statements/pdf": ["./assets/fonts/Tajawal-Regular.ttf", "./assets/fonts/Tajawal-Bold.ttf", "./assets/sudagri-logo-pdf.jpg"],
   },
   // The framework's name and version are not for visitors (SEC-11).
   poweredByHeader: false,

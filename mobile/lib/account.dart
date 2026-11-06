@@ -678,6 +678,18 @@ class AccountController extends ValueNotifier<Session?> {
     return json;
   }
 
+  /// A signed-in GET whose answer is a file, not JSON — the statements bundle as a PDF (item 205). A link handed to the
+  /// browser would not carry the session, so the app fetches the bytes itself with the same token and refresh as
+  /// [call]. Any status but 200 throws [ApiException] with the route's own `error` message.
+  Future<({List<int> bytes, Map<String, String> headers})> download(String path) async {
+    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    final res = await _authed('GET', path);
+    if (res.statusCode != 200) {
+      throw ApiException(_json(res)['error'] as String? ?? 'تعذّر التنزيل (${res.statusCode}).');
+    }
+    return (bytes: res.bodyBytes, headers: res.headers);
+  }
+
   Future<Account> me() async {
     if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
     final res = await _authed('GET', '/api/app/me');

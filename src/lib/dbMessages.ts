@@ -702,6 +702,11 @@ const MESSAGES: [string, string][] = [
   ["هذا الملفّ دليلٌ على مرحلةٍ أخرى.", "This file is already evidence for another stage."],
   ["هذا الموسم ليس جارياً: لا يُكتب فيه.", "This season is not active: nothing can be written in it."],
   ["هذا موسمك: اكتب فيه من صفحته.", "This is your own season: write in it from its page."],
+  // The financial statements (backlog 205, 20261106080000_ledger_statements_plus.sql).
+  ["أساس المقارنة غير معروف: %", "Unknown basis of comparison: %"],
+  ["هذا الموسم ليس من هذا الدفتر", "This season is not in this book"],
+  ["الفترة تحتاج يوم بدايةٍ ويوم نهاية", "A period needs a first day and a last day"],
+  ["بداية الفترة بعد نهايتها", "The period starts after it ends"],
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
