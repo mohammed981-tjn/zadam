@@ -753,6 +753,12 @@ const MESSAGES: [string, string][] = [
   ["يُعاد الفتح إلى يومٍ قبل % (آخر يومٍ مقفل)", "Reopening goes back to a day before % (the last closed day)"],
   ["اكتب سبب إعادة الفتح (من ١٠ أحرف إلى ٥٠٠)", "Write why the period is reopened (10 to 500 characters)"],
   ["قيد الإقفال لا يُعكس: أُقفلت فترته أو موسمه به", "A closing entry is not reversed: its period or season was closed with it"],
+  // 20261106100000_ledger_review_fixes.sql (backlog 209)
+  ["أُقفل دخل الدفتر حتى %؛ يُقفل دخل الموسم بتاريخٍ بعده", "The book's income is closed up to %; the season's income is closed on a day after it"],
+  ["السطر % موسومٌ بموسمٍ أو أرضٍ أو قطيعٍ أو مشروعٍ ليس لصاحب الدفتر", "Line % is tagged with a season, land, herd or project that is not the book owner's"],
+  ["في دفتر المنصّة يعتمد القيدَ مديرٌ غيرُ من أعدّه", "In the platform's book, an administrator other than the one who prepared the entry approves it"],
+  ["سجلّ الدعوات لا يُحذف", "The record of invitations is not deleted"],
+  ["لا يتغيّر من الدعوة إلا ما صنعته وإنهاؤها", "Nothing of an invitation changes but what it made and its ending"],
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

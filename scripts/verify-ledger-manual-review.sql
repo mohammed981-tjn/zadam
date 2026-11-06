@@ -61,7 +61,7 @@ grant execute on function _fail(text, text), _pass(text), _eq(anyelement, anyele
 insert into auth.users (id, email) values
   ('f1000000-0000-0000-0000-0000000000f1', 'f1@example.com'), ('f2000000-0000-0000-0000-0000000000f2', 'f2@example.com'),
   ('f3000000-0000-0000-0000-0000000000f3', 'f3@example.com'), ('e9000000-0000-0000-0000-0000000000e9', 'e9@example.com'),
-  ('ac000000-0000-0000-0000-0000000000ac', 'acct@example.com'), ('a1000000-0000-0000-0000-0000000000a1', 'agent@example.com'),
+  ('ac000000-0000-0000-0000-0000000000ac', 'p249912345678@phone.invalid'), ('a1000000-0000-0000-0000-0000000000a1', 'agent@example.com'),
   ('ad000000-0000-0000-0000-0000000000ad', 'admin@example.com');
 insert into profiles (id, full_name, role, phone) values
   ('f1000000-0000-0000-0000-0000000000f1', 'صاحب الدفتر', 'investor', '0911000001'),
@@ -232,12 +232,21 @@ select _as('f1000000-0000-0000-0000-0000000000f1');
 do $$
 declare b uuid := _id('F');
 begin
-  perform _refuses(format($q$select ledger_preparer_invite(%L, '0911999999')$q$, b), 'رقمٌ بلا حساب يُرفض', 'لا حساب بهذا الرقم');
-  perform _refuses(format($q$select ledger_preparer_invite(%L, '0911000001')$q$, b), 'وصاحب الدفتر لا يدعو نفسه', 'لا حساب بهذا الرقم');
+  -- (البند ٢٠٩) جوابٌ واحد: رقمٌ بلا حساب، ورقم صاحب الدفتر، يُجابان كما يُجاب رقمٌ له حساب، ولا يُدعى بهما أحد.
+  perform _set('X1', ledger_preparer_invite(b, '0911999999'));
+  perform _eq((select status from ledger_preparers_list(b) where id = _id('X1')), 'invited', 'رقمٌ بلا حساب يُجاب كما يُجاب رقمٌ له حساب');
+  perform _set('X2', ledger_preparer_invite(b, '0911000001'));
+  perform _eq(_n(format('select count(*) from ledger_preparers where id in (%L, %L)', _id('X1'), _id('X2'))), 0::bigint,
+              'ولا يُدعى بهما أحد، ولا صاحب الدفتر نفسه');
   perform _set('P1', ledger_preparer_invite(b, '+249 912 345 678'));
   perform _eq(_t(format('select status || ''/'' || contact_tail from ledger_preparers where id = %L', _id('P1'))), 'invited/5678',
-              'المحاسب مدعوٌّ برقمه، ويُعرف بآخر أربعة أرقام');
-  perform _refuses(format($q$select ledger_preparer_invite(%L, 'acct@example.com')$q$, b), 'ولا تتكرّر دعوته', 'دعوةٌ مفتوحة');
+              'المحاسب مدعوٌّ برقمه (بهويّة دخوله)، ويُعرف بآخر أربعة أرقام');
+  perform _set('X3', ledger_preparer_invite(b, 'p249912345678@phone.invalid'));
+  perform _eq(_n(format('select count(*) from ledger_preparers where book_id = %L and preparer_id = %L', b, 'ac000000-0000-0000-0000-0000000000ac')),
+              1::bigint, 'ولا تتكرّر دعوته');
+  perform ledger_preparer_end(_id('X1'));
+  perform ledger_preparer_end(_id('X2'));
+  perform ledger_preparer_end(_id('X3'));
   perform _eq((select full_name from ledger_preparers_list(b) where id = _id('P1')), null::text, 'ولا يُرى اسمه قبل أن يقبل');
 end $$;
 select _as('ac000000-0000-0000-0000-0000000000ac');
