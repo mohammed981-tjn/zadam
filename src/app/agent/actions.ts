@@ -5,10 +5,13 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { explain, signedIn, str, translator } from "@/lib/supplyActions";
+import { formFields } from "@/lib/supplyCore";
+import { answerMandateStep, endMandateStep, objectAgentWriteStep, requestMandateStep } from "@/lib/agentCore";
 
 /**
  * وضع الوكيل (البند ١٦٩): الطلب والجواب والإنهاء. كلّ قرارٍ في القاعدة: الدوالّ تتحقّق أنّ الطالب شركةٌ موثّقة، وأنّ
- * المجيب هو المزارع نفسه، وأنّ المُنهي أحد الطرفين، وتُخبر الطرف الآخر.
+ * المجيب هو المزارع نفسه، وأنّ المُنهي أحد الطرفين، وتُخبر الطرف الآخر. والخطوات نفسها في src/lib/agentCore.ts،
+ * يستدعيها التطبيق أيضاً (البند ٢٠٣)؛ وتسجيل مزارعٍ بلا جوّال يبقى هنا وحده، لأنه يصنع حساباً بمفتاح الخادم.
  */
 type Page = "/agent" | "/account/agents";
 
@@ -22,47 +25,24 @@ const SCOPES = ["lands", "seasons", "herds"] as const;
 
 export async function requestMandate(fd: FormData) {
   const { supabase } = await signedIn();
-  const { locale, t } = await translator();
-  const scopes = SCOPES.filter((s) => fd.get(`scope_${s}`) === "on");
-  if (scopes.length === 0) done("/agent", "error", t("اختر ما تطلب الإذن فيه.", "Choose what you are asking permission for."));
-  const { error } = await supabase.rpc("agent_mandate_request", {
-    p_phone: str(fd, "phone"),
-    p_scopes: scopes,
-    p_note: str(fd, "note"),
-  });
-  if (error) done("/agent", "error", explain(locale, error));
-  done(
-    "/agent",
-    "ok",
-    t(
-      "وصل طلبك إلى المزارع. يعمل الإذن حين يقبله من حسابه، ويظهر اسمه هنا حينها.",
-      "Your request reached the farmer. The permission starts when they accept it from their account, and their name shows here then.",
-    ),
-  );
+  const { locale } = await translator();
+  const r = await requestMandateStep(supabase, formFields(fd), locale);
+  done("/agent", r.ok ? "ok" : "error", r.message);
 }
 
 export async function answerMandate(fd: FormData) {
   const { supabase } = await signedIn();
-  const { locale, t } = await translator();
-  const accept = str(fd, "decision") === "accept";
-  const { error } = await supabase.rpc("agent_mandate_answer", { p_id: str(fd, "id"), p_accept: accept });
-  if (error) done("/account/agents", "error", explain(locale, error));
-  done(
-    "/account/agents",
-    "ok",
-    accept
-      ? t("قبلت. صار الوكيل يعمل عنك في ما أذنت فيه، وتُنهيه من هنا متى شئت.", "Accepted. The agent now acts for you in what you allowed, and you can end it here whenever you like.")
-      : t("اعتذرت، وأُخبر الوكيل.", "Declined; the agent has been told."),
-  );
+  const { locale } = await translator();
+  const r = await answerMandateStep(supabase, formFields(fd), locale);
+  done("/account/agents", r.ok ? "ok" : "error", r.message);
 }
 
 export async function endMandate(fd: FormData) {
   const { supabase } = await signedIn();
-  const { locale, t } = await translator();
+  const { locale } = await translator();
   const page: Page = str(fd, "from") === "/agent" ? "/agent" : "/account/agents";
-  const { error } = await supabase.rpc("agent_mandate_end", { p_id: str(fd, "id") });
-  if (error) done(page, "error", explain(locale, error));
-  done(page, "ok", t("انتهى. وما سُجّل باسم المزارع يبقى له.", "Ended. What was registered in the farmer's name stays theirs."));
+  const r = await endMandateStep(supabase, formFields(fd), locale);
+  done(page, r.ok ? "ok" : "error", r.message);
 }
 
 /**
@@ -129,22 +109,11 @@ export async function registerManagedFarmer(fd: FormData) {
  */
 export async function objectAgentWrite(fd: FormData) {
   const { supabase } = await signedIn();
-  const { locale, t } = await translator();
+  const { locale } = await translator();
   const from = str(fd, "from");
   const page = /^\/seasons\/[0-9a-f-]{36}$/i.test(from) ? from : "/account/agents";
-  const back = (key: "ok" | "error", message: string): never => {
-    revalidatePath(page);
-    revalidatePath("/account/agents");
-    redirect(`${page}?${key}=${encodeURIComponent(message)}`);
-  };
-  const action = Number(str(fd, "action_id"));
-  if (!Number.isSafeInteger(action) || action <= 0) back("error", t("لا شيء بهذا في سجلّ وكلائك.", "There is no such entry in your agents' record."));
-  const { data: reopened, error } = await supabase.rpc("agent_write_object", { p_action: action, p_reason: str(fd, "reason") });
-  if (error) back("error", explain(locale, error));
-  back(
-    "ok",
-    reopened
-      ? t("سُجّل اعتراضك وأُخبر الوكيل، وفُتحت المرحلة من جديد: تعتمدها أنت حين تتمّ.", "Your objection is recorded and the agent told, and the stage is open again: you sign it off when it is done.")
-      : t("سُجّل اعتراضك وأُخبر الوكيل، وتراه الإدارة.", "Your objection is recorded, the agent has been told, and the administrators can see it."),
-  );
+  const r = await objectAgentWriteStep(supabase, formFields(fd), locale);
+  revalidatePath(page);
+  revalidatePath("/account/agents");
+  redirect(`${page}?${r.ok ? "ok" : "error"}=${encodeURIComponent(r.message)}`);
 }
