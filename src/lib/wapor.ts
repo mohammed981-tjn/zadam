@@ -25,6 +25,20 @@ const CATALOGUE_SCALE = 0.1;
 /** One feddan is 4,200 m², so one millimetre over it is 4.2 m³. */
 export const M3_PER_MM_FEDDAN = 4.2;
 
+const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const PART_AR = ["", "العشرة الأولى من", "العشرة الثانية من", "آخر"];
+const PART_EN = ["", "1–10", "11–20", "21–end"];
+
+/** «العشرة الأولى من مارس» for «2026-03-D1»: the land card's period, on the website and in the app (backlog 203). */
+export function dekadLabel(dekad: string, locale: "ar" | "en"): string {
+  const m = /^(\d{4})-(\d{2})-D([123])$/.exec(dekad);
+  if (!m) return dekad;
+  const month = Number(m[2]) - 1;
+  const part = Number(m[3]);
+  return locale === "en" ? `${PART_EN[part]} ${EN_MONTHS[month]}` : `${PART_AR[part]} ${AR_MONTHS[month]}`;
+}
+
 /** "2026-10-D1" for the first ten days of October 2026. */
 export const dekadOf = (d: Date) => {
   const day = d.getUTCDate();
