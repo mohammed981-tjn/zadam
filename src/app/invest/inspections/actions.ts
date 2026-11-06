@@ -6,6 +6,7 @@ import { explain, numOrNull, signedIn, str, translator } from "@/lib/supplyActio
 import { sanitisePhotoMetadata } from "@/lib/exif";
 import { evidenceFileExists } from "@/lib/evidenceFile";
 import { INSPECTION_CHECKS, RESULTS, VERDICTS } from "@/lib/inspections";
+import { inspectionSentSentence, requestLandInspection } from "@/lib/investSteps";
 
 /**
  * Every step of an inspection is a database function that checks who is
@@ -29,26 +30,14 @@ const page = (id: string) => `/invest/inspections/${id}`;
 export async function requestInspection(fd: FormData) {
   const { supabase } = await signedIn();
   const { locale, t } = await translator();
-  const checks = [
-    ...new Set(fd.getAll("checks").map(String).filter((c) => (INSPECTION_CHECKS as readonly string[]).includes(c))),
-  ];
-  if (checks.length === 0) {
-    back("/invest", "error", t("اختر ما تريد أن يتحقّق منه المفتّش.", "Choose what the inspector should check."));
-  }
-  const { data, error } = await supabase.rpc("land_inspection_request", {
-    p_land: str(fd, "land_id"),
-    p_checks: checks,
-    p_note: str(fd, "note").slice(0, 1000) || null,
-  });
-  if (error || !data) back("/invest", "error", explain(locale, error));
-  back(
-    page(String(data)),
-    "ok",
-    t(
-      "أُرسل طلب المعاينة. وصل صاحبَ الأرض إشعار؛ وحين يوافق تُسنده الإدارة إلى مفتّش.",
-      "Your inspection request was sent. The owner has been notified; once they agree, the administrators assign an inspector.",
-    ),
+  // Shared with the phone app's route (src/lib/investSteps.ts): the same checks and land_inspection_request.
+  const result = await requestLandInspection(
+    supabase,
+    { landId: str(fd, "land_id"), checks: fd.getAll("checks"), note: str(fd, "note") },
+    { locale, t },
   );
+  if (!result.ok) back("/invest", "error", result.message);
+  back(page(result.data), "ok", inspectionSentSentence(t));
 }
 
 export async function cancelInspection(fd: FormData) {

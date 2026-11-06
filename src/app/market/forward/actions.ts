@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { explain, numOrNull, signedIn, str, translator } from "@/lib/supplyActions";
+import { forwardStep as forwardContractStep } from "@/lib/contractSteps";
 
 /**
  * العقد الآجل (البند ١٧٠). كلّ خطوةٍ دالّةٌ في القاعدة تتحقّق من صاحبها وحال العقد وتكتب السجلّ وتُخبر الطرف الآخر؛
@@ -64,35 +65,22 @@ export async function forwardStep(fd: FormData) {
   const { locale, t } = await translator();
   const id = str(fd, "id");
   const page = `/market/forward/${id}`;
-  const step = str(fd, "step");
-  const reason = str(fd, "reason");
-  // A penalty the administration awards in a dispute, within the contract's clause; the database checks the ceiling.
-  const amount = numOrNull(fd, "penalty");
-  const penalty = amount ? { p_penalty: amount, p_penalty_payer: str(fd, "penalty_payer") || null } : {};
-  const calls: Record<string, () => PromiseLike<{ error: { code?: string; message?: string } | null }>> = {
-    sign: () => supabase.rpc("forward_contract_answer", { p_id: id, p_sign: true }),
-    decline: () => supabase.rpc("forward_contract_answer", { p_id: id, p_sign: false }),
-    withdraw: () => supabase.rpc("forward_contract_withdraw", { p_id: id }),
-    deliver: () =>
-      supabase.rpc("forward_contract_deliver", {
-        p_id: id,
-        p_quantity: numOrNull(fd, "delivered_quantity"),
-        p_on: str(fd, "delivered_on") || null,
-        p_grade_met: str(fd, "grade_met") === "yes" ? true : str(fd, "grade_met") === "no" ? false : null,
-        p_note: reason || null,
-      }),
-    confirm: () => supabase.rpc("forward_contract_confirm", { p_id: id }),
-    cancel: () => supabase.rpc("forward_contract_cancel_request", { p_id: id, p_reason: reason }),
-    cancel_yes: () => supabase.rpc("forward_contract_cancel_answer", { p_id: id, p_agree: true }),
-    cancel_no: () => supabase.rpc("forward_contract_cancel_answer", { p_id: id, p_agree: false }),
-    dispute: () => supabase.rpc("forward_contract_dispute", { p_id: id, p_reason: reason }),
-    resume: () => supabase.rpc("forward_contract_resolve", { p_id: id, p_outcome: "resume", p_note: reason, ...penalty }),
-    close_done: () => supabase.rpc("forward_contract_resolve", { p_id: id, p_outcome: "completed", p_note: reason, ...penalty }),
-    close_cancel: () => supabase.rpc("forward_contract_resolve", { p_id: id, p_outcome: "cancelled", p_note: reason, ...penalty }),
-  };
-  const call = calls[step];
-  if (!call) back(page, "error", t("خطوةٌ غير معروفة.", "Unknown step."));
-  const { error } = await call();
-  if (error) back(page, "error", explain(locale, error));
+  // The step itself — the map from a step's name to its database function — is shared with the phone app's
+  // route (src/lib/contractSteps.ts), so the two cannot drift.
+  const result = await forwardContractStep(
+    supabase,
+    id,
+    str(fd, "step"),
+    {
+      reason: str(fd, "reason"),
+      deliveredQuantity: numOrNull(fd, "delivered_quantity"),
+      deliveredOn: str(fd, "delivered_on"),
+      gradeMet: str(fd, "grade_met"),
+      penalty: numOrNull(fd, "penalty"),
+      penaltyPayer: str(fd, "penalty_payer"),
+    },
+    { locale, t },
+  );
+  if (!result.ok) back(page, "error", result.message);
   back(page, "ok", t("تمّ، وأُخبر الطرف الآخر.", "Done, and the other side has been told."));
 }
