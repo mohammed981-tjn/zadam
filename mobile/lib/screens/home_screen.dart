@@ -7,9 +7,9 @@
 /// nothing is on offer yet, and the projects when there are any. The side
 /// menu lists the same sections, the news first.
 ///
-/// Backlog 202 (6 November): a hero band in the light-green gradient with the
+/// Backlog 202 (6 November): a hero band in the light-olive gradient with the
 /// platform's line, one tile per section in three columns so the whole board
-/// reads at a glance, every icon on the same light-green chip, and clear
+/// reads at a glance, every icon on the same light-olive chip, and clear
 /// section titles.
 ///
 /// The tiles for the calculator, the assistant and the knowledge base switch
@@ -41,21 +41,45 @@ class _Section {
 }
 
 final _sections = <_Section>[
-  _Section('الأخبار', 'جديد سوداقري', Icons.newspaper_rounded,
-      screen: () => const NewsScreen()),
-  _Section('الأفلام', 'سوداقري بالصورة', Icons.movie_outlined,
-      screen: () => const FilmsScreen()),
-  _Section('توقّع الأمطار', 'الخريطة والجدول', Icons.umbrella_outlined,
-      screen: () => const RainScreen()),
+  _Section(
+    'الأخبار',
+    'جديد سوداقري',
+    Icons.newspaper_rounded,
+    screen: () => const NewsScreen(),
+  ),
+  _Section(
+    'الأفلام',
+    'سوداقري بالصورة',
+    Icons.movie_outlined,
+    screen: () => const FilmsScreen(),
+  ),
+  _Section(
+    'توقّع الأمطار',
+    'الخريطة والجدول',
+    Icons.umbrella_outlined,
+    screen: () => const RainScreen(),
+  ),
   _Section('حاسبة الري', 'كم يحتاج محصولك', Icons.water_drop_outlined, tab: 1),
   _Section('المساعد', 'اسأل عن أي محصول', Icons.chat_bubble_outline, tab: 2),
   _Section('المعرفة', 'محاصيل وتربة وماء', Icons.menu_book_outlined, tab: 3),
-  _Section('النفير', 'العمل المشترك', Icons.groups_outlined,
-      screen: () => const NafirScreen()),
-  _Section('الخدمات', 'حراثة ومساحة وبيطرة', Icons.agriculture_outlined,
-      screen: () => const ServicesScreen()),
-  _Section('التعدين', 'قسم مستقلّ', Icons.construction_outlined,
-      screen: () => const MiningScreen()),
+  _Section(
+    'النفير',
+    'العمل المشترك',
+    Icons.groups_outlined,
+    screen: () => const NafirScreen(),
+  ),
+  _Section(
+    'الخدمات',
+    'حراثة ومساحة وبيطرة',
+    Icons.agriculture_outlined,
+    screen: () => const ServicesScreen(),
+  ),
+  _Section(
+    'التعدين',
+    'قسم مستقلّ',
+    Icons.construction_outlined,
+    screen: () => const MiningScreen(),
+  ),
 ];
 
 class HomeScreen extends StatefulWidget {
@@ -93,7 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (s.tab != null) {
       widget.onTab?.call(s.tab!);
     } else if (s.screen != null) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => s.screen!()));
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => s.screen!()));
     }
   }
 
@@ -101,10 +126,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('🌾 سوداقري')),
-      drawer: _Menu(onOpen: (s) {
-        Navigator.of(context).pop();
-        _open(s);
-      }),
+      drawer: _Menu(
+        onOpen: (s) {
+          Navigator.of(context).pop();
+          _open(s);
+        },
+      ),
       body: RefreshIndicator(
         onRefresh: () async => setState(() => _future = _load()),
         child: ListView(
@@ -130,8 +157,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   FadeIn(
                     delay: i ~/ 3 + 1,
                     child: _Tile(
-                        section: _sections[i],
-                        onTap: () => _open(_sections[i])),
+                      section: _sections[i],
+                      onTap: () => _open(_sections[i]),
+                    ),
                   ),
               ],
             ),
@@ -163,7 +191,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: FadeIn(
-                            delay: i, child: _ProjectCard(project: projects[i])),
+                          delay: i,
+                          child: _ProjectCard(project: projects[i]),
+                        ),
                       ),
                   ],
                 );
@@ -178,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 /* ------------------------------------------------------------------ */
 
-/// The hero: what the platform is, in the light-green band, and the two tools
+/// The hero: what the platform is, in the light-olive band, and the two tools
 /// a farmer reaches for first.
 class _Hero extends StatelessWidget {
   const _Hero({required this.onWater, required this.onAsk});
@@ -204,22 +234,36 @@ class _Hero extends StatelessWidget {
               children: [
                 Icon(Icons.verified_outlined, size: 14, color: ink),
                 SizedBox(width: 4),
-                Text('الأدوات تعمل الآن · مجاناً وبلا تسجيل',
-                    style: TextStyle(
-                        fontSize: 11.5, fontWeight: FontWeight.w800, color: ink)),
+                Text(
+                  'الأدوات تعمل الآن · مجاناً وبلا تسجيل',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: ink,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 14),
+          // Broken after «هنا» so the two lines balance on a phone.
           const Text(
-            'كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك',
+            'كل رقمٍ هنا\nيمكنك أن تعيد حسابه بنفسك',
             style: TextStyle(
-                fontSize: 23, fontWeight: FontWeight.w900, height: 1.4, color: ink),
+              fontSize: 23,
+              fontWeight: FontWeight.w900,
+              height: 1.4,
+              color: ink,
+            ),
           ),
           const SizedBox(height: 6),
           const Text(
             'منصّة معرفة زراعية وبيانات للسودان — لكل رقمٍ مصدره ومنهجه.',
-            style: TextStyle(height: 1.7, color: ink, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              height: 1.7,
+              color: ink,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -227,25 +271,43 @@ class _Hero extends StatelessWidget {
               Expanded(
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: ink,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                    backgroundColor: Colors.white,
+                    foregroundColor: ink,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 8,
+                    ),
                   ),
                   onPressed: onWater,
-                  icon: const Icon(Icons.water_drop, size: 18),
-                  label: const Text('احسب ريّ محصولك'),
+                  icon: const Icon(
+                    Icons.water_drop,
+                    size: 18,
+                    color: SudagriColors.textGreen,
+                  ),
+                  label: const Text('احسب الري'),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.85),
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
                     foregroundColor: ink,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                    backgroundColor: Colors.white.withValues(alpha: 0.22),
+                    side: BorderSide(
+                      color: ink.withValues(alpha: 0.45),
+                      width: 1.2,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 8,
+                    ),
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
                   ),
                   onPressed: onAsk,
-                  icon: const Icon(Icons.chat_bubble, size: 18),
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
                   label: const Text('اسأل المساعد'),
                 ),
               ),
@@ -257,7 +319,7 @@ class _Hero extends StatelessWidget {
   }
 }
 
-/// One section as a tile: its icon on the light-green chip, its name, one line.
+/// One section as a tile: its icon on the light-olive chip, its name, one line.
 class _Tile extends StatelessWidget {
   const _Tile({required this.section, required this.onTap});
 
@@ -283,19 +345,28 @@ class _Tile extends StatelessWidget {
             children: [
               IconChip(section.icon, size: 46),
               const SizedBox(height: 10),
-              Text(section.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 14.5, fontWeight: FontWeight.w800)),
+              Text(
+                section.title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(section.note,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 11, height: 1.4, color: mutedOn(context))),
+              Text(
+                section.note,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.4,
+                  color: mutedOn(context),
+                ),
+              ),
             ],
           ),
         ),
@@ -322,11 +393,18 @@ class _Menu extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('🌾 سوداقري',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                  Text(
+                    '🌾 سوداقري',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  ),
                   SizedBox(height: 4),
-                  Text('منصّة معرفة زراعية وبيانات للسودان',
-                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                  Text(
+                    'منصّة معرفة زراعية وبيانات للسودان',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -334,12 +412,17 @@ class _Menu extends StatelessWidget {
             for (final s in _sections)
               ListTile(
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 leading: IconChip(s.icon, size: 38),
-                title: Text(s.title,
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text(s.note,
-                    style: TextStyle(color: mutedOn(context), fontSize: 12)),
+                title: Text(
+                  s.title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  s.note,
+                  style: TextStyle(color: mutedOn(context), fontSize: 12),
+                ),
                 trailing: Icon(Icons.chevron_left, color: mutedOn(context)),
                 onTap: () => onOpen(s),
               ),
@@ -384,7 +467,8 @@ class _Notice extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w900),
                   ),
                   TextSpan(
-                    text: ' — ولن يُعرض مشروع قبل توثيقه قانونياً ومعاينته ميدانياً. '
+                    text:
+                        ' — ولن يُعرض مشروع قبل توثيقه قانونياً ومعاينته ميدانياً. '
                         'أمّا الأدوات وقاعدة المعرفة فتعمل الآن، مجاناً وبلا تسجيل.',
                   ),
                 ],
@@ -409,8 +493,10 @@ class _NoProjects extends StatelessWidget {
           children: [
             const IconChip(Icons.spa_outlined, size: 56),
             const SizedBox(height: 12),
-            const Text('لا توجد مشاريع مطروحة بعد',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            const Text(
+              'لا توجد مشاريع مطروحة بعد',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
             const SizedBox(height: 8),
             Text(
               'نحن لا نعرض مشروعاً حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة '
@@ -418,7 +504,10 @@ class _NoProjects extends StatelessWidget {
               'وسنبلغك أول ما يُطرح مشروع موثّق.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 13, color: mutedOn(context), height: 1.8),
+                fontSize: 13,
+                color: mutedOn(context),
+                height: 1.8,
+              ),
             ),
           ],
         ),
@@ -446,25 +535,38 @@ class _ProjectCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(project.name,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w800)),
+                  Text(
+                    project.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.place_outlined,
-                          size: 14, color: mutedOn(context)),
+                      Icon(
+                        Icons.place_outlined,
+                        size: 14,
+                        color: mutedOn(context),
+                      ),
                       const SizedBox(width: 3),
                       Flexible(
-                        child: Text(project.location,
-                            style: TextStyle(
-                                fontSize: 13, color: mutedOn(context))),
+                        child: Text(
+                          project.location,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: mutedOn(context),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(project.description,
-                      style: const TextStyle(fontSize: 13, height: 1.8)),
+                  Text(
+                    project.description,
+                    style: const TextStyle(fontSize: 13, height: 1.8),
+                  ),
                 ],
               ),
             ),

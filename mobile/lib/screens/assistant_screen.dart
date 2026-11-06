@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import '../ui.dart';
 
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
@@ -109,7 +110,15 @@ class _AssistantScreenState extends State<AssistantScreen> {
         children: [
           Expanded(
             child: _messages.isEmpty
-                ? const _EmptyState()
+                ? _EmptyState(
+                    onPick: (q) {
+                      // Fills the box; the farmer still decides to send it.
+                      _controller.text = q;
+                      _controller.selection = TextSelection.collapsed(
+                        offset: q.length,
+                      );
+                    },
+                  )
                 : ListView.builder(
                     controller: _scroll,
                     padding: const EdgeInsets.all(16),
@@ -117,37 +126,78 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     itemBuilder: (_, i) => _Bubble(message: _messages[i]),
                   ),
           ),
-          if (_sending) const LinearProgressIndicator(minHeight: 2),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      textInputAction: TextInputAction.send,
-                      minLines: 1,
-                      maxLines: 4,
-                      maxLength: 500,
-                      buildCounter: (_,
-                              {required currentLength,
-                              required isFocused,
-                              required maxLength}) =>
-                          null,
-                      decoration: const InputDecoration(
-                        hintText: 'اسأل عن محصول أو ري أو تقنية…',
+          if (_sending) const LinearProgressIndicator(minHeight: 3),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border(
+                top: BorderSide(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        textInputAction: TextInputAction.send,
+                        minLines: 1,
+                        maxLines: 4,
+                        maxLength: 500,
+                        buildCounter: (
+                          _, {
+                          required currentLength,
+                          required isFocused,
+                          required maxLength,
+                        }) => null,
+                        decoration: InputDecoration(
+                          hintText: 'اسأل عن محصول أو ري أو تقنية…',
+                          fillColor: Theme.of(context).scaffoldBackgroundColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
+                        ),
+                        onSubmitted: (_) => _send(),
                       ),
-                      onSubmitted: (_) => _send(),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filled(
-                    onPressed: _sending ? null : _send,
-                    icon: const Icon(Icons.send),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      tooltip: 'أرسل',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context)
+                            .colorScheme
+                            .onPrimary,
+                        minimumSize: const Size(48, 48),
+                      ),
+                      onPressed: _sending ? null : _send,
+                      icon: const Icon(Icons.send_rounded),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -158,7 +208,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.onPick});
+
+  /// Puts an example into the box.
+  final ValueChanged<String> onPick;
 
   static const _examples = [
     'كم يحتاج القمح من الماء في الجزيرة؟',
@@ -170,35 +223,78 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = mutedOn(context);
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.eco_outlined, size: 56, color: muted),
-            const SizedBox(height: 16),
-            Text(
-              'اسألني عن الزراعة في السودان',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w700, color: muted),
-            ),
-            const SizedBox(height: 20),
-            ..._examples.map(
-              (e) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text('• $e',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: muted, fontSize: 13, height: 1.6)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: FadeIn(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const IconChip(Icons.eco, size: 72),
+              const SizedBox(height: 16),
+              const Text(
+                'اسألني عن الزراعة في السودان',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
-            ),
-          ],
+              const SizedBox(height: 22),
+              for (final e in _examples)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Material(
+                    color: Theme.of(context).colorScheme.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () => onPick(e),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.lightbulb_outline,
+                              size: 18,
+                              color: textGreenOn(context),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                e,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.north_west_rounded,
+                              size: 16,
+                              color: muted,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+/// A message: the farmer's on the olive at the far side, the
+/// assistant's on a card at the near side with its leaf, an error on the
+/// dark-gold tint.
 class _Bubble extends StatelessWidget {
   const _Bubble({required this.message});
 
@@ -210,48 +306,78 @@ class _Bubble extends StatelessWidget {
     final isUser = message.fromUser;
 
     final background = message.isError
-        ? scheme.errorContainer
+        ? warnTintOn(context)
         : isUser
             ? scheme.primary
             : scheme.surface;
 
     final foreground = message.isError
-        ? scheme.onErrorContainer
+        ? warnOn(context)
         : isUser
             ? scheme.onPrimary
             : scheme.onSurface;
 
-    return Align(
-      alignment: isUser ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * 0.85,
+    const r = Radius.circular(18);
+    const tail = Radius.circular(4);
+
+    final bubble = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width * (isUser ? 0.8 : 0.74),
+      ),
+      decoration: BoxDecoration(
+        color: background,
+        // The corner nearest the speaker is the tail.
+        borderRadius: BorderRadiusDirectional.only(
+          topStart: isUser ? r : tail,
+          topEnd: isUser ? tail : r,
+          bottomStart: r,
+          bottomEnd: r,
         ),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(14),
-          border: isUser ? null : Border.all(color: scheme.outline),
-        ),
-        child: Column(
+        border: isUser
+            ? null
+            : Border.all(
+                color: message.isError
+                    ? warnOn(context).withValues(alpha: 0.35)
+                    : scheme.outline,
+              ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SelectableText(
+            message.text,
+            style: TextStyle(color: foreground, height: 1.7, fontSize: 15),
+          ),
+          if (message.source != null) ...[
+            const SizedBox(height: 8),
+            TagPill(
+              _sourceLabels[message.source] ?? message.source!,
+              icon: Icons.verified_outlined,
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return FadeIn(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          mainAxisAlignment: isUser
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SelectableText(
-              message.text,
-              style: TextStyle(color: foreground, height: 1.7, fontSize: 15),
-            ),
-            if (message.source != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                _sourceLabels[message.source] ?? message.source!,
-                style: TextStyle(
-                  color: foreground.withValues(alpha: 0.65),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
+            if (!isUser) ...[
+              IconChip(
+                message.isError ? Icons.cloud_off_rounded : Icons.eco,
+                size: 32,
+                warn: message.isError,
               ),
+              const SizedBox(width: 8),
             ],
+            Flexible(child: bubble),
           ],
         ),
       ),

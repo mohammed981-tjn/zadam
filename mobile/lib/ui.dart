@@ -3,7 +3,7 @@
 /// one short fade.
 ///
 /// One place, so the screens look like one product: the same chip in the same
-/// light-green tint for every section rather than a different pastel per tile,
+/// light-olive tint for every section rather than a different pastel per tile,
 /// and the same friendly state with an icon and a retry wherever a list could
 /// not load. Motion is a single implicit fade on first build — nothing that
 /// loops, nothing that keeps a ticker running.
@@ -13,10 +13,14 @@ import 'package:flutter/material.dart';
 
 import 'theme.dart';
 
-/// The hero band: the light-green gradient with the dark ink on it, and a faint
+/// The hero band: the light-olive gradient with the dark ink on it, and a faint
 /// leaf in the far corner.
 class HeroBand extends StatelessWidget {
-  const HeroBand({super.key, required this.child, this.padding = const EdgeInsets.fromLTRB(20, 20, 20, 20)});
+  const HeroBand({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.fromLTRB(20, 20, 20, 20),
+  });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -42,9 +46,11 @@ class HeroBand extends StatelessWidget {
             PositionedDirectional(
               end: -28,
               bottom: -34,
-              child: Icon(Icons.eco,
-                  size: 150,
-                  color: Colors.white.withValues(alpha: 0.16)),
+              child: Icon(
+                Icons.eco,
+                size: 150,
+                color: Colors.white.withValues(alpha: 0.16),
+              ),
             ),
             PositionedDirectional(
               end: 70,
@@ -63,7 +69,9 @@ class HeroBand extends StatelessWidget {
               child: DefaultTextStyle.merge(
                 style: const TextStyle(color: SudagriColors.primaryForeground),
                 child: IconTheme.merge(
-                  data: const IconThemeData(color: SudagriColors.primaryForeground),
+                  data: const IconThemeData(
+                    color: SudagriColors.primaryForeground,
+                  ),
                   child: child,
                 ),
               ),
@@ -75,7 +83,7 @@ class HeroBand extends StatelessWidget {
   }
 }
 
-/// A section's icon on a rounded light-green tint.
+/// A section's icon on a rounded light-olive tint.
 class IconChip extends StatelessWidget {
   const IconChip(this.icon, {super.key, this.size = 44, this.warn = false});
 
@@ -94,14 +102,16 @@ class IconChip extends StatelessWidget {
         color: warn ? warnTintOn(context) : leafTintOn(context),
         borderRadius: BorderRadius.circular(size * 0.32),
       ),
-      child: Icon(icon,
-          size: size * 0.52,
-          color: warn ? warnOn(context) : textGreenOn(context)),
+      child: Icon(
+        icon,
+        size: size * 0.52,
+        color: warn ? warnOn(context) : textGreenOn(context),
+      ),
     );
   }
 }
 
-/// A section title: a short light-green bar, then the words.
+/// A section title: a short light-olive bar, then the words.
 class SectionTitle extends StatelessWidget {
   const SectionTitle(this.text, {super.key, this.subtitle, this.trailing});
 
@@ -129,13 +139,23 @@ class SectionTitle extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(text,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w800, height: 1.3)),
+                Text(
+                  text,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    height: 1.3,
+                  ),
+                ),
                 if (subtitle != null)
-                  Text(subtitle!,
-                      style: TextStyle(
-                          fontSize: 12, color: mutedOn(context), height: 1.5)),
+                  Text(
+                    subtitle!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: mutedOn(context),
+                      height: 1.5,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -170,9 +190,14 @@ class IntroNote extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(text,
-                style: TextStyle(
-                    fontSize: 13, color: inkOn(context), height: 1.8)),
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                color: inkOn(context),
+                height: 1.8,
+              ),
+            ),
           ),
         ],
       ),
@@ -198,18 +223,22 @@ class StateView extends StatelessWidget {
   });
 
   /// The list could not load: the message is the error itself.
-  factory StateView.error(Object? error,
-          {Key? key, VoidCallback? onRetry, bool scrollable = false, bool compact = false}) =>
-      StateView(
-        key: key,
-        icon: Icons.cloud_off_rounded,
-        title: 'تعذّر الوصول الآن',
-        message: '$error',
-        onRetry: onRetry,
-        warn: true,
-        scrollable: scrollable,
-        compact: compact,
-      );
+  factory StateView.error(
+    Object? error, {
+    Key? key,
+    VoidCallback? onRetry,
+    bool scrollable = false,
+    bool compact = false,
+  }) => StateView(
+    key: key,
+    icon: Icons.cloud_off_rounded,
+    title: 'تعذّر الوصول الآن',
+    message: '$error',
+    onRetry: onRetry,
+    warn: true,
+    scrollable: scrollable,
+    compact: compact,
+  );
 
   final IconData icon;
   final String title;
@@ -232,21 +261,30 @@ class StateView extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                  color: (warn ? warnOn(context) : textGreenOn(context))
-                      .withValues(alpha: 0.18),
-                  width: 1.5),
+                color: (warn ? warnOn(context) : textGreenOn(context))
+                    .withValues(alpha: 0.18),
+                width: 1.5,
+              ),
             ),
             child: IconChip(icon, size: compact ? 52 : 64, warn: warn),
           ),
           const SizedBox(height: 14),
-          Text(title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
           if (message != null && message!.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(message!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: mutedOn(context), height: 1.7, fontSize: 13)),
+            Text(
+              message!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: mutedOn(context),
+                height: 1.7,
+                fontSize: 13,
+              ),
+            ),
           ],
           if (onRetry != null) ...[
             const SizedBox(height: 18),
@@ -260,7 +298,10 @@ class StateView extends StatelessWidget {
       ),
     );
     final padded = Padding(
-      padding: EdgeInsets.symmetric(horizontal: 28, vertical: compact ? 20 : 32),
+      padding: EdgeInsets.symmetric(
+        horizontal: 28,
+        vertical: compact ? 20 : 32,
+      ),
       child: body,
     );
     if (scrollable) {
@@ -269,7 +310,9 @@ class StateView extends StatelessWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             ConstrainedBox(
-              constraints: BoxConstraints(minHeight: c.maxHeight.isFinite ? c.maxHeight * 0.8 : 0),
+              constraints: BoxConstraints(
+                minHeight: c.maxHeight.isFinite ? c.maxHeight * 0.8 : 0,
+              ),
               child: Center(child: padded),
             ),
           ],
@@ -282,7 +325,11 @@ class StateView extends StatelessWidget {
 
 /// A quiet spinner, with a word under it.
 class LoadingView extends StatelessWidget {
-  const LoadingView({super.key, this.label = 'جارٍ التحميل…', this.compact = false});
+  const LoadingView({
+    super.key,
+    this.label = 'جارٍ التحميل…',
+    this.compact = false,
+  });
 
   final String label;
   final bool compact;
@@ -327,7 +374,10 @@ class FadeIn extends StatelessWidget {
       curve: Interval(start, 1, curve: Curves.easeOutCubic),
       builder: (context, t, child) => Opacity(
         opacity: t,
-        child: Transform.translate(offset: Offset(0, 10 * (1 - t)), child: child),
+        child: Transform.translate(
+          offset: Offset(0, 10 * (1 - t)),
+          child: child,
+        ),
       ),
       child: child,
     );
@@ -355,11 +405,21 @@ class TagPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 13, color: gold ? warnOn(context) : textGreenOn(context)),
+            Icon(
+              icon,
+              size: 13,
+              color: gold ? warnOn(context) : textGreenOn(context),
+            ),
             const SizedBox(width: 4),
           ],
-          Text(text,
-              style: TextStyle(color: fg, fontSize: 11.5, fontWeight: FontWeight.w700)),
+          Text(
+            text,
+            style: TextStyle(
+              color: fg,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

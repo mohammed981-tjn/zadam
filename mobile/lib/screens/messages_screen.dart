@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../account.dart';
 import '../api.dart';
 import '../theme.dart';
+import '../ui.dart';
 
 /// صندوق الرسائل في التطبيق (البند ١٤٤): the conversations the reader is in,
 /// as /messages lists them on the website, and «راسل سوداقري».
@@ -44,15 +45,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
           future: _rows,
           builder: (context, snap) {
             if (snap.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+              return const LoadingView();
             }
             if (snap.hasError) {
               final e = snap.error;
-              return ListView(padding: const EdgeInsets.all(24), children: [
-                Text(e is ApiException ? e.message : 'تعذّر تحميل الرسائل.', textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                FilledButton(onPressed: _reload, child: const Text('إعادة المحاولة')),
-              ]);
+              return StateView.error(
+                e is ApiException ? e.message : 'تعذّر تحميل الرسائل.',
+                onRetry: _reload,
+                scrollable: true,
+              );
             }
             final rows = snap.data!;
             final hasSupport = rows.any((r) => r.kind == 'support' && r.myRole == 'member');
@@ -102,9 +103,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       trailing: r.unread > 0
                           ? CircleAvatar(
                               radius: 12,
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              child: Text('${r.unread}',
-                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primary,
+                              child: Text(
+                                '${r.unread}',
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             )
                           : null,
                       onTap: () => _open(r.id),
@@ -233,7 +244,7 @@ class _Thread extends StatelessWidget {
                       constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
                       child: Card(
                         color: m.mine
-                            ? scheme.primary.withValues(alpha: 0.10)
+                            ? leafTintOn(context)
                             : m.role == 'platform'
                                 ? scheme.secondaryContainer.withValues(alpha: 0.5)
                                 : null,
@@ -252,19 +263,49 @@ class _Thread extends StatelessWidget {
                                       errorBuilder: (_, _, _) => const Text('تعذّر عرض الصورة.')),
                                 ),
                               ),
-                            if (m.fileUrl != null && m.attachmentKind == 'document')
-                              TextButton.icon(
-                                onPressed: () => launchUrl(Uri.parse(m.fileUrl!), mode: LaunchMode.externalApplication),
-                                icon: const Icon(Icons.description),
-                                label: const Text('افتح المستند'),
-                              ),
-                            if (m.id == seen)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text('✓✓ قُرئت',
-                                    style: TextStyle(fontSize: 11, color: scheme.primary, fontWeight: FontWeight.w700)),
-                              ),
-                          ]),
+                              if (m.body.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(m.body),
+                              ],
+                              if (m.fileUrl != null &&
+                                  m.attachmentKind == 'photo')
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      m.fileUrl!,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) =>
+                                          const Text('تعذّر عرض الصورة.'),
+                                    ),
+                                  ),
+                                ),
+                              if (m.fileUrl != null &&
+                                  m.attachmentKind == 'document')
+                                TextButton.icon(
+                                  onPressed: () => launchUrl(
+                                    Uri.parse(m.fileUrl!),
+                                    mode: LaunchMode.externalApplication,
+                                  ),
+                                  icon: const Icon(Icons.description),
+                                  label: const Text('افتح المستند'),
+                                ),
+                              if (m.id == seen)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    '✓✓ قُرئت',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textGreenOn(context),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

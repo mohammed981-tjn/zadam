@@ -111,7 +111,7 @@ const _destinations = [
   _Dest(Icons.person_outline, Icons.person, 'حسابي'),
 ];
 
-/// The bottom bar: five equal slots; the selected one is a light-green pill
+/// The bottom bar: five equal slots; the selected one is a light-olive pill
 /// (the website's selected tab) with the dark ink, and its name in bold green.
 /// The pill slides in with one short implicit animation.
 class _NavBar extends StatelessWidget {
@@ -158,7 +158,11 @@ class _NavBar extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem({required this.dest, required this.selected, required this.onTap});
+  const _NavItem({
+    required this.dest,
+    required this.selected,
+    required this.onTap,
+  });
 
   final _Dest dest;
   final bool selected;
@@ -196,11 +200,13 @@ class _NavItem extends StatelessWidget {
             const SizedBox(height: 4),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 220),
-              style: DefaultTextStyle.of(context).style.merge(TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                color: selected ? textGreenOn(context) : muted,
-              )),
+              style: DefaultTextStyle.of(context).style.merge(
+                TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected ? textGreenOn(context) : muted,
+                ),
+              ),
               child: Text(dest.label, maxLines: 1),
             ),
           ],

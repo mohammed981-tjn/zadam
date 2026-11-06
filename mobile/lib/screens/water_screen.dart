@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../agronomy.dart';
 import '../soil_water.dart';
 import '../theme.dart';
+import '../ui.dart';
 
 class WaterScreen extends StatefulWidget {
   /// Opened from a land just saved (backlog 134): its climate station and its area, so the answer is for that field.
@@ -106,8 +107,34 @@ class _WaterScreenState extends State<WaterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Row(
+                    children: [
+                      const IconChip(Icons.tune_rounded, size: 40),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'حقلك',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              'يُحسب على الجهاز، بلا شبكة',
+                              style: TextStyle(fontSize: 12, color: muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   _Dropdown<CropCoefficients>(
                     label: 'المحصول',
+                    icon: Icons.grass_rounded,
                     value: _crop,
                     items: allCrops,
                     nameOf: (c) =>
@@ -117,6 +144,7 @@ class _WaterScreenState extends State<WaterScreen> {
                   const SizedBox(height: 12),
                   _Dropdown<StationClimate>(
                     label: 'المنطقة',
+                    icon: Icons.place_outlined,
                     value: _station,
                     items: stations,
                     nameOf: (s) => s.name,
@@ -125,6 +153,7 @@ class _WaterScreenState extends State<WaterScreen> {
                   const SizedBox(height: 12),
                   _Dropdown<IrrigationMethod>(
                     label: 'طريقة الري',
+                    icon: Icons.water_drop_outlined,
                     value: _method,
                     items: IrrigationMethod.values,
                     nameOf: (m) => irrigationLabel[m]!,
@@ -133,6 +162,7 @@ class _WaterScreenState extends State<WaterScreen> {
                   const SizedBox(height: 12),
                   _Dropdown<String>(
                     label: 'نوع التربة',
+                    icon: Icons.layers_outlined,
                     value: _soil,
                     items: soilKeys,
                     nameOf: (s) => soilLabel[s]!,
@@ -141,6 +171,7 @@ class _WaterScreenState extends State<WaterScreen> {
                   const SizedBox(height: 12),
                   _Dropdown<int>(
                     label: 'شهر الزراعة',
+                    icon: Icons.calendar_month_outlined,
                     value: _plantingMonth,
                     items: List.generate(12, (i) => i),
                     nameOf: (i) => monthNames[i],
@@ -149,8 +180,16 @@ class _WaterScreenState extends State<WaterScreen> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Text('المساحة: ${_n(_feddans, _feddans < 10 ? 1 : 0)} فدان',
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Icon(
+                        Icons.landscape_outlined,
+                        size: 20,
+                        color: textGreenOn(context),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'المساحة: ${_n(_feddans, _feddans < 10 ? 1 : 0)} فدان',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ],
                   ),
                   Slider(
@@ -166,6 +205,8 @@ class _WaterScreenState extends State<WaterScreen> {
           const SizedBox(height: 16),
 
           _ResultCard(
+            hero: true,
+            icon: Icons.water_drop,
             title: 'إجمالي الموسم',
             primary: '${_n(r.m3PerFeddan * _feddans)} م³',
             secondary:
@@ -177,6 +218,7 @@ class _WaterScreenState extends State<WaterScreen> {
           // under-sized pump fails in the worst month, which is the month the
           // crop can least afford it.
           _ResultCard(
+            icon: Icons.trending_up_rounded,
             title: 'أعلى شهر طلباً — ${monthNames[r.peakMonthIndex]}',
             primary:
                 '${_n(r.peakM3PerFeddanPerDay * _feddans, 1)} م³ / يوم',
@@ -198,6 +240,7 @@ class _WaterScreenState extends State<WaterScreen> {
            */
           if (iv != null) ...[
             _ResultCard(
+              icon: Icons.event_repeat_rounded,
               title: 'الفترة بين ريّة وريّة — تربة ${soilLabel[_soil]}',
               primary: 'كل ${_n(iv.days, 1)} يوم',
               secondary:
@@ -213,8 +256,10 @@ class _WaterScreenState extends State<WaterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('من أين جاء هذا الرقم',
-                        style: TextStyle(fontWeight: FontWeight.w800)),
+                    const _CardHeading(
+                      'من أين جاء هذا الرقم',
+                      Icons.calculate_outlined,
+                    ),
                     const SizedBox(height: 12),
                     _Row(
                       'ما تمسكه التربة',
@@ -248,8 +293,10 @@ class _WaterScreenState extends State<WaterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('ولو كانت أرضك غير ذلك',
-                        style: TextStyle(fontWeight: FontWeight.w800)),
+                    const _CardHeading(
+                      'ولو كانت أرضك غير ذلك',
+                      Icons.compare_arrows_rounded,
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       'نفس المحصول ونفس المناخ ونفس طريقة الريّ — '
@@ -289,8 +336,10 @@ class _WaterScreenState extends State<WaterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('التفصيل بالمليمتر',
-                      style: TextStyle(fontWeight: FontWeight.w800)),
+                  const _CardHeading(
+                    'التفصيل بالمليمتر',
+                    Icons.straighten_rounded,
+                  ),
                   const SizedBox(height: 12),
                   _Row('الاستهلاك المائي للمحصول', '${_n(r.totalEtc)} مم'),
                   _Row('الأمطار الفعّالة', '${_n(r.totalEffectiveRain)} مم'),
@@ -318,8 +367,7 @@ class _WaterScreenState extends State<WaterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('الطلب الشهري',
-                      style: TextStyle(fontWeight: FontWeight.w800)),
+                  const _CardHeading('الطلب الشهري', Icons.bar_chart_rounded),
                   const SizedBox(height: 8),
                   ...r.monthly.map(
                     (m) => _MonthBar(
@@ -354,6 +402,7 @@ class _WaterScreenState extends State<WaterScreen> {
 class _Dropdown<T> extends StatelessWidget {
   const _Dropdown({
     required this.label,
+    required this.icon,
     required this.value,
     required this.items,
     required this.nameOf,
@@ -361,6 +410,7 @@ class _Dropdown<T> extends StatelessWidget {
   });
 
   final String label;
+  final IconData icon;
   final T value;
   final List<T> items;
   final String Function(T) nameOf;
@@ -370,8 +420,13 @@ class _Dropdown<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
       initialValue: value,
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20, color: textGreenOn(context)),
+      ),
       isExpanded: true,
+      borderRadius: BorderRadius.circular(14),
+      icon: const Icon(Icons.expand_more_rounded),
       items: items
           .map((i) => DropdownMenuItem<T>(value: i, child: Text(nameOf(i))))
           .toList(),
@@ -387,46 +442,146 @@ class _ResultCard extends StatelessWidget {
     required this.title,
     required this.primary,
     required this.secondary,
+    required this.icon,
     this.highlight = false,
+    this.hero = false,
   });
 
   final String title;
   final String primary;
   final String secondary;
+  final IconData icon;
   final bool highlight;
+
+  /// The seasonal total, in the hero band: the first answer the farmer reads.
+  final bool hero;
 
   @override
   Widget build(BuildContext context) {
-    final colour = highlight
-        ? accentOn(context)
-        : Theme.of(context).colorScheme.primary;
+    if (hero) {
+      const ink = SudagriColors.primaryForeground;
+      return HeroBand(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18, color: ink),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Text(
+                primary,
+                key: ValueKey(primary),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: ink,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              secondary,
+              style: const TextStyle(
+                color: ink,
+                fontSize: 12.5,
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Large figures only (26 px, heavy), so the gold passes as large text.
+    final colour = highlight ? accentOn(context) : textGreenOn(context);
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style: TextStyle(
-                    color: mutedOn(context),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            Text(primary,
-                style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    color: colour)),
-            const SizedBox(height: 6),
-            Text(secondary,
-                style: TextStyle(
-                    color: mutedOn(context), fontSize: 12, height: 1.5)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: mutedOn(context),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Text(
+                      primary,
+                      key: ValueKey(primary),
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: colour,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    secondary,
+                    style: TextStyle(
+                      color: mutedOn(context),
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            IconChip(icon, size: 40),
           ],
         ),
       ),
     );
   }
+}
+
+/// A card's heading: its icon on the chip, then the words.
+class _CardHeading extends StatelessWidget {
+  const _CardHeading(this.text, this.icon);
+
+  final String text;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      IconChip(icon, size: 32),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+        ),
+      ),
+    ],
+  );
 }
 
 class _Row extends StatelessWidget {
@@ -468,7 +623,10 @@ class _SoilBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    // The bar is a fill; the figure beside it is text, so it takes the
+    // text-safe shade of the same colour.
     final colour = selected ? accentOn(context) : primary;
+    final ink = selected ? warnOn(context) : textGreenOn(context);
     final weight = selected ? FontWeight.w900 : FontWeight.w400;
 
     return Padding(
@@ -479,22 +637,21 @@ class _SoilBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label,
-                  style: TextStyle(fontSize: 13, fontWeight: weight)),
-              Text('كل ${days.toStringAsFixed(1)} يوم',
-                  style: TextStyle(
-                      fontSize: 13, fontWeight: weight, color: colour)),
+              Text(label, style: TextStyle(fontSize: 13, fontWeight: weight)),
+              Text(
+                'كل ${days.toStringAsFixed(1)} يوم',
+                style: TextStyle(fontSize: 13, fontWeight: weight, color: ink),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: fraction.clamp(0.0, 1.0),
-              minHeight: selected ? 8 : 6,
+              minHeight: selected ? 10 : 8,
               color: colour,
-              backgroundColor:
-                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+              backgroundColor: leafTintOn(context),
             ),
           ),
         ],
@@ -537,12 +694,11 @@ class _MonthBar extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: fraction,
-              minHeight: 6,
-              backgroundColor:
-                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+              minHeight: 8,
+              backgroundColor: leafTintOn(context),
             ),
           ),
         ],

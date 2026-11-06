@@ -19,6 +19,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../account.dart';
 import '../api.dart';
 import '../theme.dart';
+import '../ui.dart';
 import 'land_map_screen.dart';
 import 'messages_screen.dart';
 
@@ -43,7 +44,7 @@ class AccountScreen extends StatelessWidget {
       body: ValueListenableBuilder<Session?>(
         valueListenable: accountController,
         builder: (context, session, _) {
-          if (!accountController.loaded) return const Center(child: CircularProgressIndicator());
+          if (!accountController.loaded) return const LoadingView();
           return session == null ? const _SignedOut() : const _SignedIn();
         },
       ),
@@ -70,12 +71,32 @@ class _SignedOutState extends State<_SignedOut> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
-        Text(
-          'حسابك في سوداقري هو نفسه في الموقع والتطبيق: الرقم وكلمة المرور نفسهما.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: mutedOn(context), height: 1.7),
+        FadeIn(
+          child: HeroBand(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.person_rounded, size: 30),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Text(
+                    'حسابك في سوداقري هو نفسه في الموقع والتطبيق: الرقم وكلمة المرور نفسهما.',
+                    style: TextStyle(height: 1.7, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         SegmentedButton<bool>(
           segments: const [
             ButtonSegment(value: false, label: Text('ادخل'), icon: Icon(Icons.login)),
@@ -84,11 +105,21 @@ class _SignedOutState extends State<_SignedOut> {
           selected: {_signUp},
           onSelectionChanged: (s) => setState(() => _signUp = s.first),
         ),
-        const SizedBox(height: 20),
-        if (_signUp)
-          _SignUpForm(onCreatedElsewhere: () => setState(() => _signUp = false))
-        else
-          const _SignInForm(),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _signUp
+                  ? _SignUpForm(
+                      key: const ValueKey('up'),
+                      onCreatedElsewhere: () => setState(() => _signUp = false),
+                    )
+                  : const _SignInForm(key: ValueKey('in')),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -149,11 +180,29 @@ class _Error extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (message == null) return const SizedBox.shrink();
+    final warn = Theme.of(context).colorScheme.error;
     return Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: Text(message!,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Theme.of(context).colorScheme.error, height: 1.6)),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: warnTintOn(context),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(Icons.error_outline_rounded, size: 18, color: warn),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(message!, style: TextStyle(color: warn, height: 1.6)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -201,7 +250,7 @@ class _PasswordFieldState extends State<_PasswordField> {
 }
 
 class _SignInForm extends StatefulWidget {
-  const _SignInForm();
+  const _SignInForm({super.key});
 
   @override
   State<_SignInForm> createState() => _SignInFormState();
@@ -314,7 +363,7 @@ class _SignInFormState extends State<_SignInForm> {
 }
 
 class _SignUpForm extends StatefulWidget {
-  const _SignUpForm({required this.onCreatedElsewhere});
+  const _SignUpForm({super.key, required this.onCreatedElsewhere});
 
   /// The account was made but the sign-in after it was not: back to «ادخل».
   final VoidCallback onCreatedElsewhere;
@@ -434,18 +483,13 @@ class _SignedInState extends State<_SignedIn> {
         future: _future,
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingView();
           }
           if (snap.hasError) {
-            return ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                Icon(Icons.cloud_off, size: 36, color: mutedOn(context)),
-                const SizedBox(height: 10),
-                Text('${snap.error}', textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                FilledButton(onPressed: _reload, child: const Text('إعادة المحاولة')),
-              ],
+            return StateView.error(
+              snap.error,
+              onRetry: _reload,
+              scrollable: true,
             );
           }
           final a = snap.data!;
@@ -479,59 +523,92 @@ class _WhoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = roleLabel(account.role);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-              child: Icon(account.isAdmin ? Icons.shield : Icons.person,
-                  color: Theme.of(context).colorScheme.primary),
+    const ink = SudagriColors.primaryForeground;
+    return HeroBand(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.6),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('أنت داخل بحساب', style: TextStyle(fontSize: 12, color: mutedOn(context))),
-                  Text(account.name.isEmpty ? 'بلا اسم' : account.name,
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-                  // «أرضي · استثماري» (البند ١٧٣): حسابٌ واحدٌ للجانبين، كما في قائمة الموقع.
-                  if (account.role == 'farmer' || account.role == 'investor') ...[
-                    const SizedBox(height: 8),
-                    SegmentedButton<String>(
-                      key: const Key('side-switch'),
-                      showSelectedIcon: false,
-                      segments: const [
-                        ButtonSegment(value: 'farmer', label: Text('أرضي'), icon: Icon(Icons.grass, size: 18)),
-                        ButtonSegment(value: 'investor', label: Text('استثماري'), icon: Icon(Icons.trending_up, size: 18)),
-                      ],
-                      selected: {account.role!},
-                      onSelectionChanged: (s) async {
-                        try {
-                          await accountController.switchSide(s.first);
-                          onChanged();
-                        } on ApiException catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-                          }
-                        }
-                      },
+            child: Icon(
+              account.isAdmin ? Icons.shield : Icons.person,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'أنت داخل بحساب',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  account.name.isEmpty ? 'بلا اسم' : account.name,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                // «أرضي · استثماري» (البند ١٧٣): حسابٌ واحدٌ للجانبين، كما في قائمة الموقع.
+                if (account.role == 'farmer' || account.role == 'investor') ...[
+                  const SizedBox(height: 8),
+                  SegmentedButton<String>(
+                    key: const Key('side-switch'),
+                    showSelectedIcon: false,
+                    style: SegmentedButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.45),
+                      foregroundColor: ink,
+                      selectedBackgroundColor: Colors.white,
+                      selectedForegroundColor: ink,
+                      side: BorderSide(color: ink.withValues(alpha: 0.25)),
                     ),
-                  ] else if (label.isNotEmpty)
-                    Text(label, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-                ],
-              ),
+                    segments: const [
+                      ButtonSegment(
+                        value: 'farmer',
+                        label: Text('أرضي'),
+                        icon: Icon(Icons.grass, size: 18),
+                      ),
+                      ButtonSegment(
+                        value: 'investor',
+                        label: Text('استثماري'),
+                        icon: Icon(Icons.trending_up, size: 18),
+                      ),
+                    ],
+                    selected: {account.role!},
+                    onSelectionChanged: (s) async {
+                      try {
+                        await accountController.switchSide(s.first);
+                        onChanged();
+                      } on ApiException catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(SnackBar(content: Text(e.message)));
+                        }
+                      }
+                    },
+                  ),
+                ] else if (label.isNotEmpty)
+                  Text(
+                    label,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+              ],
             ),
-            TextButton.icon(
-              onPressed: () => accountSignOut(context),
-              icon: const Icon(Icons.logout, size: 18),
-              label: const Text('خروج'),
-            ),
-          ],
-        ),
+          ),
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: ink),
+            onPressed: () => accountSignOut(context),
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('خروج'),
+          ),
+        ],
       ),
     );
   }
@@ -553,8 +630,14 @@ Future<void> accountSignOut(BuildContext context) async {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.children, this.trailing});
+  const _Section({
+    required this.title,
+    required this.icon,
+    required this.children,
+    this.trailing,
+  });
   final String title;
+  final IconData icon;
   final Widget? trailing;
   final List<Widget> children;
 
@@ -562,12 +645,14 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
+                IconChip(icon, size: 36),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                 ),
@@ -594,6 +679,7 @@ class _ReviewCard extends StatelessWidget {
     final total = account.reviewTotal ?? 0;
     return _Section(
       title: total > 0 ? 'قائمة المراجعة ($total)' : 'قائمة المراجعة',
+      icon: Icons.fact_check_outlined,
       trailing: TextButton(
         onPressed: () => openOnSite(context, '/admin/inbox'),
         child: const Text('في الموقع'),
@@ -642,6 +728,7 @@ class _NoticesCard extends StatelessWidget {
     final a = account;
     return _Section(
       title: a.unread > 0 ? 'الإشعارات (${a.unread} جديد)' : 'الإشعارات',
+      icon: Icons.notifications_none_rounded,
       trailing: a.unread > 0
           ? TextButton(
               onPressed: () async {
@@ -662,11 +749,19 @@ class _NoticesCard extends StatelessWidget {
         for (final n in a.notifications.take(15))
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(n.read ? Icons.notifications_none : Icons.notifications_active,
-                color: n.read ? mutedOn(context) : Theme.of(context).colorScheme.primary),
-            title: Text(n.title,
-                style: TextStyle(fontWeight: n.read ? FontWeight.w500 : FontWeight.w800)),
-            subtitle: n.body.isEmpty ? null : Text(n.body, maxLines: 3, overflow: TextOverflow.ellipsis),
+            leading: Icon(
+              n.read ? Icons.notifications_none : Icons.notifications_active,
+              color: n.read ? mutedOn(context) : textGreenOn(context),
+            ),
+            title: Text(
+              n.title,
+              style: TextStyle(
+                fontWeight: n.read ? FontWeight.w500 : FontWeight.w800,
+              ),
+            ),
+            subtitle: n.body.isEmpty
+                ? null
+                : Text(n.body, maxLines: 3, overflow: TextOverflow.ellipsis),
             onTap: n.link == null
                 ? null
                 : () => n.link!.startsWith('/messages/')
@@ -687,6 +782,7 @@ class _MessagesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Section(
       title: 'الرسائل',
+      icon: Icons.forum_outlined,
       children: [
         Text('محادثات طلبات الشراكة وعقودها، و«راسل سوداقري».',
             style: TextStyle(color: mutedOn(context), height: 1.6)),
@@ -711,23 +807,34 @@ class _LandsCard extends StatelessWidget {
     final a = account;
     return _Section(
       title: 'أراضيّ',
+      icon: Icons.landscape_outlined,
       children: [
         if (a.lands.isEmpty)
           Text('لم تسجّل أرضاً بعد.', style: TextStyle(color: mutedOn(context))),
         for (final l in a.lands)
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(l.verification == 'verified' ? Icons.verified : Icons.landscape,
-                color: l.verification == 'verified'
-                    ? Theme.of(context).colorScheme.primary
-                    : mutedOn(context)),
-            title: Text(l.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text([
-              [l.state, if (l.locality != null && l.locality!.isNotEmpty) l.locality].join(' · '),
-              if (l.feddans != null) '${l.feddans} فدان',
-              l.statusLabel,
-              if (l.openToInvestors) 'مفتوحة للمستثمرين',
-            ].join(' — ')),
+            leading: Icon(
+              l.verification == 'verified' ? Icons.verified : Icons.landscape,
+              color: l.verification == 'verified'
+                  ? textGreenOn(context)
+                  : mutedOn(context),
+            ),
+            title: Text(
+              l.name,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(
+              [
+                [
+                  l.state,
+                  if (l.locality != null && l.locality!.isNotEmpty) l.locality,
+                ].join(' · '),
+                if (l.feddans != null) '${l.feddans} فدان',
+                l.statusLabel,
+                if (l.openToInvestors) 'مفتوحة للمستثمرين',
+              ].join(' — '),
+            ),
             onTap: () => openOnSite(context, '/lands'),
           ),
         const SizedBox(height: 8),

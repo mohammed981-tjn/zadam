@@ -18,7 +18,7 @@ import 'package:video_player/video_player.dart';
 
 import '../api.dart';
 import '../secure_screen.dart';
-import '../theme.dart';
+import '../ui.dart';
 
 /// A film: its file name on the website and its title.
 class Film {
@@ -51,20 +51,12 @@ class FilmsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = mutedOn(context);
-
     return Scaffold(
       appBar: AppBar(title: const Text('🎬 أفلام سوداقري')),
       body: ApiConfig.siteUrl.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  'الأفلام تحتاج عنوان الموقع، وهذه النسخة من التطبيق بُنيت بدونه.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: muted, height: 1.7),
-                ),
-              ),
+          ? const StateView(
+              icon: Icons.movie_outlined,
+              title: 'الأفلام تحتاج عنوان الموقع، وهذه النسخة من التطبيق بُنيت بدونه.',
             )
           : GridView.count(
               crossAxisCount: 2,

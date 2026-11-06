@@ -5,19 +5,21 @@
 /// who uses the site on a laptop and the app on a phone should not feel they
 /// are looking at two different products.
 ///
-/// The brand (owner, 6 November 2026: «الوان الهوية بيج أخضر فاتح»): a beige
-/// ground, and the LIGHT green leads — buttons, the selected tab, the hero and
-/// the chips are filled with it, and what sits on it is a dark green ink, not
-/// white (white on #3FAE66 is under 3:1). Green that is itself text on the
-/// beige is the darker, text-safe #1B8043. Gold is the accent. No red and no
-/// orange anywhere (the owner's standing rule): errors and warnings are a dark
-/// gold.
+/// The brand (owner, 6 November 2026: «الوان الهوية بيج أخضر فاتح», then
+/// chosen from swatches the same day): a beige ground and a calm OLIVE green
+/// that sits with it. The olive leads — buttons, the selected tab, the hero and
+/// the chips are filled with it, and what sits on it is the dark ink #1C2B1E,
+/// not white (white on #8A9A5B is 3.1:1). Olive that is itself text or a line
+/// icon on the beige is the deeper #5C6B30. A lighter olive (#B5C08A, #9AA86A)
+/// carries the soft touches: tints and gradients. Gold is the accent. No red
+/// and no orange anywhere (the owner's standing rule): errors and warnings are
+/// a dark gold.
 ///
-/// Contrast, measured (WCAG 2.1): ink #0E2A17 on #3FAE66 5.5:1, on the hero's
-/// lightest stop 7.0:1; #1B8043 on the beige 4.6:1 and on white 5.0:1; muted
-/// #6B6558 on the beige 5.3:1; warning #8A6508 on the beige 4.9:1. Dark:
-/// #3FAE66 on the card 5.9:1, #08130A on #3FAE66 6.7:1, #E0B440 on the card
-/// 8.6:1.
+/// Contrast, measured (WCAG 2.1): ink #1C2B1E on #8A9A5B 4.9:1, on #B5C08A
+/// 7.7:1; #5C6B30 on the beige 5.3:1, on white 5.8:1 and on the chip tint
+/// 4.7:1; muted #6B6558 on the beige 5.3:1; warning #8A6508 on the beige
+/// 4.9:1. Dark: #10160F on #A3B26B 8.0:1, olive text #B2BF80 on the card
+/// 8.5:1, #E0B440 on the card 8.6:1.
 library;
 
 import 'package:flutter/material.dart';
@@ -31,17 +33,21 @@ class SudagriColors {
   static const card = Color(0xFFFFFFFF);
   static const border = Color(0xFFE2DED0);
 
-  /// The light green that leads: fills, never small text on the beige.
-  static const primary = Color(0xFF3FAE66);
+  /// The olive that leads: fills, never small text on the beige.
+  static const primary = Color(0xFF8A9A5B);
 
-  /// The dark green ink for anything drawn on [primary] or the hero.
-  static const primaryForeground = Color(0xFF0E2A17);
+  /// The dark ink for anything drawn on [primary] or the hero.
+  static const primaryForeground = Color(0xFF1C2B1E);
 
-  /// Green that is text, a link or a line icon on the beige or a card.
-  static const textGreen = Color(0xFF1B8043);
+  /// Olive that is text, a link or a line icon on the beige or a card.
+  static const textGreen = Color(0xFF5C6B30);
 
-  /// A soft tint of the light green, for icon chips and selected fills.
-  static const leafTint = Color(0xFFDDF0E2);
+  /// The lighter olive, for soft touches and gradients.
+  static const lightOlive = Color(0xFFB5C08A);
+  static const midOlive = Color(0xFF9AA86A);
+
+  /// A soft tint of the light olive, for icon chips and selected fills.
+  static const leafTint = Color(0xFFE5E9D6);
   static const muted = Color(0xFF6B6558);
   static const accent = Color(0xFFB8860B);
 
@@ -54,21 +60,21 @@ class SudagriColors {
   static const darkForeground = Color(0xFFEEF1E8);
   static const darkCard = Color(0xFF172018);
   static const darkBorder = Color(0xFF2A3527);
-  static const darkPrimary = Color(0xFF3FAE66);
-  static const darkPrimaryForeground = Color(0xFF08130A);
-  static const darkTextGreen = Color(0xFF3FAE66);
-  static const darkLeafTint = Color(0xFF1E3524);
+  static const darkPrimary = Color(0xFFA3B26B);
+  static const darkPrimaryForeground = Color(0xFF10160F);
+  static const darkTextGreen = Color(0xFFB2BF80);
+  static const darkLeafTint = Color(0xFF303A27);
   static const darkMuted = Color(0xFFA3A698);
   static const darkAccent = Color(0xFFD4A72C);
   static const darkWarn = Color(0xFFE0B440);
   static const darkWarnTint = Color(0xFF2C2914);
 
-  /// The hero band: light green, darkening a little to the far side, with the
-  /// dark ink on it.
+  /// The hero band: the light olive, deepening to the far side, with the dark
+  /// ink on it.
   static const heroGradient = LinearGradient(
     begin: AlignmentDirectional.topStart,
     end: AlignmentDirectional.bottomEnd,
-    colors: [Color(0xFF6CC17F), Color(0xFF3FAE66), Color(0xFF2E9E55)],
+    colors: [lightOlive, midOlive, primary],
     stops: [0, 0.55, 1],
   );
 
@@ -76,7 +82,7 @@ class SudagriColors {
   static const selectedGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFF6CC17F), Color(0xFF3FAE66)],
+    colors: [midOlive, primary],
   );
 }
 
@@ -86,9 +92,12 @@ ThemeData _build({required bool dark}) {
   final card = dark ? SudagriColors.darkCard : SudagriColors.card;
   final border = dark ? SudagriColors.darkBorder : SudagriColors.border;
   final primary = dark ? SudagriColors.darkPrimary : SudagriColors.primary;
-  final onPrimary =
-      dark ? SudagriColors.darkPrimaryForeground : SudagriColors.primaryForeground;
-  final textGreen = dark ? SudagriColors.darkTextGreen : SudagriColors.textGreen;
+  final onPrimary = dark
+      ? SudagriColors.darkPrimaryForeground
+      : SudagriColors.primaryForeground;
+  final textGreen = dark
+      ? SudagriColors.darkTextGreen
+      : SudagriColors.textGreen;
   final tint = dark ? SudagriColors.darkLeafTint : SudagriColors.leafTint;
   final muted = dark ? SudagriColors.darkMuted : SudagriColors.muted;
   final accent = dark ? SudagriColors.darkAccent : SudagriColors.accent;
@@ -102,17 +111,23 @@ ThemeData _build({required bool dark}) {
     primary: primary,
     onPrimary: onPrimary,
     primaryContainer: tint,
-    onPrimaryContainer: dark ? SudagriColors.darkForeground : SudagriColors.primaryForeground,
+    onPrimaryContainer: dark
+        ? SudagriColors.darkForeground
+        : SudagriColors.primaryForeground,
     secondary: textGreen,
     onSecondary: dark ? SudagriColors.darkPrimaryForeground : Colors.white,
     secondaryContainer: tint,
-    onSecondaryContainer: dark ? SudagriColors.darkForeground : SudagriColors.primaryForeground,
+    onSecondaryContainer: dark
+        ? SudagriColors.darkForeground
+        : SudagriColors.primaryForeground,
     tertiary: accent,
     onTertiary: dark ? SudagriColors.darkPrimaryForeground : Colors.white,
     error: warn,
     onError: dark ? SudagriColors.darkPrimaryForeground : Colors.white,
     errorContainer: warnTint,
-    onErrorContainer: dark ? SudagriColors.darkForeground : const Color(0xFF3D2C03),
+    onErrorContainer: dark
+        ? SudagriColors.darkForeground
+        : const Color(0xFF3D2C03),
     surface: card,
     onSurface: fg,
     onSurfaceVariant: muted,
@@ -120,7 +135,9 @@ ThemeData _build({required bool dark}) {
     surfaceContainerLow: card,
     surfaceContainer: card,
     surfaceContainerHigh: card,
-    surfaceContainerHighest: dark ? const Color(0xFF202B21) : const Color(0xFFF1EEE4),
+    surfaceContainerHighest: dark
+        ? const Color(0xFF202B21)
+        : const Color(0xFFF1EEE4),
     surfaceTint: Colors.transparent,
     outline: border,
     outlineVariant: border,
@@ -131,7 +148,9 @@ ThemeData _build({required bool dark}) {
   );
 
   final base = dark ? ThemeData.dark() : ThemeData.light();
-  final rounded12 = RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
+  final rounded12 = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+  );
 
   return base.copyWith(
     scaffoldBackgroundColor: bg,
@@ -164,7 +183,10 @@ ThemeData _build({required bool dark}) {
     textTheme: base.textTheme.apply(bodyColor: fg, displayColor: fg),
     iconTheme: IconThemeData(color: fg),
     listTileTheme: ListTileThemeData(textColor: fg, iconColor: textGreen),
-    drawerTheme: DrawerThemeData(backgroundColor: bg, surfaceTintColor: Colors.transparent),
+    drawerTheme: DrawerThemeData(
+      backgroundColor: bg,
+      surfaceTintColor: Colors.transparent,
+    ),
     dialogTheme: DialogThemeData(
       backgroundColor: card,
       surfaceTintColor: Colors.transparent,
@@ -190,7 +212,9 @@ ThemeData _build({required bool dark}) {
     chipTheme: ChipThemeData(
       backgroundColor: card,
       selectedColor: tint,
-      checkmarkColor: dark ? SudagriColors.darkForeground : SudagriColors.primaryForeground,
+      checkmarkColor: dark
+          ? SudagriColors.darkForeground
+          : SudagriColors.primaryForeground,
       side: BorderSide(color: border),
       labelStyle: TextStyle(color: fg, fontWeight: FontWeight.w600),
       shape: const StadiumBorder(),
@@ -228,14 +252,15 @@ ThemeData _build({required bool dark}) {
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(foregroundColor: fg),
     ),
-    // The selected segment takes the light-green tint, with the dark ink.
+    // The selected segment takes the light-olive tint, with the dark ink.
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
         backgroundColor: card,
         foregroundColor: fg,
         selectedBackgroundColor: tint,
-        selectedForegroundColor:
-            dark ? SudagriColors.darkForeground : SudagriColors.primaryForeground,
+        selectedForegroundColor: dark
+            ? SudagriColors.darkForeground
+            : SudagriColors.primaryForeground,
         side: BorderSide(color: border),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
@@ -253,11 +278,18 @@ ThemeData _build({required bool dark}) {
       fillColor: card,
       hintStyle: TextStyle(color: muted),
       labelStyle: TextStyle(color: muted),
-      floatingLabelStyle: TextStyle(color: textGreen, fontWeight: FontWeight.w700),
+      // Green while the field is being typed in; muted otherwise, so five
+      // filled dropdowns do not shout five green labels at once.
+      floatingLabelStyle: WidgetStateTextStyle.resolveWith(
+        (states) => states.contains(WidgetState.focused)
+            ? TextStyle(color: textGreen, fontWeight: FontWeight.w700)
+            : states.contains(WidgetState.error)
+            ? TextStyle(color: warn, fontWeight: FontWeight.w700)
+            : TextStyle(color: muted, fontWeight: FontWeight.w600),
+      ),
       prefixIconColor: muted,
       suffixIconColor: muted,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: border),
@@ -270,6 +302,15 @@ ThemeData _build({required bool dark}) {
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: primary, width: 2),
       ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: warn),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: warn, width: 2),
+      ),
+      errorStyle: TextStyle(color: warn),
     ),
   );
 }
@@ -293,11 +334,11 @@ Color accentOn(BuildContext context) =>
 Color textGreenOn(BuildContext context) =>
     _isDark(context) ? SudagriColors.darkTextGreen : SudagriColors.textGreen;
 
-/// The light-green tint behind icon chips and selected fills.
+/// The light-olive tint behind icon chips and selected fills.
 Color leafTintOn(BuildContext context) =>
     _isDark(context) ? SudagriColors.darkLeafTint : SudagriColors.leafTint;
 
-/// The ink for text on a tint or on the light green.
+/// The ink for text on a tint or on the olive.
 Color inkOn(BuildContext context) => _isDark(context)
     ? SudagriColors.darkForeground
     : SudagriColors.primaryForeground;

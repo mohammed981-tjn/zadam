@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../rain_map.dart';
 import '../theme.dart';
+import '../ui.dart';
 
 class RainScreen extends StatefulWidget {
   const RainScreen({super.key});
@@ -45,11 +46,10 @@ class _RainScreenState extends State<RainScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            Text(
+            const IntroNote(
               'الأيام السبعة القادمة على خريطة السودان، ثمّ يوماً بيوم لكل '
               'مدينة. توقّعاتٌ من نماذج الأرصاد لا قياسات، وتُحدَّث كل ثلاث ساعات.',
-              style: TextStyle(
-                  fontSize: 13, color: mutedOn(context), height: 1.7),
+              icon: Icons.umbrella_outlined,
             ),
             const SizedBox(height: 16),
             FutureBuilder<RainGrid>(
@@ -57,25 +57,17 @@ class _RainScreenState extends State<RainScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 60),
-                    child: Center(child: CircularProgressIndicator()),
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: LoadingView(),
                   );
                 }
                 if (snapshot.hasError) {
-                  return Column(
-                    children: [
-                      Icon(Icons.cloud_off, size: 40, color: mutedOn(context)),
-                      const SizedBox(height: 12),
-                      Text('${snapshot.error}',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: mutedOn(context))),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: () =>
-                            setState(() => _future = _api.rain()),
-                        child: const Text('إعادة المحاولة'),
-                      ),
-                    ],
+                  return Card(
+                    child: StateView.error(
+                      snapshot.error,
+                      compact: true,
+                      onRetry: () => setState(() => _future = _api.rain()),
+                    ),
                   );
                 }
                 final grid = snapshot.data!;
@@ -367,10 +359,16 @@ class _RainPainter extends CustomPainter {
     if (!showTowns) return;
     for (final t in grid.towns) {
       final o = at(t.lon, t.lat);
-      canvas.drawCircle(o, 2.5, Paint()..color = const Color(0xFFB3261E));
-      _text(canvas, t.name,
-          o + Offset(0, t.above ? -fontSize * 0.8 : fontSize * 0.8),
-          size: fontSize * 0.8, colour: foreground, halo: card);
+      // A town is a dot in the text's own ink: no red anywhere (the owner's rule).
+      canvas.drawCircle(o, 2.5, Paint()..color = foreground);
+      _text(
+        canvas,
+        t.name,
+        o + Offset(0, t.above ? -fontSize * 0.8 : fontSize * 0.8),
+        size: fontSize * 0.8,
+        colour: foreground,
+        halo: card,
+      );
     }
   }
 
