@@ -1,0 +1,48 @@
+# تطبيق هجرتي الدفتر المحاسبيّ (البند ٢٠٥) على الإنتاج بمعاملةٍ واحدة (المالك، 6 نوفمبر 2026: «طبّق وانشر فقط»):
+# 070000 القيد اليدويّ والمراجعة، و080000 القوائم الماليّة. لا حذف لبيانات. تُحذف قبل الدمج.
+name: Apply pending SQL bundle
+
+on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: [".github/workflows/apply-pending-sql.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apply-pending-sql
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: 070000 و080000 لم تُطبَّقا، و060000 طُبِّقت
+        run: |
+          docker run --rm postgres:17 psql "$SUPABASE_DB_URL" -tAc \
+            "select (select count(*) from supabase_migrations.schema_migrations where name in ('ledger_manual_review','ledger_statements_plus'))::text || ',' || (select count(*) from supabase_migrations.schema_migrations where name = 'ledger_client_key')::text || ',' || (select count(*) from pg_tables where schemaname = 'public' and tablename = 'ledger_audit_log')::text" | tee state.txt
+          test "$(tr -d '[:space:]' < state.txt)" = "0,1,0"
+      - name: الأعداد قبل
+        run: |
+          docker run --rm postgres:17 psql "$SUPABASE_DB_URL" -tAc \
+            "select (select count(*) from public.ledger_entries)::text || ',' || (select count(*) from public.journal_entries)::text || ',' || (select count(*) from public.journal_lines)::text" | tee before.txt
+      - name: تطبيق 070000 و080000 (معاملةٌ واحدة)
+        run: |
+          { echo "begin;"; cat supabase/migrations/20261106070000_ledger_manual_review.sql; \
+            echo "insert into supabase_migrations.schema_migrations (version, name) values ('20261106070000', 'ledger_manual_review') on conflict do nothing;"; \
+            cat supabase/migrations/20261106080000_ledger_statements_plus.sql; \
+            echo "insert into supabase_migrations.schema_migrations (version, name) values ('20261106080000', 'ledger_statements_plus') on conflict do nothing;"; \
+            echo "commit;"; } > apply.sql
+          docker run --rm -v "$PWD:/w:ro" postgres:17 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -q -f /w/apply.sql
+      - name: التحقّق
+        run: |
+          docker run --rm postgres:17 psql "$SUPABASE_DB_URL" -tAc \
+            "select (select count(*) from pg_tables where schemaname = 'public' and tablename in ('ledger_entry_templates','ledger_book_settings','ledger_preparers','ledger_drafts','ledger_entry_meta','ledger_closings','ledger_period_reopens','ledger_audit_log'))::text || ',' || (select count(distinct proname) from pg_proc where proname in ('ledger_entry_submit','ledger_draft_approve','ledger_close_income','ledger_period_close','ledger_exceptions','ledger_income_compare','ledger_balance_compare','ledger_cash_flow_compare','ledger_ageing','ledger_budget_vs_actual','ledger_equity_statement','ledger_statement_facts'))::text || ',' || (select count(*) from supabase_migrations.schema_migrations where name in ('ledger_manual_review','ledger_statements_plus'))::text || ',' || (select (count(*) >= 13)::int from public.ledger_entry_templates)::text" | tee n.txt
+          test "$(tr -d '[:space:]' < n.txt)" = "8,12,2,1"
+          docker run --rm postgres:17 psql "$SUPABASE_DB_URL" -tAc \
+            "select (select count(*) from public.ledger_entries)::text || ',' || (select count(*) from public.journal_entries)::text || ',' || (select count(*) from public.journal_lines)::text" | tee after.txt
+          test "$(tr -d '[:space:]' < before.txt)" = "$(tr -d '[:space:]' < after.txt)"
