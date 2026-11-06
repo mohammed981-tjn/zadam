@@ -23,10 +23,10 @@ import 'package:latlong2/latlong.dart';
 /// red and no orange — the owner made no exception for data maps. scripts/verify-app-maps.ts fails
 /// if the two lists differ. The server sends each band's colour; this is what the app falls back on
 /// for a heat band that arrives without one.
-const heatRamp = <String>['#f3f1e6', '#d9ecd2', '#a8d8a8', '#6fbf7d', '#3fae66', '#1f7a3d'];
+const heatRamp = <String>['#f6f1e2', '#dfeccf', '#b6d69a', '#7fb85a', '#579b2e', '#0f5a32'];
 
 /// The canal's line on the website, and the colour a line falls back on.
-const lineGreen = '#1f7a3d';
+const lineGreen = '#0f5a32';
 
 /// Sudan as the map first shows it (SUDAN_BOUNDS in LiveMap.tsx): west, south, east, north.
 const sudanBounds = (21.8, 8.6, 38.7, 22.3);

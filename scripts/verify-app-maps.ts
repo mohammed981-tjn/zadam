@@ -41,7 +41,7 @@ const appRamp = list(dart, "heatRamp");
 ok(HEAT.length === 6 && HEAT.every((c) => /^#[0-9a-f]{6}$/.test(c)), `the site's HEAT is six colours: ${HEAT.join(" ")}`);
 ok(JSON.stringify(appRamp) === JSON.stringify(HEAT), `the app's heatRamp is the same list, in the same order`);
 ok(JSON.stringify(list(test, "siteHeat")) === JSON.stringify(HEAT), "and the app's test checks against the same list");
-ok(/const lineGreen = '#1f7a3d'/.test(dart) && route !== "" && read("src/lib/mapLayers.ts").includes('color: "#1f7a3d"'), "lines in #1f7a3d, as the canal's on the site");
+ok(/const lineGreen = '#0f5a32'/.test(dart) && route !== "" && read("src/lib/mapLayers.ts").includes('color: "#0f5a32"'), "lines in the logo green #0f5a32, as the canal's on the site");
 
 // What the app receives for the heat layer, from a week built by the site's own code.
 const days = ["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12"];

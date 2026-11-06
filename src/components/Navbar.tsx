@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
+import { SUDAGRI_LOGO } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import SideSwitch from "@/components/SideSwitch";
@@ -322,57 +324,49 @@ export default async function Navbar() {
         not frosted: a backdrop filter would make the header the frame the
         menu's fixed sheet is placed in, and the sheet has to cover the screen;
         and even 95% let the headings scrolling under it show through. */}
-    <header className="sticky top-0 z-40 border-b border-border bg-background print:hidden">
+    <header className="site-header site-header-rule sticky top-0 z-40 print:hidden">
       <div className="brand-edge" aria-hidden />
-      {/* From `lg` up the name and the menu are in the side column (DesktopSidebar),
-          and the bar keeps the actions, at its end. */}
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 lg:max-w-none lg:justify-end lg:px-8">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2 text-lg font-black text-primary sm:text-xl lg:hidden"
-        >
-          {/*
-            السنبلةُ هنا، والشعارُ في الواجهة — وهذا ما طلبه المالك حرفيّاً.
+      {/* From `lg` up the logo and the menu are in the side column (DesktopSidebar), whose top is drawn as the
+          start of this same band, and the bar keeps the actions, at its end. The row is a fixed 4rem so the two
+          line up, and so the phone's menu sheet (NavMenu) knows where the header ends. */}
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4 lg:max-w-none lg:justify-end lg:px-8">
+        {/*
+          الشعارُ في الترويسة (المالك، 6 نوفمبر 2026: «أين الشعار… الترويسة تحسينها»).
 
-            This header read `🌾 سوداقري` until the logo was put here, which is
-            what «صور السنبله الصفرا التي حزفتها» was about: the sorghum he
-            missed was this one, not the one inside the artwork. The same
-            sentence asked for the logo to get «مكان أوسع وصورة أكبر», and both
-            halves point the same way — a 36px slot is where an illustrated
-            badge has least to say, and where a single clear mark has most.
+          This header read `🌾 سوداقري` from early October until now. The logo had been here before that and was
+          moved out: the owner asked for it to get «مكان أوسع وصورة أكبر», and a 36px slot is where an illustrated
+          badge has least to say, so it went to the hero and the splash at the size it was drawn for, and the
+          sorghum emoji (his choice, «قديمة موجوده من اول») came back to this spot.
 
-            So the logo moved to the hero and the splash at the size it was
-            drawn for, and the sorghum came back to the place it was taken from.
+          On 6 November, having seen the mockups, he asked for the logo in the header after all, and for a better
+          header. So it is back, drawn to be legible at this size rather than squeezed: a round white plate with
+          the sun's gold ring, 40px on a phone and 44px from `sm`, beside the name in bold and the logo's own
+          line — «منصّة سودانيّة للزراعة والتجارة» — which drops below 360px, where it does not fit beside the
+          actions. The header's ground is the logo's ring green (or cream, in the leaf palette); see `.site-header`
+          in globals.css. The emoji is gone with this decision; `git log` for `SorghumMark` still has the drawn
+          sorghum, and this comment's history has the reasoning for the emoji, should he want it back.
 
-            THE EMOJI IS HERE ON PURPOSE — AND AGAINST THE RULE NEXT DOOR
-
-            `Icon.tsx` is an argument for never doing this: an emoji is drawn by
-            the device's own font, so this is a different picture on every
-            phone, and on hardware whose font predates the codepoint it is a
-            hollow rectangle. I offered a drawn one that avoids all of that and
-            the owner chose this, having been told. It is his mark and his
-            decision, and «قديمة موجوده من اول» is the whole reason — it is not
-            a sorghum he wants, it is *this* sorghum, the one that was here.
-
-            So if it ever needs to stop being an emoji, that is his call to
-            make and not a tidy-up. `git log` for `SorghumMark` has the drawn
-            version ready to restore.
-
-            `aria-hidden` because a screen reader would otherwise announce
-            "sheaf of rice" immediately before the name it decorates. The name
-            itself stays real text: it scales with the reader's font size, and
-            it survives anything failing to draw.
-          */}
-          <span aria-hidden="true">🌾</span>
-          {t("سوداقري", "Sudagri")}
+          The image is `alt=""`: the name beside it is real text, which scales with the reader's font size and
+          survives the picture failing to draw, and a screen reader would otherwise read the brand twice.
+        */}
+        <Link href="/" className="flex min-w-0 items-center gap-2.5 lg:hidden">
+          <span className="brand-badge size-10 shrink-0 sm:size-11">
+            <Image src={SUDAGRI_LOGO} alt="" sizes="44px" placeholder="blur" className="size-full object-cover" />
+          </span>
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="text-lg font-black sm:text-xl">{t("سوداقري", "Sudagri")}</span>
+            <span className="hidden truncate text-[0.6875rem] font-medium text-header-muted min-[360px]:block">
+              {t("منصّة سودانيّة للزراعة والتجارة", "A Sudanese platform for farming and trade")}
+            </span>
+          </span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {pending > 0 && (
             <Link
               href="/admin/inbox"
               aria-label={t(`قائمة المراجعة، ${pending} ينتظر`, `Review list, ${pending} waiting`)}
-              className="whitespace-nowrap rounded-xl bg-primary px-2.5 py-2 text-xs font-black text-primary-foreground shadow-card transition hover:opacity-90"
+              className="whitespace-nowrap rounded-xl bg-gold px-2.5 py-2 text-xs font-black text-gold-ink shadow-card transition hover:opacity-90"
             >
               {t("للمراجعة", "Review")} {pending > 99 ? "99+" : pending}
             </Link>
@@ -385,7 +379,7 @@ export default async function Navbar() {
                   ? t(`الرسائل، ${unreadMessages} غير مقروءة`, `Messages, ${unreadMessages} unread`)
                   : t("الرسائل", "Messages")
               }
-              className="relative rounded-xl border border-border bg-card px-2.5 py-2 text-sm transition hover:border-rose"
+              className="hdr-chip relative rounded-xl px-2.5 py-2 text-sm transition"
             >
               💬
               {unreadMessages > 0 && (
@@ -403,7 +397,7 @@ export default async function Navbar() {
                   ? t(`الإشعارات، ${unread} غير مقروء`, `Notifications, ${unread} unread`)
                   : t("الإشعارات", "Notifications")
               }
-              className="relative rounded-xl border border-border bg-card px-2.5 py-2 text-sm transition hover:border-rose"
+              className="hdr-chip relative rounded-xl px-2.5 py-2 text-sm transition"
             >
               🔔
               {unread > 0 && (
@@ -432,7 +426,8 @@ export default async function Navbar() {
           {!user && (
             <Link
               href="/signup"
-              className="whitespace-nowrap rounded-xl bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground shadow-card transition hover:opacity-90 active:scale-[0.98]"
+              // The sun's gold with dark type: the one filled button on the header, whichever palette it is in.
+              className="whitespace-nowrap rounded-xl bg-gold px-3 py-2 text-sm font-black text-gold-ink shadow-card transition hover:opacity-90 active:scale-[0.98] sm:px-3.5"
             >
               {t("ابدأ الآن", "Get started")}
             </Link>

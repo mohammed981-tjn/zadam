@@ -80,7 +80,7 @@ export default async function ServicesPage({
     offers.filter((o) => o.service_key === key);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
       <h1 className="text-2xl font-bold">{t("الخدمات التعاقدية", "Contracted services")}</h1>
       {locale === "en" ? (
         <p className="mb-6 mt-2 text-sm leading-relaxed text-muted">
@@ -160,7 +160,7 @@ export default async function ServicesPage({
         ))}
       </nav>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {definitions.map((def) => {
           const listed = offersFor(def.key);
 

@@ -87,7 +87,7 @@ export default async function OffersPage({
   const field = "rounded-lg border border-border bg-background px-3 py-2 text-sm";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 lg:max-w-6xl xl:max-w-7xl">
       <MarketTabs active="/market/offers" locale={locale} />
       <PageHeader icon="chart" eyebrow={t("السوق والأسعار", "Market and prices")} title={t("عروض البيع والشراء", "Buy and sell offers")}>
         {t(
@@ -139,7 +139,7 @@ export default async function OffersPage({
             </Link>
           </div>
 
-          <ul className="mt-6 grid gap-3">
+          <ul className="mt-6 grid gap-3 lg:grid-cols-2 lg:items-start">
             {offers.length === 0 && (
               <li className="rounded-2xl border border-border bg-card p-5 text-sm text-muted">
                 {error
@@ -225,7 +225,7 @@ export default async function OffersPage({
           {mine.length > 0 && (
             <section className="mt-10">
               <h2 className="mb-3 text-lg font-bold">{t("عروضي", "My offers")}</h2>
-              <ul className="grid gap-2">
+              <ul className="grid gap-2 lg:grid-cols-2 lg:items-start">
                 {mine.map((o) => {
                   const live = o.status === "open" && new Date(o.expires_at) > new Date();
                   return (

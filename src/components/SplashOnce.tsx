@@ -354,7 +354,7 @@ export default function SplashOnce() {
         className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-[#10160f] opacity-0 transition-opacity duration-500"
       >
         {/* صحنٌ كريميّ خلف الشعار: أخضرُ «سوداقري» لا يُقرأ على الداكن وحده. */}
-        <div className="rounded-full bg-[#f7f5ef] p-[4%] shadow-2xl">
+        <div className="rounded-full bg-[#faf6ec] p-[4%] shadow-2xl">
           <Image
             src={SUDAGRI_LOGO}
             alt=""
@@ -380,7 +380,7 @@ export default function SplashOnce() {
             {reached >= i && <Image src={s.photo} alt="" fill sizes="100vw" className="object-cover" />}
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a1a12] via-[#0a1a12]/70 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 mx-auto max-w-2xl px-6 pb-20 text-center text-white sm:pb-24">
-              <p className="mb-3 text-sm font-medium text-[#f6b26b]">
+              <p className="mb-3 text-sm font-medium text-[#fec247]">
                 {i + 1} / {SLIDES.length}
               </p>
               <h2 className="text-3xl font-black leading-tight sm:text-5xl">{tr(locale, ...s.title)}</h2>

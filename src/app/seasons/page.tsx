@@ -43,7 +43,7 @@ export default async function SeasonsPage({
   const partnerSeasons = all.filter((s) => s.owner_id !== user.id && s.partnership_id);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="mx-auto max-w-4xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t("مواسمي", "My seasons")}</h1>
@@ -120,7 +120,7 @@ export default async function SeasonsPage({
           )}
         </p>
       ) : (
-        <ul className="flex flex-col gap-4">
+        <ul className="grid gap-4 lg:grid-cols-2 lg:items-start">
           {seasons.map((s) => {
             const crop = cropName(s.crop_key, locale);
             return (

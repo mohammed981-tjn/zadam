@@ -65,7 +65,7 @@ export default async function RainPage({
   const landCount = grid ? grid.cells.reduce((a, c) => a + (c.lands ?? 0), 0) : 0;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="mx-auto max-w-4xl px-4 py-10 lg:max-w-6xl">
       <h1 className="text-2xl font-bold">{t("توقّع الأمطار والخرائط", "Rain forecast and maps")}</h1>
       <p className="mt-2 text-sm leading-7 text-muted">
         {t(

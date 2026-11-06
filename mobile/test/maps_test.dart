@@ -16,7 +16,7 @@ import 'package:sudagri/screens/maps_screen.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' show ThemeReader;
 
 /// The website's HEAT, as written in src/lib/mapLayers.ts (scripts/verify-app-maps.ts reads both).
-const siteHeat = ['#f3f1e6', '#d9ecd2', '#a8d8a8', '#6fbf7d', '#3fae66', '#1f7a3d'];
+const siteHeat = ['#f6f1e2', '#dfeccf', '#b6d69a', '#7fb85a', '#579b2e', '#0f5a32'];
 
 Map<String, dynamic> feature(Map<String, dynamic> props, Map<String, dynamic> geometry) => {
   'type': 'Feature',
@@ -154,12 +154,12 @@ Map<String, dynamic> payload({bool week = true, int lands = 0}) => {
         'sub': 'من 6 نوفمبر إلى 12 نوفمبر',
         'unit': '°م',
         'legend': [
-          {'colour': '#f3f1e6', 'label': 'أقلّ من ٣٠'},
-          {'colour': '#d9ecd2', 'label': '٣٠–٣٥'},
-          {'colour': '#a8d8a8', 'label': '٣٥–٣٨'},
-          {'colour': '#6fbf7d', 'label': '٣٨–٤١'},
-          {'colour': '#3fae66', 'label': '٤١–٤٤'},
-          {'colour': '#1f7a3d', 'label': '٤٤ فأكثر'},
+          {'colour': '#f6f1e2', 'label': 'أقلّ من ٣٠'},
+          {'colour': '#dfeccf', 'label': '٣٠–٣٥'},
+          {'colour': '#b6d69a', 'label': '٣٥–٣٨'},
+          {'colour': '#7fb85a', 'label': '٣٨–٤١'},
+          {'colour': '#579b2e', 'label': '٤١–٤٤'},
+          {'colour': '#0f5a32', 'label': '٤٤ فأكثر'},
         ],
         'group': 'grid',
         'overlays': [
@@ -169,7 +169,7 @@ Map<String, dynamic> payload({bool week = true, int lands = 0}) => {
             'under': true,
             'data': fc([
               feature(
-                {'colour': '#a8d8a8', 'title': 'الحرارة: ٣٥–٣٨ °م'},
+                {'colour': '#b6d69a', 'title': 'الحرارة: ٣٥–٣٨ °م'},
                 {
                   'type': 'Polygon',
                   'coordinates': [
@@ -235,14 +235,14 @@ Map<String, dynamic> payload({bool week = true, int lands = 0}) => {
       'title': 'قناة الأرك',
       'note': 'مسار القناة القوسيّة المقترحة من جبل أولياء',
       'key2': [
-        {'colour': '#1f7a3d', 'label': 'مسار القناة', 'shape': 'line'},
+        {'colour': '#0f5a32', 'label': 'مسار القناة', 'shape': 'line'},
       ],
       'group': 'over',
       'overlays': [
         {
           'kind': 'line',
           'id': 'canal',
-          'color': '#1f7a3d',
+          'color': '#0f5a32',
           'width': 5,
           'data': fc([
             feature(
@@ -512,7 +512,7 @@ void main() {
 
     test('lines: a constant colour, colour and width per feature, dashes', () {
       final canal = data.themes.firstWhere((t) => t.key == 'canal').overlays.first;
-      expect(canal.features.single.colour, const Color(0xFF1F7A3D));
+      expect(canal.features.single.colour, const Color(0xFF0F5A32));
       expect(canal.features.single.width, 5);
       expect(canal.features.single.lines.single, hasLength(3));
       final infra = data.themes.firstWhere((t) => t.key == 'infra').overlays;

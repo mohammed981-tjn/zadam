@@ -59,7 +59,7 @@ export default async function ContractsPage() {
   }[];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t("عقود الخدمات", "Service contracts")}</h1>
@@ -96,7 +96,7 @@ export default async function ContractsPage() {
           )}
         </EmptyState>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid gap-3 lg:grid-cols-2 lg:items-start">
           {contracts.map((c) => (
             <li key={c.id}>
               <Link

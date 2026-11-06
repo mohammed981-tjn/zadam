@@ -71,7 +71,7 @@ export default async function InputsBoardPage({ searchParams }: { searchParams: 
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 lg:max-w-6xl xl:max-w-7xl">
       <MarketTabs active="/market/inputs" locale={locale} />
       <PageHeader icon="chart" eyebrow={t("السوق والأسعار", "Market and prices")} title={t("أين السماد والجازولين هذا الأسبوع وبكم", "Where fertiliser and diesel are this week, and at what price")}>
         {t(
@@ -115,7 +115,7 @@ export default async function InputsBoardPage({ searchParams }: { searchParams: 
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
             {groupByItem(rows).map(([item, list]) => (
               <div key={item} className="rounded-2xl border border-border bg-card p-4">
                 <h3 className="mb-2 font-bold">{label(ITEM_LABEL, item, locale)}</h3>

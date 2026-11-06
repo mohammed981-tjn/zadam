@@ -92,7 +92,7 @@ export default async function MyAgentsPage({ searchParams }: PageProps<"/account
   const date = (d: string) => new Date(d).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG", { dateStyle: "medium" });
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-10 lg:max-w-5xl">
       <PageHeader icon="people" eyebrow={t("حسابي", "My account")} title={t("وكلائي: من يعمل عنّي", "My agents: who acts for me")}>
         {t(
           "جمعيّةٌ أو شركةٌ موثّقة تستطيع أن تسجّل أرضك وترفع أوراقها وتتابع مواسمك وقطيعك عنك، إن أذنت لها. لا تعمل إلا في ما أذنت فيه، وتُنهيه متى شئت، وما كتبته باسمك تراه هنا ويبقى لك.",
