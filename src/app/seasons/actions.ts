@@ -3,7 +3,7 @@ import { dbText } from "@/lib/dbText";
 import { ledgerEntryDate } from "@/lib/entryDate";
 import { ledgerToday } from "@/lib/ledger/today";
 import { isSettleFrom, ledgerEntryInputMessage, parseSettleRate } from "@/lib/ledgerEntryInput";
-import { recordLedgerEntry, signOffStage } from "@/lib/seasonWrites";
+import { addStageEvidence, recordLedgerEntry, signOffStage } from "@/lib/seasonWrites";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -11,8 +11,6 @@ import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
 import { planSeason } from "@/lib/season";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
-import { sanitisePhotoMetadata } from "@/lib/exif";
-import { evidenceFileExists } from "@/lib/evidenceFile";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -165,11 +163,9 @@ export async function createSeason(
 }
 
 /**
- * Records a file already uploaded to storage as evidence for a stage.
- *
- * The path is verified to sit under this user's own folder before it is
- * stored, so a crafted request cannot attach someone else's object — the
- * storage policy stops the upload, and this stops the reference.
+ * Records a file already uploaded to storage as evidence for a stage. Every check and the insert are
+ * `addStageEvidence` (lib/seasonWrites), which the phone app's route uses too: the path must sit under this user's
+ * own folder and point at a file that is there, and row-level security decides the rest.
  */
 export async function addEvidence(args: {
   stageId: string;
@@ -185,55 +181,9 @@ export async function addEvidence(args: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(await loginHrefHere());
-  const t = await translator();
 
-  if (!args.stageId || !args.storagePath) {
-    return { ok: false, message: t("بيانات الدليل ناقصة.", "The evidence details are incomplete.") };
-  }
-  if (!["photo", "invoice", "inspection", "note"].includes(args.kind)) {
-    return { ok: false, message: t("نوع دليل غير معروف.", "Unknown evidence type.") };
-  }
-  if (!args.storagePath.startsWith(`${user.id}/`)) {
-    return { ok: false, message: t("مسار ملف غير صالح.", "Invalid file path.") };
-  }
-
-  // The row must point at a file that is actually there. See lib/evidenceFile
-  // for why a failure to confirm is treated as a failure to upload.
-  if (!(await evidenceFileExists(supabase, args.storagePath))) {
-    return {
-      ok: false,
-      message: t(
-        "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
-        "We could not find the uploaded file. Upload it again and try once more.",
-      ),
-    };
-  }
-
-  // A photo kept offline is sent again if the reply to its first send was lost (backlog 185): the same file on the
-  // same stage is the evidence already recorded, not a second piece of it.
-  const { data: already } = await supabase
-    .from("stage_evidence")
-    .select("id")
-    .eq("stage_id", args.stageId)
-    .eq("storage_path", args.storagePath)
-    .limit(1)
-    .maybeSingle();
-  if (already) return { ok: true };
-
-  const photo = sanitisePhotoMetadata(args.metadata);
-
-  const { error } = await supabase.from("stage_evidence").insert({
-    stage_id: args.stageId,
-    kind: args.kind,
-    caption: args.caption,
-    storage_path: args.storagePath,
-    captured_at: photo.capturedAt,
-    latitude: photo.latitude,
-    longitude: photo.longitude,
-    created_by: user.id,
-  });
-
-  if (error) return { ok: false, message: await dbText(error.message) };
+  const result = await addStageEvidence(supabase, user.id, args, await getLocale());
+  if (!result.ok) return result;
 
   revalidatePath(`/seasons/${args.seasonId}`);
   return { ok: true };

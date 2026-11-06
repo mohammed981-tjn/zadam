@@ -10,6 +10,7 @@
 library;
 
 import 'account.dart';
+import 'evidence.dart';
 
 num _num(Object? v) => v is num ? v : num.tryParse('$v') ?? 0;
 num? _numOrNull(Object? v) => v == null ? null : (v is num ? v : num.tryParse('$v'));
@@ -476,9 +477,22 @@ class LandWater {
 
 /// The app's talk with /api/app/lands, as the signed-in person.
 class LandsApi {
-  LandsApi([AccountController? account]) : _account = account ?? accountController;
+  LandsApi([AccountController? account, EvidenceSender? evidence])
+      : _account = account ?? accountController,
+        _evidence = evidence ?? EvidenceSender(account: account);
 
   final AccountController _account;
+  final EvidenceSender _evidence;
+
+  /// «ارفع المستند»: a photo or a PDF recorded as the land's document by the website's own step (addLandDocumentStep).
+  Future<String> addDocument(String id, {required String kind, required String kindLabel, required EvidenceFile file, String caption = ''}) async {
+    final j = await _account.call('POST', '/api/app/lands/$id/documents', body: {
+      'kind': kind,
+      'caption': file.captionOr(caption, kindLabel),
+      ...await _evidence.attach('lands', file),
+    });
+    return j['message'] as String? ?? 'رُفع المستند.';
+  }
 
   Future<List<LandSummary>> mine() async {
     final j = await _account.call('GET', '/api/app/lands/mine');

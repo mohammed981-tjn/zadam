@@ -1,5 +1,5 @@
 /**
- * ما يكتبه صاحب الموسم: قيد المصروف أو الإيراد، واعتماد المرحلة (البند ٢٠٣).
+ * ما يكتبه صاحب الموسم: قيد المصروف أو الإيراد، ودليل المرحلة، واعتماد المرحلة (البند ٢٠٣).
  *
  * The website's server actions (src/app/seasons/actions.ts) and the phone app's routes (src/app/api/app/seasons/**)
  * both write through these, so the app checks exactly what the website checks: the same reading of the amount, the
@@ -14,6 +14,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dbMessage } from "./dbMessages";
 import { ledgerEntryDate } from "./entryDate";
+import { evidenceFileExists } from "./evidenceFile";
+import { sanitisePhotoMetadata } from "./exif";
 import { tr, type Locale } from "./i18n";
 import { ledgerToday } from "./ledger/today";
 import { ledgerEntryInputMessage, parseLedgerEntryInput } from "./ledgerEntryInput";
@@ -156,4 +158,82 @@ export async function signOffStage(
   const { data, error } = await update.eq("season_id", args.seasonId).select("id");
   if (error) return { ok: false, message: dbMessage(error.message, locale) };
   return { ok: true, changed: (data ?? []).length > 0 };
+}
+
+/** The kinds the website's action accepts for a stage's evidence; its form offers the first three. */
+export const STAGE_EVIDENCE_KINDS: readonly string[] = ["photo", "invoice", "inspection", "note"];
+
+/**
+ * Records a file already uploaded to storage as evidence for a stage — the website's «ارفع الدليل» and the app's
+ * «أضف دليلاً» (backlog 203), each with the uploader's own client.
+ *
+ * The path is verified to sit under this user's own folder before it is stored, so a crafted request cannot attach
+ * someone else's object — the storage policy stops the upload, and this stops the reference. Whether the stage is the
+ * caller's to add to is row-level security's answer (and stage_evidence_insert_gate's), given back in words.
+ */
+export async function addStageEvidence(
+  supabase: SupabaseClient,
+  userId: string,
+  args: { stageId: string; kind: string; storagePath: string; caption: string; metadata?: unknown },
+  locale: Locale,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+
+  if (!args.stageId || !args.storagePath) {
+    return { ok: false, message: t("بيانات الدليل ناقصة.", "The evidence details are incomplete.") };
+  }
+  if (!STAGE_EVIDENCE_KINDS.includes(args.kind)) {
+    return { ok: false, message: t("نوع دليل غير معروف.", "Unknown evidence type.") };
+  }
+  if (!args.storagePath.startsWith(`${userId}/`)) {
+    return { ok: false, message: t("مسار ملف غير صالح.", "Invalid file path.") };
+  }
+
+  // The row must point at a file that is actually there. See lib/evidenceFile
+  // for why a failure to confirm is treated as a failure to upload.
+  if (!(await evidenceFileExists(supabase, args.storagePath))) {
+    return {
+      ok: false,
+      message: t(
+        "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+        "We could not find the uploaded file. Upload it again and try once more.",
+      ),
+    };
+  }
+
+  // A photo kept offline is sent again if the reply to its first send was lost (backlog 185): the same file on the
+  // same stage is the evidence already recorded, not a second piece of it.
+  const { data: already } = await supabase
+    .from("stage_evidence")
+    .select("id")
+    .eq("stage_id", args.stageId)
+    .eq("storage_path", args.storagePath)
+    .limit(1)
+    .maybeSingle();
+  if (already) return { ok: true };
+
+  const photo = sanitisePhotoMetadata(args.metadata);
+
+  const { error } = await supabase.from("stage_evidence").insert({
+    stage_id: args.stageId,
+    kind: args.kind,
+    caption: args.caption,
+    storage_path: args.storagePath,
+    captured_at: photo.capturedAt,
+    latitude: photo.latitude,
+    longitude: photo.longitude,
+    created_by: userId,
+  });
+
+  if (error) return { ok: false, message: dbMessage(error.message, locale) };
+  return { ok: true };
+}
+
+/**
+ * Whether the stage is one of this season's, as the caller can read it. The app names both in its address and asks
+ * before a photo is stored, so a stage of another season (or of a season the caller cannot see) leaves no file behind.
+ */
+export async function isStageOfSeason(supabase: SupabaseClient, stageId: string, seasonId: string): Promise<boolean> {
+  const { data } = await supabase.from("season_stages").select("id").eq("id", stageId).eq("season_id", seasonId).maybeSingle();
+  return Boolean(data);
 }

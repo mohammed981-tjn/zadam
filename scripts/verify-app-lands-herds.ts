@@ -36,7 +36,12 @@ function routes(dir: string): string[] {
   return out;
 }
 
-const LANDS_NEW = ["src/app/api/app/lands/mine/route.ts", "src/app/api/app/lands/[id]/route.ts", "src/app/api/app/lands/[id]/water/route.ts"];
+const LANDS_NEW = [
+  "src/app/api/app/lands/mine/route.ts",
+  "src/app/api/app/lands/[id]/route.ts",
+  "src/app/api/app/lands/[id]/water/route.ts",
+  "src/app/api/app/lands/[id]/documents/route.ts",
+];
 const HERDS = ["src/app/api/app/herds/route.ts", "src/app/api/app/herds/[id]/route.ts"];
 
 console.log("The routes exist");
@@ -101,6 +106,30 @@ steps("src/app/api/app/lands/[id]/route.ts", "@/lib/landOwnerSteps", [
   "addLandTestStep",
   "deleteLandTestStep",
 ]);
+steps("src/app/api/app/lands/[id]/documents/route.ts", "@/lib/landOwnerSteps", ["addLandDocumentStep"]);
+steps("src/app/lands/documents/actions.ts", "@/lib/landOwnerSteps", ["addLandDocumentStep"]);
+ok(!/from\("land_documents"\)\s*\.insert/.test(read("src/app/lands/documents/actions.ts")), "the website's document action no longer writes the row on its own");
+{
+  const lib = read("src/lib/landOwnerSteps.ts");
+  const core = /export async function addLandDocumentStep\([\s\S]*?\n\}\n/.exec(lib)?.[0] ?? "";
+  for (const [needle, what] of [
+    ["LAND_DOCUMENT_KEYS.includes(args.kind)", "only the website's document kinds (lib/landDocuments)"],
+    ["args.storagePath.startsWith(`${userId}/`)", "only a file in the uploader's own folder"],
+    ["evidenceFileExists(supabase, args.storagePath)", "only a file that is there"],
+    ['.eq("storage_path", args.storagePath)', "the same file sent twice is the document already recorded"],
+    ['from("land_documents").insert(', "the same insert, under row-level security"],
+    ["dbMessage(error.message, locale)", "the database's refusals in words"],
+    ["created_by: userId", "the document is the uploader's"],
+  ] as const) {
+    ok(core.includes(needle), `addLandDocumentStep: ${what}`);
+  }
+  const docs = read("src/app/api/app/lands/[id]/documents/route.ts");
+  ok(docs.indexOf('.eq("owner_id", user.id)') > 0 && docs.indexOf('.eq("owner_id", user.id)') < docs.indexOf("uploadAppPhoto("), "the documents route checks the land is the caller's before it stores a photo");
+  ok(/uploadAppPhoto\(supabase, user\.id, "lands", body\.photo\)/.test(docs), "a photo goes where the website's upload puts it (<user>/lands), stripped of its EXIF (lib/appPhoto)");
+  ok(/ownPdfPath\(user\.id, "lands", body\.storage_path\)/.test(docs), "a PDF is accepted only from the caller's own lands folder (the website accepts PDF)");
+  ok(/if \(!r\.ok\) \{\s*await discardAppPhoto\(supabase, storagePath\);/.test(docs), "a file the database refused is removed again");
+  ok(read("src/components/EvidenceUpload.tsx").includes('"application/pdf": "pdf"') && /folder="lands"/.test(read("src/components/LandDocuments.tsx")), "the website's land upload is the evidence bucket's lands folder, PDF included");
+}
 steps("src/app/api/app/herds/route.ts", "@/lib/herdSteps", ["createHerdWithPlan"]);
 steps("src/app/api/app/herds/[id]/route.ts", "@/lib/herdSteps", [
   "completeHerdStageStep",
@@ -152,10 +181,19 @@ ok(/landInputProblem\(input/.test(post), "and checks it with the website's landI
 console.log("\nThe app calls these routes, and paints nothing red or orange");
 const landsDart = read("mobile/lib/lands.dart");
 const herdsDart = read("mobile/lib/herds.dart");
-for (const p of ["'/api/app/lands/mine'", "'/api/app/lands/$id'", "'/api/app/lands/$id/water'"]) ok(landsDart.includes(p), `mobile/lib/lands.dart calls ${p}`);
+for (const p of ["'/api/app/lands/mine'", "'/api/app/lands/$id'", "'/api/app/lands/$id/water'", "'/api/app/lands/$id/documents'"]) ok(landsDart.includes(p), `mobile/lib/lands.dart calls ${p}`);
+ok(/attach\('lands', file\)/.test(landsDart), "a land's document leaves the phone for the lands folder, as the website's");
+ok(!read("mobile/lib/screens/lands_screen.dart").includes("ارفع المستندات من الموقع"), "the land card no longer sends the owner to the website for documents");
 for (const p of ["'/api/app/herds'", "'/api/app/herds/$id'", "'/api/app/herds/$id?to=$destination'"]) ok(herdsDart.includes(p), `mobile/lib/herds.dart calls ${p}`);
 ok(/accountController/.test(landsDart) && /accountController/.test(herdsDart), "both through the app's signed-in account (AccountController.call)");
-for (const f of ["mobile/lib/lands.dart", "mobile/lib/herds.dart", "mobile/lib/screens/lands_screen.dart", "mobile/lib/screens/herds_screen.dart"]) {
+for (const f of [
+  "mobile/lib/lands.dart",
+  "mobile/lib/herds.dart",
+  "mobile/lib/evidence.dart",
+  "mobile/lib/screens/lands_screen.dart",
+  "mobile/lib/screens/herds_screen.dart",
+  "mobile/lib/screens/evidence_sheet.dart",
+]) {
   const src = read(f);
   // Colours come from theme.dart (beige and green; its «error» is the dark gold): no named red or orange, and no
   // colour literal of its own that could be one.

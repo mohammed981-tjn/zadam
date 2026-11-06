@@ -42,6 +42,7 @@ const expected = [
   "src/app/api/app/seasons/[id]/route.ts",
   "src/app/api/app/seasons/[id]/entries/route.ts",
   "src/app/api/app/seasons/[id]/stages/route.ts",
+  "src/app/api/app/seasons/[id]/evidence/route.ts",
   "src/app/api/app/books/route.ts",
   "src/app/api/app/books/links/route.ts",
   "src/app/api/app/books/assets/route.ts",
@@ -89,6 +90,14 @@ const shared: { lib: string; fns: string[]; route: string; action: string; banne
     what: "signing off a stage",
   },
   {
+    lib: "src/lib/seasonWrites.ts",
+    fns: ["addStageEvidence"],
+    route: "src/app/api/app/seasons/[id]/evidence/route.ts",
+    action: "src/app/seasons/actions.ts",
+    banned: /from\("stage_evidence"\)\s*\.insert/,
+    what: "a stage's evidence",
+  },
+  {
     lib: "src/lib/ledgerLinkWrites.ts",
     fns: ["answerLink"],
     route: "src/app/api/app/books/links/route.ts",
@@ -134,6 +143,35 @@ for (const [needle, what] of [
   ok(writes.includes(needle), `recordLedgerEntry: ${what}`);
 }
 
+// A stage's evidence keeps every check the website's action had, and the app's file lands where the website's does.
+const evidenceCore = /export async function addStageEvidence\([\s\S]*?\n\}\n/.exec(writes)?.[0] ?? "";
+for (const [needle, what] of [
+  ["STAGE_EVIDENCE_KINDS.includes(args.kind)", "only the kinds the website's action accepts"],
+  ["args.storagePath.startsWith(`${userId}/`)", "only a file in the writer's own folder"],
+  ["evidenceFileExists(supabase, args.storagePath)", "only a file that is there"],
+  ['.eq("storage_path", args.storagePath)', "the same file sent twice is the evidence already recorded"],
+  ["sanitisePhotoMetadata(args.metadata)", "the capture time and place are kept only as the website keeps them"],
+  ['from("stage_evidence").insert(', "the same insert, under row-level security"],
+  ["dbMessage(error.message, locale)", "the database's refusals come back in words"],
+  ["created_by: userId", "the evidence is the writer's"],
+] as const) {
+  ok(evidenceCore.includes(needle), `addStageEvidence: ${what}`);
+}
+ok(/"photo", "invoice", "inspection", "note"/.test(writes), "addStageEvidence accepts the website's four kinds");
+const evidenceRoute = read("src/app/api/app/seasons/[id]/evidence/route.ts");
+const orderOf = (needle: string) => evidenceRoute.indexOf(needle);
+ok(orderOf("isStageOfSeason(supabase, stageId, id)") > 0 && orderOf("isStageOfSeason(") < orderOf("uploadAppPhoto("), "the app's route asks that the stage is this season's before it stores a photo");
+ok(/uploadAppPhoto\(supabase, user\.id, "stages", body\.photo\)/.test(evidenceRoute), "a photo goes where the website's upload puts it (<user>/stages), stripped of its EXIF (lib/appPhoto)");
+ok(/ownPdfPath\(user\.id, "stages", body\.storage_path\)/.test(evidenceRoute), "a PDF is accepted only from the caller's own stages folder");
+ok(/if \(!r\.ok\) \{\s*await discardAppPhoto\(supabase, storagePath\);/.test(evidenceRoute), "a file the database refused is removed again");
+ok(/attach\('stages', file\)/.test(read("mobile/lib/seasons.dart")) && /\/evidence'/.test(read("mobile/lib/seasons.dart")), "the app sends a stage's evidence to its route, from the stages folder");
+ok(!read("mobile/lib/screens/season_screen.dart").includes("ارفع دليلاً (من الموقع)"), "the season page no longer sends the farmer to the website for evidence");
+ok(/storage\/v1\/object\/evidence\/\$path/.test(read("mobile/lib/evidence.dart")) && /'\$user\/\$folder\//.test(read("mobile/lib/evidence.dart")), "the app's PDF goes to the evidence bucket under the person's own id, as the browser's");
+ok(/evidenceMaxBytes = 10 \* 1024 \* 1024/.test(read("mobile/lib/evidence.dart")) && /MAX_BYTES = 10 \* 1024 \* 1024/.test(read("src/components/EvidenceUpload.tsx")), "the app holds a file to the website's ten megabytes");
+const webKinds = [...read("src/components/StageEvidence.tsx").matchAll(/value: "(\w+)", label: "([^"]+)"/g)].map((m) => [m[1], m[2]]);
+const appKinds = /const stageEvidenceKinds = <\(String, String\)>\[([\s\S]*?)\];/.exec(read("mobile/lib/seasons.dart"))?.[1] ?? "";
+ok(webKinds.length === 3 && webKinds.every(([k, l]) => appKinds.includes(`('${k}', '${l}')`)), "the app offers the website's stage evidence kinds, in its words");
+
 // ── 3. The reads go through the website's own loaders ────────────────────────────────────────────────────────────
 
 const books = read("src/app/api/app/books/route.ts");
@@ -175,7 +213,15 @@ for (const key of ["seeds", "fertiliser", "pesticide", "labour", "irrigation", "
 }
 
 // The owner's standing rule for the app: no red and no orange.
-for (const p of ["mobile/lib/seasons.dart", "mobile/lib/books.dart", "mobile/lib/screens/seasons_screen.dart", "mobile/lib/screens/season_screen.dart", "mobile/lib/screens/books_screen.dart"]) {
+for (const p of [
+  "mobile/lib/seasons.dart",
+  "mobile/lib/books.dart",
+  "mobile/lib/evidence.dart",
+  "mobile/lib/screens/seasons_screen.dart",
+  "mobile/lib/screens/season_screen.dart",
+  "mobile/lib/screens/books_screen.dart",
+  "mobile/lib/screens/evidence_sheet.dart",
+]) {
   const src = read(p);
   ok(src.length > 0, `${p} exists`);
   ok(!/Colors\.(red|orange|deepOrange|redAccent|orangeAccent|pink)/.test(src) && !/Color\(0x[Ff]{2}[Ff][0-9A-Fa-f]{5}\)/.test(src), `${p}: no red, no orange`);

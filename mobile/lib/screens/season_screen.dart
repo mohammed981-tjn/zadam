@@ -1,5 +1,5 @@
 /// صفحة الموسم (البند ٢٠٣): the website's /seasons/[id] inside the app — the figures, the standing crop's value, the
-/// stages with «اعتمد المرحلة», the budget against the actual, the ledger, and «أضف قيداً», which is kept on the phone
+/// stages with «أضف دليلاً» (a photo or a PDF, as the website's upload) and «اعتمد المرحلة», the budget against the actual, the ledger, and «أضف قيداً», which is kept on the phone
 /// when there is no network and sent when it is back.
 library;
 
@@ -10,16 +10,20 @@ import '../seasons.dart';
 import '../theme.dart';
 import '../ui.dart';
 import 'account_screen.dart';
+import 'evidence_sheet.dart';
 import 'seasons_screen.dart';
 
 class SeasonScreen extends StatefulWidget {
-  const SeasonScreen({super.key, required this.id, this.name, this.api});
+  const SeasonScreen({super.key, required this.id, this.name, this.api, this.pick});
 
   final String id;
 
   /// The name from the list, for the title before (or without) the network.
   final String? name;
   final SeasonsApi? api;
+
+  /// The camera, the gallery and the file chooser (the phone's own when null).
+  final EvidencePicker? pick;
 
   @override
   State<SeasonScreen> createState() => _SeasonScreenState();
@@ -93,6 +97,21 @@ class _SeasonScreenState extends State<SeasonScreen> {
         }
       },
     );
+  }
+
+  /// «أضف دليلاً»: the website's «ارفع الدليل» on the stage, so that «اعتمد المرحلة» then passes.
+  Future<void> _evidence(StageView s) async {
+    final message = await showEvidenceSheet(
+      context,
+      title: 'أضف دليلاً',
+      subtitle: s.name,
+      kinds: stageEvidenceKinds,
+      pick: widget.pick,
+      send: (kind, caption, file) => _api.addEvidence(widget.id, s.id, kind: kind, caption: caption, file: file),
+    );
+    if (message == null || !mounted) return;
+    _say(message);
+    await _load();
   }
 
   Future<void> _complete(StageView s) async {
@@ -399,21 +418,28 @@ class _SeasonScreenState extends State<SeasonScreen> {
               const SizedBox(height: 8),
               Wrap(spacing: 6, runSpacing: 6, children: [for (final e in s.evidence) TagPill(e, icon: Icons.photo_outlined)]),
             ],
-            if (v.canWrite) ...[
+            if (v.canWrite && !s.completed) ...[
               const SizedBox(height: 10),
+              if (s.evidence.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    'لا تُعتمد مرحلةٌ بلا دليل: صورةٌ من الحقل أو فاتورةٌ أو تقرير معاينة.',
+                    style: TextStyle(color: mutedOn(context), fontSize: 12, height: 1.6),
+                  ),
+                ),
               Wrap(spacing: 8, runSpacing: 8, children: [
                 OutlinedButton.icon(
-                  onPressed: () => openOnSite(context, '/seasons/${v.id}'),
+                  onPressed: _busyStage == null ? () => _evidence(s) : null,
                   icon: const Icon(Icons.add_a_photo_outlined, size: 18),
-                  label: const Text('ارفع دليلاً (من الموقع)'),
+                  label: const Text('أضف دليلاً'),
                 ),
-                if (!s.completed)
-                  FilledButton(
-                    onPressed: _busyStage == null ? () => _complete(s) : null,
-                    child: _busyStage == s.id
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('اعتمد المرحلة'),
-                  ),
+                FilledButton(
+                  onPressed: _busyStage == null ? () => _complete(s) : null,
+                  child: _busyStage == s.id
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('اعتمد المرحلة'),
+                ),
               ]),
             ],
           ],

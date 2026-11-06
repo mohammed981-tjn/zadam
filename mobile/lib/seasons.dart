@@ -27,6 +27,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'account.dart';
 import 'api.dart';
+import 'evidence.dart';
 
 // ── Formatting ───────────────────────────────────────────────────────────────
 
@@ -648,12 +649,14 @@ class LedgerOutbox {
 // ── The client ───────────────────────────────────────────────────────────────
 
 class SeasonsApi {
-  SeasonsApi({AccountController? account, LedgerOutbox? outbox})
+  SeasonsApi({AccountController? account, LedgerOutbox? outbox, EvidenceSender? evidence})
       : _account = account ?? accountController,
-        outbox = outbox ?? LedgerOutbox();
+        outbox = outbox ?? LedgerOutbox(),
+        _evidence = evidence ?? EvidenceSender(account: account);
 
   final AccountController _account;
   final LedgerOutbox outbox;
+  final EvidenceSender _evidence;
 
   String? get userId {
     final s = _account.value;
@@ -698,4 +701,25 @@ class SeasonsApi {
         body: {'stage_id': stageId});
     return r['message'] as String? ?? 'اعتُمدت المرحلة.';
   }
+
+  /// «أضف دليلاً»: a photo or a PDF recorded as the stage's evidence by the website's own step (addStageEvidence).
+  Future<String> addEvidence(String seasonId, String stageId, {required String kind, required EvidenceFile file, String caption = ''}) async {
+    final r = await _account.call('POST', '/api/app/seasons/${Uri.encodeComponent(seasonId)}/evidence', body: {
+      'stage_id': stageId,
+      'kind': kind,
+      'caption': file.captionOr(caption, evidenceKindLabel(kind)),
+      ...await _evidence.attach('stages', file),
+    });
+    return r['message'] as String? ?? 'رُفع الدليل.';
+  }
 }
+
+/// The kinds the website's stage form offers (src/components/StageEvidence.tsx).
+const stageEvidenceKinds = <(String, String)>[
+  ('photo', 'صورة'),
+  ('invoice', 'فاتورة'),
+  ('inspection', 'معاينة'),
+];
+
+String evidenceKindLabel(String key) =>
+    stageEvidenceKinds.firstWhere((k) => k.$1 == key, orElse: () => (key, 'دليل')).$2;
