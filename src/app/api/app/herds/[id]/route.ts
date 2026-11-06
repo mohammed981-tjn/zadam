@@ -17,9 +17,11 @@ import {
   setHerdBudgetStep,
 } from "@/lib/herdSteps";
 import type { Herd, HerdStage } from "@/types/database";
+import { tr, type Locale } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 const SESSION_OVER = { error: "انتهت جلستك. ادخل من جديد." };
-const NOT_YOURS = { error: "الدورة غير موجودة أو ليست لك." };
+const notYours = (locale: Locale) => ({ error: tr(locale, "الدورة غير موجودة أو ليست لك.", "This cycle does not exist or is not yours.") });
 
 /**
  * One production cycle in the app (backlog 203), as the website's /herds/[id] shows it: its stages with dates, feed
@@ -31,6 +33,8 @@ const NOT_YOURS = { error: "الدورة غير موجودة أو ليست لك.
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json(SESSION_OVER, { status: 401 });
+  const locale = appLocale(req);
+  const NOT_YOURS = notYours(locale);
   const { supabase, user } = auth;
   const { id } = await params;
   const to = new URL(req.url).searchParams.get("to");
@@ -42,7 +46,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const [{ data: stageRows }, readiness] = await Promise.all([
     supabase.from("herd_stages").select("*").eq("herd_id", id).order("stage_order"),
-    loadHerdReadiness(supabase, herd, destination, "ar"),
+    loadHerdReadiness(supabase, herd, destination, locale),
   ]);
   const stages = (stageRows ?? []) as HerdStage[];
   const totalFeed = stages.reduce((s, x) => s + Number(x.planned_feed_kg ?? 0), 0);
@@ -92,22 +96,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       readiness: readiness.exportable
         ? {
             destination,
-            destinations: EXPORT_DESTINATIONS.map((d) => ({ key: d, label: DESTINATION_NAME[d].ar })),
+            destinations: EXPORT_DESTINATIONS.map((d) => ({ key: d, label: DESTINATION_NAME[d][locale] })),
             verdict: verdict.met
-              ? "مستوفٍ لقائمة التحضير فيما يسجّله القطيع. والقرار للمحجر وبلد الوصول."
-              : `ينقص سجلَّ القطيع ${verdict.missing} وفي ${verdict.warn} تنبيه — راجعها قبل البيع للمصدّر.`,
+              ? tr(locale, "مستوفٍ لقائمة التحضير فيما يسجّله القطيع. والقرار للمحجر وبلد الوصول.", "Meets the preparation checklist as far as the herd's record goes. The quarantine and the destination decide.")
+              : tr(locale, `ينقص سجلَّ القطيع ${verdict.missing} وفي ${verdict.warn} تنبيه — راجعها قبل البيع للمصدّر.`, `The herd record lacks ${verdict.missing} and has ${verdict.warn} warnings — review them before selling to the exporter.`),
             met: verdict.met,
             lines: readiness.checklist.map((l) => ({
               id: l.id,
               status: l.status,
-              title: l.ar,
+              title: l[locale],
               detail: l.detailAr,
               source: l.source.label,
               source_url: l.source.url,
               source_meta: [
-                SOURCE_KIND_LABEL[l.source.kind].ar,
-                l.source.date !== "undated" ? l.source.date : "بلا تاريخ",
-                !l.source.current && "قديم، تحقّق منه",
+                SOURCE_KIND_LABEL[l.source.kind][locale],
+                l.source.date !== "undated" ? l.source.date : tr(locale, "بلا تاريخ", "Undated"),
+                !l.source.current && tr(locale, "قديم، تحقّق منه", "Old, check it"),
               ]
                 .filter(Boolean)
                 .join(" · "),
@@ -116,7 +120,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
               present: counts.present,
               others: (["sold", "dead", "exported"] as const)
                 .filter((s) => counts[s] > 0)
-                .map((s) => `${TAG_STATUS_LABEL[s].ar}: ${counts[s]}`),
+                .map((s) => `${TAG_STATUS_LABEL[s][locale]}: ${counts[s]}`),
               sample: readiness.tags
                 .filter((x) => x.status === "present")
                 .map((x) => x.tag)
@@ -124,16 +128,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             },
             records: readiness.records.map((r) => ({
               id: r.id,
-              kind: KIND_LABEL[r.kind]?.ar ?? r.kind,
+              kind: KIND_LABEL[r.kind]?.[locale] ?? r.kind,
               item: healthItemName(r.item_key, false),
               done_on: r.done_on,
               heads: r.heads,
-              result: r.result === "negative" ? "سلبيّ" : r.result === "positive" ? "إيجابيّ" : null,
+              result: r.result === "negative" ? tr(locale, "سلبيّ", "negative") : r.result === "positive" ? tr(locale, "إيجابيّ", "Positive") : null,
               vet: r.vet_name,
               withdrawn: r.withdrawn_at !== null,
             })),
-            items: HEALTH_ITEMS.map((i) => ({ choice: `${i.kind}:${i.key}`, kind: i.kind, label: i.ar })),
-            note: "هذه قائمة تحضير، لا شهادة: لا تقول إنّ الحيوان سليم ولا إنّه مقبول. الفحص والشهادة للمحجر البيطريّ، والقبول لبلد الوصول عند ميناءه — ويرفض الإرساليّة كلّها إن وجد مرضاً في رأسٍ واحد.",
+            items: HEALTH_ITEMS.map((i) => ({ choice: `${i.kind}:${i.key}`, kind: i.kind, label: i[locale] })),
+            note: tr(locale, "هذه قائمة تحضير، لا شهادة: لا تقول إنّ الحيوان سليم ولا إنّه مقبول. الفحص والشهادة للمحجر البيطريّ، والقبول لبلد الوصول عند ميناءه — ويرفض الإرساليّة كلّها إن وجد مرضاً في رأسٍ واحد.", "This is a preparation checklist, not a certificate: it does not say an animal is healthy or will be accepted. Inspection and the certificate are the veterinary quarantine's; acceptance is the destination's, at its port — and it rejects a whole consignment for disease in one head."),
           }
         : null,
     },
@@ -152,6 +156,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json(SESSION_OVER, { status: 401 });
+  const locale = appLocale(req);
+  const NOT_YOURS = notYours(locale);
   const { supabase, user } = auth;
   const { id } = await params;
 
@@ -159,7 +165,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const text = (k: string) => (typeof body[k] === "string" ? (body[k] as string).trim() : "");
 
@@ -172,13 +178,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     case "complete_stage": {
       // The stage must be one of this herd's: the database's own order check then decides.
       const { data: stage } = await supabase.from("herd_stages").select("id").eq("id", text("stage_id")).eq("herd_id", id).maybeSingle();
-      error = stage ? await completeHerdStageStep(supabase, stage.id as string, "ar") : "المرحلة ليست من هذه الدورة.";
-      done = "اعتُمدت المرحلة.";
+      error = stage ? await completeHerdStageStep(supabase, stage.id as string, locale) : tr(locale, "المرحلة ليست من هذه الدورة.", "The stage is not part of this cycle.");
+      done = tr(locale, "اعتُمدت المرحلة.", "The stage was signed off.");
       break;
     }
     case "budget":
-      error = await setHerdBudgetStep(supabase, id, Number(body.budget_per_head), "ar");
-      done = "حُدّثت الميزانية وقُسّمت على المراحل بنسبة العلف.";
+      error = await setHerdBudgetStep(supabase, id, Number(body.budget_per_head), locale);
+      done = tr(locale, "حُدّثت الميزانية وقُسّمت على المراحل بنسبة العلف.", "The budget was updated and split across the stages in proportion to feed.");
       break;
     case "health":
       error = await addHerdHealthRecord(
@@ -194,9 +200,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           vet: text("vet_name"),
           note: text("note"),
         },
-        "ar",
+        locale,
       );
-      done = "سُجّل في سجلّ صحّة القطيع.";
+      done = tr(locale, "سُجّل في سجلّ صحّة القطيع.", "Recorded in the herd's health record.");
       break;
     case "tags":
       error = await addHerdTagRange(
@@ -207,12 +213,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           from: Number(body.from),
           to: body.to === undefined || body.to === null || body.to === "" ? null : Number(body.to),
         },
-        "ar",
+        locale,
       );
-      done = "أُضيفت أرقام الآذان.";
+      done = tr(locale, "أُضيفت أرقام الآذان.", "The ear tags were added.");
       break;
     default:
-      return NextResponse.json({ error: "خطوةٌ غير معروفة." }, { status: 400 });
+      return NextResponse.json({ error: tr(locale, "خطوةٌ غير معروفة.", "Unknown step.") }, { status: 400 });
   }
 
   if (error) return NextResponse.json({ error }, { status: 400 });

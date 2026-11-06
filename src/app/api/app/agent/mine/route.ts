@@ -12,6 +12,8 @@ import {
 import { answerMandateStep, endMandateStep, objectAgentWriteStep } from "@/lib/agentCore";
 import { jsonFields } from "@/lib/supplyCore";
 import { badRequest, noStore, readJson, stepJson } from "@/lib/appApi";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 type ActionRow = { id: number; mandate_id: string; subject: AgentActionSubject; subject_id: string; action: AgentActionVerb; at: string };
 
@@ -25,6 +27,7 @@ type ActionRow = { id: number; mandate_id: string; subject: AgentActionSubject; 
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   const [{ data: rows, error }, { data: actionRows }] = await Promise.all([
@@ -63,7 +66,7 @@ export async function GET(req: Request) {
 
   const shape = (m: MyAgentRow) => ({
     ...m,
-    scopes_label: m.scopes.map((s) => AGENT_SCOPE_SHORT[s][0]).join(" و"),
+    scopes_label: m.scopes.map((s) => AGENT_SCOPE_SHORT[s][0]).join(tr(locale, " و", ", ")),
     scopes_long: m.scopes.map((s) => AGENT_SCOPE_LABEL[s][0]),
     status_label: MANDATE_STATUS_LABEL[m.status][0],
   });
@@ -103,17 +106,18 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const body = await readJson(req);
-  if (!body) return badRequest();
+  if (!body) return badRequest(locale);
   const f = jsonFields(body);
   switch (f.str("action")) {
     case "answer":
-      return stepJson(await answerMandateStep(auth.supabase, f, "ar"));
+      return stepJson(await answerMandateStep(auth.supabase, f, locale));
     case "end":
-      return stepJson(await endMandateStep(auth.supabase, f, "ar"));
+      return stepJson(await endMandateStep(auth.supabase, f, locale));
     case "object":
-      return stepJson(await objectAgentWriteStep(auth.supabase, f, "ar"));
+      return stepJson(await objectAgentWriteStep(auth.supabase, f, locale));
     default:
-      return badRequest();
+      return badRequest(locale);
   }
 }

@@ -9,6 +9,8 @@ import { boursePriceFor, standingCropValue } from "@/lib/cropValue";
 import { loadCropMarkets } from "@/lib/marketData";
 import { currentMarketPrices } from "@/lib/livePrices";
 import type { LedgerEntryRow, Season, SeasonStage, StageEvidence } from "@/types/database";
+import { tr, type Locale } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * صفحة الموسم في التطبيق (البند ٢٠٣): what /seasons/[id] shows on the website, as data.
@@ -21,16 +23,17 @@ import type { LedgerEntryRow, Season, SeasonStage, StageEvidence } from "@/types
 
 const n0 = (v: number) => Math.round(v).toLocaleString("en-US");
 
-const PAID_FROM_AR: Record<LedgerEntryRow["paid_from"], string> = { cash: "نقداً", bank: "بنك", wallet: "محفظة", credit: "آجل" };
+const PAID_FROM = (locale: Locale): Record<LedgerEntryRow["paid_from"], string> => ({ cash: tr(locale, "نقداً", "Cash"), bank: tr(locale, "بنك", "Bank"), wallet: tr(locale, "محفظة", "Wallet"), credit: tr(locale, "آجل", "On credit") });
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
   const { id } = await params;
 
   const { data: seasonRow } = await supabase.from("seasons").select("*").eq("id", id).maybeSingle();
-  if (!seasonRow) return NextResponse.json({ error: "لم نجد هذا الموسم، أو ليس لك أن تراه." }, { status: 404 });
+  if (!seasonRow) return NextResponse.json({ error: tr(locale, "لم نجد هذا الموسم، أو ليس لك أن تراه.", "We could not find this season, or it is not yours to see.") }, { status: 404 });
   const season = seasonRow as Season;
   const isOwner = season.owner_id === user.id;
   const canWrite = isOwner && season.status === "active";
@@ -109,7 +112,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const entry = (l: LedgerEntryRow) => ({
     id: l.id,
     category: l.category,
-    label: ledgerLabel(l.category, "ar"),
+    label: ledgerLabel(l.category, locale),
     description: l.description,
     entry_date: l.entry_date,
     currency: l.currency,
@@ -117,7 +120,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     entered_amount: l.entered_amount === null ? null : Number(l.entered_amount),
     fx_rate: l.fx_rate === null ? null : Number(l.fx_rate),
     paid_from: l.paid_from,
-    paid_from_label: PAID_FROM_AR[l.paid_from] ?? l.paid_from,
+    paid_from_label: PAID_FROM(locale)[l.paid_from] ?? l.paid_from,
     stage_id: l.stage_id,
   });
 
@@ -131,9 +134,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         id: season.id,
         name: season.name,
         crop_key: season.crop_key,
-        crop: cropName(season.crop_key, "ar"),
-        station: stationName(season.station_key, "ar"),
-        irrigation: irrigationLabel(season.irrigation, "ar"),
+        crop: cropName(season.crop_key, locale),
+        station: stationName(season.station_key, locale),
+        irrigation: irrigationLabel(season.irrigation, locale),
         feddans: Number(season.feddans),
         location: season.location,
         status: season.status,
@@ -159,7 +162,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       },
       by_category: summary.byCategory.map((c) => ({
         category: c.category,
-        label: ledgerLabel(c.category, "ar"),
+        label: ledgerLabel(c.category, locale),
         amount: c.amount,
         share: summary.costs > 0 ? Math.round((c.amount / summary.costs) * 100) : 0,
       })),
@@ -170,7 +173,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         return {
           id: s.id,
           key: s.stage_key,
-          name: stageName(s.stage_key, "ar"),
+          name: stageName(s.stage_key, locale),
           order: s.stage_order,
           planned_start: s.planned_start,
           planned_end: s.planned_end,
@@ -181,7 +184,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           completed: s.completed,
           released: decision.released,
           reason: decision.released ? null : decision.reason,
-          activities: stageActivities(s.stage_key, "ar"),
+          activities: stageActivities(s.stage_key, locale),
           evidence: evidenceFor(s.id).map((e) => ({ id: e.id, kind: e.kind, caption: e.caption })),
         };
       }),
@@ -200,17 +203,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             yield_year: cropValue.yieldYear,
             // The page's sentence, word for word, so the app says where the figure came from as the website does.
             note:
-              `نحو ${n0(cropValue.kg)} كجم: ${n0(cropValue.kgPerFeddan)} كجم للفدان، وهو متوسّط غلّة السودان (FAOSTAT${cropValue.yieldYear ? ` ${cropValue.yieldYear}` : ""})، × ${season.feddans} فدان. ` +
+              tr(locale, `نحو ${n0(cropValue.kg)} كجم: ${n0(cropValue.kgPerFeddan)} كجم للفدان، وهو متوسّط غلّة السودان (FAOSTAT${cropValue.yieldYear ? ` ${cropValue.yieldYear}` : ""})، × ${season.feddans} فدان. `, `About ${n0(cropValue.kg)} kg: ${n0(cropValue.kgPerFeddan)} kg per feddan, Sudan's average yield (FAOSTAT${cropValue.yieldYear ? ` ${cropValue.yieldYear}` : ""}), × ${season.feddans} feddans.`) +
               (cropValue.basis === "bourse" && boursePrice
-                ? `بسعر ${bourseMarket?.bourse_ar ?? boursePrice.market} يوم ${boursePrice.date}: ${n0(boursePrice.poundsPerKg)} جنيه للكيلو.`
+                ? tr(locale, `بسعر ${bourseMarket?.bourse_ar ?? boursePrice.market} يوم ${boursePrice.date}: ${n0(boursePrice.poundsPerKg)} جنيه للكيلو.`, `At the ${bourseMarket?.bourse_en ?? boursePrice.market} price on ${boursePrice.date}: ${n0(boursePrice.poundsPerKg)} pounds per kilo.`)
                 : cropValue.basis === "sudan_export"
-                  ? `بسعر صادر السودان لهذا المحصول (FAOSTAT ${cropValue.priceWhen}).`
-                  : `بسعر المنتج في بلدٍ مجاور (FAOSTAT ${cropValue.priceWhen})، فلا سعر سودانيّاً منشوراً لهذا المحصول.`) +
-              (suggested ? ` والتحويل بسعر الموازي ${n0(Number(suggested.rate))} جنيه للدولار (${suggested.rate_date}).` : ""),
+                  ? tr(locale, `بسعر صادر السودان لهذا المحصول (FAOSTAT ${cropValue.priceWhen}).`, `At Sudan's export price for this crop (FAOSTAT ${cropValue.priceWhen}).`)
+                  : tr(locale, `بسعر المنتج في بلدٍ مجاور (FAOSTAT ${cropValue.priceWhen})، فلا سعر سودانيّاً منشوراً لهذا المحصول.`, `At the producer price in a neighbouring country (FAOSTAT ${cropValue.priceWhen}), as no Sudanese price is published for this crop.`)) +
+              (suggested ? tr(locale, ` والتحويل بسعر الموازي ${n0(Number(suggested.rate))} جنيه للدولار (${suggested.rate_date}).`, ` Converted at the parallel rate of ${n0(Number(suggested.rate))} pounds to the dollar (${suggested.rate_date}).`) : ""),
           }
         : null,
       band: band ? { p50: band.p50 } : null,
-      categories: (Object.keys(LEDGER_LABEL) as LedgerCategory[]).map((c) => ({ key: c, label: ledgerLabel(c, "ar") })),
+      categories: (Object.keys(LEDGER_LABEL) as LedgerCategory[]).map((c) => ({ key: c, label: ledgerLabel(c, locale) })),
     },
     { headers: { "cache-control": "no-store" } },
   );

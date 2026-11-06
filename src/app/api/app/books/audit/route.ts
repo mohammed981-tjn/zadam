@@ -4,6 +4,7 @@ import { formatMoney } from "@/lib/ledger/money";
 import { AUDIT_ACTIONS, EXCEPTION_KINDS, VIA, auditSummary } from "@/lib/ledger/journal";
 import { tr } from "@/lib/i18n";
 import { loadAudit, loadExceptions, readableBook } from "@/lib/ledger/journalLoad";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * سجلّ التدقيق وتقرير الاستثناءات في التطبيق (البند ٢٠٥): /books/audit and /books/exceptions on the website.
@@ -13,12 +14,13 @@ import { loadAudit, loadExceptions, readableBook } from "@/lib/ledger/journalLoa
  * administrator's inspection opened), through the same lib/ledger/journalLoad the pages read.
  */
 
-const ar = (a: string, e: string) => tr("ar", a, e);
 const usd = (n: number | null) => (n === null ? "" : formatMoney(BigInt(Math.round(Number(n))), "USD"));
 
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
+  const say = (a: string, e: string) => tr(locale, a, e);
   const { supabase, user } = auth;
   const sp = new URL(req.url).searchParams;
   const int = (k: string, d: number, lo: number, hi: number) => {
@@ -42,8 +44,8 @@ export async function GET(req: Request) {
           book_id: book.id,
           rows: rows.map((r) => ({
             kind: r.kind,
-            title: EXCEPTION_KINDS[r.kind]?.ar ?? r.kind,
-            hint: EXCEPTION_KINDS[r.kind]?.hint_ar ?? "",
+            title: EXCEPTION_KINDS[r.kind]?.[locale] ?? r.kind,
+            hint: (locale === "en" ? EXCEPTION_KINDS[r.kind]?.hint_en : EXCEPTION_KINDS[r.kind]?.hint_ar) ?? "",
             entry_no: r.entry_no,
             date: r.entry_date,
             account: r.account_code,
@@ -65,16 +67,16 @@ export async function GET(req: Request) {
         rows: rows.map((r) => ({
           id: r.id,
           at: r.at,
-          action: AUDIT_ACTIONS[r.action]?.ar ?? r.action,
-          who: r.actor_id === user.id ? "أنت" : r.actor_name || (r.actor_id ? "مستخدم" : "النظام"),
-          via: VIA[r.via]?.ar ?? r.via,
-          detail: auditSummary(r, ar),
+          action: AUDIT_ACTIONS[r.action]?.[locale] ?? r.action,
+          who: r.actor_id === user.id ? tr(locale, "أنت", "You") : r.actor_name || (r.actor_id ? tr(locale, "مستخدم", "A user") : tr(locale, "النظام", "The system")),
+          via: VIA[r.via]?.[locale] ?? r.via,
+          detail: auditSummary(r, say),
         })),
       },
       { headers: { "cache-control": "no-store" } },
     );
   } catch (e) {
     console.error("app audit: read failed", e);
-    return NextResponse.json({ error: "تعذّر تحميل السجلّ الآن. أعد المحاولة بعد قليل." }, { status: 500 });
+    return NextResponse.json({ error: tr(locale, "تعذّر تحميل السجلّ الآن. أعد المحاولة بعد قليل.", "Could not load the log just now. Try again shortly.") }, { status: 500 });
   }
 }

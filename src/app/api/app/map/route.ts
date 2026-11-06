@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mapThemes, mapWeekDates } from "@/lib/mapLayers";
 import { GROUND_CREDITS, MAP_SOURCES, SAT_MAX_ZOOM, SAT_TILES, STREET_STYLE } from "@/lib/mapGround";
 import { HALAIB_BORDER, availableLayers, fetchRainGrid } from "@/lib/rainMap";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «الخرائط» في التطبيق (البند ٢٠٣): what /map draws, as data, for the app's full-screen map.
@@ -22,9 +23,9 @@ import { HALAIB_BORDER, availableLayers, fetchRainGrid } from "@/lib/rainMap";
  * `halaib` is Sudan's border round the Halaib triangle (البند ١٧٤), which the website draws over the
  * street map's tiles in place of their dashed line; the app draws the same line.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const locale = appLocale(req);
   const grid = await fetchRainGrid({ lands: true });
-  const locale = "ar";
   const themes = mapThemes(grid, grid ? availableLayers(grid) : [], locale, mapWeekDates(grid, locale));
 
   return NextResponse.json(
@@ -39,7 +40,7 @@ export async function GET() {
         credits: GROUND_CREDITS,
       },
       halaib: HALAIB_BORDER,
-      sources: MAP_SOURCES.ar,
+      sources: MAP_SOURCES[locale],
       themes,
     },
     {

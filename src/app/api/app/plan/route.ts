@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { planFromAnswers } from "@/lib/investmentPlan";
 import { riskLabel } from "@/lib/format";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «تخطيط الاستثمار» في التطبيق (البند ٢٠٣): /plan كما هي.
@@ -13,21 +15,22 @@ import { riskLabel } from "@/lib/format";
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
 
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const n = (k: string) => Number(body[k]);
-  const result = await planFromAnswers(auth.supabase, { amount: n("amount"), q1: n("q1"), q2: n("q2"), q3: n("q3") }, "ar");
+  const result = await planFromAnswers(auth.supabase, { amount: n("amount"), q1: n("q1"), q2: n("q2"), q3: n("q3") }, locale);
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: 400 });
 
   return NextResponse.json(
     {
       riskProfile: result.riskProfile,
-      riskProfileLabel: riskLabel(result.riskProfile, "ar"),
+      riskProfileLabel: riskLabel(result.riskProfile, locale),
       requestedAmount: result.requestedAmount,
       allocatedAmount: result.allocatedAmount,
       allocations: result.allocations.map((a) => ({
@@ -35,7 +38,7 @@ export async function POST(req: Request) {
         name: a.project.name,
         slug: a.project.slug,
         risk: a.project.risk_level,
-        riskLabel: riskLabel(a.project.risk_level, "ar"),
+        riskLabel: riskLabel(a.project.risk_level, locale),
         shares: a.shares,
         amount: a.amount,
       })),

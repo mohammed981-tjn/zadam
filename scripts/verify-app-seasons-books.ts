@@ -169,7 +169,12 @@ ok(!read("mobile/lib/screens/season_screen.dart").includes("ارفع دليلا�
 ok(/storage\/v1\/object\/evidence\/\$path/.test(read("mobile/lib/evidence.dart")) && /'\$user\/\$folder\//.test(read("mobile/lib/evidence.dart")), "the app's PDF goes to the evidence bucket under the person's own id, as the browser's");
 ok(/evidenceMaxBytes = 10 \* 1024 \* 1024/.test(read("mobile/lib/evidence.dart")) && /MAX_BYTES = 10 \* 1024 \* 1024/.test(read("src/components/EvidenceUpload.tsx")), "the app holds a file to the website's ten megabytes");
 const webKinds = [...read("src/components/StageEvidence.tsx").matchAll(/value: "(\w+)", label: "([^"]+)"/g)].map((m) => [m[1], m[2]]);
-const appKinds = /const stageEvidenceKinds = <\(String, String\)>\[([\s\S]*?)\];/.exec(read("mobile/lib/seasons.dart"))?.[1] ?? "";
+// The app's labels carry their English twin since backlog 208, `tr('عربي', 'English')`: the Arabic half is compared.
+const arabicHalf = (dart: string) => dart.replace(/tr\('([^']+)', '[^']*'\)/g, "'$1'");
+const appKinds =
+  /(?:const stageEvidenceKinds =|List<\(String, String\)> get stageEvidenceKinds =>)\s*<\(String, String\)>\[([\s\S]*?)\];/.exec(
+    arabicHalf(read("mobile/lib/seasons.dart")),
+  )?.[1] ?? "";
 ok(webKinds.length === 3 && webKinds.every(([k, l]) => appKinds.includes(`('${k}', '${l}')`)), "the app offers the website's stage evidence kinds, in its words");
 
 // ── 3. The reads go through the website's own loaders ────────────────────────────────────────────────────────────
@@ -221,7 +226,7 @@ ok(new RegExp(`CLIENT_KEY_INDEX = "ledger_entries_season_client_key"`).test(writ
 ok(!/create policy|drop policy|alter policy/i.test(keyMigration), "the key's migration adds, drops and changes no policy");
 
 const labels = Object.fromEntries([...read("src/lib/season.ts").matchAll(/^\s+(\w+): "([^"]+)",$/gm)].map((m) => [m[1], m[2]]));
-const dartCategories = [...dartSeasons.matchAll(/\('(\w+)', '([^']+)'\),/g)].map((m) => [m[1], m[2]] as const);
+const dartCategories = [...arabicHalf(dartSeasons).matchAll(/\('(\w+)', '([^']+)'\),/g)].map((m) => [m[1], m[2]] as const);
 for (const key of ["seeds", "fertiliser", "pesticide", "labour", "irrigation", "transport", "other", "revenue"]) {
   ok(dartCategories.some(([k, l]) => k === key && l === labels[key]), `the app's item «${labels[key]}» is the website's (${key})`);
 }

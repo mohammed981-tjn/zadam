@@ -4,6 +4,8 @@ import { AGENT_SCOPE_SHORT, MANDATE_STATUS_LABEL, type AgentFarmerRow } from "@/
 import { endMandateStep, requestMandateStep } from "@/lib/agentCore";
 import { jsonFields } from "@/lib/supplyCore";
 import { badRequest, noStore, readJson, stepJson } from "@/lib/appApi";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «مزارعيّ» في التطبيق (البند ٢٠٣), as /agent: the caller's organisation and whether it is verified and active, and —
@@ -15,6 +17,7 @@ import { badRequest, noStore, readJson, stepJson } from "@/lib/appApi";
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   // Which company is this account's: the owner's id is not a column members read (backlog 181).
@@ -30,7 +33,7 @@ export async function GET(req: Request) {
   if (error) console.error("app agent: farmers failed", error.message);
   const farmers = ((rows ?? []) as AgentFarmerRow[]).map((m) => ({
     ...m,
-    scopes_label: m.scopes.map((s) => AGENT_SCOPE_SHORT[s][0]).join(" و"),
+    scopes_label: m.scopes.map((s) => AGENT_SCOPE_SHORT[s][0]).join(tr(locale, " و", ", ")),
     status_label: MANDATE_STATUS_LABEL[m.status][0],
     // A farmer without a phone, waiting for the administrators (their tail is the placeholder 0000).
     managed: m.phone_tail === "0000",
@@ -41,15 +44,16 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const body = await readJson(req);
-  if (!body) return badRequest();
+  if (!body) return badRequest(locale);
   const f = jsonFields(body);
   switch (f.str("action")) {
     case "request":
-      return stepJson(await requestMandateStep(auth.supabase, f, "ar"));
+      return stepJson(await requestMandateStep(auth.supabase, f, locale));
     case "end":
-      return stepJson(await endMandateStep(auth.supabase, f, "ar"));
+      return stepJson(await endMandateStep(auth.supabase, f, locale));
     default:
-      return badRequest();
+      return badRequest(locale);
   }
 }

@@ -5,6 +5,8 @@ import { pickBook } from "@/lib/ledger/load";
 import { parseStatementsParams } from "@/lib/ledger/statementsParams";
 import { loadStatements, seasonOptions } from "@/lib/ledger/statementsLoad";
 import { statementsForApp } from "@/lib/ledger/statementsApp";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «القوائم الماليّة» في التطبيق (البند ٢٠٥): what /books/statements shows on the website, as data.
@@ -17,6 +19,7 @@ import { statementsForApp } from "@/lib/ledger/statementsApp";
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   const today = ledgerToday();
@@ -26,8 +29,8 @@ export async function GET(req: Request) {
     return NextResponse.json(
       {
         error: p.bookId
-          ? "هذا الدفتر ليس مفتوحاً لك: الفحص انتهت مدّته أو أُغلق، أو الرابط لدفترٍ آخر."
-          : "لا دفتر لك بعد. يُفتح دفتر مزرعتك وحده حين تسجّل أوّل مصروف أو إيراد في أحد مواسمك.",
+          ? tr(locale, "هذا الدفتر ليس مفتوحاً لك: الفحص انتهت مدّته أو أُغلق، أو الرابط لدفترٍ آخر.", "This book is not open to you: the inspection has ended or been closed, or the link is to another book.")
+          : tr(locale, "لا دفتر لك بعد. يُفتح دفتر مزرعتك وحده حين تسجّل أوّل مصروف أو إيراد في أحد مواسمك.", "You have no book yet. Your farm book opens by itself when you record the first cost or sale in one of your seasons."),
       },
       { status: 404 },
     );
@@ -38,6 +41,6 @@ export async function GET(req: Request) {
     return NextResponse.json(statementsForApp(bundle, p, seasons, today), { headers: { "cache-control": "no-store" } });
   } catch (e) {
     console.error("app statements failed", { basis: p.basis, e });
-    return NextResponse.json({ error: "تعذّر تحميل القوائم الآن. أعد المحاولة بعد قليل." }, { status: 500 });
+    return NextResponse.json({ error: tr(locale, "تعذّر تحميل القوائم الآن. أعد المحاولة بعد قليل.", "The statements could not be loaded just now. Please try again shortly.") }, { status: 500 });
   }
 }

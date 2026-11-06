@@ -5,6 +5,8 @@ import { currentFx } from "@/lib/livePrices";
 import { loadCropMarkets } from "@/lib/marketData";
 import { fetchSudanLocust } from "@/lib/locust";
 import { feasibilityOptions, feasibilityReport } from "@/lib/feasibilityReport";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * دراسة الجدوى المرحلية في التطبيق (البند ٢٠٣) — /tools/feasibility كما هي.
@@ -29,11 +31,12 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const locale = appLocale(req);
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
 
   // Optional: only when the phone sends a session. A stale one is simply a signed-out study, as on the page.
@@ -57,6 +60,6 @@ export async function POST(req: Request) {
     sdgPerUsdParallel: fx?.parallel.sell ?? null,
     locust,
   });
-  if (!report) return NextResponse.json({ error: "تعذّر حساب الدراسة بهذه المدخلات." }, { status: 400 });
+  if (!report) return NextResponse.json({ error: tr(locale, "تعذّر حساب الدراسة بهذه المدخلات.", "Could not work out the study with these inputs.") }, { status: 400 });
   return NextResponse.json(report, { headers: { "cache-control": "no-store" } });
 }

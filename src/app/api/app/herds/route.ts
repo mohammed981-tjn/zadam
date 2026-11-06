@@ -5,6 +5,8 @@ import { countryName, diseaseName, fetchDiseaseEvents, groupEvents, sourceNote, 
 import { locustDay } from "@/lib/locust";
 import { createHerdWithPlan } from "@/lib/herdSteps";
 import type { Herd } from "@/types/database";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 const SESSION_OVER = { error: "انتهت جلستك. ادخل من جديد." };
 
@@ -21,6 +23,7 @@ const SESSION_OVER = { error: "انتهت جلستك. ادخل من جديد." }
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json(SESSION_OVER, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   const [{ data: herdRows, error }, { data: landRows }, events] = await Promise.all([
@@ -28,7 +31,7 @@ export async function GET(req: Request) {
     supabase.from("lands").select("name, state, latitude, longitude").eq("owner_id", user.id),
     fetchDiseaseEvents(),
   ]);
-  if (error) return NextResponse.json({ error: "تعذّر تحميل قطعانك. أعد المحاولة." }, { status: 500 });
+  if (error) return NextResponse.json({ error: tr(locale, "تعذّر تحميل قطعانك. أعد المحاولة.", "Could not load your herds. Try again.") }, { status: 500 });
   const herds = (herdRows ?? []) as Herd[];
 
   const ids = herds.map((h) => h.id);
@@ -49,24 +52,24 @@ export async function GET(req: Request) {
         .map((w) => ({
           land: w.land,
           state: w.state,
-          diseases: w.inState.map((e) => `${diseaseName(e.disease, "ar")} (${locustDay(e.date, "ar")})`),
+          diseases: w.inState.map((e) => `${diseaseName(e.disease, locale)} (${locustDay(e.date, locale)})`),
         })),
       nearest: watch
         .filter((w) => w.nearest)
         .map(
           (w) =>
-            `«${w.land}»: أقرب حدثٍ مُبلَّغ عنه ${diseaseName(w.nearest!.disease, "ar")} على بعد ${km(w.nearest!.km)} كم، في ${countryName(w.nearest!.country, "ar")} (${locustDay(w.nearest!.date, "ar")}).`,
+            tr(locale, `«${w.land}»: أقرب حدثٍ مُبلَّغ عنه ${diseaseName(w.nearest!.disease, "ar")} على بعد ${km(w.nearest!.km)} كم، في ${countryName(w.nearest!.country, "ar")} (${locustDay(w.nearest!.date, "ar")}).`, `«${w.land}»: the nearest reported event is ${diseaseName(w.nearest!.disease, "en")} ${km(w.nearest!.km)} km away, in ${countryName(w.nearest!.country, "en")} (${locustDay(w.nearest!.date, "en")}).`),
         ),
       groups: groupEvents(events).map((g) => ({
-        country: countryName(g.country, "ar"),
+        country: countryName(g.country, locale),
         states: g.states,
-        disease: diseaseName(g.disease, "ar"),
+        disease: diseaseName(g.disease, locale),
         count: g.count,
-        latest: locustDay(g.lastDate, "ar"),
+        latest: locustDay(g.lastDate, locale),
       })),
       sudan_events: events.some((e) => e.country === "Sudan"),
       has_lands: lands.length > 0,
-      source: sourceNote("ar"),
+      source: sourceNote(locale),
       source_url: EMPRES_URL,
     };
   }
@@ -106,13 +109,14 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json(SESSION_OVER, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const text = (k: string) => (typeof body[k] === "string" ? (body[k] as string).trim() : "");
 
@@ -130,8 +134,8 @@ export async function POST(req: Request) {
       breed: text("breed").slice(0, 80),
       projectId: "",
     },
-    "ar",
+    locale,
   );
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
-  return NextResponse.json({ id: result.id, message: "أُنشئت الدورة ومراحلها." });
+  return NextResponse.json({ id: result.id, message: tr(locale, "أُنشئت الدورة ومراحلها.", "The cycle and its stages were created.") });
 }

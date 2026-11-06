@@ -4,6 +4,7 @@ import { isNotDeployed, today, type GroupOrderSummary, type Supplier, type Suppl
 import { MEMBER_COLUMNS } from "@/lib/visitorColumns";
 import { createGroupOrderStep, jsonFields } from "@/lib/supplyCore";
 import { UUID, badRequest, noStore, readJson, stepJson } from "@/lib/appApi";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * الطلبات الجماعية في التطبيق (البند ٢٠٣), as /suppliers/orders: the current orders (group_order_directory), the
@@ -54,7 +55,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const body = await readJson(req);
-  if (!body) return badRequest();
-  return stepJson(await createGroupOrderStep(auth.supabase, jsonFields(body), "ar"));
+  if (!body) return badRequest(locale);
+  return stepJson(await createGroupOrderStep(auth.supabase, jsonFields(body), locale));
 }

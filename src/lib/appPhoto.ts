@@ -1,3 +1,4 @@
+import type { Locale } from "@/lib/i18n";
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NO_METADATA, readJpegMetadata, type PhotoMetadata } from "@/lib/exif";
@@ -147,6 +148,19 @@ export function photoBytes(raw: unknown): Uint8Array | null {
   if (!/^[A-Za-z0-9+/=\s]+$/.test(b64)) return null;
   return new Uint8Array(Buffer.from(b64, "base64"));
 }
+
+/** Its refusals, said by uploadAppPhoto in Arabic as the website's form does, and their English twins (backlog 208). */
+const PHOTO_ERRORS_EN: Record<string, string> = {
+  "أرفق صورةً أوّلاً.": "Attach a photo first.",
+  "الصورة أكبر من ١٠ ميجابايت.": "The photo is larger than 10 MB.",
+  "صيغةٌ غير مقبولة. صوّر بالهاتف (JPG أو PNG).": "Format not accepted. Take a phone photo (JPG or PNG).",
+  "تعذّرت قراءة الصورة. صوّرها مرّةً أخرى.": "Could not read the photo. Take it again.",
+  "تعذّر رفع الصورة. أعد المحاولة.": "Could not upload the photo. Try again.",
+};
+
+/** A refusal of uploadAppPhoto in the language the app asked for. */
+export const photoError = (locale: Locale, message: string) =>
+  locale === "en" ? (PHOTO_ERRORS_EN[message] ?? message) : message;
 
 /**
  * Stores the photo at `<user>/<folder>/<random id><suffix>.<jpg|png>` and hands back the path, and the capture time

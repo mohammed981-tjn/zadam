@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { signOffStage } from "@/lib/seasonWrites";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «اعتمد المرحلة» من التطبيق (البند ٢٠٣): the website's button on /seasons/[id].
@@ -11,6 +13,7 @@ import { signOffStage } from "@/lib/seasonWrites";
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase } = auth;
   const { id } = await params;
 
@@ -18,16 +21,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const stageId = typeof body.stage_id === "string" ? body.stage_id.trim() : "";
-  if (!stageId) return NextResponse.json({ error: "المرحلة غير محدّدة." }, { status: 400 });
+  if (!stageId) return NextResponse.json({ error: tr(locale, "المرحلة غير محدّدة.", "The stage is not specified.") }, { status: 400 });
 
-  const result = await signOffStage(supabase, { stageId, seasonId: id }, "ar");
+  const result = await signOffStage(supabase, { stageId, seasonId: id }, locale);
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
   // Row-level security filters a stage that is not the caller's without an error: say nothing changed.
   if (result.changed === false) {
-    return NextResponse.json({ error: "لم تُعتمد المرحلة: ليست من مراحل موسمٍ تملكه." }, { status: 403 });
+    return NextResponse.json({ error: tr(locale, "لم تُعتمد المرحلة: ليست من مراحل موسمٍ تملكه.", "The stage was not signed off: it is not a stage of a season you own.") }, { status: 403 });
   }
-  return NextResponse.json({ ok: true, message: "اعتُمدت المرحلة." });
+  return NextResponse.json({ ok: true, message: tr(locale, "اعتُمدت المرحلة.", "The stage was signed off.") });
 }

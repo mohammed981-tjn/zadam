@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { recordLedgerEntry } from "@/lib/seasonWrites";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * قيد مصروفٍ أو إيرادٍ من التطبيق (البند ٢٠٣): the website's «أضف قيداً» on /seasons/[id].
@@ -14,6 +16,7 @@ import { recordLedgerEntry } from "@/lib/seasonWrites";
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
   const { id } = await params;
 
@@ -21,7 +24,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const text = (k: string, max = 200) => (typeof body[k] === "string" ? (body[k] as string).slice(0, max) : "");
 
@@ -40,9 +43,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       stage_id: text("stage_id", 40),
       client_key: text("client_key", 40),
     },
-    "ar",
+    locale,
   );
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
   // A resend of an entry already saved (its key is in the book) is the same success: the phone stops sending it.
-  return NextResponse.json({ ok: true, already: result.already === true, message: "سُجّل القيد في دفتر الموسم." });
+  return NextResponse.json({ ok: true, already: result.already === true, message: tr(locale, "سُجّل القيد في دفتر الموسم.", "The entry was recorded in the season's ledger.") });
 }

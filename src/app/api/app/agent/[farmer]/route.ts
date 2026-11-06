@@ -10,9 +10,11 @@ import {
   type AgentStageRow,
 } from "@/lib/agent";
 import { agentAddEvidenceStep, agentCompleteStageStep } from "@/lib/agentCore";
-import { discardAppPhoto, uploadAppPhoto } from "@/lib/appPhoto";
+import { discardAppPhoto, photoError, uploadAppPhoto } from "@/lib/appPhoto";
 import { jsonFields } from "@/lib/supplyCore";
 import { UUID, badRequest, noStore, readJson, stepJson } from "@/lib/appApi";
+import { tr, type Locale } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 type SeasonRow = {
   id: string;
@@ -27,12 +29,12 @@ type SeasonRow = {
 type HerdRow = { id: string; name: string; head_count: number; start_date: string; status: string; stages_done: number; stages_total: number };
 type ActionRow = { id: number; subject: AgentActionSubject; subject_id: string; action: AgentActionVerb; at: string };
 
-const VERIFICATION: Record<string, string> = {
-  unverified: "لم تُرفع أوراقها",
-  submitted: "تنتظر المراجعة",
-  verified: "موثّقة",
-  rejected: "رُدّت",
-};
+const verification = (locale: Locale): Record<string, string> => ({
+  unverified: tr(locale, "لم تُرفع أوراقها", "Papers not uploaded"),
+  submitted: tr(locale, "تنتظر المراجعة", "Awaiting review"),
+  verified: tr(locale, "موثّقة", "Verified"),
+  rejected: tr(locale, "رُدّت", "Returned"),
+});
 
 /**
  * A farmer the caller acts for, in the app (البند ٢٠٣), as /agent/[farmer]: only with a standing permission
@@ -44,13 +46,14 @@ const VERIFICATION: Record<string, string> = {
 export async function GET(req: Request, { params }: { params: Promise<{ farmer: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
   const { farmer } = await params;
-  if (!UUID.test(farmer)) return NextResponse.json({ error: "لا إذن قائماً لك عن هذا المزارع." }, { status: 404 });
+  if (!UUID.test(farmer)) return NextResponse.json({ error: tr(locale, "لا إذن قائماً لك عن هذا المزارع.", "You hold no standing permission for this farmer.") }, { status: 404 });
 
   const { data: rows } = await supabase.rpc("agent_my_farmers");
   const m = ((rows ?? []) as AgentFarmerRow[]).find((r) => r.status === "active" && r.farmer_id === farmer);
-  if (!m) return NextResponse.json({ error: "لا إذن قائماً لك عن هذا المزارع." }, { status: 404 });
+  if (!m) return NextResponse.json({ error: tr(locale, "لا إذن قائماً لك عن هذا المزارع.", "You hold no standing permission for this farmer.") }, { status: 404 });
   const can = (s: AgentFarmerRow["scopes"][number]) => m.scopes.includes(s);
 
   const [{ data: landRows }, { data: seasonRows }, { data: herdRows }, { data: actionRows }] = await Promise.all([
@@ -83,14 +86,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ farmer: 
 
   return NextResponse.json(
     {
-      farmer: { id: farmer, full_name: m.full_name, phone: m.phone, scopes: m.scopes, scopes_label: m.scopes.map((s) => AGENT_SCOPE_SHORT[s][0]).join(" و") },
-      lands: lands.map((l) => ({ ...l, verification_label: VERIFICATION[l.verification] ?? l.verification })),
+      farmer: { id: farmer, full_name: m.full_name, phone: m.phone, scopes: m.scopes, scopes_label: m.scopes.map((s) => AGENT_SCOPE_SHORT[s][0]).join(tr(locale, " و", ", ")) },
+      lands: lands.map((l) => ({ ...l, verification_label: verification(locale)[l.verification] ?? l.verification })),
       seasons: seasons.map((s) => ({
         ...s,
-        crop_name: cropName(s.crop_key, "ar"),
+        crop_name: cropName(s.crop_key, locale),
         stages: (stagesOf.get(s.id) ?? []).map((g, i, all) => ({
           ...g,
-          name: stageName(g.stage_key, "ar"),
+          name: stageName(g.stage_key, locale),
           // A stage is signed off after every one before it, as the database requires.
           next: !g.completed && all.slice(0, i).every((p) => p.completed),
         })),
@@ -110,34 +113,35 @@ const KINDS = ["photo", "invoice", "inspection"];
 export async function POST(req: Request, { params }: { params: Promise<{ farmer: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
   const { farmer } = await params;
   const body = await readJson(req);
-  if (!body || !UUID.test(farmer)) return badRequest();
+  if (!body || !UUID.test(farmer)) return badRequest(locale);
   const f = jsonFields(body);
   const stageId = f.str("stage_id");
-  if (!UUID.test(stageId)) return badRequest();
+  if (!UUID.test(stageId)) return badRequest(locale);
 
   switch (f.str("action")) {
     case "complete":
-      return stepJson(await agentCompleteStageStep(supabase, stageId, "ar"));
+      return stepJson(await agentCompleteStageStep(supabase, stageId, locale));
     case "evidence": {
       const kind = f.str("kind");
-      if (!KINDS.includes(kind)) return NextResponse.json({ error: "نوع دليلٍ غير معروف." }, { status: 400 });
+      if (!KINDS.includes(kind)) return NextResponse.json({ error: tr(locale, "نوع دليلٍ غير معروف.", "Unknown evidence type.") }, { status: 400 });
       // To the agent's own folder, as the website's upload (<id>/stages/…); the time and place it carried become
       // columns, and the file is stored without them.
       const photo = await uploadAppPhoto(supabase, user.id, "stages", body.photo);
-      if ("error" in photo) return NextResponse.json({ error: photo.error }, { status: 400 });
+      if ("error" in photo) return NextResponse.json({ error: photoError(locale, photo.error) }, { status: 400 });
       const r = await agentAddEvidenceStep(
         supabase,
         user.id,
         { stageId, kind, storagePath: photo.path, caption: f.str("caption").slice(0, 300), metadata: photo.metadata },
-        "ar",
+        locale,
       );
       if (!r.ok) await discardAppPhoto(supabase, photo.path);
       return stepJson(r);
     }
     default:
-      return badRequest();
+      return badRequest(locale);
   }
 }

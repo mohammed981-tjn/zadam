@@ -7,6 +7,8 @@ import { feeLine, investGlossary, landOfferJson, projectCardJson } from "@/lib/a
 import type { PartnerCompany } from "@/lib/partners";
 import { PARTNER_KIND_LABEL, type PartnerKind } from "@/lib/partners";
 import type { Project } from "@/types/database";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «فرص الاستثمار» في التطبيق (البند ٢٠٣): what /invest and /projects show — the verified land offered to investors,
@@ -19,6 +21,7 @@ import type { Project } from "@/types/database";
  * that is sent and refused is refused here too, rather than quietly read as a visitor.
  */
 export async function GET(req: Request) {
+  const locale = appLocale(req);
   const sent = Boolean(req.headers.get("authorization"));
   const auth = sent ? await clientFromBearer(req) : null;
   if (sent && !auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
@@ -45,24 +48,24 @@ export async function GET(req: Request) {
     {
       signed_in: Boolean(auth),
       lands_failed: offers.failed,
-      lands: offers.lands.map((l) => landOfferJson(l, offers.openInspection.get(l.land_id))),
-      projects: projects.map((p) => projectCardJson(p, projectLands.get(p.id))),
+      lands: offers.lands.map((l) => landOfferJson(l, offers.openInspection.get(l.land_id), locale)),
+      projects: projects.map((p) => projectCardJson(p, projectLands.get(p.id), locale)),
       inspections_on: offers.inspectionsOn,
-      fee_line: feeLine(offers.fee, "ar"),
+      fee_line: feeLine(offers.fee, locale),
       reports:
         stats && stats.reported > 0
-          ? `كُتب ${stats.reported} تقريراً: ${stats.clear} سليمة، و${stats.conditional} بشروط، و${stats.not_recommended} لا يُنصح بها.`
+          ? tr(locale, `كُتب ${stats.reported} تقريراً: ${stats.clear} سليمة، و${stats.conditional} بشروط، و${stats.not_recommended} لا يُنصح بها.`, `${stats.reported} reports written: ${stats.clear} clear, ${stats.conditional} with conditions, and ${stats.not_recommended} not recommended.`)
           : null,
       companies: companies.map((c) => ({
         id: c.id,
         name: c.name,
-        kinds: (c.kinds ?? []).map((k) => PARTNER_KIND_LABEL[k as PartnerKind]?.ar ?? k),
+        kinds: (c.kinds ?? []).map((k) => PARTNER_KIND_LABEL[k as PartnerKind]?.[locale] ?? k),
         states: c.states ?? [],
         phone: c.phone,
         whatsapp: c.whatsapp,
         bio: c.bio,
       })),
-      ...investGlossary(),
+      ...investGlossary(locale),
     },
     { headers: { "cache-control": "no-store" } },
   );

@@ -10,8 +10,9 @@ import {
   setSupplierActiveStep,
   setSupplierDocumentStep,
 } from "@/lib/supplyCore";
-import { discardAppPhoto, uploadAppPhoto } from "@/lib/appPhoto";
+import { discardAppPhoto, photoError, uploadAppPhoto } from "@/lib/appPhoto";
 import { badRequest, dollarRate, noStore, readJson, stepJson } from "@/lib/appApi";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «صفحتي كمورد» في التطبيق (البند ٢٠٣), as /suppliers/mine: the caller's own supplier record (its private columns from
@@ -21,6 +22,7 @@ import { badRequest, dollarRate, noStore, readJson, stepJson } from "@/lib/appAp
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   type Priv = { id: string; owner_id: string; licence_doc_path: string | null; verified_by: string | null };
@@ -47,35 +49,36 @@ export async function GET(req: Request) {
   }
   // The document's path is not the app's to show; whether there is one is.
   const shown = supplier ? { ...supplier, licence_doc_path: undefined, has_document: !!supplier.licence_doc_path, verified_by: undefined } : null;
-  return NextResponse.json({ supplier: shown, products, ...(await dollarRate()) }, noStore);
+  return NextResponse.json({ supplier: shown, products, ...(await dollarRate(locale)) }, noStore);
 }
 
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
   const body = await readJson(req);
-  if (!body) return badRequest();
+  if (!body) return badRequest(locale);
   const f = jsonFields(body);
 
   switch (f.str("action")) {
     case "save":
-      return stepJson(await saveSupplierStep(supabase, f, "ar"));
+      return stepJson(await saveSupplierStep(supabase, f, locale));
     case "document": {
       // Where the website's PhotoField puts it (<id>/suppliers/…); supplier_set_document checks the first segment too.
       const photo = await uploadAppPhoto(supabase, user.id, "suppliers", body.photo);
-      if ("error" in photo) return NextResponse.json({ error: photo.error }, { status: 400 });
-      const r = await setSupplierDocumentStep(supabase, jsonFields({ doc_path: photo.path }), "ar");
+      if ("error" in photo) return NextResponse.json({ error: photoError(locale, photo.error) }, { status: 400 });
+      const r = await setSupplierDocumentStep(supabase, jsonFields({ doc_path: photo.path }), locale);
       if (!r.ok) await discardAppPhoto(supabase, photo.path);
       return stepJson(r);
     }
     case "active":
-      return stepJson(await setSupplierActiveStep(supabase, f, "ar"));
+      return stepJson(await setSupplierActiveStep(supabase, f, locale));
     case "product":
-      return stepJson(await saveProductStep(supabase, f, "ar"));
+      return stepJson(await saveProductStep(supabase, f, locale));
     case "remove_product":
-      return stepJson(await removeProductStep(supabase, f, "ar"));
+      return stepJson(await removeProductStep(supabase, f, locale));
     default:
-      return badRequest();
+      return badRequest(locale);
   }
 }

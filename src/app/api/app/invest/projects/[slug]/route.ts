@@ -6,6 +6,8 @@ import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 import { investmentLive } from "@/lib/platformFlags";
 import { feeLine, investGlossary, landOfferJson, projectCardJson, projectStudyJson } from "@/lib/appInvest";
 import type { Project, ProjectUpdate } from "@/types/database";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * One opportunity in the app (backlog 203), as /projects/[slug] shows it: the trial or illustrative label, the
@@ -18,6 +20,7 @@ import type { Project, ProjectUpdate } from "@/types/database";
  * land comes through `project_open_land` only when it is open to investors, exactly as on the website.
  */
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const locale = appLocale(req);
   const sent = Boolean(req.headers.get("authorization"));
   const auth = sent ? await clientFromBearer(req) : null;
   if (sent && !auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
@@ -25,7 +28,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   const { slug } = await params;
 
   const { data: row } = await supabase.from("projects").select(VISITOR_COLUMNS.projects).eq("slug", slug).maybeSingle();
-  if (!row) return NextResponse.json({ error: "لم نجد هذه الفرصة." }, { status: 404 });
+  if (!row) return NextResponse.json({ error: tr(locale, "لم نجد هذه الفرصة.", "We could not find this opportunity.") }, { status: 404 });
   const p = row as unknown as Project;
 
   const [{ data: updates }, projectLands, live] = await Promise.all([
@@ -43,10 +46,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
       supabase.rpc("project_open_land", { p_project: p.id }),
       loadLandOffers(supabase, true),
     ]);
-    inspection = { inspections_on: offers.inspectionsOn, fee_line: feeLine(offers.fee, "ar") };
+    inspection = { inspections_on: offers.inspectionsOn, fee_line: feeLine(offers.fee, locale) };
     const landId = (openLand as string | null) ?? null;
     const found = landId ? offers.lands.find((l) => l.land_id === landId) : undefined;
-    if (found) offer = landOfferJson(found, offers.openInspection.get(found.land_id));
+    if (found) offer = landOfferJson(found, offers.openInspection.get(found.land_id), locale);
     if (landId && !found) {
       const { data } = await supabase
         .from("lands")
@@ -62,14 +65,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   return NextResponse.json(
     {
       signed_in: Boolean(auth),
-      project: projectCardJson(p, verifiedLand),
-      study: projectStudyJson(p),
+      project: projectCardJson(p, verifiedLand, locale),
+      study: projectStudyJson(p, locale),
       // The trial note in full, as the project page writes it above everything else.
       trial_note: p.trial && !p.is_demo
-        ? "منفّذها من فريق المنصّة نفسه، على أرضٍ يملكها أحد أفراده، لتجربة المسار كاملاً قبل فرص المزارعين. سجلّ المواسم التجريبيّة لا يُحسب في درجة الثقة."
+        ? tr(locale, "منفّذها من فريق المنصّة نفسه، على أرضٍ يملكها أحد أفراده، لتجربة المسار كاملاً قبل فرص المزارعين. سجلّ المواسم التجريبيّة لا يُحسب في درجة الثقة.", "It is run by the platform's own team, on land one of its members owns, to try the whole path before farmers' opportunities. Trial seasons do not count towards the trust score.")
         : null,
       demo_note: p.is_demo
-        ? "هذا المشروع مُدخل لعرض شكل المنصة فقط — لا يوجد على الأرض مشروع بهذا الاسم ولا أرض مخصصة له، ولا يمكن الاستثمار فيه. المشاريع الحقيقية ستُنشر بعد توثيقها قانونياً ومعاينتها ميدانياً."
+        ? tr(locale, "هذا المشروع مُدخل لعرض شكل المنصة فقط — لا يوجد على الأرض مشروع بهذا الاسم ولا أرض مخصصة له، ولا يمكن الاستثمار فيه. المشاريع الحقيقية ستُنشر بعد توثيقها قانونياً ومعاينتها ميدانياً.", "This project was entered only to show what the platform looks like — there is no project by this name on the ground and no land set aside for it, and it cannot be invested in. Real projects will be published after legal documentation and a field inspection.")
         : null,
       updates: ((updates ?? []) as ProjectUpdate[]).map((u) => ({ id: u.id, title: u.title, body: u.body, at: u.created_at })),
       // Paying through the platform: the server refuses it until the flag is on, whatever any screen shows.
@@ -78,7 +81,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
       offer,
       own_land: ownLand,
       ...inspection,
-      ...investGlossary(),
+      ...investGlossary(locale),
     },
     { headers: { "cache-control": "no-store" } },
   );

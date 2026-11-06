@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { expressInvestorInterest, interestSentSentence } from "@/lib/investSteps";
-import { APP_SAY, readJson, text } from "@/lib/appRoute";
+import { appSay, readJson, text } from "@/lib/appRoute";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «اطلب الشراكة» من التطبيق (البند ٢٠٣): the investor's request to a landowner, with the model, a message and the
@@ -11,8 +13,9 @@ import { APP_SAY, readJson, text } from "@/lib/appRoute";
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const body = await readJson(req);
-  if (!body) return NextResponse.json({ error: "طلبٌ غير مفهوم." }, { status: 400 });
+  if (!body) return NextResponse.json({ error: tr(locale, "طلبٌ غير مفهوم.", "The request was not understood.") }, { status: 400 });
 
   const result = await expressInvestorInterest(
     auth.supabase,
@@ -22,8 +25,8 @@ export async function POST(req: Request) {
       message: text(body, "message", 4000),
       riskAck: text(body, "risk_ack", 8),
     },
-    APP_SAY,
+    appSay(locale),
   );
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
-  return NextResponse.json({ ok: true, message: interestSentSentence(APP_SAY.t) });
+  return NextResponse.json({ ok: true, message: interestSentSentence(appSay(locale).t) });
 }

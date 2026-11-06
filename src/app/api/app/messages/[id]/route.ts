@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { explain } from "@/lib/supplyActions";
 import type { ConversationView } from "@/lib/messages";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * One conversation in the app (backlog 144): as /messages/[id] on the website —
@@ -11,10 +13,11 @@ import type { ConversationView } from "@/lib/messages";
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { id } = await params;
 
   const { data, error } = await auth.supabase.rpc("conversation_view", { p_conv: id });
-  if (error || !data) return NextResponse.json({ error: explain("ar", error) }, { status: 404 });
+  if (error || !data) return NextResponse.json({ error: explain(locale, error) }, { status: 404 });
   const view = data as ConversationView;
   await auth.supabase.rpc("conversation_mark_read", { p_conv: id });
 
@@ -30,18 +33,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { id } = await params;
 
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير مفهوم." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير مفهوم.", "The request was not understood.") }, { status: 400 });
   }
   const { error } = await auth.supabase.rpc("conversation_send", {
     p_conv: id,
     p_body: String(body.body ?? ""),
   });
-  if (error) return NextResponse.json({ error: explain("ar", error) }, { status: 400 });
+  if (error) return NextResponse.json({ error: explain(locale, error) }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

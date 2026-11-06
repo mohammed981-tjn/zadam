@@ -24,8 +24,13 @@ const check = (ok: boolean, label: string, why = "") => {
 };
 
 const dart = readFileSync(join(root, "mobile/lib/account.dart"), "utf8");
-const block = /const dialCodes = <\(String, String\)>\[([\s\S]*?)\];/.exec(dart)?.[1] ?? "";
-const app = [...block.matchAll(/\('(\d+)',\s*'([^']+)'\)/g)].map((m) => ({ dial: m[1], name: m[2] }));
+// The list is a getter since the app speaks English too (backlog 208): each name is `tr('عربي', 'English')`.
+const block = /(?:const dialCodes =|List<\(String, String\)> get dialCodes =>)\s*<\(String, String\)>\[([\s\S]*?)\];/.exec(dart)?.[1] ?? "";
+const app = [...block.matchAll(/\('(\d+)',\s*tr\('([^']+)',\s*'([^']+)'\)\)/g)].map((m) => ({
+  dial: m[1],
+  name: m[2],
+  nameEn: m[3],
+}));
 
 console.log("Country codes");
 check(app.length > 0, "the app's list was found", "dialCodes not found in mobile/lib/account.dart");
@@ -37,6 +42,7 @@ check(
 for (const c of app) {
   const site = COUNTRIES.find((s) => s.dial === c.dial);
   check(site?.name === c.name, `+${c.dial} is «${c.name}» in both`, `the website calls it «${site?.name}»`);
+  check(site?.nameEn === c.nameEn, `+${c.dial} is "${c.nameEn}" in English in both`, `the website calls it "${site?.nameEn}"`);
 }
 
 console.log("\nThe routes the app calls");

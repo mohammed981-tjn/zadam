@@ -3,13 +3,16 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { isNotDeployed, type Supplier, type SupplierProduct } from "@/lib/supplyChain";
 import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 import { dollarRate, noStore } from "@/lib/appApi";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «الموردون الموثّقون» في التطبيق (البند ٢٠٣): what /suppliers shows anyone, signed in or not — the verified, active
  * suppliers with the visitor's columns, their listed products, and today's dollar rate. Read with the public key, as
  * a visitor reads the page: row-level security and the column grants decide, and nothing here writes.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const locale = appLocale(req);
   const supabase = createPublicClient();
   const { data: rows, error } = await supabase
     .from("suppliers")
@@ -21,7 +24,7 @@ export async function GET() {
   if (isNotDeployed(error)) return NextResponse.json({ coming_soon: true, suppliers: [], products: [], rate: null }, noStore);
   if (error) {
     console.error("app suppliers: list failed", error.message);
-    return NextResponse.json({ error: "تعذّر تحميل الموردين. أعد المحاولة." }, { status: 502 });
+    return NextResponse.json({ error: tr(locale, "تعذّر تحميل الموردين. أعد المحاولة.", "Could not load the suppliers. Try again.") }, { status: 502 });
   }
   const suppliers = (rows ?? []) as unknown as Supplier[];
   let products: SupplierProduct[] = [];
@@ -38,5 +41,5 @@ export async function GET() {
     if (pErr) console.error("app suppliers: products failed", pErr.message);
     products = (p ?? []) as SupplierProduct[];
   }
-  return NextResponse.json({ suppliers, products, ...(await dollarRate()) }, noStore);
+  return NextResponse.json({ suppliers, products, ...(await dollarRate(locale)) }, noStore);
 }

@@ -1,13 +1,14 @@
 import type { Say } from "@/lib/contractSteps";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * Small plumbing shared by the app's routes under /api/app/contracts and /api/app/invest (backlog 203).
  *
- * The app speaks Arabic, so every sentence a shared step returns is the Arabic one. Each route still opens with its
- * own `clientFromBearer(req)` and 401 — scripts/verify-app-contracts-invest.ts reads each file for it — so nothing
- * here touches the session.
+ * A shared step speaks the language the app asked for (`appLocale(req)`, src/lib/appLocale.ts: Arabic unless the
+ * phone is in English, backlog 208). Each route still opens with its own `clientFromBearer(req)` and 401 —
+ * scripts/verify-app-contracts-invest.ts reads each file for it — so nothing here touches the session.
  */
-export const APP_SAY: Say = { locale: "ar", t: (ar: string) => ar };
+export const appSay = (locale: Locale): Say => ({ locale, t: (ar: string, en: string) => tr(locale, ar, en) });
 
 /** The request's JSON object, or null when it is not one. */
 export async function readJson(req: Request): Promise<Record<string, unknown> | null> {

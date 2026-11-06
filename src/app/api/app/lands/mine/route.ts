@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { stationName, waterSourceLabel } from "@/lib/farmLabelsEn";
 import { wrbShort } from "@/lib/soilClasses";
-import { VERIFICATION_AR, drawnBoundary } from "@/lib/appLandView";
+import { drawnBoundary, verificationLabel } from "@/lib/appLandView";
 import type { Land } from "@/types/database";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «أراضيّ» in the app (backlog 203): the list the website's /lands shows, each land in a line.
@@ -15,6 +17,7 @@ import type { Land } from "@/types/database";
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   const { data, error } = await supabase
@@ -22,7 +25,7 @@ export async function GET(req: Request) {
     .select("*")
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: "تعذّر تحميل أراضيك. أعد المحاولة." }, { status: 500 });
+  if (error) return NextResponse.json({ error: tr(locale, "تعذّر تحميل أراضيك. أعد المحاولة.", "Could not load your lands. Try again.") }, { status: 500 });
   const lands = (data ?? []) as Land[];
 
   return NextResponse.json(
@@ -33,11 +36,11 @@ export async function GET(req: Request) {
         state: l.state,
         locality: l.locality,
         feddans: Number(l.feddans),
-        station: stationName(l.station_key, "ar"),
-        water_source: waterSourceLabel(l.water_source, "ar"),
+        station: stationName(l.station_key, locale),
+        water_source: waterSourceLabel(l.water_source, locale),
         soil: l.soil_class ? wrbShort(l.soil_class) : null,
         verification: l.verification,
-        verification_label: VERIFICATION_AR[l.verification] ?? l.verification,
+        verification_label: verificationLabel(locale)[l.verification] ?? l.verification,
         verification_note: l.verification_note,
         documents_on_file: l.documents_on_file,
         documents_required: l.documents_required,

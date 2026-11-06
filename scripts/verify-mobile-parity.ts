@@ -296,7 +296,8 @@ function dartCropTable(list: "crops" | "newCrops") {
       if (!st) throw new Error(`crop block without stages: ${b.slice(0, 60)}`);
       return {
         key: text("key"),
-        name: text("name"),
+        // `nameAr` since the app speaks English too (backlog 208); the English comes from CROP_EN by key.
+        name: text("nameAr"),
         stages: st[1].split(",").map((x) => Number(x.trim())),
         kcInitial: number("kcInitial"),
         kcMid: number("kcMid"),

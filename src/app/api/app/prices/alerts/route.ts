@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { MAX_ACTIVE_ALERTS, createPriceAlertFor, describeAlert, loadPriceAlerts, toAlert } from "@/lib/priceAlerts";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «تنبيهات الأسعار» في التطبيق (البند ٢٠٣): the signed-in person's alerts, as /market/alerts lists them, and adding
@@ -33,19 +35,20 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
 
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const text = (k: string) => (typeof body[k] === "string" || typeof body[k] === "number" ? String(body[k]).slice(0, 80) : "");
 
   const result = await createPriceAlertFor(
     auth.supabase,
     { subject: text("subject"), direction: text("direction"), threshold: text("threshold") },
-    "ar",
+    locale,
   );
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
   return NextResponse.json({ ok: true, message: result.message });

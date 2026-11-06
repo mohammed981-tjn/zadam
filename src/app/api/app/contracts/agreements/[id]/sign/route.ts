@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { signPartnershipAgreement, signedSentence } from "@/lib/contractSteps";
-import { APP_SAY, num, readJson, text } from "@/lib/appRoute";
+import { appSay, num, readJson, text } from "@/lib/appRoute";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «وقّع العقد» من التطبيق (البند ٢٠٣): a partnership agreement signed on the phone, exactly as on the website.
@@ -17,9 +19,10 @@ import { APP_SAY, num, readJson, text } from "@/lib/appRoute";
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { id } = await params;
   const body = await readJson(req);
-  if (!body) return NextResponse.json({ error: "طلبٌ غير مفهوم." }, { status: 400 });
+  if (!body) return NextResponse.json({ error: tr(locale, "طلبٌ غير مفهوم.", "The request was not understood.") }, { status: 400 });
 
   const result = await signPartnershipAgreement(
     auth.supabase,
@@ -32,8 +35,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       agree: text(body, "agree", 8),
       userAgent: req.headers.get("user-agent"),
     },
-    APP_SAY,
+    appSay(locale),
   );
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
-  return NextResponse.json({ ok: true, ref: result.data, message: signedSentence(result.data, APP_SAY.t) });
+  return NextResponse.json({ ok: true, ref: result.data, message: signedSentence(result.data, appSay(locale).t) });
 }

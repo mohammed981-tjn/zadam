@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadRates } from "@/lib/priceBoards";
+import { appLocale } from "@/lib/appLocale";
 import { CBOS_NOTE, FX_NAME, FX_SOURCE_URL, FX_STALE_DAYS, ageInDays, type QuotedRate } from "@/lib/fxRates";
 
 /**
@@ -7,7 +8,8 @@ import { CBOS_NOTE, FX_NAME, FX_SOURCE_URL, FX_STALE_DAYS, ageInDays, type Quote
  * Khartoum's and the parallel market's dollar, each with its date, age, source and the three-day warning, and every
  * currency at each. Public, as the page is.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const locale = appLocale(req);
   const now = new Date();
   const { ref, bankTable, parallelTable, rows } = await loadRates();
   const quote = (q: QuotedRate) => {
@@ -17,9 +19,9 @@ export async function GET() {
   return NextResponse.json(
     {
       stale_days: FX_STALE_DAYS,
-      bank: ref ? { name: ref.bank.name_ar, ...quote(ref.bank) } : null,
+      bank: ref ? { name: locale === "en" ? ref.bank.name_en : ref.bank.name_ar, ...quote(ref.bank) } : null,
       parallel: ref ? quote(ref.parallel) : null,
-      table: rows.map((c) => ({ code: c, name: FX_NAME[c].ar, bank: bankTable[c] ?? null, parallel: parallelTable[c] ?? null })),
+      table: rows.map((c) => ({ code: c, name: FX_NAME[c][locale], bank: bankTable[c] ?? null, parallel: parallelTable[c] ?? null })),
       cbos: { last_bulletin: CBOS_NOTE.lastBulletin, liberalised: CBOS_NOTE.liberalised, circular: CBOS_NOTE.circular, source: CBOS_NOTE.liberalisedSource },
       cross_source: FX_SOURCE_URL,
     },

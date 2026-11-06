@@ -6,6 +6,8 @@ import { bookHeading, PAGE_SIZE, parseReportParams } from "@/lib/ledger/reportPa
 import { linksForApp, reportForApp } from "@/lib/ledger/appReport";
 import { reversalAction } from "@/lib/ledgerLinks";
 import { loadLinks } from "@/lib/ledgerLinksLoad";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «دفتر الحسابات» في التطبيق (البند ٢٠٣): what /books shows on the website, as data.
@@ -18,6 +20,7 @@ import { loadLinks } from "@/lib/ledgerLinksLoad";
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   const today = ledgerToday();
@@ -46,12 +49,12 @@ export async function GET(req: Request) {
 
   if (!book && p.bookId) {
     return NextResponse.json(
-      { error: "هذا الدفتر ليس مفتوحاً لك: الفحص انتهت مدّته أو أُغلق، أو الرابط لدفترٍ آخر." },
+      { error: tr(locale, "هذا الدفتر ليس مفتوحاً لك: الفحص انتهت مدّته أو أُغلق، أو الرابط لدفترٍ آخر.", "This book is not open to you: the inspection has ended or been closed, or the link is to another book.") },
       { status: 404 },
     );
   }
 
-  const heading = book ? bookHeading(book, user.id).ar : null;
+  const heading = book ? bookHeading(book, user.id)[locale] : null;
   const bookOut = book
     ? { id: book.id, kind: book.kind, heading, closed_through: book.closed_through, owned: book.owner_id === user.id }
     : null;
@@ -65,7 +68,7 @@ export async function GET(req: Request) {
         ...base,
         book: null,
         report: null,
-        message: "لا دفتر لك بعد. يُفتح دفتر مزرعتك وحده حين تسجّل أوّل مصروف أو إيراد في أحد مواسمك.",
+        message: tr(locale, "لا دفتر لك بعد. يُفتح دفتر مزرعتك وحده حين تسجّل أوّل مصروف أو إيراد في أحد مواسمك.", "You have no book yet. Your farm book opens by itself when you record the first cost or sale in one of your seasons."),
       },
       { headers: { "cache-control": "no-store" } },
     );
@@ -79,6 +82,6 @@ export async function GET(req: Request) {
     );
   } catch (e) {
     console.error("app books report failed", { report: p.report, e });
-    return NextResponse.json({ error: "تعذّر تحميل التقرير الآن. أعد المحاولة بعد قليل." }, { status: 500 });
+    return NextResponse.json({ error: tr(locale, "تعذّر تحميل التقرير الآن. أعد المحاولة بعد قليل.", "The report could not be loaded just now. Please try again shortly.") }, { status: 500 });
   }
 }

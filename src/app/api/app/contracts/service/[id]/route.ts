@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { moveServiceContract } from "@/lib/contractSteps";
-import { APP_SAY, readJson, text } from "@/lib/appRoute";
+import { appSay, readJson, text } from "@/lib/appRoute";
 import { serviceUnitLabel } from "@/lib/services";
 import type { ContractMilestone, MilestoneEvidence } from "@/types/database";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * One service contract in the app (backlog 203), as /contracts/[id] reads it: the contract, its phases with their
@@ -17,6 +19,7 @@ import type { ContractMilestone, MilestoneEvidence } from "@/types/database";
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
   const { id } = await params;
 
@@ -25,7 +28,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     .select("id, title, client_id, status, currency, total_amount, season_id, signed_at, service_providers(name, owner_id)")
     .eq("id", id)
     .maybeSingle();
-  if (!row) return NextResponse.json({ error: "لم نجد هذا العقد." }, { status: 404 });
+  if (!row) return NextResponse.json({ error: tr(locale, "لم نجد هذا العقد.", "We could not find this contract.") }, { status: 404 });
   const c = row as unknown as {
     id: string;
     title: string;
@@ -72,7 +75,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         title: m.title,
         status: m.status,
         quantity: Number(m.quantity),
-        unit: serviceUnitLabel(m.unit, "ar"),
+        unit: serviceUnitLabel(m.unit, locale),
         unit_price: Number(m.unit_price),
         amount: Number(m.amount),
         planned_start: m.planned_start,
@@ -97,11 +100,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { id } = await params;
   const body = await readJson(req);
   const status = body ? text(body, "status", 20) : "";
 
-  const result = await moveServiceContract(auth.supabase, id, status, APP_SAY);
+  const result = await moveServiceContract(auth.supabase, id, status, appSay(locale));
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

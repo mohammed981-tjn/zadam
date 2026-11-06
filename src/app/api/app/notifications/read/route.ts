@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «علّم الكلّ مقروءاً» من التطبيق (البند ١٣٨) — what markNotificationsRead does
@@ -11,11 +13,12 @@ import { clientFromBearer } from "@/lib/supabase/bearer";
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
 
   const { error } = await auth.supabase
     .from("notifications")
     .update({ read_at: new Date().toISOString() })
     .is("read_at", null);
-  if (error) return NextResponse.json({ error: "تعذّر تعليمها مقروءة. أعد المحاولة." }, { status: 500 });
+  if (error) return NextResponse.json({ error: tr(locale, "تعذّر تعليمها مقروءة. أعد المحاولة.", "Could not mark them read. Try again.") }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

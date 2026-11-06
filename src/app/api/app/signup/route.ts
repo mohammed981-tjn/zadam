@@ -6,6 +6,8 @@ import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { passwordSession } from "@/lib/supabase/bearer";
 import { MIN_PASSWORD } from "@/lib/authEntry";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * إنشاء حسابٍ من التطبيق (البند ١٣٨).
@@ -26,10 +28,11 @@ import { MIN_PASSWORD } from "@/lib/authEntry";
  * admin API creates accounts without any limit of its own.
  */
 export async function POST(req: Request) {
+  const locale = appLocale(req);
   const verdict = await checkRateLimit("app-auth", clientAddress(req.headers));
   if (!verdict.allowed) {
     return NextResponse.json(
-      { error: "محاولاتٌ كثيرة في وقتٍ قصير. انتظر دقيقةً ثمّ أعد المحاولة." },
+      { error: tr(locale, "محاولاتٌ كثيرة في وقتٍ قصير. انتظر دقيقةً ثمّ أعد المحاولة.", "Too many attempts in a short time. Wait a minute and try again.") },
       { status: 429 },
     );
   }
@@ -38,25 +41,25 @@ export async function POST(req: Request) {
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير مفهوم." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير مفهوم.", "The request was not understood.") }, { status: 400 });
   }
   const text = (k: string) => String(body[k] ?? "").trim();
   const fullName = text("full_name");
   const password = text("password");
   const role = text("role") === "investor" ? "investor" : "farmer";
 
-  if (!fullName) return NextResponse.json({ error: "اكتب اسمك." }, { status: 400 });
+  if (!fullName) return NextResponse.json({ error: tr(locale, "اكتب اسمك.", "Write your name.") }, { status: 400 });
   if (password.length < MIN_PASSWORD) {
-    return NextResponse.json({ error: `كلمة المرور يجب أن تكون ${MIN_PASSWORD} أحرف على الأقل.` }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, `كلمة المرور يجب أن تكون ${MIN_PASSWORD} أحرف على الأقل.`, `The password must be at least ${MIN_PASSWORD} characters.`) }, { status: 400 });
   }
-  const phone = toE164(text("dial_code"), text("phone"), "ar");
+  const phone = toE164(text("dial_code"), text("phone"), locale);
   if (!phone.ok) return NextResponse.json({ error: phone.message }, { status: 400 });
 
   const admin = createAdminClient();
   if (!admin) {
     console.error("app signup: SUPABASE_SERVICE_ROLE_KEY is not set for this deployment.");
     return NextResponse.json(
-      { error: "إنشاء الحساب غير متاح الآن من التطبيق. أنشئه من الموقع، ثمّ ادخل به هنا." },
+      { error: tr(locale, "إنشاء الحساب غير متاح الآن من التطبيق. أنشئه من الموقع، ثمّ ادخل به هنا.", "Creating an account is not available from the app right now. Create it on the website, then sign in with it here.") },
       { status: 503 },
     );
   }
@@ -69,13 +72,13 @@ export async function POST(req: Request) {
     user_metadata: { full_name: fullName, phone: phone.e164, role },
   });
   if (createError) {
-    return NextResponse.json({ error: translateAuthError(createError.message, "phone", "ar") }, { status: 400 });
+    return NextResponse.json({ error: translateAuthError(createError.message, "phone", locale) }, { status: 400 });
   }
 
   const result = await passwordSession(email, password);
   if ("error" in result) {
     return NextResponse.json(
-      { error: "أُنشئ حسابك. ادخل برقمك وكلمة مرورك.", created: true },
+      { error: tr(locale, "أُنشئ حسابك. ادخل برقمك وكلمة مرورك.", "Your account was created. Sign in with your number and password."), created: true },
       { status: 202 },
     );
   }

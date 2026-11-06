@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { explain } from "@/lib/supplyActions";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * صندوق الرسائل في التطبيق (البند ١٤٤): the conversations the caller is in —
@@ -11,9 +12,10 @@ import { explain } from "@/lib/supplyActions";
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
 
   const { data, error } = await auth.supabase.rpc("my_conversations");
-  if (error) return NextResponse.json({ error: explain("ar", error) }, { status: 500 });
+  if (error) return NextResponse.json({ error: explain(locale, error) }, { status: 500 });
   return NextResponse.json({ conversations: data ?? [] }, { headers: { "cache-control": "no-store" } });
 }
 
@@ -21,8 +23,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
 
   const { data, error } = await auth.supabase.rpc("conversation_for_support");
-  if (error || !data) return NextResponse.json({ error: explain("ar", error) }, { status: 400 });
+  if (error || !data) return NextResponse.json({ error: explain(locale, error) }, { status: 400 });
   return NextResponse.json({ id: data });
 }
