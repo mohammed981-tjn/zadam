@@ -54,12 +54,20 @@ export default async function SeasonsPage({
             )}
           </p>
         </div>
-        <Link
-          href="/seasons/new"
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-        >
-          {t("موسم جديد", "New season")}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/seasons/offline"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-primary ring-1 ring-primary/30 hover:bg-primary/10"
+          >
+            {t("قيدٌ بلا إنترنت", "An entry with no internet")}
+          </Link>
+          <Link
+            href="/seasons/new"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            {t("موسم جديد", "New season")}
+          </Link>
+        </div>
       </div>
 
       <figure className="my-6">

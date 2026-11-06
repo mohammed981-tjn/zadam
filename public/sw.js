@@ -21,7 +21,7 @@
  *
  * Bumping VERSION drops every old cache on the next activation.
  */
-const VERSION = "sudagri-v2";
+const VERSION = "sudagri-v3";
 const PAGES = `${VERSION}-pages`;
 const ASSETS = `${VERSION}-assets`;
 const OFFLINE_URL = "/offline.html";
@@ -45,11 +45,15 @@ const PUBLIC_PAGES = [
   /^\/market\/inputs$/,
   /^\/rates$/,
   /^\/mining\/gold$/,
+  // البند ١٨٤ (قرار المالك 6 نوفمبر: «نموذج فارغ فقط»): نموذج قيدٍ فارغ، واحدٌ للجميع. ما يُكتب فيه يبقى في صندوق
+  // الهاتف (src/lib/outbox.ts)، ومواسم صاحبه تُطلب بعد الاتّصال ولا تُكتب في الصفحة؛ فهذه الصفحة وحدها من «مواسمي»
+  // يجوز حفظها، وما سواها من /seasons لا يُخزَّن أبداً.
+  /^\/seasons\/offline$/,
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(PAGES).then((c) => c.add(OFFLINE_URL)).then(() => self.skipWaiting()),
+    caches.open(PAGES).then((c) => c.addAll([OFFLINE_URL, "/seasons/offline"])).then(() => self.skipWaiting()),
   );
 });
 

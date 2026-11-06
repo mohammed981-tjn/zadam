@@ -190,6 +190,8 @@ export interface SeasonStage {
   completed: boolean;
   completed_at: string | null;
   note: string | null;
+  /** The mandate an agent signed this stage off under (20261106050000); null = the owner. */
+  completed_by_mandate?: string | null;
 }
 
 /**
@@ -221,6 +223,8 @@ export interface StageEvidence {
   longitude: number | null;
   created_by: string | null;
   created_at: string;
+  /** The mandate an agent uploaded this under (20261106050000); null = the owner. */
+  by_mandate?: string | null;
 }
 
 export interface LedgerEntryRow {

@@ -61,6 +61,32 @@ begin
                where c.code = 'sesame' and d.code = 'EU' and r.effective_to is null), 6, 'وما كان (السمسم إلى أوروبا) لم يُمسّ');
 end $$;
 
+\echo ''
+\echo 'الكركديه المجفّف إلى أوروبا: الشهادة النباتيّة يُنصح بها (قرار المالك 6 نوفمبر)'
+do $$
+declare v_old int; v_now int; v_rev int;
+begin
+  select count(*)::int into v_old from export_corridor_requirements r
+    join export_corridors cr on cr.id = r.corridor_id
+    join export_commodities c on c.id = cr.commodity_id and c.code = 'hibiscus'
+    join export_destinations d on d.id = cr.destination_id and d.code = 'EU'
+    join export_document_types t on t.id = r.document_type_id and t.code = 'phytosanitary'
+   where r.mode = 'required' and r.effective_to = date '2026-11-06';
+  perform _eq(v_old, 1, 'القاعدة القديمة (إلزاميّة) انتهت في 6 نوفمبر ولم تُحذف');
+  perform _eq(_has('hibiscus', 'EU', 'phytosanitary', 'recommended'), true, 'والسارية الآن: يُنصح بها');
+  perform _eq(_has('hibiscus', 'EU', 'phytosanitary', 'required'), false, 'ولا قاعدة إلزاميّة سارية معها');
+  select count(*)::int into v_now from export_corridor_requirements r
+    join export_corridors cr on cr.id = r.corridor_id
+    join export_commodities c on c.id = cr.commodity_id and c.code = 'hibiscus'
+    join export_destinations d on d.id = cr.destination_id and d.code = 'EU'
+    join export_document_types t on t.id = r.document_type_id and t.code = 'phytosanitary'
+   where r.effective_to is null;
+  perform _eq(v_now, 1, 'وسطرٌ واحدٌ سارٍ ولو طُبِّقت الهجرة مرّتين');
+  perform _eq(_has('hibiscus', 'EG', 'phytosanitary', 'required'), true, 'والكركديه إلى مصر ما زال يطلبها إلزاماً');
+  select count(*)::int into v_rev from export_corridor_reviews where reviewed_at = '2026-11-06 00:00+00';
+  perform _eq(v_rev, 1, 'ومراجعةٌ واحدة تذكر القرار ومصدره');
+end $$;
+
 do $$
 declare f integer;
 begin

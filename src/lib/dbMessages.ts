@@ -686,6 +686,21 @@ const MESSAGES: [string, string][] = [
   ["من وثّق الأرض ومتى وبأيّ مساحة يُكتب عند التوثيق وحده.", "Who verified the land, when and at what area is written at verification only."],
   ["وسم «تجريبيّ» للإدارة وحدها.", "Only the administration marks something as a trial."],
   ["الأرض ليست موثّقةً الآن (تغيّرت بياناتها أو لم تُراجَع بعد)، فلا يُوقَّع عليها حتى تعيد الإدارة توثيقها.", "The land is not verified now (its details changed or it has not been reviewed yet), so nothing can be signed on it until the administration verifies it again."],
+  // The agent writes a season's stages and evidence (20261106050000, backlog 169).
+  ["اعترض المزارع على اعتماد هذه المرحلة: يعتمدها هو بنفسه.", "The farmer objected to this stage's sign-off: they sign it off themselves."],
+  ["اعترضت على هذا من قبل.", "You have already objected to this."],
+  ["اعتُمدت هذه المرحلة من قبل.", "This stage has already been signed off."],
+  ["اكتب سبب اعتراضك (٣ أحرفٍ فأكثر): يقرؤه الوكيل.", "Write the reason for your objection (3 characters or more): the agent reads it."],
+  ["الدليل ملفٌّ مرفوع: ارفعه ثمّ سجّله.", "Evidence is an uploaded file: upload it, then record it."],
+  ["دليلٌ اعترض عليه المزارع يبقى كما هو.", "Evidence the farmer objected to stays as it is."],
+  ["علامة الوكيل تكتبها دوالّه وحدها.", "The agent's mark is written only by the agent's own functions."],
+  ["لا إذن قائماً لك في مواسم هذا المزارع.", "You have no active permission for this farmer's seasons."],
+  ["لا شيء بهذا في سجلّ وكلائك.", "There is no such entry in your agents' record."],
+  ["لا مرحلة بهذا.", "There is no such stage."],
+  ["نوع دليلٍ غير معروف.", "Unknown evidence type."],
+  ["هذا الملفّ دليلٌ على مرحلةٍ أخرى.", "This file is already evidence for another stage."],
+  ["هذا الموسم ليس جارياً: لا يُكتب فيه.", "This season is not active: nothing can be written in it."],
+  ["هذا موسمك: اكتب فيه من صفحته.", "This is your own season: write in it from its page."],
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
