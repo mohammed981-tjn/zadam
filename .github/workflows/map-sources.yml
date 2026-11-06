@@ -20,6 +20,7 @@ on:
       - "src/components/map/**"
       - "src/lib/mapLayers.ts"
       - "src/lib/mapStyle.ts"
+      - "src/lib/mapGround.ts"
       - ".github/workflows/map-sources.yml"
   schedule:
     # Mondays 05:23 UTC, 08:23 in Khartoum, off the hour.
@@ -36,8 +37,9 @@ jobs:
       - name: Read the addresses from the code
         run: |
           set -euo pipefail
-          style=$(grep -oP 'STREET_STYLE = "\K[^"]+' src/components/map/LiveMap.tsx)
-          sat=$(grep -oP 'SAT_TILES = "\K[^"]+' src/components/map/LiveMap.tsx)
+          # Shared by the website's LiveMap and the app's map screen (/api/app/map).
+          style=$(grep -oP 'STREET_STYLE = "\K[^"]+' src/lib/mapGround.ts)
+          sat=$(grep -oP 'SAT_TILES = "\K[^"]+' src/lib/mapGround.ts)
           echo "STYLE=$style" >> "$GITHUB_ENV"
           echo "SAT=$sat" >> "$GITHUB_ENV"
           echo "style: $style"

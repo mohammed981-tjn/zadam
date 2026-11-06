@@ -32,7 +32,7 @@ const r3 = (n: number) => Math.round(n * 1000) / 1000;
 const pt = ([lon, lat]: readonly [number, number] | [number, number]): [number, number] => [r3(lon), r3(lat)];
 
 /** Heat in the platform's colours: beige into pink, no orange. */
-const HEAT = ["#f3f1e6", "#d9ecd2", "#a8d8a8", "#6fbf7d", "#3fae66", "#1f7a3d"];
+export const HEAT = ["#f3f1e6", "#d9ecd2", "#a8d8a8", "#6fbf7d", "#3fae66", "#1f7a3d"];
 
 /** Soils whose usual WRB colour is red or orange, in earth browns and plum instead. */
 const SOIL_SAFE: Record<string, string> = {
@@ -299,6 +299,23 @@ const SHORT_FUEL: Record<keyof typeof FUEL_INK, [string, string]> = {
   thermal: ["محطّة حراريّة", "Thermal station"],
   biomass: ["محطّة كتلة حيويّة", "Biomass station"],
 };
+
+const dayMonth = (iso: string, locale: Locale) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString(locale === "en" ? "en-GB" : "ar", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Africa/Khartoum",
+  });
+
+/** The week's dates as the map's key says them («من 6 نوفمبر إلى 12 نوفمبر»); none without a grid. Shared by /map and /api/app/map. */
+export function mapWeekDates(grid: RainGrid | null, locale: Locale): string | undefined {
+  if (!grid) return undefined;
+  return tr(
+    locale,
+    `من ${dayMonth(grid.from, locale)} إلى ${dayMonth(grid.to, locale)}`,
+    `From ${dayMonth(grid.from, locale)} to ${dayMonth(grid.to, locale)}`,
+  );
+}
 
 const EMOJI: Record<string, string> = { rain: "🌧️", tmax: "🌡️", et0: "💨", elev: "⛰️", soil: "🟤", lands: "🌾" };
 

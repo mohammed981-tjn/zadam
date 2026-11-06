@@ -1,8 +1,8 @@
 import Link from "next/link";
 import MapScreen from "@/components/map/MapScreen";
 import { availableLayers, fetchRainGrid } from "@/lib/rainMap";
-import { mapThemes } from "@/lib/mapLayers";
-import { tr, type Locale } from "@/lib/i18n";
+import { mapThemes, mapWeekDates } from "@/lib/mapLayers";
+import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 
 export async function generateMetadata() {
@@ -16,13 +16,6 @@ export async function generateMetadata() {
     ),
   };
 }
-
-const dayMonth = (iso: string, locale: Locale) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString(locale === "en" ? "en-GB" : "ar", {
-    day: "numeric",
-    month: "long",
-    timeZone: "Africa/Khartoum",
-  });
 
 /**
  * الخرائط (البند ١٤٧): كلّ ما ترسمه المنصّة على خريطةٍ واحدةٍ حيّة.
@@ -41,10 +34,8 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const grid = await fetchRainGrid({ lands: true });
-  const dates = grid
-    ? t(`من ${dayMonth(grid.from, locale)} إلى ${dayMonth(grid.to, locale)}`, `From ${dayMonth(grid.from, locale)} to ${dayMonth(grid.to, locale)}`)
-    : undefined;
-  const themes = mapThemes(grid, grid ? availableLayers(grid) : [], locale, dates);
+  // The same themes the app's map screen reads from /api/app/map.
+  const themes = mapThemes(grid, grid ? availableLayers(grid) : [], locale, mapWeekDates(grid, locale));
 
   return (
     <div className="mx-auto max-w-6xl px-2 pb-10 pt-2 sm:px-4">
