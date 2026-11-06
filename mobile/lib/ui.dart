@@ -459,7 +459,7 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 4,
       foregroundColor: ink,
       backgroundColor: Colors.transparent,
-      flexibleSpace: DecoratedBox(
+      flexibleSpace: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: AlignmentDirectional.centerStart,
@@ -646,15 +646,15 @@ class PalettePicker extends StatelessWidget {
                             child: Row(children: [
                               Expanded(
                                 flex: 3,
-                                child: DecoratedBox(
+                                child: Container(
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(colors: [p.headerTop, p.headerBottom]),
                                   ),
                                 ),
                               ),
-                              Expanded(flex: 2, child: ColoredBox(color: p.primary)),
-                              Expanded(child: ColoredBox(color: p.gold)),
-                              Expanded(child: ColoredBox(color: p.background)),
+                              Expanded(flex: 2, child: Container(color: p.primary)),
+                              Expanded(child: Container(color: p.gold)),
+                              Expanded(child: Container(color: p.background)),
                             ]),
                           ),
                         ),

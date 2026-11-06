@@ -11,6 +11,20 @@ const [url, out] = process.argv.slice(2);
 const TABS = ["home", "water", "assistant", "knowledge", "account"]; // الشريط السفليّ من اليمين
 // Home-board sections opened by name, each saved as its own picture.
 const SECTIONS = [
+  // The website's sections, each on its own screen in the app (item 203).
+  ["المواسم", "seasons"],
+  ["أراضيّ", "lands"],
+  ["الدفتر", "books"],
+  ["القطعان", "herds"],
+  ["دراسة الجدوى", "feasibility"],
+  ["الخرائط", "maps"],
+  ["الأسعار", "prices"],
+  ["التصدير", "export"],
+  ["العقود", "contracts"],
+  ["الاستثمار", "invest"],
+  ["الموردون", "suppliers"],
+  ["الوكيل", "agent"],
+  ["المكتبة", "library"],
   ["الأخبار", "news"],
   ["الأفلام", "films"],
   ["توقّع الأمطار", "rain"],
@@ -74,9 +88,16 @@ if (await tap("فتح قائمة التنقل")) {
   await page.waitForTimeout(800);
 }
 let n = 8;
+// The board is three groups long and Flutter only builds what is on screen: a tall window builds every tile, then
+// the picture is taken at the phone's height.
 for (const [name, file] of SECTIONS) {
   await tab(0);
-  if (await tap(name)) {
+  await page.setViewportSize({ width: 390, height: 3200 });
+  await page.waitForTimeout(1200);
+  const found = await tap(name);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(1500);
+  if (found) {
     await page.screenshot({ path: `${out}/${n}-${file}.png` });
     await back();
   }
