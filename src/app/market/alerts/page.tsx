@@ -4,8 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { loginTo } from "@/lib/authEntry";
-import { currentFx, currentMarketPrices } from "@/lib/livePrices";
-import { MAX_ACTIVE_ALERTS, describeAlert, figuresOf, subjectOptions, toAlert, type PriceAlert } from "@/lib/priceAlerts";
+import { MAX_ACTIVE_ALERTS, describeAlert, loadPriceAlerts, toAlert } from "@/lib/priceAlerts";
 import { money } from "@/lib/marketCrops";
 import PageHeader from "@/components/PageHeader";
 import PriceAlertForm from "@/components/PriceAlertForm";
@@ -15,22 +14,6 @@ import { stopPriceAlert } from "./actions";
 export async function generateMetadata() {
   const locale = await getLocale();
   return { title: tr(locale, "تنبيهات الأسعار | سوداقري", "Price alerts | Sudagri") };
-}
-
-interface Row {
-  id: string;
-  user_id: string;
-  subject: PriceAlert["subject"];
-  market: string | null;
-  crop: string | null;
-  unit: string | null;
-  direction: PriceAlert["direction"];
-  threshold: number | string;
-  created_at: string;
-  status: "active" | "fired" | "stopped";
-  settled_at: string | null;
-  fired_value: number | string | null;
-  fired_market_date: string | null;
 }
 
 /**
@@ -46,20 +29,8 @@ export default async function PriceAlertsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect(loginTo("/market/alerts"));
 
-  const [{ data }, prices, fx] = await Promise.all([
-    supabase
-      .from("price_alerts")
-      .select("id, user_id, subject, market, crop, unit, direction, threshold, created_at, status, settled_at, fired_value, fired_market_date")
-      .order("created_at", { ascending: false })
-      .limit(100),
-    currentMarketPrices(),
-    currentFx(),
-  ]);
-  const rows = (data ?? []) as Row[];
-  const markets = prices?.markets ?? null;
-  const options = subjectOptions(prices?.series ?? [], markets ?? {}, figuresOf(prices, fx));
-  const running = rows.filter((r) => r.status === "active");
-  const settled = rows.filter((r) => r.status !== "active");
+  // The same loader the phone app's alerts route reads (src/lib/priceAlerts.ts).
+  const { markets, options, running, settled } = await loadPriceAlerts(supabase);
   const day = (iso: string) => new Date(iso).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG", { dateStyle: "medium" });
 
   return (
