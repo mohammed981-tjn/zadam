@@ -122,3 +122,31 @@ export async function registerManagedFarmer(fd: FormData) {
     ),
   );
 }
+
+/**
+ * المزارع يعترض على ما كتبه وكيلٌ باسمه (قرار المالك 6 نوفمبر). القاعدة تتحقّق أنّه صاحب السطر، وتسجّل الاعتراض،
+ * وتفتح المرحلة إن كان ذلك لا يكسر ترتيباً، وتُخبر الوكيل. يرجع إلى صفحة الموسم التي جاء منها، أو إلى «وكلائي».
+ */
+export async function objectAgentWrite(fd: FormData) {
+  const { supabase } = await signedIn();
+  const { locale, t } = await translator();
+  const from = str(fd, "from");
+  const page = /^\/seasons\/[0-9a-f-]{36}$/i.test(from) ? from : "/account/agents";
+  const back = (key: "ok" | "error", message: string): never => {
+    revalidatePath(page);
+    revalidatePath("/account/agents");
+    // The season page shows only `error`; there the mark itself says the objection was recorded.
+    if (key === "ok" && page !== "/account/agents") redirect(page);
+    redirect(`${page}?${key}=${encodeURIComponent(message)}`);
+  };
+  const action = Number(str(fd, "action_id"));
+  if (!Number.isSafeInteger(action) || action <= 0) back("error", t("لا شيء بهذا في سجلّ وكلائك.", "There is no such entry in your agents' record."));
+  const { data: reopened, error } = await supabase.rpc("agent_write_object", { p_action: action, p_reason: str(fd, "reason") });
+  if (error) back("error", explain(locale, error));
+  back(
+    "ok",
+    reopened
+      ? t("سُجّل اعتراضك وأُخبر الوكيل، وفُتحت المرحلة من جديد: تعتمدها أنت حين تتمّ.", "Your objection is recorded and the agent told, and the stage is open again: you sign it off when it is done.")
+      : t("سُجّل اعتراضك وأُخبر الوكيل، وتراه الإدارة.", "Your objection is recorded, the agent has been told, and the administrators can see it."),
+  );
+}

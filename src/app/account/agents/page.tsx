@@ -5,7 +5,15 @@ import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import PageHeader from "@/components/PageHeader";
 import { button, card, ghost } from "@/lib/ui";
-import { AGENT_SCOPE_LABEL, AGENT_SCOPE_SHORT, MANDATE_STATUS_LABEL, type MyAgentRow } from "@/lib/agent";
+import {
+  AGENT_SCOPE_LABEL,
+  AGENT_SCOPE_SHORT,
+  MANDATE_STATUS_LABEL,
+  agentActionLabel,
+  type AgentActionSubject,
+  type AgentActionVerb,
+  type MyAgentRow,
+} from "@/lib/agent";
 import { answerMandate, endMandate } from "@/app/agent/actions";
 
 export async function generateMetadata() {
@@ -16,9 +24,9 @@ export async function generateMetadata() {
 type ActionRow = {
   id: number;
   mandate_id: string;
-  subject: "land" | "land_document";
+  subject: AgentActionSubject;
   subject_id: string;
-  action: "insert" | "update";
+  action: AgentActionVerb;
   at: string;
 };
 
@@ -57,6 +65,30 @@ export default async function MyAgentsPage({ searchParams }: PageProps<"/account
     ? await supabase.from("lands").select("id, name").in("id", landIds)
     : { data: [] };
   const landName = new Map(((landRows ?? []) as { id: string; name: string }[]).map((l) => [l.id, l.name]));
+  // A stage or a piece of evidence links to its season (20261106050000), and says whether you objected.
+  const stageIds = actions.filter((a) => a.subject === "season_stage").map((a) => a.subject_id);
+  const evidenceIds = actions.filter((a) => a.subject === "stage_evidence").map((a) => a.subject_id);
+  const [{ data: evidenceRows }, { data: objectionRows }] = await Promise.all([
+    evidenceIds.length
+      ? supabase.from("stage_evidence").select("id, stage_id").in("id", evidenceIds)
+      : Promise.resolve({ data: [] }),
+    actions.length
+      ? supabase.from("agent_objections").select("action_id").in("action_id", actions.map((a) => a.id))
+      : Promise.resolve({ data: [] }),
+  ]);
+  const stageOfEvidence = new Map(((evidenceRows ?? []) as { id: string; stage_id: string }[]).map((e) => [e.id, e.stage_id]));
+  const allStageIds = [...new Set([...stageIds, ...stageOfEvidence.values()])];
+  const { data: stageRows } = allStageIds.length
+    ? await supabase.from("season_stages").select("id, season_id").in("id", allStageIds)
+    : { data: [] };
+  const seasonOfStage = new Map(((stageRows ?? []) as { id: string; season_id: string }[]).map((g) => [g.id, g.season_id]));
+  const seasonOf = (a: ActionRow) =>
+    a.subject === "season_stage"
+      ? seasonOfStage.get(a.subject_id)
+      : a.subject === "stage_evidence"
+        ? seasonOfStage.get(stageOfEvidence.get(a.subject_id) ?? "")
+        : undefined;
+  const objected = new Set(((objectionRows ?? []) as { action_id: number }[]).map((o) => o.action_id));
   const date = (d: string) => new Date(d).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG", { dateStyle: "medium" });
 
   return (
@@ -147,11 +179,16 @@ export default async function MyAgentsPage({ searchParams }: PageProps<"/account
             {actions.map((a) => (
               <li key={a.id}>
                 {date(a.at)} · {company.get(a.mandate_id) ?? t("وكيل", "an agent")} ·{" "}
-                {a.subject === "land"
-                  ? a.action === "insert"
-                    ? t("سجّل أرضاً", "registered a land")
-                    : t("عدّل أرضاً", "edited a land")
-                  : t("رفع مستنداً", "uploaded a document")}
+                {tr(locale, ...agentActionLabel(a.subject, a.action, "farmer"))}
+                {seasonOf(a) && (
+                  <>
+                    {" "}
+                    <Link href={`/seasons/${seasonOf(a)}`} className="text-primary underline">
+                      {t("(الموسم)", "(the season)")}
+                    </Link>
+                  </>
+                )}
+                {objected.has(a.id) && <span className="text-danger">{t(" · اعترضت عليه", " · you objected")}</span>}
                 {a.subject === "land" && landName.get(a.subject_id) && (
                   <>
                     {" "}

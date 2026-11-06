@@ -30,6 +30,8 @@ import type {
 } from "@/types/database";
 import { addLedgerEntry, completeSeason, completeStage, settleLedgerEntry, unsettleLedgerEntry } from "../actions";
 import StageEvidenceUpload from "@/components/StageEvidence";
+import AgentWriteMark from "@/components/AgentWriteMark";
+import { loadAgentMarks } from "@/lib/agentMarks";
 import YieldBenchmark from "@/components/YieldBenchmark";
 import OfflineForm from "@/components/OfflineForm";
 import { revalueOpenPounds } from "@/lib/fxRevalue";
@@ -155,6 +157,8 @@ export default async function SeasonPage({
   const evidence = (evidenceRows ?? []) as StageEvidence[];
   const evidenceFor = (stageId: string) =>
     evidence.filter((e) => e.stage_id === stageId);
+  // What an agent wrote here is marked as theirs, and the owner can object (owner, 6 November).
+  const agentMarks = await loadAgentMarks(supabase, stages, evidence);
 
   const plannedBudget = stages.reduce((sum, s) => sum + Number(s.budget), 0);
   const summary = summariseLedger(
@@ -470,6 +474,16 @@ export default async function SeasonPage({
                     ))}
                   </ul>
                 )}
+
+                {agentMarks.stage(s.id) && (
+                  <AgentWriteMark mark={agentMarks.stage(s.id)!} what="stage" seasonId={season.id} canObject={isOwner} locale={locale} />
+                )}
+                {ev.map((e) => {
+                  const mark = agentMarks.evidence(e.id);
+                  return mark ? (
+                    <AgentWriteMark key={e.id} mark={mark} what="evidence" caption={e.caption} seasonId={season.id} canObject={isOwner} locale={locale} />
+                  ) : null;
+                })}
 
                 {canWrite && (
                   <div className="mt-4 flex flex-wrap items-end gap-3">
