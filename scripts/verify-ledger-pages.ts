@@ -108,10 +108,16 @@ async function main() {
   console.log("\nد) «اليوم» يوم الخرطوم في صفحة الموسم (ب٦)");
   {
     const root = join(__dirname, "../src/app/seasons");
+    // The entry's insert and the stage's sign-off live in lib/seasonWrites since backlog 203 (the app's routes call
+    // them too); the page's actions call them, so the three files are held together.
     const files = ["[id]/page.tsx", "actions.ts"].map((f) => readFileSync(join(root, f), "utf8"));
-    ok(files.every((s) => !s.includes("new Date().toISOString().slice(0, 10)")), "لا يومٌ بتوقيت غرينتش في الصفحة ولا في أفعالها");
-    ok(files.every((s) => s.includes("ledgerToday()")), "ويومهما ledgerToday()");
-    ok(files[1].includes("entry_date: entryDate ?? today"), "والسطر بلا تاريخ يأخذ يوم الخرطوم صراحةً، لا افتراض القاعدة");
+    const writes = readFileSync(join(__dirname, "../src/lib/seasonWrites.ts"), "utf8");
+    ok([...files, writes].every((s) => !s.includes("new Date().toISOString().slice(0, 10)")), "لا يومٌ بتوقيت غرينتش في الصفحة ولا في أفعالها");
+    ok([...files, writes].every((s) => s.includes("ledgerToday()")), "ويومهما ledgerToday()");
+    ok(
+      files[1].includes("recordLedgerEntry(") && writes.includes("entry_date: entryDate ?? today"),
+      "والسطر بلا تاريخ يأخذ يوم الخرطوم صراحةً، لا افتراض القاعدة",
+    );
   }
 
   console.log("\nهـ) نصوص الرقابة (ب٤، ب٥)");
