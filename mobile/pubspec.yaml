@@ -81,6 +81,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # The logo in the header and the 15-second film on the home screen (owner, 6 November 2026).
+  assets:
+    - assets/brand/logo.png
+    - assets/video/hero.mp4
+    - assets/video/hero.jpg
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

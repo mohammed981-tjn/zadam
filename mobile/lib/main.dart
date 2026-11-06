@@ -32,8 +32,13 @@ void main() {
   // Read the saved session without holding up the first frame; «حسابي» shows
   // a spinner until it is in.
   accountController.load();
+  // The chosen palette (owner, 6 November 2026): «ألوان الشعار» unless «أخضر الأوراق» was picked in «حسابي».
+  paletteController.load();
   // Back from Google's sign-in in the browser (backlog 173): `sudagri://auth?h=…`, while open or as the app starts.
-  AppLinks().uriLinkStream.listen(accountController.handleLink, onError: (_) {});
+  AppLinks().uriLinkStream.listen(
+    accountController.handleLink,
+    onError: (_) {},
+  );
   runApp(const SudagriApp());
 }
 
@@ -42,21 +47,24 @@ class SudagriApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'سوداقري',
-      debugShowCheckedModeBanner: false,
-      theme: sudagriLight,
-      darkTheme: sudagriDark,
-      // Arabic throughout, so the whole tree lays out right-to-left without
-      // every screen having to wrap itself in a Directionality.
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      home: const HomeShell(),
+    return ValueListenableBuilder<Palette>(
+      valueListenable: paletteController,
+      builder: (context, palette, _) => MaterialApp(
+        title: 'سوداقري',
+        debugShowCheckedModeBanner: false,
+        theme: sudagriLight,
+        darkTheme: sudagriDark,
+        // Arabic throughout, so the whole tree lays out right-to-left without
+        // every screen having to wrap itself in a Directionality.
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: const HomeShell(),
+      ),
     );
   }
 }

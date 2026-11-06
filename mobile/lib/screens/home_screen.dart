@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('🌾 سوداقري')),
+      appBar: const BrandAppBar(),
       drawer: _Menu(
         onOpen: (s) {
           Navigator.of(context).pop();
@@ -218,13 +218,31 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HeroBand(
+    final gold = SudagriColors.gold;
+    return HeroVideo(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const TagPill('الأدوات تعمل الآن · مجاناً وبلا تسجيل',
-              icon: Icons.verified_outlined),
-          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0x66000000),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: gold.withValues(alpha: 0.8)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.verified_outlined, size: 14, color: gold),
+              const SizedBox(width: 5),
+              const Flexible(
+                child: Text('الأدوات تعمل الآن · مجاناً وبلا تسجيل',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+            ]),
+          ),
+          // The film shows above the words.
+          const SizedBox(height: 72),
           // Broken after «هنا» so the two lines balance on a phone.
           const Text(
             'كل رقمٍ هنا\nيمكنك أن تعيد حسابه بنفسك',
@@ -232,21 +250,21 @@ class _Hero extends StatelessWidget {
               fontSize: 23,
               fontWeight: FontWeight.w900,
               height: 1.4,
+              shadows: [Shadow(color: Color(0x99000000), blurRadius: 8)],
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
+          const SizedBox(height: 4),
+          const Text(
             'منصّة معرفة زراعية وبيانات للسودان — لكل رقمٍ مصدره ومنهجه.',
-            style: TextStyle(height: 1.7, color: mutedOn(context)),
+            style: TextStyle(height: 1.6, color: Color(0xE6FFFFFF), fontSize: 13),
           ),
-          const SizedBox(height: 16),
-          // The olive fills the one button that matters; the other is outlined.
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
                   ),
                   onPressed: onWater,
                   icon: const Icon(Icons.water_drop, size: 18),
@@ -257,8 +275,10 @@ class _Hero extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0x33000000),
+                    side: BorderSide(color: gold, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
                     textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                   ),
                   onPressed: onAsk,
@@ -343,26 +363,47 @@ class _Menu extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
           children: [
-            const HeroBand(
-              padding: EdgeInsets.fromLTRB(18, 18, 18, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // The drawer opens on the logo and the name, on the header's own band.
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: LinearGradient(colors: [SudagriColors.headerTop, SudagriColors.headerBottom]),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    '🌾 سوداقري',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  Container(
+                    width: 64,
+                    height: 64,
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: SudagriColors.gold, width: 2),
+                    ),
+                    child: ClipOval(child: Image.asset('assets/brand/logo.png', fit: BoxFit.cover)),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'منصّة معرفة زراعية وبيانات للسودان',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('سوداقري',
+                            style: TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.w900, color: SudagriColors.headerInk)),
+                        const SizedBox(height: 2),
+                        Text('منصّة سودانيّة للزراعة والتجارة',
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600, color: SudagriColors.headerMuted)),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 14),
+            const SectionTitle('ألوان التطبيق'),
+            const PalettePicker(),
             const SizedBox(height: 12),
             for (final s in _sections)
               ListTile(
