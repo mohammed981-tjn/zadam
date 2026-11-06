@@ -210,7 +210,7 @@ export default function MapScreen({
                   )}
                   {grid.key === "lands" && grid.overlays.length > 0 && (
                     <p className="mt-2 flex items-center gap-2 text-[11px] text-muted">
-                      <span className="inline-block size-4 rounded-full bg-[#2a6424]" />
+                      <span className="inline-block size-4 rounded-full bg-[#0f5a32]" />
                       {t("الرقم عدد الأراضي الموثّقة في المربّع (نحو ١٦٧ كم)", "The number is the count of verified lands in the square (about 167 km)")}
                     </p>
                   )}

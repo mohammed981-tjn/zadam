@@ -5,10 +5,8 @@ import { loginHrefHere } from "@/lib/loginHere";
 import Explain from "@/components/Explain";
 import HerdReadiness from "@/components/HerdReadiness";
 import HerdExportChecklist from "@/components/HerdExportChecklist";
-import type { HealthRecord, HerdTag } from "@/lib/herdHealth";
-import { buildChecklist, EXPORT_DESTINATIONS, type ExportDestination } from "@/lib/livestockExportChecklist";
-import { diseaseName, fetchDiseaseEvents } from "@/lib/animalDisease";
-import { DISEASE_ALERT_DAYS, isoDaysBefore } from "@/lib/fieldAlerts";
+import { EXPORT_DESTINATIONS, type ExportDestination } from "@/lib/livestockExportChecklist";
+import { loadHerdReadiness } from "@/lib/herdSteps";
 import { completeHerdStage, setHerdBudget } from "@/app/herds/actions";
 import {
   SPECIES_LABEL,
@@ -74,48 +72,9 @@ export default async function HerdPage({
 
   const stages = (stageRows ?? []) as HerdStage[];
 
-  // الجاهزيّة للتصدير للمجترّات والإبل وحدها: الدواجن والأسماك لا تُصدَّر حيّةً من هنا.
-  const exportable = ["cattle", "sheep", "goat", "camel"].includes(herd.species);
-  const [{ data: recordRows }, { data: tagRows }] = exportable
-    ? await Promise.all([
-        supabase
-          .from("herd_health_records")
-          .select("id, kind, item_key, done_on, heads, result, product, batch, vet_name, note, withdrawn_at, withdrawn_note, created_at")
-          .eq("herd_id", id)
-          .order("done_on", { ascending: false })
-          .order("created_at", { ascending: false }),
-        supabase.from("herd_tags").select("tag, status, added_on").eq("herd_id", id).order("added_on").order("tag"),
-      ])
-    : [{ data: [] }, { data: [] }];
-
-  // «من منطقةٍ لم تُسجَّل فيها أمراض وبائيّة»: ولاية أرض القطيع مقابل ما وصل الفاو.
-  let stateDiseases: string[] | null = null;
-  if (exportable && herd.land_id) {
-    const { data: land } = await supabase.from("lands").select("state").eq("id", herd.land_id).maybeSingle();
-    const state = (land as { state: string | null } | null)?.state ?? null;
-    const events = state ? await fetchDiseaseEvents() : null;
-    if (state && events) {
-      const today = new Date().toISOString().slice(0, 10);
-      const since = isoDaysBefore(today, DISEASE_ALERT_DAYS);
-      stateDiseases = [
-        ...new Set(
-          events
-            .filter((e) => e.country === "Sudan" && e.state === state && e.date >= since && e.date <= today)
-            .map((e) => diseaseName(e.disease, locale)),
-        ),
-      ];
-    }
-  }
-  const checklist = exportable
-    ? buildChecklist(destination, {
-        species: herd.species,
-        headCount: herd.head_count,
-        records: (recordRows ?? []) as HealthRecord[],
-        tags: (tagRows ?? []) as HerdTag[],
-        stateDiseases,
-        today: new Date().toISOString().slice(0, 10),
-      })
-    : [];
+  // الجاهزيّة للتصدير للمجترّات والإبل وحدها: الدواجن والأسماك لا تُصدَّر حيّةً من هنا. The same read as the phone
+  // app's herds screen (backlog 203): src/lib/herdSteps.ts.
+  const { exportable, records, tags, checklist } = await loadHerdReadiness(supabase, herd, destination, locale);
 
   const done = stages.filter((s) => s.completed).length;
   const totalFeed = stages.reduce((s, x) => s + Number(x.planned_feed_kg ?? 0), 0);
@@ -376,8 +335,8 @@ export default async function HerdPage({
           herdId={herd.id}
           headCount={herd.head_count}
           active={herd.status === "active"}
-          records={(recordRows ?? []) as HealthRecord[]}
-          tags={(tagRows ?? []) as HerdTag[]}
+          records={records}
+          tags={tags}
           locale={locale}
           error={rerror}
         >

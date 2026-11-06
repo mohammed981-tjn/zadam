@@ -5,72 +5,205 @@
 /// who uses the site on a laptop and the app on a phone should not feel they
 /// are looking at two different products.
 ///
-/// The brand (owner, 6 November 2026, after olive and light-green trials, with screenshots of the old site:
-/// «هذه ألوان الموقع القديمة»): the beige ground and the site's green as it was before 21 October, #1F7A3D, with
-/// white on it. The beige stays the ground everywhere, the hero included (soft pools of green and gold over it,
-/// see HeroBand). The green fills buttons, the selected tab, selected states and chips, and is also the colour of
-/// green text and line icons on the beige. A lighter green (#3FAE66, #2A8A47) carries the soft touches. Gold is
-/// the accent. No red and no orange anywhere (the owner's standing rule): errors and warnings are a dark gold.
+/// The brand comes from the logo (owner, 6 November 2026, after seeing mockups: «اريد الاثنين ١ و ٢ يمكن التغيير
+/// بينهما»): two palettes the person can switch between in «حسابي», the same two as the website's switch.
 ///
-/// Contrast, measured (WCAG 2.1): white on #1F7A3D 5.4:1; #1F7A3D on the beige 4.9:1, on white 5.4:1; muted
-/// #6B6558 on the beige 5.3:1; warning #8A6508 on the beige 4.9:1. Dark: #08130A on #3FAE66 7.6:1, #3FAE66 on
-/// the card 6.4:1, #E0B440 on the card 8.6:1.
+/// - «ألوان الشعار» (`logo`, the default): the logo's deep green #0F5A32 for buttons and the selected tab, a header
+///   that runs from the logo's forest green #023F24 to it, with white type; a gold touch from the logo's sun; cream
+///   ground #FAF6EC.
+/// - «أخضر الأوراق والذهبيّ» (`leaf`): a light cream header with the forest green as ink, leaf-green buttons #367A23,
+///   a warmer gold.
+///
+/// No red and no orange anywhere (the owner's standing rule): errors and warnings are a dark gold.
+///
+/// Contrast, measured (WCAG 2.1): white on #0F5A32 8.3:1; #0F5A32 on the cream 7.7:1; muted #5D6B5F on the cream
+/// 5.2:1; white on #023F24 12.1:1; white on #367A23 5.3:1; #2F6D1F on #F7F3E6 5.7:1; #666F5A on #F7F3E6 4.75:1;
+/// warning #8A6508 on the cream 4.9:1. Dark: #06120A on #4FAE6A 6.9:1, #4FAE6A on the card 6.1:1.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// One light palette. Dark mode is shared by both.
+class Palette {
+  const Palette({
+    required this.id,
+    required this.name,
+    required this.background,
+    required this.foreground,
+    required this.card,
+    required this.border,
+    required this.primary,
+    required this.textGreen,
+    required this.lightGreen,
+    required this.midGreen,
+    required this.leafTint,
+    required this.muted,
+    required this.gold,
+    required this.goldTint,
+    required this.headerTop,
+    required this.headerBottom,
+    required this.headerInk,
+    required this.headerMuted,
+  });
+
+  final String id;
+  final String name;
+  final Color background;
+  final Color foreground;
+  final Color card;
+  final Color border;
+  final Color primary;
+  final Color textGreen;
+  final Color lightGreen;
+  final Color midGreen;
+  final Color leafTint;
+  final Color muted;
+  final Color gold;
+  final Color goldTint;
+  final Color headerTop;
+  final Color headerBottom;
+  final Color headerInk;
+  final Color headerMuted;
+}
+
+const logoPalette = Palette(
+  id: 'logo',
+  name: 'ألوان الشعار',
+  background: Color(0xFFFAF6EC),
+  foreground: Color(0xFF14261A),
+  card: Color(0xFFFFFFFF),
+  border: Color(0xFFE7E0CC),
+  primary: Color(0xFF0F5A32),
+  textGreen: Color(0xFF0F5A32),
+  lightGreen: Color(0xFF579B2E),
+  midGreen: Color(0xFF1B6B3C),
+  leafTint: Color(0xFFE3EFD9),
+  muted: Color(0xFF5D6B5F),
+  gold: Color(0xFFF2BD4B),
+  goldTint: Color(0xFFFDF1D3),
+  headerTop: Color(0xFF023F24),
+  headerBottom: Color(0xFF0F5A32),
+  headerInk: Color(0xFFFFFFFF),
+  headerMuted: Color(0xCCFFFFFF),
+);
+
+const leafPalette = Palette(
+  id: 'leaf',
+  name: 'أخضر الأوراق والذهبيّ',
+  background: Color(0xFFF7F3E6),
+  foreground: Color(0xFF1C2A14),
+  card: Color(0xFFFFFDF8),
+  border: Color(0xFFEBE2C8),
+  primary: Color(0xFF367A23),
+  textGreen: Color(0xFF2F6D1F),
+  lightGreen: Color(0xFF579B2E),
+  midGreen: Color(0xFF4A9233),
+  leafTint: Color(0xFFE6F0D6),
+  muted: Color(0xFF666F5A),
+  gold: Color(0xFFE0A93A),
+  goldTint: Color(0xFFFBECCB),
+  headerTop: Color(0xFFFFFDF6),
+  headerBottom: Color(0xFFF7F3E6),
+  headerInk: Color(0xFF023F24),
+  headerMuted: Color(0xFF5D6B5F),
+);
+
+const palettes = [logoPalette, leafPalette];
+
+/// The palette in use, kept on the phone. [MaterialApp] listens to it, so a switch repaints the whole app at once.
+class PaletteController extends ValueNotifier<Palette> {
+  PaletteController() : super(logoPalette);
+
+  static const _key = 'sudagri.palette';
+
+  Future<void> load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final id = prefs.getString(_key);
+      value = palettes.firstWhere((p) => p.id == id, orElse: () => logoPalette);
+    } catch (_) {
+      // No preferences (a test, or a first start that cannot read them): the default stays.
+    }
+  }
+
+  Future<void> choose(Palette p) async {
+    value = p;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_key, p.id);
+    } catch (_) {}
+  }
+}
+
+final paletteController = PaletteController();
 
 class SudagriColors {
   const SudagriColors._();
 
-  // Light — matches :root in globals.css.
-  static const background = Color(0xFFF7F5EF);
-  static const foreground = Color(0xFF1C2B1E);
-  static const card = Color(0xFFFFFFFF);
-  static const border = Color(0xFFE2DED0);
+  static Palette get _p => paletteController.value;
 
-  /// The site's green as it was before 21 October (owner, 6 November 2026, with screenshots: «هذه ألوان الموقع
-  /// القديمة»): fills with white type on them (5.4:1), and text and icons on the beige (4.9:1).
-  static const primary = Color(0xFF1F7A3D);
+  // Light — follows the chosen palette (and :root / [data-palette] in globals.css).
+  static Color get background => _p.background;
+  static Color get foreground => _p.foreground;
+  static Color get card => _p.card;
+  static Color get border => _p.border;
+
+  /// The palette's green: fills with white type on them, the selected tab, selected states.
+  static Color get primary => _p.primary;
 
   /// White on [primary].
   static const primaryForeground = Color(0xFFFFFFFF);
 
-  /// Green that is text, a link or a line icon on the beige or a card.
-  static const textGreen = Color(0xFF1F7A3D);
+  /// Green that is text, a link or a line icon on the ground or a card.
+  static Color get textGreen => _p.textGreen;
 
   /// The lighter greens, for soft touches and gradients that carry no text.
-  static const lightOlive = Color(0xFF3FAE66);
-  static const midOlive = Color(0xFF2A8A47);
+  static Color get lightOlive => _p.lightGreen;
+  static Color get midOlive => _p.midGreen;
 
   /// A soft green tint, for icon chips and selected fills.
-  static const leafTint = Color(0xFFE2EFE3);
-  static const muted = Color(0xFF6B6558);
+  static Color get leafTint => _p.leafTint;
+  static Color get muted => _p.muted;
   static const accent = Color(0xFFB8860B);
+
+  /// The logo's sun: a ring, a dot, a chip's edge — never small text.
+  static Color get gold => _p.gold;
+  static Color get goldTint => _p.goldTint;
+
+  /// The header band behind the logo.
+  static Color get headerTop => _p.headerTop;
+  static Color get headerBottom => _p.headerBottom;
+  static Color get headerInk => _p.headerInk;
+  static Color get headerMuted => _p.headerMuted;
 
   /// Text-safe gold: errors, warnings and small gold text (no red, no orange).
   static const warn = Color(0xFF8A6508);
   static const warnTint = Color(0xFFF6EEDB);
 
-  // Dark — matches the prefers-color-scheme block.
-  static const darkBackground = Color(0xFF10160F);
+  // Dark — shared by both palettes, matches the prefers-color-scheme block.
+  static const darkBackground = Color(0xFF0D1510);
   static const darkForeground = Color(0xFFEEF1E8);
-  static const darkCard = Color(0xFF172018);
-  static const darkBorder = Color(0xFF2A3527);
-  static const darkPrimary = Color(0xFF3FAE66);
-  static const darkPrimaryForeground = Color(0xFF08130A);
-  static const darkTextGreen = Color(0xFF3FAE66);
+  static const darkCard = Color(0xFF15201A);
+  static const darkBorder = Color(0xFF26342B);
+  static const darkPrimary = Color(0xFF4FAE6A);
+  static const darkPrimaryForeground = Color(0xFF06120A);
+  static const darkTextGreen = Color(0xFF4FAE6A);
   static const darkLeafTint = Color(0xFF1E3324);
   static const darkMuted = Color(0xFFA3A698);
   static const darkAccent = Color(0xFFD4A72C);
+  static const darkGold = Color(0xFFE6B94F);
   static const darkWarn = Color(0xFFE0B440);
   static const darkWarnTint = Color(0xFF2C2914);
+  static const darkHeaderTop = Color(0xFF06261A);
+  static const darkHeaderBottom = Color(0xFF0D3D26);
 
   /// The selected tab and other selected pills.
-  static const selectedGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [midOlive, primary],
-  );
+  static LinearGradient get selectedGradient => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [midOlive, primary],
+      );
 }
 
 ThemeData _build({required bool dark}) {

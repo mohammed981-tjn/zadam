@@ -438,6 +438,7 @@ const MESSAGES: [string, string][] = [
   ["مرحلةُ عقدٍ وُوفق عليها: دليلها يبقى كما هو.", "The contract phase is approved: its evidence stays as it is."],
   ["سلسلة العهدة تُلحَق ولا تُعدَّل: دليلها يبقى.", "The chain of custody is append-only: its evidence stays."],
   ["لا يُنقل قيدٌ إلى موسمٍ آخر.", "An entry cannot be moved to another season."],
+  ["مفتاح القيد يُكتب مع القيد ولا يتغيّر بعده.", "An entry's key is written with the entry and never changes afterwards."],
   ["دفتر موسمٍ أُقفل لا يُعدَّل ولا يُحذف منه شيء؛ أضِف قيداً مصحِّحاً.", "A closed season's book cannot be edited and nothing can be deleted from it; add a correcting entry."],
   ["موسمٌ بدأ من عقد شراكةٍ لا يُفكّ عنه.", "A season started from a partnership agreement cannot be unlinked from it."],
   ["موسمٌ أُقفل لا يُعاد فتحه.", "A closed season cannot be reopened."],

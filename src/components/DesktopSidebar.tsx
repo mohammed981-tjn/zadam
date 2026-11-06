@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
+import { SUDAGRI_LOGO } from "@/lib/brand";
+import PaletteSwitch from "./PaletteSwitch";
 import { usePathname } from "next/navigation";
 import { signInFrom } from "@/lib/authEntry";
 import { activeHref, groupForPath, type NavGroup } from "@/lib/nav";
@@ -42,16 +45,28 @@ export default function DesktopSidebar({
       aria-label={tr(locale, "أقسام المنصّة", "Platform sections")}
       className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e border-border bg-card print:hidden lg:flex"
     >
-      <div className="brand-edge" aria-hidden />
-      <Link href="/" className="flex items-center gap-2 px-5 py-4 text-xl font-black text-primary">
-        <span aria-hidden="true">🌾</span>
-        {tr(locale, "سوداقري", "Sudagri")}
-      </Link>
+      {/* The column's top is the start of the header's band (the owner, 6 November 2026: the logo in the
+          header): the same ground (`.site-header`, laid against the window so the two meet with no seam), the
+          same 3px edge and the same 4rem row, with the logo, the name and the logo's line. */}
+      <div className="site-header site-header-rule">
+        <div className="brand-edge" aria-hidden />
+        <Link href="/" className="flex h-16 items-center gap-2.5 px-4">
+          <span className="brand-badge size-11 shrink-0">
+            <Image src={SUDAGRI_LOGO} alt="" sizes="44px" placeholder="blur" className="size-full object-cover" />
+          </span>
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="text-xl font-black">{tr(locale, "سوداقري", "Sudagri")}</span>
+            <span className="truncate text-[0.6875rem] font-medium text-header-muted">
+              {tr(locale, "منصّة سودانيّة للزراعة والتجارة", "A Sudanese platform for farming and trade")}
+            </span>
+          </span>
+        </Link>
+      </div>
 
       <button
         type="button"
         onClick={() => window.dispatchEvent(new Event(OPEN_ASSISTANT_EVENT))}
-        className="mx-3 mb-2 flex items-center gap-3 rounded-xl bg-primary/10 px-3 py-2.5 text-start text-sm font-bold text-primary transition hover:bg-primary/15"
+        className="mx-3 mb-2 mt-3 flex items-center gap-3 rounded-xl bg-primary/10 px-3 py-2.5 text-start text-sm font-bold text-primary transition hover:bg-primary/15"
       >
         <span aria-hidden className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Icon name="message" className="size-4" />
@@ -129,7 +144,12 @@ export default function DesktopSidebar({
         })}
       </nav>
 
-      {account && <div className="border-t border-border px-4 py-3">{account}</div>}
+      {/* In English the column is on the left, where the assistant's floating button rests (bottom-left): the
+          foot of the column leaves it room, so the colours and «Sign out» are not under it. */}
+      <div className="ltr:pb-16">
+        <PaletteSwitch stacked className="border-t border-border px-4 py-3" />
+        {account && <div className="border-t border-border px-4 py-3">{account}</div>}
+      </div>
     </aside>
   );
 }

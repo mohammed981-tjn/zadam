@@ -31,8 +31,8 @@ const fc = (features: GeoJSON.Feature[]): FC => ({ type: "FeatureCollection", fe
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
 const pt = ([lon, lat]: readonly [number, number] | [number, number]): [number, number] => [r3(lon), r3(lat)];
 
-/** Heat in the platform's colours: beige into pink, no orange. */
-const HEAT = ["#f3f1e6", "#d9ecd2", "#a8d8a8", "#6fbf7d", "#3fae66", "#1f7a3d"];
+/** Heat in the logo's colours (owner, 6 November 2026): cream into leaf green into the forest green, no orange. */
+export const HEAT = ["#f6f1e2", "#dfeccf", "#b6d69a", "#7fb85a", "#579b2e", "#0f5a32"];
 
 /** Soils whose usual WRB colour is red or orange, in earth browns and plum instead. */
 const SOIL_SAFE: Record<string, string> = {
@@ -45,7 +45,7 @@ const SOIL_SAFE: Record<string, string> = {
 };
 
 const GROUP_SAFE: Record<string, string> = { metal: "#8a4f7d" };
-const FUEL_SAFE: Record<string, string> = { thermal: "#1f7a3d" };
+const FUEL_SAFE: Record<string, string> = { thermal: "#0f5a32" };
 /** The grid by voltage, backbone first: plum shades where the printed map has reds. */
 const POWER = [
   { min: 400, colour: "#4b2470", width: 3 },
@@ -162,7 +162,7 @@ function canalTheme(locale: Locale): MapOverlay[] {
     {
       kind: "line",
       id: "canal",
-      color: "#1f7a3d",
+      color: "#0f5a32",
       width: 5,
       data: fc([
         {
@@ -300,6 +300,23 @@ const SHORT_FUEL: Record<keyof typeof FUEL_INK, [string, string]> = {
   biomass: ["محطّة كتلة حيويّة", "Biomass station"],
 };
 
+const dayMonth = (iso: string, locale: Locale) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString(locale === "en" ? "en-GB" : "ar", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Africa/Khartoum",
+  });
+
+/** The week's dates as the map's key says them («من 6 نوفمبر إلى 12 نوفمبر»); none without a grid. Shared by /map and /api/app/map. */
+export function mapWeekDates(grid: RainGrid | null, locale: Locale): string | undefined {
+  if (!grid) return undefined;
+  return tr(
+    locale,
+    `من ${dayMonth(grid.from, locale)} إلى ${dayMonth(grid.to, locale)}`,
+    `From ${dayMonth(grid.from, locale)} to ${dayMonth(grid.to, locale)}`,
+  );
+}
+
 const EMOJI: Record<string, string> = { rain: "🌧️", tmax: "🌡️", et0: "💨", elev: "⛰️", soil: "🟤", lands: "🌾" };
 
 /** Every theme the map screen offers, in chip order: the week first, then what stays put. */
@@ -351,7 +368,7 @@ export function mapThemes(grid: RainGrid | null, layers: Layer[], locale: Locale
       emoji: "〰️",
       title: t("قناة الأرك", "Arc canal"),
       note: t("مسار القناة القوسيّة المقترحة من جبل أولياء", "The proposed arc canal's route from Jebel Aulia"),
-      key2: [{ colour: "#1f7a3d", label: t("مسار القناة", "Canal route"), shape: "line" }],
+      key2: [{ colour: "#0f5a32", label: t("مسار القناة", "Canal route"), shape: "line" }],
       group: "over",
       overlays: canalTheme(locale),
     },

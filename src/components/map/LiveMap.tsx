@@ -7,6 +7,7 @@ import type { Map as MLMap, StyleSpecification, LayerSpecification, GeoJSONSourc
 import { useLocale } from "@/components/LocaleProvider";
 import { tr } from "@/lib/i18n";
 import { withHalaibInSudan } from "@/lib/mapStyle";
+import { SAT_ATTRIBUTION, SAT_MAX_ZOOM, SAT_TILES, STREET_STYLE } from "@/lib/mapGround";
 
 /**
  * خريطةٌ حيّة بطبقتين يُبدَّل بينهما بلمسة: الخريطة العاديّة، والقمر الصناعيّ (البند ١٤٧).
@@ -41,14 +42,8 @@ const LIBRARY = "/vendor/maplibre/maplibre-gl.mjs";
 let library: Promise<ML> | null = null;
 const maplibre = () => (library ??= import(/* webpackIgnore: true */ LIBRARY) as Promise<ML>);
 
-export const STREET_STYLE = "https://tiles.openfreemap.org/styles/liberty";
-// The 2016 mosaic's layer is «s2cloudless_3857», with no year: the years
-// in the name (s2cloudless-2018_3857 and on) are the non-commercial ones.
-// Proved by .github/workflows/map-sources.yml, which found the first guess
-// at the name answering 404 (24 October).
-const SAT_TILES = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg";
-const SAT_ATTRIBUTION =
-  '<a href="https://cloudless.eox.at" target="_blank" rel="noopener">EOxCloudless</a> by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 &amp; 2017)';
+// The two grounds' addresses and credits live in src/lib/mapGround.ts, shared
+// with the phone app's map screen (/api/app/map).
 
 /** Sudan as the map first shows it. */
 export const SUDAN_BOUNDS: [[number, number], [number, number]] = [
@@ -101,7 +96,7 @@ function hybrid(street: StyleSpecification): StyleSpecification {
     sources: {
       ...street.sources,
       // Tiles to zoom 13; closer in, MapLibre enlarges those.
-      sat: { type: "raster", tiles: [SAT_TILES], tileSize: 256, maxzoom: 13, attribution: SAT_ATTRIBUTION },
+      sat: { type: "raster", tiles: [SAT_TILES], tileSize: 256, maxzoom: SAT_MAX_ZOOM, attribution: SAT_ATTRIBUTION },
     },
     layers: [
       { id: "sat", type: "raster", source: "sat" },
@@ -331,7 +326,7 @@ export default function LiveMap({
           el.dir = locale === "en" ? "ltr" : "rtl";
           if (o.tone === "green") {
             el.className =
-              "flex size-9 items-center justify-center rounded-full bg-[#2a6424] text-sm font-black text-white shadow-float ring-2 ring-white";
+              "flex size-9 items-center justify-center rounded-full bg-[#0f5a32] text-sm font-black text-white shadow-float ring-2 ring-white";
           } else {
             // A tag with a point under it. Far out it shows the value alone,
             // so sixteen towns fit a phone; closer in, the town's name too.
@@ -384,7 +379,7 @@ export default function LiveMap({
         pinRef.current = null;
         return;
       }
-      if (!pinRef.current) pinRef.current = new ml.Marker({ color: "#1f7a3d" }).setLngLat(marker).addTo(map);
+      if (!pinRef.current) pinRef.current = new ml.Marker({ color: "#0f5a32" }).setLngLat(marker).addTo(map);
       else pinRef.current.setLngLat(marker);
     })();
   }, [marker, ready]);

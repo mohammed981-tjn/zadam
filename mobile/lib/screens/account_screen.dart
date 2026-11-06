@@ -20,7 +20,9 @@ import '../account.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../ui.dart';
+import 'invest_screen.dart';
 import 'land_map_screen.dart';
+import 'lands_screen.dart';
 import 'messages_screen.dart';
 
 /// Opens a page of the website in the phone's browser.
@@ -807,7 +809,8 @@ class _LandsCard extends StatelessWidget {
                 if (l.openToInvestors) 'مفتوحة للمستثمرين',
               ].join(' — '),
             ),
-            onTap: () => openOnSite(context, '/lands'),
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const LandsScreen())),
           ),
         const SizedBox(height: 8),
         Wrap(
@@ -825,7 +828,8 @@ class _LandsCard extends StatelessWidget {
               label: const Text('حدّد أرضك على الخريطة'),
             ),
             OutlinedButton.icon(
-              onPressed: () => openOnSite(context, '/invest'),
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const InvestScreen())),
               icon: const Icon(Icons.handshake, size: 18),
               label: const Text('فرص الاستثمار'),
             ),

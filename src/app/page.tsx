@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { getImageProps } from "next/image";
 import { Suspense } from "react";
+import HeroBackdrop from "@/components/HeroBackdrop";
 import { PHOTOS } from "@/lib/photos";
 import { PhotoBoard, QuickTabs, type BoardTile, type QuickTab } from "@/components/HomeBoard";
 import { createClient } from "@/lib/supabase/server";
@@ -156,6 +158,9 @@ const BOARD: (BoardTile & { en: Pick<BoardTile, "alt" | "title" | "note"> })[] =
   },
 ];
 
+/** The wide poster's width: the whole window, less the 16rem side column from `lg` (DesktopSidebar). */
+const HERO_SIZES = "(min-width: 1024px) calc(100vw - 16rem), 100vw";
+
 /** ما يعود إليه الناس: بلمسةٍ واحدة، دون المرور بالصور. */
 const TABS: (QuickTab & { en: string })[] = [
   { href: "/news", icon: "news", label: "الأخبار", en: "News" },
@@ -176,6 +181,28 @@ export default async function Home() {
     locale === "en" ? { ...tab, label: en } : tab,
   );
   const supabase = await createClient();
+
+  /*
+   * The hero's poster, art-directed (Next's `getImageProps`, as its image guide shows it): the tall frame on a
+   * phone, the wide one from `md`, both through the image optimiser. `fetchPriority="high"` and no lazy loading:
+   * it is the largest thing the first screen paints.
+   */
+  const { srcSet: heroWide } = getImageProps({
+    src: "/video/hero-wide.jpg",
+    alt: "",
+    width: 1280,
+    height: 720,
+    sizes: HERO_SIZES,
+  }).props;
+  const { props: heroPoster } = getImageProps({
+    src: "/video/hero-tall.jpg",
+    alt: "",
+    width: 540,
+    height: 960,
+    sizes: "100vw",
+    fetchPriority: "high",
+    loading: "eager",
+  });
 
   const [{ data: projects }, { count: kbCount }, { count: faoCount }, { data: kbLatest }, { data: openLands }, projectLands] = await Promise.all([
     supabase
@@ -248,50 +275,68 @@ export default async function Home() {
   return (
     <div>
       {/* ───────────────────────── الواجهة ─────────────────────────
-       * The front, as the Figma design the owner was sent (backlog 121: «خلفيّة
-       * ورديّة… اجعل الوردي طاغياً والأخضر لمسات»): a pink band with the
-       * headline in white and the two doors, then the films, then the figures.
-       * The films moved below the headline: the band says what the platform is
-       * before the player asks for attention.
+       * A film behind the headline (the owner, 6 November 2026): fifteen silent seconds of water, fields and the
+       * people who work them, looping, with the headline, the line under it and the two doors in white over a
+       * scrim of the logo's forest green (`.hero-video` and `.hero-scrim` in globals.css, which say why the type
+       * holds 8.5:1 over any frame). The poster is sent as a real <picture>, the tall cut on a phone and the wide
+       * one from `md`, and it is the page's largest paint; the film fades in over it (HeroBackdrop), or never
+       * does for a reader who asked for less motion or to save data. The films with sound stay below.
        */}
-      <section className="hero-band">
-        <div className="relative mx-auto max-w-6xl px-5 pb-9 pt-7 sm:pb-14 sm:pt-12">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-card/80 px-3 py-1 text-sm font-bold text-rose ring-1 ring-border">
-            {/* A green touch: a sprout-coloured dot. */}
-            <span aria-hidden className="size-2 rounded-full bg-[#1f7a3d]" />
-            {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
-          </p>
+      <section className="hero-video">
+        <picture>
+          <source media="(min-width: 768px)" srcSet={heroWide} sizes={HERO_SIZES} />
+          <img
+            {...heroPoster}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 -z-20 size-full object-cover"
+          />
+        </picture>
+        <HeroBackdrop />
 
-          <h1 className="max-w-3xl font-black leading-[1.2]" style={{ fontSize: "var(--text-display)" }}>
-            {t("كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك", "Every number here is one you can recompute yourself")}
-          </h1>
-          {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان — أخضرَ فاتحاً على الوردي، لمسةُ الأخضر في الواجهة. */}
-          <svg className="nile-line mt-3 h-4 w-52 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>
-            <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="#1f7a3d" strokeWidth="5" strokeLinecap="round" />
-          </svg>
+        <div className="flex min-h-[30rem] flex-col justify-end md:min-h-[34rem] lg:min-h-[38rem] xl:min-h-[44rem]">
+          <div className="hero-scrim pt-28 md:pt-32">
+            <div className="mx-auto max-w-6xl px-5 pb-9 sm:pb-12 xl:max-w-7xl xl:pb-16">
+              <div className="max-w-[38rem] xl:max-w-[46rem]">
+                <p className="hero-pill mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold">
+                  {/* The logo's sun, as a dot. */}
+                  <span aria-hidden className="size-2 rounded-full bg-gold" />
+                  {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
+                </p>
 
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-            {t(
-              "سوداقري منصّة معرفة زراعية وبيانات للسودان. لا يُعرض رقمٌ دون مصدره ومنهجه: الغلّة من FAOSTAT، والمناخ من NASA POWER، والتربة من SoilGrids، والاحتياج المائي محسوبٌ بمحرّك FAO-56 داخل المنصّة نفسها.",
-              "Sudagri is an agricultural knowledge and data platform for Sudan. No number is shown without its source and method: yields from FAOSTAT, climate from NASA POWER, soil from SoilGrids, and crop water needs computed by an FAO-56 engine on the platform itself.",
-            )}
-          </p>
+                <h1 className="text-[length:var(--text-display)] font-black leading-[1.2] xl:text-[4.25rem] xl:leading-[1.15]">
+                  {t("كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك", "Every number here is one you can recompute yourself")}
+                </h1>
+                {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان — بذهب شمس الشعار على الأخضر. */}
+                <svg className="nile-line mt-3 h-4 w-52 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>
+                  <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="var(--gold)" strokeWidth="5" strokeLinecap="round" />
+                </svg>
 
-          {/* Equal widths, one under the other on a phone: white for the
-              farmer's door, an outline for the study. */}
-          <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
-            <Link
-              href="/lands/new"
-              className="rounded-2xl bg-primary px-6 py-3.5 text-center font-extrabold text-primary-foreground shadow-float transition hover:opacity-90 active:scale-[0.98]"
-            >
-              {t("سجّل أرضك ووثّق موسمك", "Register your land and record your season")}
-            </Link>
-            <Link
-              href="/arc-canal"
-              className="rounded-2xl border-[1.5px] border-primary bg-card/70 px-6 py-3.5 text-center font-bold transition hover:bg-white/40"
-            >
-              {t("اقرأ دراسة القناة القوسية", "Read the Arc Canal study")}
-            </Link>
+                <p className="mt-4 text-base leading-relaxed sm:text-lg">
+                  {t(
+                    "سوداقري منصّة معرفة زراعية وبيانات للسودان. لا يُعرض رقمٌ دون مصدره ومنهجه: الغلّة من FAOSTAT، والمناخ من NASA POWER، والتربة من SoilGrids، والاحتياج المائي محسوبٌ بمحرّك FAO-56 داخل المنصّة نفسها.",
+                    "Sudagri is an agricultural knowledge and data platform for Sudan. No number is shown without its source and method: yields from FAOSTAT, climate from NASA POWER, soil from SoilGrids, and crop water needs computed by an FAO-56 engine on the platform itself.",
+                  )}
+                </p>
+
+                {/* Equal widths, one under the other on a phone: the sun's gold for the farmer's door, a white
+                    outline for the study. */}
+                <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
+                  <Link
+                    href="/lands/new"
+                    className="rounded-2xl bg-gold px-6 py-3.5 text-center font-extrabold text-gold-ink shadow-float transition hover:opacity-90 active:scale-[0.98]"
+                  >
+                    {t("سجّل أرضك ووثّق موسمك", "Register your land and record your season")}
+                  </Link>
+                  <Link
+                    href="/arc-canal"
+                    className="rounded-2xl border-[1.5px] border-white/80 bg-white/10 px-6 py-3.5 text-center font-bold text-white transition hover:bg-white/20"
+                  >
+                    {t("اقرأ دراسة القناة القوسية", "Read the Arc Canal study")}
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -301,7 +346,7 @@ export default async function Home() {
        * مكانه (المالك، 26 سبتمبر: «ادمجهم»). والإطارُ كبيرٌ بطلبه («الفيديو
        * أكبر»)، وتحته بطاقةٌ لكلّ فيلم (البند ١٢١).
        */}
-      <section className="mx-auto max-w-6xl px-4 pt-8">
+      <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl pt-8">
         <HeroVideo />
       </section>
 
@@ -310,7 +355,7 @@ export default async function Home() {
        * label. auto-fit, because the count is not fixed — a count that fails
        * drops its card, and a fixed grid would leave an empty cell.
        */}
-      <section className="mx-auto max-w-6xl px-4 pb-10 pt-6">
+      <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl pb-10 pt-6">
         <dl className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))" }}>
           {stats.map((s) => (
             <div key={s.label} className="rounded-2xl border border-border bg-card p-4 shadow-card">
@@ -331,9 +376,9 @@ export default async function Home() {
        * طلب المالك (25 سبتمبر): الرئيسيّةُ واجهةٌ ثمّ لوحة. والأخبار خرجت منها
        * إلى صفحتها `/news`، ولها هنا تبويبٌ أوّل بدل شريطٍ بين الأقسام.
        */}
-      <section className="mx-auto max-w-6xl px-4 pt-8">
+      <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl pt-8">
         <QuickTabs tabs={tabs} label={t("تبويبات سريعة", "Quick links")} />
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="mt-4 grid gap-3 lg:grid-cols-2 lg:items-start">
           <SeasonStrip locale={locale} />
           <MarketTicker locale={locale} />
         </div>
@@ -347,7 +392,7 @@ export default async function Home() {
       </Suspense>
 
       {/* ───────────────────────── اللوحة ───────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 pt-10">
+      <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl pt-10">
         <h2 className="title-bar font-bold" style={{ fontSize: "var(--text-section)" }}>
           {t("أقسام سوداقري", "Sudagri's sections")}
         </h2>
@@ -365,7 +410,7 @@ export default async function Home() {
        * قائمةِ المشاريع نفسها يوم يُنشر أوّلها.
        */}
       {!(projects && projects.length > 0) && openLandCount > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-10">
+        <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl py-10">
           <Link
             href="/projects"
             className="flex items-start gap-3 rounded-2xl border border-leaf/30 bg-leaf/5 p-5 transition hover:border-leaf"
@@ -388,7 +433,7 @@ export default async function Home() {
       )}
 
       {!(projects && projects.length > 0) && openLandCount === 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-10">
+        <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl py-10">
           <div className="flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-5">
             <Icon name="shield" className="mt-0.5 size-5 shrink-0 text-accent" />
             <p className="text-sm leading-relaxed">
@@ -408,7 +453,7 @@ export default async function Home() {
        * يظهر حين يُنشر مشروعٌ فقط.
        */}
       {projects && projects.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-10">
+        <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl py-10">
           <div className="mb-6 flex items-baseline justify-between gap-4">
             <h2 className="font-bold" style={{ fontSize: "var(--text-title)" }}>
               {t("المشاريع المتاحة", "Available projects")}

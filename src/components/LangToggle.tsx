@@ -25,7 +25,8 @@ export default function LangToggle() {
       disabled={pending}
       lang={next}
       aria-label={next === "en" ? "Switch to English" : "التحويل إلى العربية"}
-      className="rounded-xl border border-border bg-card px-2.5 py-2 text-sm font-bold transition hover:border-rose hover:text-rose disabled:opacity-60"
+      // It lives on the header, so it paints with the header's ink in every palette (`.hdr-chip`, globals.css).
+      className="hdr-chip rounded-xl px-2.5 py-2 text-sm font-bold transition disabled:opacity-60"
     >
       {next === "en" ? "EN" : "ع"}
     </button>

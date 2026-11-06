@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The cream behind the round logo (the site's icon ground). -->
+    <color name="ic_launcher_background">#FAF6EC</color>
+</resources>

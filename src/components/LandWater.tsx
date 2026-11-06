@@ -1,18 +1,5 @@
 import { tr, type Locale } from "@/lib/i18n";
-import { M3_PER_MM_FEDDAN, WAPOR_LAYER_URL, fetchLandWater } from "@/lib/wapor";
-
-const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const PART_AR = ["", "العشرة الأولى من", "العشرة الثانية من", "آخر"];
-const PART_EN = ["", "1–10", "11–20", "21–end"];
-
-function dekadLabel(dekad: string, locale: Locale): string {
-  const m = /^(\d{4})-(\d{2})-D([123])$/.exec(dekad);
-  if (!m) return dekad;
-  const month = Number(m[2]) - 1;
-  const part = Number(m[3]);
-  return locale === "en" ? `${PART_EN[part]} ${EN_MONTHS[month]}` : `${PART_AR[part]} ${AR_MONTHS[month]}`;
-}
+import { M3_PER_MM_FEDDAN, WAPOR_LAYER_URL, dekadLabel, fetchLandWater } from "@/lib/wapor";
 
 /**
  * «ماء أرضك من الأقمار الصناعيّة» — what FAO's WaPOR measured leaving this

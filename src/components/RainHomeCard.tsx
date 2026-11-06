@@ -27,7 +27,7 @@ export default async function RainHomeCard() {
     .reduce((a, c) => (c.rainMm > a.rainMm ? c : a));
 
   return (
-    <section className="mx-auto max-w-6xl px-4 pt-10">
+    <section className="mx-auto max-w-6xl px-4 pt-10 xl:max-w-7xl">
       <Link
         href="/rain"
         className="group block rounded-2xl border border-border bg-card p-5 shadow-card transition hover:shadow-raised sm:p-6"

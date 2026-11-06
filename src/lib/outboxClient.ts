@@ -1,13 +1,16 @@
 import {
+  CLIENT_KEY_FIELD,
   enqueue,
   isNetworkError,
   toFormData,
   load,
   localDay,
+  newClientKey,
   newItemId,
   pendingFor,
   remove,
   snapshotFields,
+  withClientKey,
   type EnqueueResult,
   type OutboxItem,
   type StorageLike,
@@ -61,15 +64,33 @@ export function listPending(key?: string): OutboxItem[] {
 export type KeepResult = EnqueueResult | "no-owner" | "unfit";
 
 /**
- * Keeps a form that could not be sent. `stamp` names a hidden field to fill with the phone's day
- * (the ledger's `entry_date`), so a late send still carries the day it was written.
+ * Gives a form its idempotency key (`client_key`) before it is first sent, unless it has one. The same key then goes
+ * with every attempt — the first, and the outbox's later ones — so an entry whose answer was lost is not saved twice.
  */
-export function keepOffline(args: { key: string; path: string; label: string; formData: FormData; stamp?: string }): KeepResult {
+export function stampClientKey(formData: FormData): FormData {
+  if (!formData.get(CLIENT_KEY_FIELD)) formData.set(CLIENT_KEY_FIELD, newClientKey());
+  return formData;
+}
+
+/**
+ * Keeps a form that could not be sent. `stamp` names a hidden field to fill with the phone's day
+ * (the ledger's `entry_date`), so a late send still carries the day it was written. `clientKey` gives the kept form
+ * its idempotency key when it has none yet (one typed with no network at all).
+ */
+export function keepOffline(args: {
+  key: string;
+  path: string;
+  label: string;
+  formData: FormData;
+  stamp?: string;
+  clientKey?: boolean;
+}): KeepResult {
   const s = store();
   if (!s) return "unavailable";
   if (!owner) return "no-owner";
-  const fields = snapshotFields(args.formData.entries());
-  if (!fields) return "unfit";
+  const snapshot = snapshotFields(args.formData.entries());
+  if (!snapshot) return "unfit";
+  const fields = args.clientKey ? withClientKey(snapshot) : snapshot;
   const now = Date.now();
   if (args.stamp && !fields.some(([name]) => name === args.stamp)) fields.push([args.stamp, localDay(now)]);
   const result = enqueue(s, { id: newItemId(now), key: args.key, path: args.path, label: args.label, userId: owner, createdAt: now, fields }, now);

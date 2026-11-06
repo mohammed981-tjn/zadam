@@ -126,7 +126,37 @@ function save(storage: StorageLike, items: OutboxItem[]): boolean {
 
 export type EnqueueResult = "kept" | "duplicate" | "full" | "unavailable";
 
-const sameFields = (a: OutboxItem["fields"], b: OutboxItem["fields"]) => JSON.stringify(a) === JSON.stringify(b);
+/**
+ * The field that carries a ledger entry's idempotency key (20261106060000_ledger_client_key.sql): a random UUID given
+ * to the entry when it is typed, before the first attempt to send it, and sent with every attempt. If the server saved
+ * the entry but its answer was lost, the next attempt carries the same key, and the server answers «already saved»
+ * instead of writing it twice.
+ */
+export const CLIENT_KEY_FIELD = "client_key";
+
+/** A version-4 UUID from 16 random bytes. `fill` is the browser's `crypto.getRandomValues`, or a test's. */
+export function newClientKey(fill?: (bytes: Uint8Array) => void): string {
+  const bytes = new Uint8Array(16);
+  const random =
+    fill ?? (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function" ? (b: Uint8Array) => void crypto.getRandomValues(b) : null);
+  if (random) random(bytes);
+  else for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/** The fields with a key added when they have none yet. A form that already carries one keeps it. */
+export function withClientKey(fields: [string, string][], key: () => string = () => newClientKey()): [string, string][] {
+  return fields.some(([name, value]) => name === CLIENT_KEY_FIELD && value) ? fields : [...fields, [CLIENT_KEY_FIELD, key()]];
+}
+
+/** The same form, whatever its key: two taps on «send» are given two keys, and are still one double tap. */
+const sameFields = (a: OutboxItem["fields"], b: OutboxItem["fields"]) => {
+  const plain = (f: OutboxItem["fields"]) => JSON.stringify(f.filter(([name]) => name !== CLIENT_KEY_FIELD));
+  return plain(a) === plain(b);
+};
 
 export function enqueue(storage: StorageLike, item: OutboxItem, now: number): EnqueueResult {
   const items = load(storage, now);

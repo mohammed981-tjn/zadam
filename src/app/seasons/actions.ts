@@ -2,16 +2,15 @@
 import { dbText } from "@/lib/dbText";
 import { ledgerEntryDate } from "@/lib/entryDate";
 import { ledgerToday } from "@/lib/ledger/today";
-import { isSettleFrom, ledgerEntryInputMessage, parseLedgerEntryInput, parseSettleRate } from "@/lib/ledgerEntryInput";
+import { isSettleFrom, ledgerEntryInputMessage, parseSettleRate } from "@/lib/ledgerEntryInput";
+import { addStageEvidence, recordLedgerEntry, signOffStage } from "@/lib/seasonWrites";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
-import { planSeason, type LedgerCategory } from "@/lib/season";
+import { planSeason } from "@/lib/season";
 import { IRRIGATION_EFFICIENCY, type IrrigationMethod } from "@/lib/agronomy";
-import { sanitisePhotoMetadata } from "@/lib/exif";
-import { evidenceFileExists } from "@/lib/evidenceFile";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -164,11 +163,9 @@ export async function createSeason(
 }
 
 /**
- * Records a file already uploaded to storage as evidence for a stage.
- *
- * The path is verified to sit under this user's own folder before it is
- * stored, so a crafted request cannot attach someone else's object — the
- * storage policy stops the upload, and this stops the reference.
+ * Records a file already uploaded to storage as evidence for a stage. Every check and the insert are
+ * `addStageEvidence` (lib/seasonWrites), which the phone app's route uses too: the path must sit under this user's
+ * own folder and point at a file that is there, and row-level security decides the rest.
  */
 export async function addEvidence(args: {
   stageId: string;
@@ -184,55 +181,9 @@ export async function addEvidence(args: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(await loginHrefHere());
-  const t = await translator();
 
-  if (!args.stageId || !args.storagePath) {
-    return { ok: false, message: t("بيانات الدليل ناقصة.", "The evidence details are incomplete.") };
-  }
-  if (!["photo", "invoice", "inspection", "note"].includes(args.kind)) {
-    return { ok: false, message: t("نوع دليل غير معروف.", "Unknown evidence type.") };
-  }
-  if (!args.storagePath.startsWith(`${user.id}/`)) {
-    return { ok: false, message: t("مسار ملف غير صالح.", "Invalid file path.") };
-  }
-
-  // The row must point at a file that is actually there. See lib/evidenceFile
-  // for why a failure to confirm is treated as a failure to upload.
-  if (!(await evidenceFileExists(supabase, args.storagePath))) {
-    return {
-      ok: false,
-      message: t(
-        "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
-        "We could not find the uploaded file. Upload it again and try once more.",
-      ),
-    };
-  }
-
-  // A photo kept offline is sent again if the reply to its first send was lost (backlog 185): the same file on the
-  // same stage is the evidence already recorded, not a second piece of it.
-  const { data: already } = await supabase
-    .from("stage_evidence")
-    .select("id")
-    .eq("stage_id", args.stageId)
-    .eq("storage_path", args.storagePath)
-    .limit(1)
-    .maybeSingle();
-  if (already) return { ok: true };
-
-  const photo = sanitisePhotoMetadata(args.metadata);
-
-  const { error } = await supabase.from("stage_evidence").insert({
-    stage_id: args.stageId,
-    kind: args.kind,
-    caption: args.caption,
-    storage_path: args.storagePath,
-    captured_at: photo.capturedAt,
-    latitude: photo.latitude,
-    longitude: photo.longitude,
-    created_by: user.id,
-  });
-
-  if (error) return { ok: false, message: await dbText(error.message) };
+  const result = await addStageEvidence(supabase, user.id, args, await getLocale());
+  if (!result.ok) return result;
 
   revalidatePath(`/seasons/${args.seasonId}`);
   return { ok: true };
@@ -241,27 +192,26 @@ export async function addEvidence(args: {
 /**
  * Marks a stage done. The database trigger refuses if evidence is missing or an
  * earlier stage is still open, and its message is passed straight back so the
- * farmer sees the real reason rather than a generic failure.
+ * farmer sees the real reason rather than a generic failure. The write is
+ * `signOffStage` (lib/seasonWrites), which the phone app's route uses too.
  */
 export async function completeStage(formData: FormData) {
   const supabase = await createClient();
   const seasonId = str(formData, "season_id");
 
-  const { error } = await supabase
-    .from("season_stages")
-    .update({
-      completed: true,
-      actual_end: ledgerToday(),
-    })
-    .eq("id", str(formData, "stage_id"));
+  const result = await signOffStage(supabase, { stageId: str(formData, "stage_id") }, await getLocale());
 
   revalidatePath(`/seasons/${seasonId}`);
 
-  if (error) {
-    redirect(`/seasons/${seasonId}?error=${encodeURIComponent(await dbText(error.message))}`);
+  if (!result.ok) {
+    redirect(`/seasons/${seasonId}?error=${encodeURIComponent(result.message)}`);
   }
 }
 
+/**
+ * A cost or a sale. Every check and the insert are `recordLedgerEntry` (lib/seasonWrites), which the phone app's
+ * route uses too, so an entry typed on the phone is read exactly as one typed here.
+ */
 export async function addLedgerEntry(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -270,89 +220,28 @@ export async function addLedgerEntry(formData: FormData) {
   if (!user) redirect(await loginHrefHere());
 
   const seasonId = str(formData, "season_id");
-  const category = str(formData, "category") as LedgerCategory;
+  const result = await recordLedgerEntry(
+    supabase,
+    user.id,
+    {
+      season_id: seasonId,
+      category: str(formData, "category"),
+      amount: str(formData, "amount"),
+      currency: str(formData, "currency"),
+      paid_from: str(formData, "paid_from"),
+      fx_rate: str(formData, "fx_rate"),
+      description: str(formData, "description"),
+      entry_date: str(formData, "entry_date"),
+      stage_id: str(formData, "stage_id"),
+      client_key: str(formData, "client_key"),
+    },
+    await getLocale(),
+  );
 
-  const valid: LedgerCategory[] = [
-    "seeds",
-    "fertiliser",
-    "pesticide",
-    "labour",
-    "irrigation",
-    "transport",
-    "other",
-    "revenue",
-  ];
-
-  if (!seasonId || !valid.includes(category)) return;
-
-  /*
-   * A ledger entry that fails silently is the worst of these: the page returns
-   * as though the cost was recorded, and the book is quietly short by one line.
-   * Nothing downstream can detect that later — there is no gap to find. So a figure
-   * that cannot be read is sent back to the farmer with the reason, not dropped.
-   */
-  const t = await translator();
-  const parsed = parseLedgerEntryInput({
-    amount: str(formData, "amount"),
-    currency: str(formData, "currency"),
-    paid_from: str(formData, "paid_from"),
-    fx_rate: str(formData, "fx_rate"),
-  });
-  if (!parsed.ok) {
-    redirect(`/seasons/${seasonId}?error=${encodeURIComponent(ledgerEntryInputMessage(parsed.error, t))}`);
-  }
-
-  // A cost kept on the phone while offline is sent later; it keeps the day it was written (backlog 167).
-  // Without a day of its own the row takes Khartoum's today, sent explicitly: the column's default is the database's
-  // UTC date, a day behind between midnight and two (review 198 B6).
-  const today = ledgerToday();
-  const entryDate = ledgerEntryDate(str(formData, "entry_date"), today);
-
-  // The stage a cost was for (backlog 190: the budget against the actual), when the farmer chose one. It must be a
-  // stage of this season: the column only checks that the stage exists, so a stage from another season is refused
-  // here rather than counted against a plan it is not part of. Revenue belongs to no stage.
-  const stageChoice = category === "revenue" ? "" : str(formData, "stage_id");
-  let stageId: string | null = null;
-  if (stageChoice) {
-    const { data: stage } = await supabase
-      .from("season_stages")
-      .select("id")
-      .eq("id", stageChoice)
-      .eq("season_id", seasonId)
-      .maybeSingle();
-    if (!stage) {
-      redirect(
-        `/seasons/${seasonId}?error=${encodeURIComponent(
-          t("المرحلة المختارة ليست من مراحل هذا الموسم. لم يُحفظ شيء.", "The chosen stage is not one of this season's. Nothing was saved."),
-        )}`,
-      );
-    }
-    stageId = stageChoice;
-  }
-
-  const { error } = await supabase.from("ledger_entries").insert({
-    season_id: seasonId,
-    stage_id: stageId,
-    category,
-    ...parsed.money,
-    description: str(formData, "description") || null,
-    entry_date: entryDate ?? today,
-    created_by: user.id,
-  });
-
-  if (error) {
-    console.error("addLedgerEntry failed", { seasonId, category, error });
-    // The ledger's own refusals (no rate to take, a closed period) say exactly what to do; anything
-    // else is the fixed sentence, and the details stay in the log.
-    redirect(
-      `/seasons/${seasonId}?error=${encodeURIComponent(
-        (await dbText(error.message)) ||
-          t(
-            "تعذّر تسجيل القيد. لم يُحفظ شيء — أعد المحاولة.",
-            "Could not record the entry. Nothing was saved — please try again.",
-          ),
-      )}`,
-    );
+  if (!result.ok) {
+    // A form with no season or an unknown item is ignored, as it always was.
+    if (result.code === "invalid") return;
+    redirect(`/seasons/${seasonId}?error=${encodeURIComponent(result.message)}`);
   }
 
   revalidatePath(`/seasons/${seasonId}`);

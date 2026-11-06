@@ -22,6 +22,19 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../ui.dart';
+import 'agent_screen.dart';
+import 'books_screen.dart';
+import 'contracts_screen.dart';
+import 'export_screen.dart';
+import 'feasibility_screen.dart';
+import 'herds_screen.dart';
+import 'invest_screen.dart';
+import 'lands_screen.dart';
+import 'library_screen.dart';
+import 'maps_screen.dart';
+import 'prices_screen.dart';
+import 'seasons_screen.dart';
+import 'suppliers_screen.dart';
 import 'films_screen.dart';
 import 'mining_screen.dart';
 import 'nafir_screen.dart';
@@ -40,47 +53,150 @@ class _Section {
   final Widget Function()? screen;
 }
 
-final _sections = <_Section>[
-  _Section(
-    'الأخبار',
-    'جديد سوداقري',
-    Icons.newspaper_rounded,
-    screen: () => const NewsScreen(),
-  ),
-  _Section(
-    'الأفلام',
-    'سوداقري بالصورة',
-    Icons.movie_outlined,
-    screen: () => const FilmsScreen(),
-  ),
-  _Section(
-    'توقّع الأمطار',
-    'الخريطة والجدول',
-    Icons.umbrella_outlined,
-    screen: () => const RainScreen(),
-  ),
-  _Section('حاسبة الري', 'كم يحتاج محصولك', Icons.water_drop_outlined, tab: 1),
-  _Section('المساعد', 'اسأل عن أي محصول', Icons.chat_bubble_outline, tab: 2),
-  _Section('المعرفة', 'محاصيل وتربة وماء', Icons.menu_book_outlined, tab: 3),
-  _Section(
-    'النفير',
-    'العمل المشترك',
-    Icons.groups_outlined,
-    screen: () => const NafirScreen(),
-  ),
-  _Section(
-    'الخدمات',
-    'حراثة ومساحة وبيطرة',
-    Icons.agriculture_outlined,
-    screen: () => const ServicesScreen(),
-  ),
-  _Section(
-    'التعدين',
-    'قسم مستقلّ',
-    Icons.construction_outlined,
-    screen: () => const MiningScreen(),
-  ),
+/// The sections in three groups (item 203: the app now carries what the website does, each section on its own
+/// screen): the farm, the market and investment, then the tools and knowledge the app always had.
+class _Group {
+  const _Group(this.title, this.subtitle, this.sections);
+
+  final String title;
+  final String subtitle;
+  final List<_Section> sections;
+}
+
+final _groups = <_Group>[
+  _Group('مزرعتي', 'مواسمك وأرضك وحسابك', [
+    _Section(
+      'المواسم',
+      'المراحل والقيود',
+      Icons.eco_outlined,
+      screen: () => const SeasonsScreen(),
+    ),
+    _Section(
+      'أراضيّ',
+      'الحدود والتربة والماء',
+      Icons.landscape_outlined,
+      screen: () => const LandsScreen(),
+    ),
+    _Section(
+      'الدفتر',
+      'الحسابات والأصول',
+      Icons.account_balance_wallet_outlined,
+      screen: () => const BooksScreen(),
+    ),
+    _Section(
+      'القطعان',
+      'الماشية وصحّتها',
+      Icons.pets_outlined,
+      screen: () => const HerdsScreen(),
+    ),
+    _Section(
+      'دراسة الجدوى',
+      'التكلفة والعائد',
+      Icons.calculate_outlined,
+      screen: () => const FeasibilityScreen(),
+    ),
+    _Section(
+      'الخرائط',
+      'كلّ الطبقات',
+      Icons.map_outlined,
+      screen: () => const MapsScreen(),
+    ),
+  ]),
+  _Group('السوق والاستثمار', 'أسعارٌ وعقودٌ وشراكة', [
+    _Section(
+      'الأسعار',
+      'المحاصيل والصرف',
+      Icons.trending_up_rounded,
+      screen: () => const PricesScreen(),
+    ),
+    _Section(
+      'التصدير',
+      'الشروط والجاهزيّة',
+      Icons.local_shipping_outlined,
+      screen: () => const ExportScreen(),
+    ),
+    _Section(
+      'العقود',
+      'اقرأ ووقّع',
+      Icons.description_outlined,
+      screen: () => const ContractsScreen(),
+    ),
+    _Section(
+      'الاستثمار',
+      'الفرص والشراكة',
+      Icons.handshake_outlined,
+      screen: () => const InvestScreen(),
+    ),
+    _Section(
+      'الموردون',
+      'البذور والأسمدة',
+      Icons.storefront_outlined,
+      screen: () => const SuppliersScreen(),
+    ),
+    _Section(
+      'الوكيل',
+      'تسجيلٌ بتفويض',
+      Icons.badge_outlined,
+      screen: () => const AgentScreen(),
+    ),
+  ]),
+  _Group('الأدوات والمعرفة', 'مجّاناً وبلا تسجيل', [
+    _Section(
+      'الأخبار',
+      'جديد سوداقري',
+      Icons.newspaper_rounded,
+      screen: () => const NewsScreen(),
+    ),
+    _Section(
+      'الأفلام',
+      'سوداقري بالصورة',
+      Icons.movie_outlined,
+      screen: () => const FilmsScreen(),
+    ),
+    _Section(
+      'توقّع الأمطار',
+      'الخريطة والجدول',
+      Icons.umbrella_outlined,
+      screen: () => const RainScreen(),
+    ),
+    _Section(
+      'حاسبة الري',
+      'كم يحتاج محصولك',
+      Icons.water_drop_outlined,
+      tab: 1,
+    ),
+    _Section('المساعد', 'اسأل عن أي محصول', Icons.chat_bubble_outline, tab: 2),
+    _Section('المعرفة', 'محاصيل وتربة وماء', Icons.menu_book_outlined, tab: 3),
+    _Section(
+      'النفير',
+      'العمل المشترك',
+      Icons.groups_outlined,
+      screen: () => const NafirScreen(),
+    ),
+    _Section(
+      'الخدمات',
+      'حراثة ومساحة وبيطرة',
+      Icons.agriculture_outlined,
+      screen: () => const ServicesScreen(),
+    ),
+    _Section(
+      'التعدين',
+      'قسم مستقلّ',
+      Icons.construction_outlined,
+      screen: () => const MiningScreen(),
+    ),
+
+    _Section(
+      'المكتبة',
+      'بحوثٌ ودراسات',
+      Icons.local_library_outlined,
+      screen: () => const LibraryScreen(),
+    ),
+  ]),
 ];
+
+/// Every section, for the drawer.
+final _sections = [for (final g in _groups) ...g.sections];
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onTab});
@@ -125,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('🌾 سوداقري')),
+      appBar: const BrandAppBar(),
       drawer: _Menu(
         onOpen: (s) {
           Navigator.of(context).pop();
@@ -144,25 +260,28 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 22),
-            const SectionTitle('الأقسام', subtitle: 'كلّ قسمٍ بلمسةٍ واحدة'),
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 0.86,
-              children: [
-                for (var i = 0; i < _sections.length; i++)
-                  FadeIn(
-                    delay: i ~/ 3 + 1,
-                    child: _Tile(
-                      section: _sections[i],
-                      onTap: () => _open(_sections[i]),
+            for (final g in _groups) ...[
+              SectionTitle(g.title, subtitle: g.subtitle),
+              GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 0.86,
+                children: [
+                  for (var i = 0; i < g.sections.length; i++)
+                    FadeIn(
+                      delay: i ~/ 3 + 1,
+                      child: _Tile(
+                        section: g.sections[i],
+                        onTap: () => _open(g.sections[i]),
+                      ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 18),
+            ],
             const SizedBox(height: 20),
             const _Notice(),
             const SizedBox(height: 22),
@@ -218,13 +337,36 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HeroBand(
+    final gold = SudagriColors.gold;
+    return HeroVideo(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const TagPill('الأدوات تعمل الآن · مجاناً وبلا تسجيل',
-              icon: Icons.verified_outlined),
-          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0x66000000),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: gold.withValues(alpha: 0.8)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.verified_outlined, size: 14, color: gold),
+                const SizedBox(width: 5),
+                const Flexible(
+                  child: Text(
+                    'الأدوات تعمل الآن · مجاناً وبلا تسجيل',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // The film shows above the words.
+          const SizedBox(height: 72),
           // Broken after «هنا» so the two lines balance on a phone.
           const Text(
             'كل رقمٍ هنا\nيمكنك أن تعيد حسابه بنفسك',
@@ -232,21 +374,28 @@ class _Hero extends StatelessWidget {
               fontSize: 23,
               fontWeight: FontWeight.w900,
               height: 1.4,
+              shadows: [Shadow(color: Color(0x99000000), blurRadius: 8)],
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
+          const SizedBox(height: 4),
+          const Text(
             'منصّة معرفة زراعية وبيانات للسودان — لكل رقمٍ مصدره ومنهجه.',
-            style: TextStyle(height: 1.7, color: mutedOn(context)),
+            style: TextStyle(
+              height: 1.6,
+              color: Color(0xE6FFFFFF),
+              fontSize: 13,
+            ),
           ),
-          const SizedBox(height: 16),
-          // The olive fills the one button that matters; the other is outlined.
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 11,
+                      horizontal: 8,
+                    ),
                   ),
                   onPressed: onWater,
                   icon: const Icon(Icons.water_drop, size: 18),
@@ -257,9 +406,17 @@ class _Hero extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0x33000000),
+                    side: BorderSide(color: gold, width: 1.5),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 11,
+                      horizontal: 8,
+                    ),
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
                   ),
                   onPressed: onAsk,
                   icon: const Icon(Icons.chat_bubble_outline, size: 18),
@@ -343,26 +500,64 @@ class _Menu extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
           children: [
-            const HeroBand(
-              padding: EdgeInsets.fromLTRB(18, 18, 18, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // The drawer opens on the logo and the name, on the header's own band.
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: LinearGradient(
+                  colors: [SudagriColors.headerTop, SudagriColors.headerBottom],
+                ),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    '🌾 سوداقري',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  Container(
+                    width: 64,
+                    height: 64,
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: SudagriColors.gold, width: 2),
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/brand/logo.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'منصّة معرفة زراعية وبيانات للسودان',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'سوداقري',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: SudagriColors.headerInk,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'منصّة سودانيّة للزراعة والتجارة',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: SudagriColors.headerMuted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 14),
+            const SectionTitle('ألوان التطبيق'),
+            const PalettePicker(),
             const SizedBox(height: 12),
             for (final s in _sections)
               ListTile(

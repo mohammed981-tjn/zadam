@@ -10,6 +10,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 import 'theme.dart';
 
@@ -58,7 +59,7 @@ class HeroBand extends StatelessWidget {
           children: [
             _pool(const AlignmentDirectional(-0.9, -1.0), SudagriColors.primary, 0.25, 1.1),
             _pool(const AlignmentDirectional(0.85, -0.55), SudagriColors.lightOlive, 0.18, 0.8),
-            _pool(const AlignmentDirectional(0.95, 1.1), SudagriColors.accent, 0.14, 0.9),
+            _pool(const AlignmentDirectional(0.95, 1.1), SudagriColors.gold, 0.18, 0.9),
             PositionedDirectional(
               end: -26,
               bottom: -30,
@@ -426,6 +427,260 @@ class TagPill extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+
+/// The header with the logo (owner, 6 November 2026: «أين الشعار… الترويسة تحسينها»): the round logo on white with
+/// a ring of the logo's gold, the name and the line under it, on the palette's header band — the logo's forest green
+/// in «ألوان الشعار», cream in «أخضر الأوراق».
+class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const BrandAppBar({super.key, this.actions});
+
+  final List<Widget>? actions;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(68);
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final top = dark ? SudagriColors.darkHeaderTop : SudagriColors.headerTop;
+    final bottom = dark ? SudagriColors.darkHeaderBottom : SudagriColors.headerBottom;
+    final ink = dark ? SudagriColors.darkForeground : SudagriColors.headerInk;
+    final sub = dark ? SudagriColors.darkMuted : SudagriColors.headerMuted;
+    final gold = dark ? SudagriColors.darkGold : SudagriColors.gold;
+    return AppBar(
+      toolbarHeight: 68,
+      centerTitle: false,
+      titleSpacing: 4,
+      foregroundColor: ink,
+      backgroundColor: Colors.transparent,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: AlignmentDirectional.centerStart,
+            end: AlignmentDirectional.centerEnd,
+            colors: [top, bottom],
+          ),
+          border: Border(bottom: BorderSide(color: gold.withValues(alpha: 0.55), width: 1.5)),
+        ),
+      ),
+      actions: actions,
+      title: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            padding: const EdgeInsets.all(1.5),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: gold, width: 2),
+            ),
+            child: ClipOval(
+              child: Image.asset('assets/brand/logo.png', fit: BoxFit.cover, semanticLabel: 'شعار سوداقري'),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('سوداقري',
+                    style: TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w900, height: 1.2)),
+                Text('منصّة سودانيّة للزراعة والتجارة',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: sub, fontSize: 11.5, fontWeight: FontWeight.w600, height: 1.3)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The 15-second film at the top of the home screen (owner, 6 November 2026: the Nile and the farmer): silent, looping,
+/// from the app's own assets so it plays with no network. Until it is ready — or if the phone cannot play it — the
+/// poster frame stands in, so the band is never empty. A scrim of the logo's forest green from the bottom keeps the
+/// white words on it readable.
+class HeroVideo extends StatefulWidget {
+  const HeroVideo({super.key, required this.child, this.height = 236});
+
+  final Widget child;
+  final double height;
+
+  static const asset = 'assets/video/hero.mp4';
+  static const poster = 'assets/video/hero.jpg';
+
+  @override
+  State<HeroVideo> createState() => _HeroVideoState();
+}
+
+class _HeroVideoState extends State<HeroVideo> {
+  VideoPlayerController? _video;
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _start();
+  }
+
+  Future<void> _start() async {
+    final c = VideoPlayerController.asset(HeroVideo.asset,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true));
+    _video = c;
+    try {
+      await c.initialize();
+      await c.setVolume(0);
+      await c.setLooping(true);
+      if (!mounted) return;
+      // Respect the phone's «reduce motion»: the poster only.
+      if (MediaQuery.of(context).disableAnimations) return;
+      await c.play();
+      if (mounted) setState(() => _ready = true);
+    } catch (_) {
+      // No player on this device (or a test): the poster stays.
+    }
+  }
+
+  @override
+  void dispose() {
+    _video?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final v = _video;
+    // The words decide the height (a large system font must not overflow); the film fills whatever that is, never
+    // less than [HeroVideo.height].
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: widget.height),
+        child: Stack(
+          children: [
+            Positioned.fill(child: Image.asset(HeroVideo.poster, fit: BoxFit.cover)),
+            if (_ready && v != null)
+              Positioned.fill(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  clipBehavior: Clip.hardEdge,
+                  child: SizedBox(
+                    width: v.value.size.width,
+                    height: v.value.size.height,
+                    child: VideoPlayer(v),
+                  ),
+                ),
+              ),
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.0, 0.35, 1.0],
+                    colors: [Color(0x33023F24), Color(0x22023F24), Color(0xE6023F24)],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              child: DefaultTextStyle.merge(
+                style: const TextStyle(color: Colors.white),
+                child: IconTheme.merge(data: const IconThemeData(color: Colors.white), child: widget.child),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// «ألوان التطبيق»: the two palettes side by side, each a swatch of its header, its green and its gold (owner,
+/// 6 November 2026: «يمكن التغيير بينهما»). The choice is kept on the phone and repaints the app at once.
+class PalettePicker extends StatelessWidget {
+  const PalettePicker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<Palette>(
+      valueListenable: paletteController,
+      builder: (context, current, _) => Row(
+        children: [
+          for (final p in palettes) ...[
+            Expanded(
+              child: Semantics(
+                button: true,
+                selected: p.id == current.id,
+                label: p.name,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => paletteController.choose(p),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: p.id == current.id ? p.primary : Theme.of(context).colorScheme.outline,
+                        width: p.id == current.id ? 2.5 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: SizedBox(
+                            height: 34,
+                            child: Row(children: [
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(colors: [p.headerTop, p.headerBottom]),
+                                  ),
+                                ),
+                              ),
+                              Expanded(flex: 2, child: Container(color: p.primary)),
+                              Expanded(child: Container(color: p.gold)),
+                              Expanded(child: Container(color: p.background)),
+                            ]),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (p.id == current.id) ...[
+                              Icon(Icons.check_circle, size: 16, color: textGreenOn(context)),
+                              const SizedBox(width: 4),
+                            ],
+                            Flexible(
+                              child: Text(p.name,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (p != palettes.last) const SizedBox(width: 10),
+          ],
         ],
       ),
     );

@@ -5,7 +5,7 @@ import MarketTabs from "@/components/market/MarketTabs";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 import { money } from "@/lib/marketCrops";
-import { isNotYetCreated } from "@/lib/marketOffers";
+import { INPUT_WINDOW_DAYS as WINDOW_DAYS, PUBLISHED_OLD_DAYS, loadInputBoard } from "@/lib/priceBoards";
 import { stateName } from "@/lib/nafir";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -18,9 +18,7 @@ import {
   khartoumToday,
   label,
   perUnit,
-  readPublishedInputs,
   type Availability,
-  type SummaryRow,
 } from "@/lib/inputBoard";
 
 export async function generateMetadata() {
@@ -34,12 +32,6 @@ export async function generateMetadata() {
     ),
   };
 }
-
-/** Reports counted on the board: the last two weeks, as the database allows them to be dated. */
-const WINDOW_DAYS = 14;
-
-/** A published figure older than this is marked as old; a report window is two weeks, a source two months. */
-const PUBLISHED_OLD_DAYS = 60;
 
 /**
  * «أين السماد والجازولين هذا الأسبوع وبكم» (البند ١٢٠).
@@ -56,38 +48,8 @@ export default async function InputsBoardPage({ searchParams }: { searchParams: 
   const today = khartoumToday();
   const supabase = await createClient();
 
-  const [summary, recent, suppliers] = await Promise.all([
-    supabase.rpc("input_price_summary", { p_days: WINDOW_DAYS }),
-    supabase.rpc("input_price_reports_recent", { p_days: WINDOW_DAYS }),
-    supabase
-      .from("supplier_products")
-      .select("input_key, supplier_id")
-      .eq("active", true)
-      .eq("category", "fertilizer")
-      .in("input_key", ["urea", "DAP", "NPK"]),
-  ]);
-  const pending = isNotYetCreated(summary.error);
-  const rows = ((summary.data ?? []) as SummaryRow[]).map((r) => ({
-    ...r,
-    low: r.low === null ? null : Number(r.low),
-    high: r.high === null ? null : Number(r.high),
-    median: r.median === null ? null : Number(r.median),
-  }));
-  const reports = (recent.data ?? []) as {
-    id: string;
-    item: SummaryRow["item"];
-    unit: SummaryRow["unit"];
-    price_kind: "official" | "parallel" | null;
-    state: string;
-    locality: string;
-    price_sdg: number | null;
-    availability: Availability;
-    observed_on: string;
-    note: string | null;
-  }[];
-  const supplierCount = (key: string) =>
-    new Set((suppliers.data ?? []).filter((p) => p.input_key === key).map((p) => p.supplier_id)).size;
-  const published = readPublishedInputs();
+  // The same loader the phone app's inputs route reads (src/lib/priceBoards.ts).
+  const { pending, rows, reports, supplierCount, published } = await loadInputBoard(supabase);
 
   const day = (d: string) =>
     new Date(`${d}T12:00:00Z`).toLocaleDateString(en ? "en-GB" : "ar-SD-u-nu-latn", { day: "numeric", month: "long", year: "numeric" });
@@ -109,7 +71,7 @@ export default async function InputsBoardPage({ searchParams }: { searchParams: 
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 lg:max-w-6xl xl:max-w-7xl">
       <MarketTabs active="/market/inputs" locale={locale} />
       <PageHeader icon="chart" eyebrow={t("السوق والأسعار", "Market and prices")} title={t("أين السماد والجازولين هذا الأسبوع وبكم", "Where fertiliser and diesel are this week, and at what price")}>
         {t(
@@ -153,7 +115,7 @@ export default async function InputsBoardPage({ searchParams }: { searchParams: 
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
             {groupByItem(rows).map(([item, list]) => (
               <div key={item} className="rounded-2xl border border-border bg-card p-4">
                 <h3 className="mb-2 font-bold">{label(ITEM_LABEL, item, locale)}</h3>

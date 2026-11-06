@@ -4,18 +4,8 @@ import { loginTo } from "@/lib/authEntry";
 import { createClient } from "@/lib/supabase/server";
 import ExportOfferForm from "@/components/ExportOfferForm";
 import ExportOfferActions from "@/components/ExportOfferActions";
-import {
-  offerStatusLabel,
-  offerStatusHelp,
-  formatMinor,
-  referenceName,
-  destinationRegion,
-  REGION_LABEL,
-  type DestinationRegion,
-  type OfferStatus,
-} from "@/lib/exportOffers";
-
-const REGION_ORDER: DestinationRegion[] = ["arab", "africa", "asia", "europe", "americas", "other"];
+import { offerStatusLabel, offerStatusHelp, formatMinor } from "@/lib/exportOffers";
+import { loadExportChoices, loadMyExportOffers } from "@/lib/exportCorridors";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 
@@ -29,18 +19,6 @@ export async function generateMetadata() {
       "Turn a documented season into an offer buyers can see.",
     ),
   };
-}
-
-interface OfferRow {
-  id: string;
-  reference: string;
-  quantity: string;
-  uom_code: string;
-  unit_price_minor: number;
-  value_minor: number;
-  status: OfferStatus;
-  rejection_reason: string | null;
-  created_at: string;
 }
 
 /**
@@ -63,62 +41,11 @@ export default async function ExportOffersPage() {
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
 
-  const [
-    { data: commodityRows },
-    { data: destinationRows },
-    { data: corridorRows },
-    { data: gradeRows },
-    { data: uomRows },
-    { data: offerRows },
-  ] = await Promise.all([
-    supabase.from("export_commodities").select("id, code, name_ar, default_uom_code").eq("active", true).order("name_ar"),
-    supabase.from("export_destinations").select("id, code, name_ar").eq("active", true).order("name_ar"),
-    // Which pairs have requirements on record, so the form can say so before saving.
-    supabase.from("export_corridors").select("commodity_id, destination_id, export_corridor_requirements(count)"),
-    supabase.from("export_commodity_grades").select("id, commodity_id, name_ar"),
-    supabase.from("export_uom").select("code, name_ar"),
-    supabase
-      .from("export_offers")
-      .select(
-        "id, reference, quantity, uom_code, unit_price_minor, value_minor, status, rejection_reason, created_at",
-      )
-      .eq("owner_id", user.id)
-      .order("created_at", { ascending: false }),
+  // The same loaders the phone app's export routes read (src/lib/exportCorridors.ts).
+  const [{ commodities, destinations, studied, grades, uoms }, offers] = await Promise.all([
+    loadExportChoices(supabase, locale),
+    loadMyExportOffers(supabase, user.id),
   ]);
-
-  const commodities = ((commodityRows ?? []) as { id: string; code: string; name_ar: string; default_uom_code: string }[]).map(
-    (c) => ({ id: c.id, label: referenceName(c.code, c.name_ar, locale), defaultUom: c.default_uom_code }),
-  );
-  const destinations = ((destinationRows ?? []) as { id: string; code: string; name_ar: string }[])
-    .map((d) => {
-      const region = destinationRegion(d.code);
-      return {
-        id: d.id,
-        label: referenceName(d.code, d.name_ar, locale),
-        group: locale === "en" ? REGION_LABEL[region].en : REGION_LABEL[region].ar,
-        order: REGION_ORDER.indexOf(region),
-      };
-    })
-    .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, locale))
-    .map((d) => ({ id: d.id, label: d.label, group: d.group }));
-  const studied: Record<string, number> = {};
-  for (const c of (corridorRows ?? []) as {
-    commodity_id: string;
-    destination_id: string;
-    export_corridor_requirements: { count: number }[];
-  }[]) {
-    const n = c.export_corridor_requirements?.[0]?.count ?? 0;
-    if (n > 0) studied[`${c.commodity_id}|${c.destination_id}`] = n;
-  }
-
-  const grades = ((gradeRows ?? []) as { id: string; commodity_id: string; name_ar: string }[]).map(
-    (g) => ({ id: g.id, commodityId: g.commodity_id, name: g.name_ar }),
-  );
-  const uoms = ((uomRows ?? []) as { code: string; name_ar: string }[]).map((u) => ({
-    code: u.code,
-    name: referenceName(u.code, u.name_ar, locale),
-  }));
-  const offers = (offerRows ?? []) as OfferRow[];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">

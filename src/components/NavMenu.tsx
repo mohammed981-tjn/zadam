@@ -9,6 +9,7 @@ import { activeHref, groupForPath, type NavGroup } from "@/lib/nav";
 import { tr } from "@/lib/i18n";
 import { useLocale } from "./LocaleProvider";
 import Icon from "./Icon";
+import PaletteSwitch from "./PaletteSwitch";
 
 export type { NavItem, NavGroup } from "@/lib/nav";
 
@@ -122,13 +123,11 @@ export default function NavMenu({
         aria-haspopup="menu"
         // On a phone the bottom bar carries «القائمة», so the header does
         // not show the same button a second time.
-        className={`hidden items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition sm:flex ${
-          open ? "border-rose bg-rose/10 text-rose" : "border-rose/50 bg-card text-rose hover:border-rose"
-        }`}
+        // On the header, so in the header's ink (`.hdr-chip`), with a gold edge while open.
+        className="hdr-chip hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition sm:flex"
       >
-        {/* Three bars in hibiscus pink; the middle one shorter, so the
-            mark reads as a list and not as a flag. */}
-        <span aria-hidden className="flex flex-col items-end gap-[3px] text-rose">
+        {/* Three bars, the middle one shorter, so the mark reads as a list and not as a flag. */}
+        <span aria-hidden className="flex flex-col items-end gap-[3px]">
           <span className="block h-[2px] w-4 rounded-full bg-current" />
           <span className="block h-[2px] w-3 rounded-full bg-current" />
           <span className="block h-[2px] w-4 rounded-full bg-current" />
@@ -141,15 +140,19 @@ export default function NavMenu({
           button's edge left a strip of page showing beside it and wrapped
           every section's hint onto a second line («لا يُعرض جيداً»). From
           `sm` up it is the dropdown again. A tap on the dimmed page closes
-          it, through the outside-tap listener above. */}
+          it, through the outside-tap listener above. On a phone the sheet's
+          end is padded by the height of the assistant's floating button,
+          which rests over its lower corner: scrolled to the end, the colours
+          switch and «خروج» sit above it rather than under it. */}
       {open && (
-        <div aria-hidden className="fixed inset-x-0 bottom-0 top-[4.4rem] z-30 bg-foreground/30 sm:hidden" />
+        // The header is 3px of brand edge and a 4rem row (Navbar), so the dimming starts where it ends.
+        <div aria-hidden className="fixed inset-x-0 bottom-0 top-[calc(4rem_+_3px)] z-30 bg-foreground/30 sm:hidden" />
       )}
       {open && (
         <div
           ref={panelRef}
           role="menu"
-          className="fixed inset-x-3 top-[4.9rem] z-50 max-h-[calc(100dvh_-_5.9rem_-_var(--nav-bottom))] overflow-y-auto rounded-3xl border border-border bg-card shadow-float sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-[22rem]"
+          className="fixed inset-x-3 top-[calc(4.5rem_+_3px)] z-50 pb-16 sm:pb-0 max-h-[calc(100dvh_-_5.9rem_-_var(--nav-bottom))] overflow-y-auto rounded-3xl border border-border bg-card shadow-float sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-[22rem]"
         >
           <button
             role="menuitem"
@@ -275,7 +278,9 @@ export default function NavMenu({
             );
           })}
 
-          {signOut && <div className="px-4 py-3">{signOut}</div>}
+          {/* The site's colours (the owner, 6 November 2026), for everyone, signed in or not. */}
+          <PaletteSwitch className="px-4 py-3" />
+          {signOut && <div className="border-t border-border px-4 py-3">{signOut}</div>}
         </div>
       )}
     </div>

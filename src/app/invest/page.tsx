@@ -65,7 +65,7 @@ export default async function InvestPage({
   const projects = (projectRows ?? []) as unknown as Project[];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
       <PageHeader icon="chart" eyebrow={t("للمستثمرين", "For investors")} title={t("فرص الاستثمار", "Investment opportunities")}>
         {t(
           "أراضٍ وثّقت سوداقري مستنداتها يبحث أصحابها عن شريك، ومشاريع مطروحة. أنت تموّل، وصاحب الأرض يقدّم الأرض والماء والعمل، وسوداقري تتحقّق وتتابع. المال لا يمرّ بالمنصّة، ولا أحد يَعِدك بربح.",
@@ -83,7 +83,7 @@ export default async function InvestPage({
           base={locale === "en" ? "/video/investors-wide-en" : "/video/investors-wide"}
           poster="/video/investors-wide.jpg"
           label={t("فيلم سوداقري للمستثمر: شارِكْ في أرض السودان", "A Sudagri film for investors: partner in Sudan's land")}
-          className="hidden aspect-video w-full rounded-xl border border-border bg-black object-cover sm:block"
+          className="hidden aspect-video w-full rounded-xl border border-border bg-black object-cover sm:block lg:max-w-4xl"
         />
         <FilmPlayer
           base={locale === "en" ? "/video/investors-tall-en" : "/video/investors-tall"}
@@ -318,7 +318,7 @@ export default async function InvestPage({
           <Link href={user ? "/lands" : "/signup?next=/lands"} className="rounded-xl bg-white px-4 py-2 text-sm font-black text-primary">
             {user ? t("أراضيّ", "My land") : t("سجّل مجّاناً", "Sign up free")}
           </Link>
-          <Link href="/lands/new" className="rounded-xl px-4 py-2 text-sm font-bold ring-1 ring-[#1c2b1e]/40">
+          <Link href="/lands/new" className="rounded-xl px-4 py-2 text-sm font-bold ring-1 ring-foreground/40">
             {t("سجّل أرضاً", "Register land")}
           </Link>
         </div>

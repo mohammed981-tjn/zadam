@@ -14,7 +14,11 @@
 		</dict>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>ليحدّد التطبيق أركان أرضك وأنت تمشي حولها، فيحسب مساحتها.</string>
+	<string>ليحدّد التطبيق أركان أرضك وأنت تمشي حولها فيحسب مساحتها، ومكانَ تسليم البضاعة حين تؤكّده ناقلاً.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>لتصوّر البضاعة عند تسليمها، أو دليل مرحلةٍ من الموسم، أو مستندات متجرك.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>لتختار صورةً محفوظةً دليلاً أو مستنداً.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

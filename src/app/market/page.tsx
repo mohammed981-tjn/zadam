@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { currentFx, currentMarketPrices } from "@/lib/livePrices";
+import { loadMarketBoard } from "@/lib/priceBoards";
 import { join } from "node:path";
 import Link from "next/link";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
@@ -10,21 +10,18 @@ import Sparkline from "@/components/market/Sparkline";
 import { ageInDays } from "@/lib/fxRates";
 import { tr } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
-import { WFP_PRICES_SOURCE, medianFor, orderTowns, pctChange, readWfpPrices, townMedians, unusual, wfpItem, wfpMarketPlace, wfpTown, wfpUnit, type WfpTown } from "@/lib/wfpPrices";
+import { WFP_PRICES_SOURCE, medianFor, orderTowns, pctChange, unusual, wfpItem, wfpMarketPlace, wfpTown, wfpUnit, type WfpTown } from "@/lib/wfpPrices";
 import {
-  BOURSE_QUIET_DAYS,
   CROP_NAME,
   FEWS_SOURCE_URL,
   MARKET_STALE_DAYS,
   UNIT_NAME,
   cropName,
-  fetchFewsPrices,
   fewsMarket,
   fewsProduct,
   fewsUnit,
   latest,
   money,
-  readWfpMonthly,
   seriesKey,
   type PriceSeries,
 } from "@/lib/marketPrices";
@@ -41,46 +38,21 @@ export async function generateMetadata() {
   };
 }
 
-/** Cards in the order a farmer looks for them: the cash crop first, then the staples, then the west's crops. */
-const CROP_ORDER = ["sesame", "feterita", "millet", "tabat", "sesame_red", "gum_hashab", "groundnut", "hibiscus"];
-
 export default async function MarketPage() {
   const locale = await getLocale();
   const en = locale === "en";
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const data = (await currentMarketPrices());
-  const fx = (await currentFx());
-  const fews = await fetchFewsPrices();
-  const wfp = readWfpMonthly();
-  const wfpPrices = readWfpPrices();
-  const wfpMedians = wfpPrices ? townMedians(wfpPrices.towns) : new Map<string, number>();
-  const usdRate = fx?.bank.sell ?? null;
+  // The same loader the phone app's prices route reads (src/lib/priceBoards.ts), so both show the same figures.
+  const { data, fx, fews, wfp, wfpPrices, wfpMedians, usdRate, byCrop, crops, lastBulletin, quiet, checked } = await loadMarketBoard();
   // The warehouse-receipt study, when it lands, is linked from here; until then the idea is stated without a dead link.
   const bourseStudy = existsSync(join(process.cwd(), "content/studies/bourse-ar.md"));
 
   const day = (d: string) =>
     new Date(`${d}T12:00:00Z`).toLocaleDateString(en ? "en-GB" : "ar-SD-u-nu-latn", { day: "numeric", month: "long", year: "numeric" });
 
-  const byCrop = new Map<string, PriceSeries[]>();
-  for (const s of data?.series ?? []) byCrop.set(s.crop, [...(byCrop.get(s.crop) ?? []), s]);
-  const crops = [...byCrop.keys()].sort((a, b) => {
-    const ia = CROP_ORDER.indexOf(a), ib = CROP_ORDER.indexOf(b);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-  });
-
   const monthName = (ym: string) =>
     new Date(`${ym.slice(0, 7)}-15T12:00:00Z`).toLocaleDateString(en ? "en-GB" : "ar-SD-u-nu-latn", { month: "long", year: "numeric" });
 
-  // The newest bulletin per bourse town. When even the newest is a month old the
-  // bourses are between seasons: say so first, and lead with the monthly figures.
-  const lastBulletin = new Map<string, string>();
-  for (const s of data?.series ?? []) {
-    const d = latest(s).last.date;
-    if (d > (lastBulletin.get(s.market) ?? "")) lastBulletin.set(s.market, d);
-  }
-  const newest = [...lastBulletin.values()].sort().pop();
-  const quiet = newest !== undefined && ageInDays(newest) > BOURSE_QUIET_DAYS;
-  const checked = /^\d{4}-\d{2}-\d{2}$/.test(data?.checked ?? "") ? data!.checked : null;
   const pct = (n: number) => `${n > 0 ? "+" : ""}${money(n)}%`;
 
   const per = (s: PriceSeries) => (en ? `per ${UNIT_NAME[s.unit].en}` : `لل${UNIT_NAME[s.unit].ar.slice(2)}`);
@@ -303,7 +275,7 @@ export default async function MarketPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 lg:max-w-6xl xl:max-w-7xl">
       {/* الأبوابُ الثلاثة التي كانت هنا أزراراً («عروض البيع والشراء ←»…)
           صارت تبويباتِ السوق فوق كلّ صفحاته (البند ١٢١). */}
       <MarketTabs active="/market" locale={locale} />
@@ -383,7 +355,7 @@ export default async function MarketPage() {
           {t("تعذّرت قراءة الأسعار الآن.", "The prices could not be read just now.")}
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
           {crops.map((crop) => {
             const series = byCrop.get(crop)!;
             const shareText = en

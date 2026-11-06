@@ -54,7 +54,7 @@ export default async function HerdsPage() {
   const myLands = (landRows ?? []) as { name: string; state: string; latitude: number | null; longitude: number | null }[];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">
@@ -102,7 +102,7 @@ export default async function HerdsPage() {
           )}
         </EmptyState>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid gap-3 lg:grid-cols-2 lg:items-start">
           {herds.map((h) => (
             <li key={h.id}>
               <Link

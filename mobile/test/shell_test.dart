@@ -50,15 +50,22 @@ void main() {
   });
 
   testWidgets('the home board builds, and an unreachable server is a retry, not a crash', (tester) async {
-    tester.view.physicalSize = const Size(390, 2400);
+    tester.view.physicalSize = const Size(390, 4200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(_app());
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.text('الأقسام'), findsOneWidget);
-    for (final s in ['الأخبار', 'الأفلام', 'توقّع الأمطار', 'حاسبة الري', 'النفير', 'الخدمات', 'التعدين']) {
+    // Item 203: the sections in three groups, the website's sections among them.
+    for (final g in ['مزرعتي', 'السوق والاستثمار', 'الأدوات والمعرفة']) {
+      expect(find.text(g), findsOneWidget, reason: g);
+    }
+    for (final s in [
+      'المواسم', 'أراضيّ', 'الدفتر', 'القطعان', 'دراسة الجدوى', 'الخرائط',
+      'الأسعار', 'التصدير', 'العقود', 'الاستثمار', 'الموردون', 'الوكيل', 'المكتبة',
+      'الأخبار', 'الأفلام', 'توقّع الأمطار', 'حاسبة الري', 'النفير', 'الخدمات', 'التعدين',
+    ]) {
       expect(find.text(s), findsWidgets, reason: s);
     }
     expect(find.text('المشاريع المتاحة'), findsOneWidget);

@@ -21,53 +21,56 @@
 
 :root {
   /*
-   * The ground is a blush of pink and the pink leads (backlog 121, the owner
-   * after the Figma rounds: «خلفيّة ورديّة… اجعل الوردي طاغياً والأخضر
-   * لمسات»). Cards stay white and type stays near-black, so a page still reads
-   * in sunlight; the pink is in the buttons, the titles and the selection, and
-   * green is kept for small touches only (`--leaf`).
-   */
-  /* البيج والأخضر الفاتح من جديد (المالك، 6 نوفمبر 2026: «لون الهوية سيتغير الى اللون القديم البيج والاخضر
-     الفاتح»): بيجٌ أرضيّة، وأخضر للفعل (#1f7a3d يحمل 5.4:1 تحت الأبيض)، وأخضر فاتح (--leaf) للمسات التي لا
-     تحمل نصّاً، و--rose (لمسة العناوين، وكانت ورديّة) صار أخضر يُقرأ نصّاً كما كان قبل الوردي. */
-  --background: #f7f5ef;
-  --foreground: #1c2b1e;
-  --card: #ffffff;
-  --border: #e2ded0;
-  /* The site's colours as they were before 21 October (owner, 6 November 2026, with screenshots of the old site:
-     «هذه ألوان الموقع القديمة»): beige ground, #1f7a3d green with white type (5.4:1). */
-  --primary: #1f7a3d;
-  --primary-foreground: #ffffff;
-  --primary-ink: #1f7a3d;
-  /* Green as a touch: the sprout, a dot, the tip of a bar, a price that rose.
-     The site's green, a shade lighter than the #1f7a3d it was. */
-  --leaf: #1b8043;
-  /* الأخضر الفاتح: للمسات التي لا تحمل نصّاً (الخلفيّات الهادئة، والخطوط، والنقاط). */
-  --leaf-light: #3fae66;
-  --muted: #6b6558;
-  --accent: #b8860b;
-  /* No red on the site, and no orange (the owner, 21 October: «لا تستعمل
-     الأحمر», then «ابعد البرتقالي لا أريده»). What was red — an error, a figure
-     past its date — is a dark gold: gold is already the site's colour of
-     caution, and this shade holds 4.8:1 as text on every ground. */
-  --danger: #8a6508;
-
-  /*
-   * Hibiscus — the owner's pink, as a touch and never as a ground (backlog 98:
-   * «إدخال ألوان الوردي كلمسة»). It is the colour of karkadeh, the most Sudanese
-   * pink there is, and it marks small things only: the line above the headline,
-   * the quick-link icons, a bar under a section title, a hover. Green stays the
-   * colour of action and gold the colour of caution; pink never carries a number
-   * or a button, so it cannot be mistaken for either.
+   * لوحتان من الشعار (المالك، 6 نوفمبر 2026، بعد أن رأى العيّنات: «أين الشعار… الترويسة تحسينها»).
    *
-   * Then, 21 October (backlog 121), the pink leads («اجعل الوردي طاغياً»), and
-   * with no orange beside it («ابعد البرتقالي لا أريده»). It is the colour of
-   * where you are — the tab you are on, the
-   * menu section you are in, a section's mark — and it moved from #be185d,
-   * which reads as crimson on a phone, to a true pink. #ca2c72 holds 4.6:1 as
-   * text on every ground the site uses and 5:1 under white.
+   * The brand is the logo's own colours now (public/sudagri-logo.webp): the deep forest green of its ring
+   * (#023f24), the leaf green of the crops (#579b2e), the sun's gold (#fec247) and the cream of its plate. The
+   * visitor can switch between two palettes built from them (PaletteSwitch, the `palette` cookie, read by the
+   * layout into `<html data-palette>` so the first paint is already right):
+   *
+   *   «ألوان الشعار» (`logo`, the default, here): cream ground, the forest green for action and type
+   *     (#0f5a32 holds 8.3:1 under white and 7.7:1 on the cream), and a dark-green header like the logo's ring.
+   *   «أخضر الأوراق والذهبيّ» (`leaf`, below): a lighter leaf green for action (#367a23, 5.3:1 under white) and a
+   *     cream header with the forest green as its ink.
+   *
+   * Night is one palette for both (further down): the logo with the lights off.
+   *
+   * Every token name the site used before is kept, so nothing that paints with one breaks. Still no red and no
+   * orange anywhere (the owner, 21 October: «لا تستعمل الأحمر», «ابعد البرتقالي لا أريده»): what was red — an
+   * error, a figure past its date — is a dark gold (`--danger`), and gold is the colour of caution. `--gold` is
+   * the logo's sun as a fill (a button, a ring, a dot) and never small text: it is too light to be read on cream.
    */
-  --rose: #1f7a3d;
+  --background: #faf6ec;
+  --foreground: #14261a;
+  --card: #ffffff;
+  --border: #e7e0cc;
+  --primary: #0f5a32;
+  --primary-foreground: #ffffff;
+  --primary-ink: #0f5a32;
+  /* Green as a touch: the sprout, a dot, the tip of a bar, a price that rose. */
+  --leaf: #3f8a2a;
+  /* The logo's leaf green, for touches that carry no text (quiet grounds, lines, dots). */
+  --leaf-light: #579b2e;
+  --muted: #5d6b5f;
+  --accent: #b8860b;
+  /* The logo's sun, as a fill: never small text. `--gold-ink` is the type that sits on it (11:1). */
+  --gold: #f2bd4b;
+  --gold-tint: #fdf1d3;
+  --gold-ink: #1d2410;
+  /* No red, no orange: a dark gold that holds 4.9:1 as text on the cream. */
+  --danger: #8a6508;
+  /* The touch that marks where you are (it was hibiscus pink until 6 November): the forest green, read as text. */
+  --rose: #0f5a32;
+
+  /* The header (the owner: «الترويسة تحسينها»): the logo's ring green, with white type. */
+  --header-bg: linear-gradient(90deg, #023f24, #0f5a32);
+  --header-ink: #ffffff;
+  --header-muted: rgb(255 255 255 / 0.8);
+
+  /* The selected tab, and the menu section you are in (`.tab-on`): white type on it in every palette. */
+  --tab-on-from: #1b6b3c;
+  --tab-on-to: #0f5a32;
+  --tab-on-glow: rgb(15 90 50 / 0.3);
 
   /*
    * Elevation, as light rather than as outline.
@@ -77,14 +80,14 @@
    * very soft here, near-black over a lifted surface in dark mode — separate a
    * card from the page without drawing a line around it.
    */
-  --shadow-sm: 0 1px 2px rgb(28 43 30 / 0.04), 0 1px 3px rgb(28 43 30 / 0.06);
-  --shadow-md: 0 2px 4px rgb(28 43 30 / 0.04), 0 6px 16px rgb(28 43 30 / 0.08);
-  --shadow-lg: 0 4px 8px rgb(28 43 30 / 0.05), 0 16px 40px rgb(28 43 30 / 0.1);
+  --shadow-sm: 0 1px 2px rgb(20 38 26 / 0.04), 0 1px 3px rgb(20 38 26 / 0.06);
+  --shadow-md: 0 2px 4px rgb(20 38 26 / 0.04), 0 6px 16px rgb(20 38 26 / 0.08);
+  --shadow-lg: 0 4px 8px rgb(20 38 26 / 0.05), 0 16px 40px rgb(20 38 26 / 0.1);
 
   /* The hero's ground: two wide, low-saturation pools, not a banner image. */
   --mesh-1: color-mix(in oklab, var(--primary) 10%, transparent);
   --mesh-2: color-mix(in oklab, var(--leaf-light) 16%, transparent);
-  --mesh-3: color-mix(in oklab, var(--accent) 8%, transparent);
+  --mesh-3: color-mix(in oklab, var(--gold) 12%, transparent);
 
   --ring: color-mix(in oklab, var(--primary) 55%, transparent);
 
@@ -93,29 +96,79 @@
    * data drawn over Sudan carries the colour and the context stays behind it.
    */
   --map-sea: #dbe8f0;
-  --map-land: #ebe7dc;
-  --map-land-edge: #d3cdbd;
+  --map-land: #ece6d6;
+  --map-land-edge: #d5cdb8;
   --map-water: #3f86c6;
   --map-label: #857f70;
-  --map-state: rgb(28 43 30 / 0.3);
+  --map-state: rgb(20 38 26 / 0.3);
+}
+
+/*
+ * «أخضر الأوراق والذهبيّ» — the second palette. Scoped to a light scheme so that night (below) always wins: the
+ * two palettes share one dark mode, and a visitor who chose «leaf» and then turns the lights off gets the night
+ * palette, not a cream page.
+ */
+@media (prefers-color-scheme: light) {
+  :root[data-palette="leaf"] {
+    --background: #f7f3e6;
+    --foreground: #1c2a14;
+    --card: #fffdf8;
+    --border: #ebe2c8;
+    --primary: #367a23;
+    --primary-foreground: #ffffff;
+    --primary-ink: #2f6d1f;
+    --leaf: #3f8a2a;
+    --leaf-light: #579b2e;
+    --muted: #666f5a;
+    --accent: #b8860b;
+    --gold: #e0a93a;
+    --gold-tint: #fbeccb;
+    --danger: #8a6508;
+    --rose: #2f6d1f;
+
+    /* A cream header with the logo's forest green as its ink. */
+    --header-bg: #fffdf6;
+    --header-ink: #023f24;
+    --header-muted: #5d6b5f;
+
+    --tab-on-from: #4a9233;
+    --tab-on-to: #367a23;
+    --tab-on-glow: rgb(54 122 35 / 0.3);
+
+    --shadow-sm: 0 1px 2px rgb(28 42 20 / 0.04), 0 1px 3px rgb(28 42 20 / 0.06);
+    --shadow-md: 0 2px 4px rgb(28 42 20 / 0.04), 0 6px 16px rgb(28 42 20 / 0.08);
+    --shadow-lg: 0 4px 8px rgb(28 42 20 / 0.05), 0 16px 40px rgb(28 42 20 / 0.1);
+    --map-state: rgb(28 42 20 / 0.3);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Night: the green site with the lights down (owner, 6 November 2026). */
-    --background: #10160f;
+    /* Night: the logo with the lights down — one palette for both choices (owner, 6 November 2026). */
+    --background: #0d1510;
     --foreground: #eef1e8;
-    --card: #172018;
-    --border: #2a3527;
-    --primary: #3fae66;
-    --primary-foreground: #08130a;
-    --primary-ink: #3fae66;
-    --leaf: #3fae66;
-    --leaf-light: #3fae66;
+    --card: #15201a;
+    --border: #26342b;
+    --primary: #4fae6a;
+    --primary-foreground: #06120a;
+    --primary-ink: #4fae6a;
+    --leaf: #4fae6a;
+    --leaf-light: #4fae6a;
     --muted: #a3a698;
     --accent: #d4a72c;
-    --rose: #3fae66;
+    --gold: #e6b94f;
+    --gold-tint: #2c2914;
+    --gold-ink: #1d2410;
+    --rose: #4fae6a;
     --danger: #e0b440;
+
+    --header-bg: linear-gradient(90deg, #06261a, #0d3d26);
+    --header-ink: #eef1e8;
+    --header-muted: rgb(238 241 232 / 0.75);
+
+    --tab-on-from: #1b6b3c;
+    --tab-on-to: #0f5a32;
+    --tab-on-glow: rgb(0 0 0 / 0.35);
 
     /* Shadow alone cannot lift a surface on a dark ground — the card is also
        lighter than the page, and the shadow deepens that separation. */
@@ -125,11 +178,11 @@
 
     --mesh-1: color-mix(in oklab, var(--primary) 16%, transparent);
     --mesh-2: color-mix(in oklab, var(--leaf-light) 12%, transparent);
-    --mesh-3: color-mix(in oklab, var(--rose) 12%, transparent);
+    --mesh-3: color-mix(in oklab, var(--gold) 10%, transparent);
 
     --map-sea: #142a36;
-    --map-land: #20281f;
-    --map-land-edge: #333d30;
+    --map-land: #1f2820;
+    --map-land-edge: #323d33;
     --map-water: #5b9fdb;
     --map-label: #8d917f;
     --map-state: rgb(238 241 232 / 0.3);
@@ -150,6 +203,12 @@
   --color-rose: var(--rose);
   --color-leaf: var(--leaf);
   --color-leaf-light: var(--leaf-light);
+  --color-gold: var(--gold);
+  --color-gold-tint: var(--gold-tint);
+  --color-gold-ink: var(--gold-ink);
+  /* The header's type. Its ground, `--header-bg`, is a gradient and so not a colour: `.site-header` paints it. */
+  --color-header-ink: var(--header-ink);
+  --color-header-muted: var(--header-muted);
   --font-sans: var(--font-tajawal);
 
   --shadow-card: var(--shadow-sm);
@@ -356,28 +415,65 @@ html {
 }
 
 /*
- * The brand edge (backlog 121): a 3px band across the top of the header. The
- * green of the site at the reading start, then the pink that leads across the
- * rest — side by side as blocks, because green blended into pink passes
- * through brown.
+ * The brand edge (backlog 121): a 3px band across the top of the header. Since 6 November 2026 it is the logo's
+ * sun and leaf: gold at the reading start, then the leaf green across the rest — side by side as blocks, the way
+ * the two sit in the artwork.
  */
 .brand-edge {
   block-size: 3px;
-  background: linear-gradient(to left, var(--leaf-light) 0 30%, var(--primary) 30%);
+  background: linear-gradient(to left, var(--gold) 0 30%, var(--leaf-light) 30%);
+  /* Against the window, like `.site-header`: on a desktop the band runs on from the side column into the header
+     as one line rather than restarting at the seam. */
+  background-attachment: fixed;
+}
+[dir="ltr"] .brand-edge {
+  background-image: linear-gradient(to right, var(--gold) 0 30%, var(--leaf-light) 30%);
 }
 
 /*
- * The selected tab, and the menu section you are in: solid pink, the one
- * filled tab on a screen, with a soft pink glow under it. Fixed stops rather
- * than the theme token, because white text has to hold on it in dark mode
- * too — #b8285f is 6:1 and #ca2c72 5.1:1 against white.
+ * الترويسة بالشعار (المالك، 6 نوفمبر 2026: «أين الشعار… الترويسة تحسينها»).
+ *
+ * The header's ground is a palette token (`--header-bg`): the logo's ring green in «ألوان الشعار» and at night,
+ * cream in «أخضر الأوراق». Everything in it paints with `--header-ink`, so it reads in every palette.
+ * `background-attachment: fixed` lays the gradient against the window rather than the element, so the header
+ * and the brand block at the top of the desktop side column (DesktopSidebar) read as one band with no seam.
+ */
+.site-header {
+  background: var(--header-bg);
+  background-attachment: fixed;
+  color: var(--header-ink);
+}
+.site-header-rule {
+  border-block-end: 1px solid color-mix(in oklab, var(--header-ink) 12%, transparent);
+}
+/* An action on the header (messages, notifications, the language, the menu): a chip of the header's own ink. */
+.hdr-chip {
+  border: 1px solid color-mix(in oklab, var(--header-ink) 28%, transparent);
+  background: color-mix(in oklab, var(--header-ink) 9%, transparent);
+  color: var(--header-ink);
+}
+.hdr-chip:hover,
+.hdr-chip[aria-expanded="true"] {
+  border-color: var(--gold);
+  background: color-mix(in oklab, var(--header-ink) 15%, transparent);
+}
+/* The round logo: a white plate behind the artwork, ringed in the sun's gold. */
+.brand-badge {
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px var(--gold), 0 2px 6px rgb(0 0 0 / 0.18);
+  overflow: hidden;
+}
+
+/*
+ * The selected tab, and the menu section you are in: the one filled tab on a screen, with a soft glow under it.
+ * The palette's green (6 November 2026): #1b6b3c→#0f5a32 in «ألوان الشعار», #4a9233→#367a23 in «أخضر الأوراق»,
+ * and the logo's at night — white type on all of them.
  */
 .tab-on {
-  /* Green since 6 November 2026 (owner: the old beige and light green): #1f7a3d is 5.4:1 and #17642f 7:1 under
-     white. */
-  background: linear-gradient(135deg, #2a8a47, #1f7a3d);
+  background: linear-gradient(135deg, var(--tab-on-from), var(--tab-on-to));
   color: #fff;
-  box-shadow: 0 3px 10px rgb(31 122 61 / 0.3);
+  box-shadow: 0 3px 10px var(--tab-on-glow);
 }
 
 /*
@@ -394,7 +490,7 @@ html {
   background-color: var(--background);
   background-image:
     radial-gradient(60rem 30rem at 85% -10%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%),
-    radial-gradient(45rem 25rem at 10% 110%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 60%),
+    radial-gradient(45rem 25rem at 10% 110%, color-mix(in oklab, var(--gold) 18%, transparent), transparent 60%),
     radial-gradient(30rem 18rem at 50% 45%, color-mix(in oklab, var(--leaf-light) 7%, transparent), transparent 65%);
   color: var(--foreground);
   border-end-start-radius: 2.25rem;
@@ -422,10 +518,64 @@ html {
   background: rgb(255 255 255 / 0.07);
 }
 
-/* The chip behind a quick link's icon: a light pink deepening to hibiscus. */
+/* The chip behind a quick link's icon. It was hibiscus pink; since 6 November 2026 it is the logo's leaf deepening
+   into the palette's green, with the icon in the green's own ink (the class keeps its name for its callers). */
 .chip-hibiscus {
-  background: linear-gradient(135deg, #e0559a, #b8285f);
+  background: linear-gradient(135deg, var(--leaf-light), var(--primary));
+  color: var(--primary-foreground);
+}
+
+/*
+ * الواجهة بالفيديو (المالك، 6 نوفمبر 2026): خمس عشرة ثانية صامتة تدور خلف العنوان.
+ *
+ * The poster is a real <img> (the page's LCP), the film fades in over it once it plays, and a scrim of the logo's
+ * forest green rises from the bottom under the type. The scrim belongs to the text block, not to the frame: the
+ * block is 88% green down to its foot and fades out only in its own top padding, where there is no text. So
+ * however the headline wraps, every word sits on at least 88% green, and white on that holds 8.5:1 even over a
+ * pure white pixel of the film — its burned-in captions included (the pill 11:1, the outlined button 6.5:1, the
+ * gold button's dark type 9:1).
+ */
+.hero-video {
+  --scrim: 2 63 36; /* #023f24, the logo's ring */
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: rgb(var(--scrim));
   color: #fff;
+  border-end-start-radius: 2.25rem;
+  border-end-end-radius: 2.25rem;
+}
+.hero-scrim {
+  background: rgb(var(--scrim) / 0.88);
+  -webkit-mask-image: linear-gradient(to top, #000 calc(100% - 7rem), transparent);
+  mask-image: linear-gradient(to top, #000 calc(100% - 7rem), transparent);
+}
+/* From `md` the type keeps to the reading-start side, and the scrim with it: solid under the text column (at most
+   38rem wide, inside the page's 72rem frame), fading out beyond it, so the far side of the film plays clear. A
+   light wash along the foot joins the frame to the page. */
+@media (min-width: 768px) {
+  .hero-scrim {
+    --solid: calc(max(0px, (100% - 72rem) / 2) + 40rem);
+    background:
+      linear-gradient(to left, rgb(var(--scrim) / 0.88) var(--solid), rgb(var(--scrim) / 0) calc(var(--solid) + 18rem)),
+      linear-gradient(to top, rgb(var(--scrim) / 0.45), rgb(var(--scrim) / 0) 75%);
+  }
+  [dir="ltr"] .hero-scrim {
+    background:
+      linear-gradient(to right, rgb(var(--scrim) / 0.88) var(--solid), rgb(var(--scrim) / 0) calc(var(--solid) + 18rem)),
+      linear-gradient(to top, rgb(var(--scrim) / 0.45), rgb(var(--scrim) / 0) 75%);
+  }
+}
+/* From `xl` the page's frame is 80rem and the text column 46rem (page.tsx), so the solid part follows them. */
+@media (min-width: 1280px) {
+  .hero-scrim {
+    --solid: calc(max(0px, (100% - 80rem) / 2) + 48rem);
+  }
+}
+/* The line above the headline: darker than the scrim around it, so its small type holds whatever plays behind. */
+.hero-pill {
+  background: rgb(var(--scrim) / 0.75);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
 }
 
 /* A border tinted towards the brand, for the one card on a screen that leads. */

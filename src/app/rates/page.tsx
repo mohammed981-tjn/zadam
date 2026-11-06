@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { currentFx } from "@/lib/livePrices";
+import { loadRates } from "@/lib/priceBoards";
 import FxConverter from "@/components/FxConverter";
 import ShareWhatsApp from "@/components/ShareWhatsApp";
 import {
@@ -8,9 +8,6 @@ import {
   FX_SOURCE_URL,
   FX_STALE_DAYS,
   ageInDays,
-  fetchCrossRates,
-  poundsPer,
-  type FxCurrency,
   type QuotedRate,
 } from "@/lib/fxRates";
 import { tr } from "@/lib/i18n";
@@ -36,8 +33,8 @@ export default async function RatesPage() {
   const locale = await getLocale();
   const en = locale === "en";
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const ref = (await currentFx());
-  const cross = await fetchCrossRates();
+  // The same loader the phone app's rates route reads (src/lib/priceBoards.ts).
+  const { ref, bankTable, parallelTable, rows } = await loadRates();
   const day = (d: string) =>
     new Date(`${d}T12:00:00Z`).toLocaleDateString(en ? "en-GB" : "ar-SD-u-nu-latn", {
       day: "numeric",
@@ -68,12 +65,8 @@ export default async function RatesPage() {
     );
   };
 
-  const bankTable = ref ? poundsPer(ref.bank.sell, cross) : {};
-  const parallelTable = ref ? poundsPer(ref.parallel.sell, cross) : {};
-  const rows = Object.keys(bankTable) as FxCurrency[];
-
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 lg:max-w-5xl">
       <MarketTabs active="/rates" locale={locale} />
       <PageHeader icon="chart" eyebrow={t("السوق والأسعار", "Market and prices")} title={t("أسعار العملات مقابل الجنيه السوداني", "Exchange rates against the Sudanese pound")}>
         {t(

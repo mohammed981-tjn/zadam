@@ -4,6 +4,8 @@ import type { FxReference } from "@/lib/fxRates";
 import type { MarketPrices } from "@/lib/marketPrices";
 import { currentFx, currentMarketPrices } from "@/lib/livePrices";
 import { pushToUser } from "@/lib/push";
+import { dbMessage } from "@/lib/dbMessages";
+import { tr, type Locale } from "@/lib/i18n";
 
 /**
  * تنبيهُ سعرٍ تحدّده بنفسك (البند ١٦٦): «فولٌ في الأبيض فوق كذا».
@@ -234,4 +236,122 @@ export function parseSubject(raw: string): Pick<PriceAlert, "subject" | "market"
   if (subject === "fx_bank" || subject === "fx_parallel") return { subject, market: null, crop: null, unit: null };
   if (subject === "crop" && market && crop && unit) return { subject, market, crop, unit };
   return null;
+}
+
+// ── ما يقرؤه صاحب التنبيهات ويكتبه — للموقع والتطبيق معاً (البند ٢٠٣) ─────────────────
+
+/** «600,000» and «٦٠٠٠٠٠» are both ways a person writes a limit. Null when it is not a usable limit in pounds. */
+export function parseThreshold(input: string): number | null {
+  const raw = input.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/[,٬\s]/g, "");
+  const threshold = Number(raw);
+  if (!raw || !Number.isFinite(threshold) || threshold <= 0 || threshold > 100_000_000_000) return null;
+  return threshold;
+}
+
+export interface AlertOutcome {
+  ok: boolean;
+  message: string;
+}
+
+/**
+ * Adds an alert for whoever `supabase` acts as — the website's session client or the app's bearer client — with the
+ * same checks in the same order the form always made: a known subject, a direction, a limit in pounds, a published
+ * figure to measure it against, and not a limit the price is already past (it would fire on the next new figure for
+ * nothing). The database then holds the owner and the cap on running alerts (`price_alert_create`).
+ */
+export async function createPriceAlertFor(
+  supabase: SupabaseClient,
+  input: { subject: string; direction: string; threshold: string },
+  locale: Locale,
+): Promise<AlertOutcome> {
+  const t = (ar: string, en: string) => tr(locale, ar, en);
+  const subject = parseSubject(input.subject);
+  const direction = input.direction as AlertDirection;
+  const threshold = parseThreshold(input.threshold);
+
+  if (!subject) return { ok: false, message: t("اختر ما تريد متابعة سعره.", "Choose the price you want to follow.") };
+  if (direction !== "above" && direction !== "below") {
+    return { ok: false, message: t("اختر: حين يصير السعر فوق الحدّ أو تحته.", "Choose: when the price goes above or below the limit.") };
+  }
+  if (threshold === null) return { ok: false, message: t("اكتب سعراً صحيحاً بالجنيه.", "Enter a valid price in pounds.") };
+
+  const [prices, fx] = await Promise.all([currentMarketPrices(), currentFx()]);
+  const figure = figureFor(subject, figuresOf(prices, fx));
+  if (!figure) {
+    return { ok: false, message: t("لا يوجد سعرٌ منشور لهذا الصنف الآن، فلا يمكن متابعته.", "There is no published price for this item right now, so it cannot be followed.") };
+  }
+  if (alreadyPast(direction, figure.price, threshold)) {
+    return {
+      ok: false,
+      message: t(
+        `السعر الآن ${money(figure.price)} وهو ${direction === "above" ? "فوق" : "تحت"} ${money(threshold)} أصلاً. اختر حدّاً ${direction === "above" ? "أعلى" : "أدنى"} منه.`,
+        `The price is already ${money(figure.price)}, ${direction === "above" ? "above" : "below"} ${money(threshold)}. Choose a limit ${direction === "above" ? "higher" : "lower"} than that.`,
+      ),
+    };
+  }
+
+  const { error } = await supabase.rpc("price_alert_create", {
+    p_subject: subject.subject,
+    p_market: subject.market,
+    p_crop: subject.crop,
+    p_unit: subject.unit,
+    p_direction: direction,
+    p_threshold: threshold,
+  });
+  if (error) {
+    const why = dbMessage(error.message, locale);
+    return { ok: false, message: t(`تعذّر إضافة التنبيه: ${why}`, `Could not add the alert: ${why}`) };
+  }
+  return {
+    ok: true,
+    message: t(
+      `أضفنا التنبيه. سيصلك إشعارٌ حين يتجاوز آخر سعرٍ منشور هذا الحدّ (الأقصى ${MAX_ACTIVE_ALERTS} تنبيهات شغّالة).`,
+      `Alert added. You will get a notification when the latest published price passes this limit (up to ${MAX_ACTIVE_ALERTS} running alerts).`,
+    ),
+  };
+}
+
+/** Stops one of the caller's running alerts; it is not deleted, it stays on record as stopped. The error text, or null. */
+export async function stopPriceAlertFor(supabase: SupabaseClient, id: string, locale: Locale): Promise<string | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return tr(locale, "تنبيهٌ غير معروف.", "Unknown alert.");
+  const { error } = await supabase.rpc("price_alert_stop", { p_id: id });
+  return error ? dbMessage(error.message, locale) : null;
+}
+
+export interface PriceAlertRow {
+  id: string;
+  user_id: string;
+  subject: PriceAlert["subject"];
+  market: string | null;
+  crop: string | null;
+  unit: string | null;
+  direction: PriceAlert["direction"];
+  threshold: number | string;
+  created_at: string;
+  status: "active" | "fired" | "stopped";
+  settled_at: string | null;
+  fired_value: number | string | null;
+  fired_market_date: string | null;
+}
+
+/**
+ * The caller's alerts, newest first, and the subjects the form may offer. The policy lets each person read only their
+ * own rows, so the same query serves the website's session client and the app's bearer client.
+ */
+export async function loadPriceAlerts(supabase: SupabaseClient) {
+  const [{ data }, prices, fx] = await Promise.all([
+    supabase
+      .from("price_alerts")
+      .select("id, user_id, subject, market, crop, unit, direction, threshold, created_at, status, settled_at, fired_value, fired_market_date")
+      .order("created_at", { ascending: false })
+      .limit(100),
+    currentMarketPrices(),
+    currentFx(),
+  ]);
+  const rows = (data ?? []) as PriceAlertRow[];
+  const markets = prices?.markets ?? null;
+  const options = subjectOptions(prices?.series ?? [], markets ?? {}, figuresOf(prices, fx));
+  const running = rows.filter((r) => r.status === "active");
+  const settled = rows.filter((r) => r.status !== "active");
+  return { rows, markets, options, running, settled };
 }
