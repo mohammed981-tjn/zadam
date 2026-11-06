@@ -384,7 +384,7 @@ export default function LiveMap({
         pinRef.current = null;
         return;
       }
-      if (!pinRef.current) pinRef.current = new ml.Marker({ color: "#ca2c72" }).setLngLat(marker).addTo(map);
+      if (!pinRef.current) pinRef.current = new ml.Marker({ color: "#3fae66" }).setLngLat(marker).addTo(map);
       else pinRef.current.setLngLat(marker);
     })();
   }, [marker, ready]);
