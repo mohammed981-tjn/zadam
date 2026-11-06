@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { publishedCostsFor } from "@/lib/publishedCropCosts";
 import { useMemo, useState } from "react";
 import {
   ALL_CROPS,
@@ -375,6 +376,37 @@ export default function FeasibilityStudy({
               <Link href="/tools/new-crops" className="text-primary underline">
                 {t("ما وجدناه عنه", "What we found about it")}
               </Link>
+              {(() => {
+                const published = publishedCostsFor(cropKey);
+                return published.length === 0 ? (
+                  <p className="mt-3 text-xs">
+                    {t("ولم نجد تكلفةً منشورةً للفدان من هذا المحصول في السودان.", "Nor did we find a published per-feddan cost for this crop in Sudan.")}
+                  </p>
+                ) : (
+                  <div className="mt-3 text-xs">
+                    <p className="font-bold text-foreground">
+                      {t("تكاليف منشورة للمقارنة — كما كُتبت، بجنيه سنتها:", "Published costs to compare with — as written, in the pounds of their year:")}
+                    </p>
+                    <ul className="mt-1 list-disc ps-5">
+                      {published.map((c) => (
+                        <li key={c.figure + c.season}>
+                          <span dir="ltr" className="font-bold text-foreground">{c.figure}</span> · {en ? c.basis.en : c.basis.ar} ·{" "}
+                          {c.season} · {en ? c.place.en : c.place.ar} ·{" "}
+                          <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                            {c.source}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1">
+                      {t(
+                        "أرقامٌ قديمة والجنيه فقد معظم قيمته منذها، فلا تدخل في الحساب؛ التكلفة التي تكتبها أنت هي التي تُحسب.",
+                        "Old figures, and the pound has lost most of its value since, so they are not used in the sums; the cost you type is the one the study runs on.",
+                      )}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           );
         }
