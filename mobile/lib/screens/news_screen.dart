@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import '../ui.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -43,46 +44,31 @@ class _NewsScreenState extends State<NewsScreen> {
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const LoadingView();
             }
             if (snapshot.hasError) {
-              return ListView(
-                padding: const EdgeInsets.all(24),
-                children: [
-                  Icon(Icons.cloud_off, size: 40, color: mutedOn(context)),
-                  const SizedBox(height: 12),
-                  Text('${snapshot.error}',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: mutedOn(context))),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: FilledButton(
-                      onPressed: () =>
-                          setState(() => _future = _api.news()),
-                      child: const Text('إعادة المحاولة'),
-                    ),
-                  ),
-                ],
+              return StateView.error(
+                snapshot.error,
+                scrollable: true,
+                onRetry: () => setState(() => _future = _api.news()),
               );
             }
             final items = snapshot.data!;
             if (items.isEmpty) {
-              return ListView(
-                padding: const EdgeInsets.all(24),
-                children: [
-                  Icon(Icons.newspaper, size: 40, color: mutedOn(context)),
-                  const SizedBox(height: 12),
-                  Text('لا أخبار منشورة بعد.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: mutedOn(context))),
-                ],
+              return const StateView(
+                icon: Icons.newspaper_rounded,
+                title: 'لا أخبار منشورة بعد.',
+                scrollable: true,
               );
             }
             return ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
               itemCount: items.length,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, i) => _NewsCard(item: items[i]),
+              itemBuilder: (context, i) => FadeIn(
+                delay: i,
+                child: _NewsCard(item: items[i]),
+              ),
             );
           },
         ),
@@ -108,7 +94,6 @@ class _NewsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
@@ -119,8 +104,14 @@ class _NewsCard extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(newsDate(item.publishedAt),
-                style: TextStyle(fontSize: 12, color: scheme.primary)),
+            Text(
+              newsDate(item.publishedAt),
+              style: TextStyle(
+                fontSize: 12,
+                color: textGreenOn(context),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(item.title,
                 style: const TextStyle(
@@ -166,12 +157,13 @@ List<Widget> newsBody(String body, BuildContext context) {
         padding: const EdgeInsets.only(top: 14, bottom: 4),
         child: Text(heading.group(2)!,
             style: TextStyle(
-                fontSize: level <= 2 ? 17 : 15,
-                fontWeight: FontWeight.w800,
-                color: level <= 2
-                    ? Theme.of(context).colorScheme.primary
-                    : null)),
-      ));
+              fontSize: level <= 2 ? 17 : 15,
+              fontWeight: FontWeight.w800,
+              color: level <= 2 ? textGreenOn(context) : null,
+            ),
+          ),
+        ),
+      );
     } else if (RegExp(r'^-{3,}$').hasMatch(line)) {
       out.add(const Divider(height: 24));
     } else if (RegExp(r'^[-*]\s+').hasMatch(line)) {

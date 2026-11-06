@@ -238,7 +238,7 @@ export default async function MyProjectPage({ searchParams }: { searchParams: Pr
                 {plan.status === "draft" && (
                   <form action={approvePlan}>
                     <input type="hidden" name="plan_id" value={plan.id} />
-                    <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">{t("أوافق على القائمة", "I approve the list")}</button>
+                    <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">{t("أوافق على القائمة", "I approve the list")}</button>
                   </form>
                 )}
                 {plan.status === "approved" && (

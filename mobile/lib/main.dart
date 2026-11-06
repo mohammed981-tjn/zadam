@@ -88,36 +88,129 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _index, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'الرئيسية',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.water_drop_outlined),
-            selectedIcon: Icon(Icons.water_drop),
-            label: 'الري',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'المساعد',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'المعرفة',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'حسابي',
+      bottomNavigationBar: _NavBar(
+        index: _index,
+        onSelect: (i) => setState(() => _index = i),
+      ),
+    );
+  }
+}
+
+class _Dest {
+  const _Dest(this.icon, this.selectedIcon, this.label);
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+}
+
+const _destinations = [
+  _Dest(Icons.home_outlined, Icons.home_rounded, 'الرئيسية'),
+  _Dest(Icons.water_drop_outlined, Icons.water_drop, 'الري'),
+  _Dest(Icons.chat_bubble_outline, Icons.chat_bubble, 'المساعد'),
+  _Dest(Icons.menu_book_outlined, Icons.menu_book, 'المعرفة'),
+  _Dest(Icons.person_outline, Icons.person, 'حسابي'),
+];
+
+/// The bottom bar: five equal slots; the selected one is a light-olive pill
+/// (the website's selected tab) with the dark ink, and its name in bold green.
+/// The pill slides in with one short implicit animation.
+class _NavBar extends StatelessWidget {
+  const _NavBar({required this.index, required this.onSelect});
+
+  final int index;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(top: BorderSide(color: scheme.outline)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, -2),
           ),
         ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 72,
+          child: Row(
+            children: [
+              for (var i = 0; i < _destinations.length; i++)
+                Expanded(
+                  child: _NavItem(
+                    dest: _destinations[i],
+                    selected: i == index,
+                    onTap: () => onSelect(i),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.dest,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _Dest dest;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = mutedOn(context);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: dest.label,
+      excludeSemantics: true,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 36,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: selected ? 60 : 44,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: selected ? SudagriColors.selectedGradient : null,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                selected ? dest.selectedIcon : dest.icon,
+                size: 24,
+                color: selected ? SudagriColors.primaryForeground : muted,
+              ),
+            ),
+            const SizedBox(height: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 220),
+              style: DefaultTextStyle.of(context).style.merge(
+                TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected ? textGreenOn(context) : muted,
+                ),
+              ),
+              child: Text(dest.label, maxLines: 1),
+            ),
+          ],
+        ),
       ),
     );
   }

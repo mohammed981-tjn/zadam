@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import '../ui.dart';
 
 class KnowledgeScreen extends StatefulWidget {
   const KnowledgeScreen({super.key});
@@ -76,25 +77,22 @@ class _KnowledgeScreenState extends State<KnowledgeScreen> {
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const LoadingView();
                 }
 
                 if (snapshot.hasError) {
-                  return _Message(
-                    icon: Icons.cloud_off,
-                    text: '${snapshot.error}',
-                    onRetry: _reload,
-                  );
+                  return StateView.error(snapshot.error, onRetry: _reload);
                 }
 
                 final entries = snapshot.data ?? const [];
                 if (entries.isEmpty) {
-                  return _Message(
-                    icon: Icons.search_off,
-                    text: _query.isEmpty
+                  return StateView(
+                    icon: _query.isEmpty
+                        ? Icons.menu_book_outlined
+                        : Icons.search_off_rounded,
+                    title: _query.isEmpty
                         ? 'لا توجد مواد بعد.'
                         : 'لا توجد نتائج لـ«$_query».',
-                    onRetry: null,
                   );
                 }
 
@@ -104,7 +102,10 @@ class _KnowledgeScreenState extends State<KnowledgeScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     itemCount: entries.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => _EntryCard(entry: entries[i]),
+                    itemBuilder: (_, i) => FadeIn(
+                      delay: i,
+                      child: _EntryCard(entry: entries[i]),
+                    ),
                   ),
                 );
               },
@@ -124,7 +125,6 @@ class _EntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = mutedOn(context);
-    final scheme = Theme.of(context).colorScheme;
 
     return Card(
       child: Padding(
@@ -136,9 +136,13 @@ class _EntryCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 6,
               children: [
-                _Tag(entry.crop, colour: scheme.primary),
+                TagPill(entry.crop, icon: Icons.grass_rounded),
                 if (entry.sourceCountry != null)
-                  _Tag(entry.sourceCountry!, colour: accentOn(context)),
+                  TagPill(
+                    entry.sourceCountry!,
+                    gold: true,
+                    icon: Icons.public_rounded,
+                  ),
               ],
             ),
             const SizedBox(height: 10),
@@ -151,67 +155,34 @@ class _EntryCard extends StatelessWidget {
             Text(entry.content,
                 style: const TextStyle(height: 1.8, fontSize: 14)),
             if (entry.sourceNote != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                entry.sourceNote!,
-                style: TextStyle(color: muted, fontSize: 12, height: 1.6),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(Icons.info_outline, size: 15, color: muted),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        entry.sourceNote!,
+                        style: TextStyle(
+                          color: muted,
+                          fontSize: 12,
+                          height: 1.6,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  const _Tag(this.text, {required this.colour});
-
-  final String text;
-  final Color colour;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: colour.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-            color: colour, fontSize: 11, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-}
-
-class _Message extends StatelessWidget {
-  const _Message({required this.icon, required this.text, this.onRetry});
-
-  final IconData icon;
-  final String text;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final muted = mutedOn(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 48, color: muted),
-            const SizedBox(height: 16),
-            Text(text,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: muted, height: 1.6)),
-            if (onRetry != null) ...[
-              const SizedBox(height: 20),
-              FilledButton(
-                  onPressed: onRetry, child: const Text('إعادة المحاولة')),
             ],
           ],
         ),

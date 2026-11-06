@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 
 import '../services_catalogue.dart';
 import '../theme.dart';
+import '../ui.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -30,8 +31,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
   @override
   Widget build(BuildContext context) {
     final muted = mutedOn(context);
-    final scheme = Theme.of(context).colorScheme;
-
     final visible = serviceCatalogue.where((s) {
       if (_filter == null) return true;
       return s.production == _filter || s.production == ProductionKind.both;
@@ -49,11 +48,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
+          const IntroNote(
             'خدمات يقدّمها مكاتب هندسة زراعية ومزوّدون موثّقون، تُتعاقد '
             'بالمراحل: لكل مرحلة جدول ومبلغ ودفعة لا تُفرَج إلا بإثبات تنفيذ. '
             'الكمية في كل بند تُشتق من موسمك أو قطيعك ولا تُكتب يدوياً.',
-            style: TextStyle(fontSize: 13, color: muted, height: 1.7),
+            icon: Icons.handshake_outlined,
           ),
           const SizedBox(height: 14),
           Wrap(
@@ -87,6 +86,15 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        IconChip(
+                          s.production == ProductionKind.livestock
+                              ? Icons.pets_outlined
+                              : s.isPrecondition
+                              ? Icons.assignment_turned_in_outlined
+                              : Icons.agriculture_outlined,
+                          size: 38,
+                        ),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             s.name,
@@ -99,13 +107,16 @@ class _ServicesScreenState extends State<ServicesScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: scheme.primary.withValues(alpha: 0.12),
+                              color: leafTintOn(context),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               'شرط مسبق',
                               style: TextStyle(
-                                  fontSize: 11, color: scheme.primary),
+                                fontSize: 11,
+                                color: inkOn(context),
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                       ],
@@ -152,12 +163,10 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return ChoiceChip(
       label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
-      selectedColor: scheme.primary.withValues(alpha: 0.15),
     );
   }
 }

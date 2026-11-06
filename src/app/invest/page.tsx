@@ -306,19 +306,19 @@ export default async function InvestPage({
       </section>
 
       {/* ── لصاحب الأرض ────────────────────────────────────────────────── */}
-      <section className="hero-band rounded-3xl px-5 py-6 text-white">
+      <section className="hero-band rounded-3xl px-5 py-6">
         <h2 className="text-lg font-black">{t("عندك أرض وتبحث عن ممّول؟", "Have land and looking for finance?")}</h2>
-        <p className="mt-1 text-sm leading-6 text-white/90">
+        <p className="mt-1 text-sm leading-6 opacity-90">
           {t(
             "سجّلها مجّاناً وارفع مستنداتها. بعد أن توثّقها الإدارة، افتحها للمستثمرين من «أراضيّ» واختر نماذج الشراكة التي تقبلها.",
             "Register it for free and upload its documents. Once the administrators verify it, open it to investors from «My land» and choose the partnership models you accept.",
           )}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link href={user ? "/lands" : "/signup?next=/lands"} className="rounded-xl bg-white px-4 py-2 text-sm font-black text-[#ca2c72]">
+          <Link href={user ? "/lands" : "/signup?next=/lands"} className="rounded-xl bg-white px-4 py-2 text-sm font-black text-primary">
             {user ? t("أراضيّ", "My land") : t("سجّل مجّاناً", "Sign up free")}
           </Link>
-          <Link href="/lands/new" className="rounded-xl px-4 py-2 text-sm font-bold text-white ring-1 ring-white/60">
+          <Link href="/lands/new" className="rounded-xl px-4 py-2 text-sm font-bold ring-1 ring-[#1c2b1e]/40">
             {t("سجّل أرضاً", "Register land")}
           </Link>
         </div>

@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import '../api.dart';
 import '../nafir.dart';
 import '../theme.dart';
+import '../ui.dart';
 
 class NafirScreen extends StatefulWidget {
   const NafirScreen({super.key});
@@ -44,38 +45,24 @@ class _NafirScreenState extends State<NafirScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            Text(
+            const IntroNote(
               '«المؤمن للمؤمن كالبنيان يشدّ بعضه بعضاً». هنا يدعو المزارع '
               'جيرانه إلى حصادٍ أو تطهير قناة، ويطلب مَن أصابته جائحةٌ فزعةً '
               'غير مالية. قيمٌ يعرفها الريف السوداني — صارت أداةً أوسع.',
-              style:
-                  TextStyle(fontSize: 13, color: mutedOn(context), height: 1.8),
+              icon: Icons.groups_outlined,
             ),
             const SizedBox(height: 16),
             FutureBuilder<NafirBoard>(
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 60),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
+                  return const LoadingView(compact: true);
                 }
                 if (snapshot.hasError) {
-                  return Column(
-                    children: [
-                      Icon(Icons.cloud_off, size: 40, color: mutedOn(context)),
-                      const SizedBox(height: 12),
-                      Text('${snapshot.error}',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: mutedOn(context))),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: () =>
-                            setState(() => _future = _api.nafirBoard()),
-                        child: const Text('إعادة المحاولة'),
-                      ),
-                    ],
+                  return StateView.error(
+                    snapshot.error,
+                    compact: true,
+                    onRetry: () => setState(() => _future = _api.nafirBoard()),
                   );
                 }
                 final b = snapshot.data!;
@@ -136,11 +123,7 @@ class _Heading extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-      );
+  Widget build(BuildContext context) => SectionTitle(text);
 }
 
 class _Empty extends StatelessWidget {
@@ -150,11 +133,22 @@ class _Empty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(text, style: TextStyle(color: mutedOn(context))),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const IconChip(Icons.campaign_outlined, size: 40),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: mutedOn(context), height: 1.6),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _CallCard extends StatelessWidget {
@@ -165,20 +159,27 @@ class _CallCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final progress =
-        call.needed == 0 ? 0.0 : (joined / call.needed).clamp(0.0, 1.0);
+    final primary = textGreenOn(context);
+    final progress = call.needed == 0
+        ? 0.0
+        : (joined / call.needed).clamp(0.0, 1.0);
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
         onTap: () => _showDetails(context),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${call.kindLabel} · ${call.state} — ${call.locality}',
-                  style: TextStyle(fontSize: 12, color: primary)),
+              Text(
+                '${call.kindLabel} · ${call.state} — ${call.locality}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 4),
               Text(call.title,
                   style: const TextStyle(
@@ -191,8 +192,11 @@ class _CallCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(value: progress, minHeight: 6),
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 8,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -254,15 +258,21 @@ class _FazaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = accentOn(context);
+    final accent = warnOn(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${request.causeLabel} · ${request.state} — ${request.locality}',
-                style: TextStyle(fontSize: 12, color: accent)),
+            Text(
+              '${request.causeLabel} · ${request.state} — ${request.locality}',
+              style: TextStyle(
+                fontSize: 12,
+                color: accent,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(request.title,
                 style: const TextStyle(
@@ -330,11 +340,14 @@ class _Indicators extends StatelessWidget {
                         style:
                             TextStyle(fontSize: 12, color: mutedOn(context))),
                     const SizedBox(height: 4),
-                    Text(value,
-                        style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).colorScheme.primary)),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: textGreenOn(context),
+                      ),
+                    ),
                     if (note.isNotEmpty)
                       Text(note,
                           style: TextStyle(

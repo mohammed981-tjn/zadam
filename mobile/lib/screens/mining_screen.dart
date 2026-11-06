@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import '../ui.dart';
 
 class MiningScreen extends StatefulWidget {
   const MiningScreen({super.key});
@@ -44,30 +45,14 @@ class _MiningScreenState extends State<MiningScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingView();
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.cloud_off, size: 44, color: muted),
-                    const SizedBox(height: 14),
-                    Text('${snapshot.error}',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: muted, height: 1.7)),
-                    const SizedBox(height: 18),
-                    FilledButton(
-                      onPressed: () => setState(
-                          () => _future = _api.knowledge(mining: true)),
-                      child: const Text('إعادة المحاولة'),
-                    ),
-                  ],
-                ),
-              ),
+            return StateView.error(
+              snapshot.error,
+              onRetry: () =>
+                  setState(() => _future = _api.knowledge(mining: true)),
             );
           }
 
@@ -76,15 +61,18 @@ class _MiningScreenState extends State<MiningScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
             children: [
-              Text(
+              const IntroNote(
                 'قسم منفصل: السلامة في الحفر، والاستخلاص بلا زئبق، وجيولوجيا '
                 'الذهب في السودان.',
-                style: TextStyle(color: muted, height: 1.8),
+                icon: Icons.construction_outlined,
               ),
               const SizedBox(height: 20),
               if (entries.isEmpty)
-                Text('لا توجد مواد في هذا القسم بعد.',
-                    style: TextStyle(color: muted))
+                const StateView(
+                  icon: Icons.construction_outlined,
+                  title: 'لا توجد مواد في هذا القسم بعد.',
+                  compact: true,
+                )
               else
                 ...entries.map((e) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),

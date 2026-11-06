@@ -32,7 +32,7 @@ const r3 = (n: number) => Math.round(n * 1000) / 1000;
 const pt = ([lon, lat]: readonly [number, number] | [number, number]): [number, number] => [r3(lon), r3(lat)];
 
 /** Heat in the platform's colours: beige into pink, no orange. */
-const HEAT = ["#f6ecd9", "#f1d3dc", "#e6a8c0", "#d9779f", "#ca2c72", "#8f1d50"];
+const HEAT = ["#f3f1e6", "#d9ecd2", "#a8d8a8", "#6fbf7d", "#3fae66", "#1f7a3d"];
 
 /** Soils whose usual WRB colour is red or orange, in earth browns and plum instead. */
 const SOIL_SAFE: Record<string, string> = {
@@ -45,7 +45,7 @@ const SOIL_SAFE: Record<string, string> = {
 };
 
 const GROUP_SAFE: Record<string, string> = { metal: "#8a4f7d" };
-const FUEL_SAFE: Record<string, string> = { thermal: "#ca2c72" };
+const FUEL_SAFE: Record<string, string> = { thermal: "#1f7a3d" };
 /** The grid by voltage, backbone first: plum shades where the printed map has reds. */
 const POWER = [
   { min: 400, colour: "#4b2470", width: 3 },
@@ -162,7 +162,7 @@ function canalTheme(locale: Locale): MapOverlay[] {
     {
       kind: "line",
       id: "canal",
-      color: "#ca2c72",
+      color: "#1f7a3d",
       width: 5,
       data: fc([
         {
@@ -351,7 +351,7 @@ export function mapThemes(grid: RainGrid | null, layers: Layer[], locale: Locale
       emoji: "〰️",
       title: t("قناة الأرك", "Arc canal"),
       note: t("مسار القناة القوسيّة المقترحة من جبل أولياء", "The proposed arc canal's route from Jebel Aulia"),
-      key2: [{ colour: "#ca2c72", label: t("مسار القناة", "Canal route"), shape: "line" }],
+      key2: [{ colour: "#1f7a3d", label: t("مسار القناة", "Canal route"), shape: "line" }],
       group: "over",
       overlays: canalTheme(locale),
     },

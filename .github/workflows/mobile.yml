@@ -70,6 +70,27 @@ jobs:
       - name: Test
         run: flutter test
 
+      # محاكي التطبيق (البند ٢٠٢؛ المالك، 6 نوفمبر 2026: «ابني محاكي للاختبارات والمعاينة»): the app built for the
+      # browser, opened in Chromium at a phone's size, every tab of the bottom bar photographed, and the run fails if
+      # the page throws. The screenshots are an artifact of the run, for review — nothing is published.
+      - name: Preview the screens in a phone-sized browser
+        env:
+          SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw" && npm install --prefix "$RUNNER_TEMP/pw" --no-save playwright@1.56.1 >/dev/null
+          npx --prefix "$RUNNER_TEMP/pw" playwright install --with-deps chromium >/dev/null
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" OUT="$RUNNER_TEMP/app-preview" ../scripts/app-preview.sh
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: app-preview-${{ github.run_number }}
+          path: ${{ runner.temp }}/app-preview
+          retention-days: 14
+
       # None of these are secrets — the Supabase anon key is publishable by
       # design and every table it reaches is guarded by row-level security on
       # the server. They live in repository variables so a fork building this
