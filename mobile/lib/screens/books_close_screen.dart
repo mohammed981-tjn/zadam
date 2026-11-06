@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../journal.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -19,8 +20,8 @@ class BooksCloseScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('إقفال الفترة')),
-      body: RequireSignIn(what: 'دفترك', builder: (_) => BooksCloseBody(api: api ?? JournalApi())),
+      appBar: AppBar(title: Text(tr('إقفال الفترة', 'Close the period'))),
+      body: RequireSignIn(what: tr('دفترك', 'your book'), builder: (_) => BooksCloseBody(api: api ?? JournalApi())),
     );
   }
 }
@@ -56,8 +57,8 @@ class _BooksCloseBodyState extends State<BooksCloseBody> {
       builder: (c) => AlertDialog(
         content: Text(confirm),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('تراجع')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('نعم')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('تراجع', 'Back'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('نعم', 'Yes'))),
         ],
       ),
     );
@@ -81,24 +82,24 @@ class _BooksCloseBodyState extends State<BooksCloseBody> {
         if (snap.connectionState != ConnectionState.done) return const LoadingView();
         if (snap.hasError) {
           final e = snap.error;
-          return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل الدفتر.', onRetry: _reload, scrollable: true);
+          return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل الدفتر.', 'Could not load the book.'), onRetry: _reload, scrollable: true);
         }
         final v = snap.data!;
         if (v.bookId == null || !v.owned) {
-          return const StateView(icon: Icons.lock_outline, title: 'لا دفتر لك تقفله', message: 'يقفل الفترة صاحب الدفتر وحده.');
+          return StateView(icon: Icons.lock_outline, title: tr('لا دفتر لك تقفله', 'You have no book to close'), message: tr('يقفل الفترة صاحب الدفتر وحده.', 'Only the book\'s owner closes the period.'));
         }
         if (_through.text.isEmpty) _through.text = dayBefore(v.today);
         final open = v.seasons.where((s) => !s.closed).toList();
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            const IntroNote(
-                'حين تنتهي من مراجعة فترةٍ أقفلها: لا يُكتب بعد ذلك قيدٌ بتاريخٍ فيها. والخطأ بعد الإقفال يُصحَّح بقيدٍ بتاريخٍ بعده، ولا تُعاد الفترة مفتوحةً إلا بيد الإدارة وبسببٍ مكتوب.'),
+            IntroNote(
+                tr('حين تنتهي من مراجعة فترةٍ أقفلها: لا يُكتب بعد ذلك قيدٌ بتاريخٍ فيها. والخطأ بعد الإقفال يُصحَّح بقيدٍ بتاريخٍ بعده، ولا تُعاد الفترة مفتوحةً إلا بيد الإدارة وبسببٍ مكتوب.', 'When you finish reviewing a period, close it: no entry dated in it can be written after that. A mistake after the close is corrected with an entry dated after it, and the period is reopened only by the administrators, with a written reason.')),
             const SizedBox(height: 12),
             Text(
               [
-                v.closedThrough == null ? 'لم يُقفل الدفتر بعد' : 'الدفتر مقفلٌ حتى ${v.closedThrough}',
-                if (v.incomeClosedThrough != null) 'وأُقفل الدخل حتى ${v.incomeClosedThrough}',
+                v.closedThrough == null ? tr('لم يُقفل الدفتر بعد', 'The book is not closed yet') : tr('الدفتر مقفلٌ حتى ${v.closedThrough}', 'The book is closed through ${v.closedThrough}'),
+                if (v.incomeClosedThrough != null) tr('وأُقفل الدخل حتى ${v.incomeClosedThrough}', 'and income is closed through ${v.incomeClosedThrough}'),
               ].join(' · '),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
@@ -106,31 +107,31 @@ class _BooksCloseBodyState extends State<BooksCloseBody> {
             TextField(
               controller: _through,
               keyboardType: TextInputType.datetime,
-              decoration: const InputDecoration(labelText: 'آخر يومٍ في الفترة', hintText: 'YYYY-MM-DD'),
+              decoration: InputDecoration(labelText: tr('آخر يومٍ في الفترة', 'The period\'s last day'), hintText: 'YYYY-MM-DD'),
             ),
             const SizedBox(height: 12),
             FilledButton(
               onPressed: _busy
                   ? null
                   : () => _do('close_income', {'book': v.bookId, 'through': _through.text.trim()},
-                      'يُقيَّد قيد إقفال الإيراد والمصروف في الأرباح المحتجزة حتى ${_through.text.trim()}، ويُقفل الدفتر حتى ذلك اليوم. لا رجعة فيه إلا بيد الإدارة.'),
-              child: const Text('أقفل دخل الفترة وأقفلها'),
+                      tr('يُقيَّد قيد إقفال الإيراد والمصروف في الأرباح المحتجزة حتى ${_through.text.trim()}، ويُقفل الدفتر حتى ذلك اليوم. لا رجعة فيه إلا بيد الإدارة.', 'A closing entry moves revenue and expenses into retained earnings through ${_through.text.trim()}, and the book is closed through that day. Only the administrators can undo it.')),
+              child: Text(tr('أقفل دخل الفترة وأقفلها', 'Close the period\'s income, and the period')),
             ),
             const SizedBox(height: 8),
             OutlinedButton(
               onPressed: _busy
                   ? null
                   : () => _do('lock', {'book': v.bookId, 'through': _through.text.trim()},
-                      'يُقفل الدفتر حتى ${_through.text.trim()}، فلا يُكتب فيه قيدٌ بتاريخٍ حتى ذلك اليوم. لا رجعة فيه إلا بيد الإدارة.'),
-              child: const Text('أقفل الفترة وحدها'),
+                      tr('يُقفل الدفتر حتى ${_through.text.trim()}، فلا يُكتب فيه قيدٌ بتاريخٍ حتى ذلك اليوم. لا رجعة فيه إلا بيد الإدارة.', 'The book is closed through ${_through.text.trim()}, so no entry dated up to that day can be written in it. Only the administrators can undo it.')),
+              child: Text(tr('أقفل الفترة وحدها', 'Close the period only')),
             ),
             if (open.isNotEmpty) ...[
               const SizedBox(height: 20),
-              const SectionTitle('أقفل دخل موسمٍ انتهى', subtitle: 'سطور الموسم إلى الأرباح المحتجزة، مرّةً واحدة.'),
+              SectionTitle(tr('أقفل دخل موسمٍ انتهى', 'Close the income of a finished season'), subtitle: tr('سطور الموسم إلى الأرباح المحتجزة، مرّةً واحدة.', 'The season\'s lines go to retained earnings, once.')),
               DropdownButtonFormField<String>(
                 initialValue: _season,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'الموسم'),
+                decoration: InputDecoration(labelText: tr('الموسم', 'Season')),
                 items: [for (final s in open) DropdownMenuItem(value: s.id, child: Text(s.name))],
                 onChanged: (s) => setState(() => _season = s),
               ),
@@ -138,14 +139,17 @@ class _BooksCloseBodyState extends State<BooksCloseBody> {
               OutlinedButton(
                 onPressed: _busy || _season == null
                     ? null
-                    : () => _do('close_season', {'book': v.bookId, 'season': _season, 'date': v.today},
-                        'يُقيَّد قيد إقفال هذا الموسم في الأرباح المحتجزة بتاريخ اليوم.'),
-                child: const Text('أقفل دخل الموسم'),
+                    : () {
+                        final day = seasonCloseDay(v.today, v.closedThrough, v.incomeClosedThrough);
+                        _do('close_season', {'book': v.bookId, 'season': _season, 'date': day},
+                            tr('يُقيَّد قيد إقفال هذا الموسم في الأرباح المحتجزة بتاريخ $day.', 'A closing entry for this season is posted to retained earnings dated $day.'));
+                      },
+                child: Text(tr('أقفل دخل الموسم', 'Close the season\'s income')),
               ),
             ],
             if (v.history.isNotEmpty) ...[
               const SizedBox(height: 20),
-              const SectionTitle('ما أُقفل وما أُعيد فتحه'),
+              SectionTitle(tr('ما أُقفل وما أُعيد فتحه', 'What was closed and reopened')),
               for (final h in v.history) Text('• $h', style: TextStyle(color: mutedOn(context))),
             ],
           ],

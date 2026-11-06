@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../api.dart';
 import '../evidence.dart';
+import '../i18n.dart';
 import '../theme.dart';
 
 enum EvidenceSource { camera, gallery, pdf }
@@ -41,7 +42,7 @@ Future<String?> showEvidenceSheet(
   required List<(String, String)> kinds,
   required Future<String> Function(String kind, String caption, EvidenceFile file) send,
   EvidencePicker? pick,
-  String note = 'الصورة الملتقطة في الحقل أقوى دليل: يُحفظ وقتها ومكانها مع الدليل، ولا يبقيان في الملفّ نفسه. والصيغ: صورة أو PDF حتى ١٠ ميجابايت.',
+  String? note,
 }) =>
     showModalBottomSheet<String>(
       context: context,
@@ -53,7 +54,7 @@ Future<String?> showEvidenceSheet(
         kinds: kinds,
         send: send,
         pick: pick ?? ((s) => pickEvidence(s)),
-        note: note,
+        note: note ?? tr('الصورة الملتقطة في الحقل أقوى دليل: يُحفظ وقتها ومكانها مع الدليل، ولا يبقيان في الملفّ نفسه. والصيغ: صورة أو PDF حتى ١٠ ميجابايت.', 'A photo taken in the field is the strongest evidence: its time and place are kept with the evidence, not left in the file itself. Formats: a photo or a PDF up to 10 MB.'),
       ),
     );
 
@@ -96,7 +97,7 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
     try {
       file = await widget.pick(source);
     } catch (_) {
-      if (mounted) setState(() => _error = 'تعذّر فتح الكاميرا أو الصور أو الملفّات.');
+      if (mounted) setState(() => _error = tr('تعذّر فتح الكاميرا أو الصور أو الملفّات.', 'Could not open the camera, the photos or the files.'));
       return;
     }
     if (file == null || !mounted) return;
@@ -142,7 +143,7 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
               controller: _caption,
               enabled: !_busy,
               maxLength: 300,
-              decoration: const InputDecoration(labelText: 'وصفٌ قصير (اختياري)'),
+              decoration: InputDecoration(labelText: tr('وصفٌ قصير (اختياري)', 'A short description (optional)')),
             ),
             Text(widget.note, style: muted),
             if (_error != null) ...[
@@ -164,17 +165,17 @@ class _EvidenceSheetState extends State<_EvidenceSheet> {
                 FilledButton.icon(
                   onPressed: () => _go(EvidenceSource.camera),
                   icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                  label: const Text('صوّر الآن'),
+                  label: Text(tr('صوّر الآن', 'Take a photo now')),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => _go(EvidenceSource.gallery),
                   icon: const Icon(Icons.photo_library_outlined, size: 18),
-                  label: const Text('من الصور'),
+                  label: Text(tr('من الصور', 'From photos')),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => _go(EvidenceSource.pdf),
                   icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                  label: const Text('ملفّ PDF'),
+                  label: Text(tr('ملفّ PDF', 'PDF file')),
                 ),
               ]),
           ],

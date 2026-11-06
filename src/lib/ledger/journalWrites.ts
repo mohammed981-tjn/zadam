@@ -10,10 +10,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { tr, type Locale } from "@/lib/i18n";
 import { explain } from "@/lib/supplyActions";
+import { isDbOutage } from "@/lib/dbOutage";
 import { formatMoney } from "./money";
 import { entryErrorMessage, parseEntry, type ChartAccount, type EntryInput } from "./journal";
 
-export type WriteResult = { ok: boolean; message: string; status?: "posted" | "pending"; id?: string };
+/** `outage`: the database was not reached (isDbOutage) — nothing was decided, and the same entry may be sent again. */
+export type WriteResult = { ok: boolean; message: string; status?: "posted" | "pending"; id?: string; outage?: boolean };
 export type Via = "web" | "app";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -73,6 +75,14 @@ export async function submitJournalEntry(
     p_document: input.document || null,
     p_via: via,
   });
+  if (error && isDbOutage(error)) {
+    console.error("journal: the database was not reached", { error: error.message });
+    return {
+      ok: false,
+      outage: true,
+      message: t("تعذّر الوصول إلى الدفتر الآن. لم يُحفظ شيء — أرسل القيد نفسه بعد قليل.", "The book could not be reached just now. Nothing was saved — send the same entry again shortly."),
+    };
+  }
   if (error) {
     console.error("journal: submit refused", { error: error.message });
     return fail(locale, error);
@@ -129,9 +139,14 @@ export async function invitePreparer(supabase: SupabaseClient, book: string, con
   if (!isUuid(book)) return { ok: false, message: tr(locale, "اختر الدفتر.", "Choose the book.") };
   const { error } = await supabase.rpc("ledger_preparer_invite", { p_book: book, p_contact: contact.trim().slice(0, 254), p_via: via });
   if (error) return fail(locale, error);
+  // The same answer whether or not the number or address has an account (backlog 209): the invitation list says the same.
   return {
     ok: true,
-    message: tr(locale, "أُرسلت الدعوة. يُعِدّ قيودك حين يقبلها من حسابه.", "The invitation was sent. They prepare your entries once they accept it from their account."),
+    message: tr(
+      locale,
+      "إن كان للرقم أو البريد حسابٌ وصلته الدعوة، ويُعِدّ قيودك حين يقبلها من حسابه.",
+      "If the number or e-mail has an account, the invitation reached it; they prepare your entries once they accept it from their account.",
+    ),
   };
 }
 

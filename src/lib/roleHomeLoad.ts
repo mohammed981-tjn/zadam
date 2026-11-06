@@ -39,6 +39,22 @@ export async function loadRoleHome(supabase: SupabaseClient, userId: string): Pr
   return roleHome(raw);
 }
 
+/**
+ * Open credit rows by running season: farm_open_credit_by_season (20261106100000), farm_credit_status's own rule over
+ * all of them. On a database the migration has not reached yet, the old way, season by season, for those listed.
+ */
+async function openCredit(supabase: SupabaseClient, seasons: RawSeason[]): Promise<(readonly [string, number])[]> {
+  const { data, error } = await supabase.rpc("farm_open_credit_by_season");
+  if (!error) return rows<{ season_id: string; open_rows: number }>({ data }).map((r) => [r.season_id, Number(r.open_rows)] as const);
+  if (error.code !== "PGRST202" && error.code !== "42883") return [];
+  return Promise.all(
+    seasons.slice(0, MAX_SEASON_CARDS + 2).map(async (s) => {
+      const r = await supabase.rpc("farm_credit_status", { p_season: s.id });
+      return [s.id, rows<{ settled_on: string | null }>(r).filter((c) => !c.settled_on).length] as const;
+    }),
+  );
+}
+
 export async function loadRoleHomeRaw(supabase: SupabaseClient, userId: string): Promise<HomeRaw> {
   const [
     profile,
@@ -57,6 +73,7 @@ export async function loadRoleHomeRaw(supabase: SupabaseClient, userId: string):
     links,
     investments,
     openLands,
+    seasonCount,
   ] = await Promise.all([
     supabase.from("profiles").select("role, full_name").eq("id", userId).maybeSingle(),
     // /lands: the caller's own only (an agent or an administrator reads others' too).
@@ -109,6 +126,8 @@ export async function loadRoleHomeRaw(supabase: SupabaseClient, userId: string):
     supabase.from("investments").select("status, amount, shares, project_id").eq("investor_id", userId),
     // /invest: the offered land, each with whether it is the caller's own and the caller's request on it.
     supabase.rpc("investor_open_lands"),
+    // /seasons: how many are running, counted — the list above stops at a few (backlog 209).
+    supabase.from("seasons").select("id", { count: "exact", head: true }).eq("owner_id", userId).eq("status", "active"),
   ]);
 
   const me = profile.data as { role?: string; full_name?: string | null } | null;
@@ -119,6 +138,7 @@ export async function loadRoleHomeRaw(supabase: SupabaseClient, userId: string):
   raw.seasons = rows<{ id: string; name: string; crop_key: string; season_stages: RawStage[] | null }>(seasons).map(
     (s): RawSeason => ({ id: s.id, name: s.name, crop_key: s.crop_key, stages: s.season_stages ?? [] }),
   );
+  raw.seasonCount = seasonCount.error ? null : (seasonCount.count ?? null);
   raw.interests = rows<HomeRaw["interests"][number]>(interests);
   raw.inspections = rows<HomeRaw["inspections"][number]>(inspections);
   raw.agreements = rows<RawAgreement>(agreements);
@@ -159,13 +179,9 @@ export async function loadRoleHomeRaw(supabase: SupabaseClient, userId: string):
         ? supabase.from("ledger_entries").select("stage_id, amount").in("stage_id", nextIds).neq("category", "revenue")
         : none,
       nextIds.length ? supabase.from("stage_evidence").select("stage_id").in("stage_id", nextIds) : none,
-      // The page of the season: rows kept on credit, and whether each has been settled.
-      Promise.all(
-        raw.seasons.slice(0, MAX_SEASON_CARDS + 2).map(async (s) => {
-          const r = await supabase.rpc("farm_credit_status", { p_season: s.id });
-          return [s.id, rows<{ settled_on: string | null }>(r).filter((c) => !c.settled_on).length] as const;
-        }),
-      ),
+      // The page of the season: rows kept on credit and not yet settled — in every running season, counted by the
+      // database in one read (backlog 209; it was the first five seasons only).
+      openCredit(supabase, raw.seasons),
       // /lands asks for the investors' requests only once a land is verified.
       verified ? supabase.rpc("land_investor_requests") : none,
       landIds.length

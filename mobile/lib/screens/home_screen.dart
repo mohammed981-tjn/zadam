@@ -28,6 +28,7 @@ import 'package:flutter/material.dart';
 import '../account.dart';
 import '../api.dart';
 import '../home.dart';
+import '../i18n.dart';
 import '../seasons.dart' show LedgerOutbox, userIdOf;
 import '../theme.dart';
 import '../ui.dart';
@@ -75,132 +76,132 @@ class _Group {
   final List<_Section> sections;
 }
 
-final _groups = <_Group>[
-  _Group('مزرعتي', 'مواسمك وأرضك وحسابك', [
+List<_Group> get _groups => <_Group>[
+  _Group(tr('مزرعتي', 'My farm'), tr('مواسمك وأرضك وحسابك', 'Your seasons, land and book'), [
     _Section(
-      'المواسم',
-      'المراحل والقيود',
+      tr('المواسم', 'Seasons'),
+      tr('المراحل والقيود', 'Stages and entries'),
       Icons.eco_outlined,
       screen: () => const SeasonsScreen(),
     ),
     _Section(
-      'أراضيّ',
-      'الحدود والتربة والماء',
+      tr('أراضيّ', 'My lands'),
+      tr('الحدود والتربة والماء', 'Boundaries, soil and water'),
       Icons.landscape_outlined,
       screen: () => const LandsScreen(),
     ),
     _Section(
-      'الدفتر',
-      'الحسابات والأصول',
+      tr('الدفتر', 'Book'),
+      tr('الحسابات والأصول', 'Accounts and assets'),
       Icons.account_balance_wallet_outlined,
       screen: () => const BooksScreen(),
     ),
     _Section(
-      'القطعان',
-      'الماشية وصحّتها',
+      tr('القطعان', 'Herds'),
+      tr('الماشية وصحّتها', 'Livestock and their health'),
       Icons.pets_outlined,
       screen: () => const HerdsScreen(),
     ),
     _Section(
-      'دراسة الجدوى',
-      'التكلفة والعائد',
+      tr('دراسة الجدوى', 'Feasibility study'),
+      tr('التكلفة والعائد', 'Cost and return'),
       Icons.calculate_outlined,
       screen: () => const FeasibilityScreen(),
     ),
     _Section(
-      'الخرائط',
-      'كلّ الطبقات',
+      tr('الخرائط', 'Maps'),
+      tr('كلّ الطبقات', 'Every layer'),
       Icons.map_outlined,
       screen: () => const MapsScreen(),
     ),
   ]),
-  _Group('السوق والاستثمار', 'أسعارٌ وعقودٌ وشراكة', [
+  _Group(tr('السوق والاستثمار', 'Market and investment'), tr('أسعارٌ وعقودٌ وشراكة', 'Prices, contracts and partnership'), [
     _Section(
-      'الأسعار',
-      'المحاصيل والصرف',
+      tr('الأسعار', 'Prices'),
+      tr('المحاصيل والصرف', 'Crops and exchange'),
       Icons.trending_up_rounded,
       screen: () => const PricesScreen(),
     ),
     _Section(
-      'التصدير',
-      'الشروط والجاهزيّة',
+      tr('التصدير', 'Export'),
+      tr('الشروط والجاهزيّة', 'Terms and readiness'),
       Icons.local_shipping_outlined,
       screen: () => const ExportScreen(),
     ),
     _Section(
-      'العقود',
-      'اقرأ ووقّع',
+      tr('العقود', 'Agreements'),
+      tr('اقرأ ووقّع', 'Read and sign'),
       Icons.description_outlined,
       screen: () => const ContractsScreen(),
     ),
     _Section(
-      'الاستثمار',
-      'الفرص والشراكة',
+      tr('الاستثمار', 'Investment'),
+      tr('الفرص والشراكة', 'Opportunities and partnership'),
       Icons.handshake_outlined,
       screen: () => const InvestScreen(),
     ),
     _Section(
-      'الموردون',
-      'البذور والأسمدة',
+      tr('الموردون', 'Suppliers'),
+      tr('البذور والأسمدة', 'Seed and fertiliser'),
       Icons.storefront_outlined,
       screen: () => const SuppliersScreen(),
     ),
     _Section(
-      'الوكيل',
-      'تسجيلٌ بتفويض',
+      tr('الوكيل', 'Agent'),
+      tr('تسجيلٌ بتفويض', 'Registration by mandate'),
       Icons.badge_outlined,
       screen: () => const AgentScreen(),
     ),
   ]),
-  _Group('الأدوات والمعرفة', 'مجّاناً وبلا تسجيل', [
+  _Group(tr('الأدوات والمعرفة', 'Tools and knowledge'), tr('مجّاناً وبلا تسجيل', 'Free and with no sign-up'), [
     _Section(
-      'الأخبار',
-      'جديد سوداقري',
+      tr('الأخبار', 'News'),
+      tr('جديد سوداقري', 'What\'s new on Sudagri'),
       Icons.newspaper_rounded,
       screen: () => const NewsScreen(),
     ),
     _Section(
-      'الأفلام',
-      'سوداقري بالصورة',
+      tr('الأفلام', 'Films'),
+      tr('سوداقري بالصورة', 'Sudagri in pictures'),
       Icons.movie_outlined,
       screen: () => const FilmsScreen(),
     ),
     _Section(
-      'توقّع الأمطار',
-      'الخريطة والجدول',
+      tr('توقّع الأمطار', 'Rain forecast'),
+      tr('الخريطة والجدول', 'The map and the table'),
       Icons.umbrella_outlined,
       screen: () => const RainScreen(),
     ),
     _Section(
-      'حاسبة الري',
-      'كم يحتاج محصولك',
+      tr('حاسبة الري', 'Irrigation calculator'),
+      tr('كم يحتاج محصولك', 'How much your crop needs'),
       Icons.water_drop_outlined,
       tab: 1,
     ),
-    _Section('المساعد', 'اسأل عن أي محصول', Icons.chat_bubble_outline, tab: 2),
-    _Section('المعرفة', 'محاصيل وتربة وماء', Icons.menu_book_outlined, tab: 3),
+    _Section(tr('المساعد', 'Assistant'), tr('اسأل عن أي محصول', 'Ask about any crop'), Icons.chat_bubble_outline, tab: 2),
+    _Section(tr('المعرفة', 'Knowledge'), tr('محاصيل وتربة وماء', 'Crops, soil and water'), Icons.menu_book_outlined, tab: 3),
     _Section(
-      'النفير',
-      'العمل المشترك',
+      tr('النفير', 'Nafir'),
+      tr('العمل المشترك', 'Working together'),
       Icons.groups_outlined,
       screen: () => const NafirScreen(),
     ),
     _Section(
-      'الخدمات',
-      'حراثة ومساحة وبيطرة',
+      tr('الخدمات', 'Services'),
+      tr('حراثة ومساحة وبيطرة', 'Ploughing, surveying and veterinary care'),
       Icons.agriculture_outlined,
       screen: () => const ServicesScreen(),
     ),
     _Section(
-      'التعدين',
-      'قسم مستقلّ',
+      tr('التعدين', 'Mining'),
+      tr('قسم مستقلّ', 'A separate section'),
       Icons.construction_outlined,
       screen: () => const MiningScreen(),
     ),
 
     _Section(
-      'المكتبة',
-      'بحوثٌ ودراسات',
+      tr('المكتبة', 'Library'),
+      tr('بحوثٌ ودراسات', 'Research and studies'),
       Icons.local_library_outlined,
       screen: () => const LibraryScreen(),
     ),
@@ -208,7 +209,7 @@ final _groups = <_Group>[
 ];
 
 /// Every section, for the drawer.
-final _sections = [for (final g in _groups) ...g.sections];
+List<_Section> get _sections => [for (final g in _groups) ...g.sections];
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onTab});
@@ -393,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 20),
             const _Notice(),
             const SizedBox(height: 22),
-            const SectionTitle('المشاريع المتاحة'),
+            SectionTitle(tr('المشاريع المتاحة', 'Available projects')),
             FutureBuilder<List<Project>>(
               future: _future,
               builder: (context, snapshot) {
@@ -466,8 +467,8 @@ class WaitingBoard extends StatelessWidget {
               key: 'offline',
               kind: 'waiting',
               count: offline,
-              title: 'محفوظٌ على هاتفك لم يُرسل بعد',
-              detail: 'يُرسل وحده حين تعود الشبكة، أو افتح «المواسم» لترسله الآن',
+              title: tr('محفوظٌ على هاتفك لم يُرسل بعد', 'Kept on your phone, not yet sent'),
+              detail: tr('يُرسل وحده حين تعود الشبكة، أو افتح «المواسم» لترسله الآن', 'It goes by itself when the network is back, or open «Seasons» to send it now'),
               href: '/seasons',
             ),
             onTap: onOffline ?? () {},
@@ -490,7 +491,7 @@ class WaitingBoard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('وينتظرك في جوانبك الأخرى', style: TextStyle(fontWeight: FontWeight.w800)),
+                  Text(tr('وينتظرك في جوانبك الأخرى', 'Also waiting on your other sides'), style: TextStyle(fontWeight: FontWeight.w800)),
                   for (final g in data.compact)
                     for (final c in g.items)
                       InkWell(
@@ -619,9 +620,9 @@ class _Hero extends StatelessWidget {
               children: [
                 Icon(Icons.verified_outlined, size: 14, color: gold),
                 const SizedBox(width: 5),
-                const Flexible(
+                Flexible(
                   child: Text(
-                    'الأدوات تعمل الآن · مجاناً وبلا تسجيل',
+                    tr('الأدوات تعمل الآن · مجاناً وبلا تسجيل', 'The tools work now · free and with no sign-up'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
@@ -633,8 +634,8 @@ class _Hero extends StatelessWidget {
           // The film shows above the words.
           const SizedBox(height: 72),
           // Broken after «هنا» so the two lines balance on a phone.
-          const Text(
-            'كل رقمٍ هنا\nيمكنك أن تعيد حسابه بنفسك',
+          Text(
+            tr('كل رقمٍ هنا\nيمكنك أن تعيد حسابه بنفسك', 'Every number here\nis one you can recompute yourself'),
             style: TextStyle(
               fontSize: 23,
               fontWeight: FontWeight.w900,
@@ -643,8 +644,8 @@ class _Hero extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'منصّة معرفة زراعية وبيانات للسودان — لكل رقمٍ مصدره ومنهجه.',
+          Text(
+            tr('منصّة معرفة زراعية وبيانات للسودان — لكل رقمٍ مصدره ومنهجه.', 'An agricultural knowledge and data platform for Sudan — every number with its source and method.'),
             style: TextStyle(
               height: 1.6,
               color: Color(0xE6FFFFFF),
@@ -664,7 +665,7 @@ class _Hero extends StatelessWidget {
                   ),
                   onPressed: onWater,
                   icon: const Icon(Icons.water_drop, size: 18),
-                  label: const Text('احسب الري'),
+                  label: Text(tr('احسب الري', 'Work out irrigation')),
                 ),
               ),
               const SizedBox(width: 10),
@@ -685,7 +686,7 @@ class _Hero extends StatelessWidget {
                   ),
                   onPressed: onAsk,
                   icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                  label: const Text('اسأل المساعد'),
+                  label: Text(tr('اسأل المساعد', 'Ask the assistant')),
                 ),
               ),
             ],
@@ -798,7 +799,7 @@ class _Menu extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'سوداقري',
+                          tr('سوداقري', 'Sudagri'),
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
@@ -807,7 +808,7 @@ class _Menu extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'منصّة سودانيّة للزراعة والتجارة',
+                          tr('منصّة سودانيّة للزراعة والتجارة', 'A Sudanese platform for farming and trade'),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -821,8 +822,11 @@ class _Menu extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            const SectionTitle('ألوان التطبيق'),
+            SectionTitle(tr('ألوان التطبيق', 'App colours')),
             const PalettePicker(),
+            const SizedBox(height: 14),
+            SectionTitle(tr('اللغة', 'Language')),
+            const LanguagePicker(),
             const SizedBox(height: 12),
             for (final s in _sections)
               ListTile(
@@ -876,15 +880,15 @@ class _Notice extends StatelessWidget {
             child: Text.rich(
               TextSpan(
                 style: TextStyle(color: warn, fontSize: 13, height: 1.9),
-                children: const [
+                children: [
                   TextSpan(
-                    text: 'لا توجد فرص استثمار مطروحة حالياً',
+                    text: tr('لا توجد فرص استثمار مطروحة حالياً', 'No investment opportunities are open right now'),
                     style: TextStyle(fontWeight: FontWeight.w900),
                   ),
                   TextSpan(
                     text:
-                        ' — ولن يُعرض مشروع قبل توثيقه قانونياً ومعاينته ميدانياً. '
-                        'أمّا الأدوات وقاعدة المعرفة فتعمل الآن، مجاناً وبلا تسجيل.',
+                        tr(' — ولن يُعرض مشروع قبل توثيقه قانونياً ومعاينته ميدانياً. '
+                        'أمّا الأدوات وقاعدة المعرفة فتعمل الآن، مجاناً وبلا تسجيل.', ' — and no project will be offered before it is legally documented and inspected in the field. The tools and the knowledge base work now, free and with no sign-up.'),
                   ),
                 ],
               ),
@@ -908,15 +912,15 @@ class _NoProjects extends StatelessWidget {
           children: [
             const IconChip(Icons.spa_outlined, size: 56),
             const SizedBox(height: 12),
-            const Text(
-              'لا توجد مشاريع مطروحة بعد',
+            Text(
+              tr('لا توجد مشاريع مطروحة بعد', 'No projects on offer yet'),
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
             const SizedBox(height: 8),
             Text(
-              'نحن لا نعرض مشروعاً حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة '
+              tr('نحن لا نعرض مشروعاً حتى يكتمل توثيقه: إثبات حيازة الأرض، ومعاينة '
               'ميدانية، وموافقة الجهة الزراعية. سجّل اهتمامك عبر مساعد سوداقري '
-              'وسنبلغك أول ما يُطرح مشروع موثّق.',
+              'وسنبلغك أول ما يُطرح مشروع موثّق.', 'We do not offer a project until its documentation is complete: proof of land tenure, a field inspection, and the approval of the agricultural authority. Register your interest through the Sudagri assistant and we will tell you as soon as a documented project is offered.'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,

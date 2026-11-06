@@ -35,6 +35,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'account.dart';
 import 'api.dart';
 import 'evidence.dart';
+import 'i18n.dart';
 
 // ── Formatting ───────────────────────────────────────────────────────────────
 
@@ -68,39 +69,39 @@ double? _dn(Object? v) => v == null ? null : (v is num ? v.toDouble() : double.t
 // ── The ledger's items ───────────────────────────────────────────────────────
 
 /// The categories of a ledger entry, in the website's order (src/lib/season.ts, LEDGER_LABEL).
-const ledgerCategories = <(String, String)>[
-  ('seeds', 'بذور'),
-  ('fertiliser', 'أسمدة'),
-  ('pesticide', 'مبيدات'),
-  ('labour', 'عمالة'),
-  ('irrigation', 'ري ووقود'),
-  ('transport', 'نقل'),
-  ('other', 'أخرى'),
-  ('revenue', 'إيراد'),
+List<(String, String)> get ledgerCategories => <(String, String)>[
+  ('seeds', tr('بذور', 'Seeds')),
+  ('fertiliser', tr('أسمدة', 'Fertiliser')),
+  ('pesticide', tr('مبيدات', 'Pesticides')),
+  ('labour', tr('عمالة', 'Labour')),
+  ('irrigation', tr('ري ووقود', 'Irrigation and fuel')),
+  ('transport', tr('نقل', 'Transport')),
+  ('other', tr('أخرى', 'Other')),
+  ('revenue', tr('إيراد', 'Revenue')),
 ];
 
 String categoryLabel(String key) =>
     ledgerCategories.firstWhere((c) => c.$1 == key, orElse: () => (key, key)).$2;
 
 /// «دُفع أو قُبض», as the website's form offers it.
-const paidFromChoices = <(String, String)>[
-  ('cash', 'نقداً'),
-  ('bank', 'من البنك'),
-  ('wallet', 'محفظة إلكترونية'),
-  ('credit', 'آجل — لم يُدفع أو يُقبض بعد'),
+List<(String, String)> get paidFromChoices => <(String, String)>[
+  ('cash', tr('نقداً', 'Cash')),
+  ('bank', tr('من البنك', 'Bank')),
+  ('wallet', tr('محفظة إلكترونية', 'Mobile wallet')),
+  ('credit', tr('آجل — لم يُدفع أو يُقبض بعد', 'On credit — not paid or received yet')),
 ];
 
-const currencyChoices = <(String, String)>[
-  ('USD', 'دولار (\$)'),
-  ('SDG', 'جنيه سوداني'),
+List<(String, String)> get currencyChoices => <(String, String)>[
+  ('USD', tr('دولار (\$)', 'Dollars (\$)')),
+  ('SDG', tr('جنيه سوداني', 'Sudanese pounds')),
 ];
 
 // ── Models ───────────────────────────────────────────────────────────────────
 
 String seasonStatusLabel(String status) => switch (status) {
-      'completed' => 'مكتمل',
-      'abandoned' => 'متوقف',
-      _ => 'جارٍ',
+      'completed' => tr('مكتمل', 'Completed'),
+      'abandoned' => tr('متوقف', 'Stopped'),
+      _ => tr('جارٍ', 'Running'),
     };
 
 class SeasonRow {
@@ -192,7 +193,7 @@ class StageView {
         activities: [for (final a in (j['activities'] as List? ?? const [])) '$a'],
         evidence: [
           for (final e in (j['evidence'] as List? ?? const []))
-            ((e as Map)['caption'] as String?) ?? 'دليل',
+            ((e as Map)['caption'] as String?) ?? tr('دليل', 'Evidence'),
         ],
       );
 }
@@ -229,7 +230,7 @@ class EntryView {
   bool get isRevenue => category == 'revenue';
 
   /// The figure as it was paid, as the website's table writes it.
-  String get paid => currency == 'SDG' && enteredAmount != null ? '${amount2(enteredAmount!)} ج.س' : '\$${amount2(amountUsd)}';
+  String get paid => currency == 'SDG' && enteredAmount != null ? tr('${amount2(enteredAmount!)} ج.س', 'SDG ${amount2(enteredAmount!)}') : '\$${amount2(amountUsd)}';
 
   factory EntryView.fromJson(Map<String, dynamic> j) => EntryView(
         id: j['id'] as String,
@@ -255,7 +256,7 @@ class CropValue {
 
   String get headline => [
         if (usd != null) '\$${n0(usd!)}',
-        if (pounds != null) '${n0(pounds!)} جنيه',
+        if (pounds != null) tr('${n0(pounds!)} جنيه', '${n0(pounds!)} pounds'),
       ].join(' · ');
 
   factory CropValue.fromJson(Map<String, dynamic> j) =>
@@ -350,8 +351,8 @@ class SeasonView {
 
   /// What the form says about the rate, as the website's form says it.
   String get rateHint => rate != null
-      ? 'إن كتبت بالجنيه ولم تكتب سعراً، نأخذ ${amount2(rate!)} جنيهاً للدولار (السوق الموازي، $rateDate).'
-      : 'إن كتبت بالجنيه فاكتب سعر الصرف الذي صرفت به (جنيهات لكل دولار)؛ لا سعر منشوراً اليوم نأخذه عنك.';
+      ? tr('إن كتبت بالجنيه ولم تكتب سعراً، نأخذ ${amount2(rate!)} جنيهاً للدولار (السوق الموازي، $rateDate).', 'If you enter pounds and no rate, we take ${amount2(rate!)} pounds to the dollar (the parallel market, $rateDate).')
+      : tr('إن كتبت بالجنيه فاكتب سعر الصرف الذي صرفت به (جنيهات لكل دولار)؛ لا سعر منشوراً اليوم نأخذه عنك.', 'If you enter pounds, type the rate you exchanged at (pounds per dollar); there is no published rate to take for you today.');
 
   factory SeasonView.fromJson(Map<String, dynamic> j) {
     final s = (j['season'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
@@ -459,13 +460,13 @@ bool keptOk(KeepResult r) => r == KeepResult.kept || r == KeepResult.duplicate;
 /// What to tell the person after a form could not be sent, in the website's words (outboxClient.ts `keptMessage`).
 String keptMessage(KeepResult r) => switch (r) {
       KeepResult.kept || KeepResult.duplicate =>
-        'لا يوجد اتصال الآن. حفظنا ما كتبتَه على هاتفك، وسيُرسَل حين تعود الشبكة (افتح هذه الصفحة وأنت متّصل).',
+        tr('لا يوجد اتصال الآن. حفظنا ما كتبتَه على هاتفك، وسيُرسَل حين تعود الشبكة (افتح هذه الصفحة وأنت متّصل).', 'There is no connection right now. We kept what you wrote on your phone and it will be sent when the network is back (open this page while online).'),
       KeepResult.full =>
-        'لا يوجد اتصال، وعندك عشرون شيئاً محفوظاً لم يُرسل، فلا نستطيع حفظ المزيد. أرسلها أولاً حين تعود الشبكة.',
-      KeepResult.noOwner => 'لا يوجد اتصال، وتعذّر حفظ ما كتبتَه لأنّ الجلسة غير معروفة. أعد المحاولة حين تتّصل.',
+        tr('لا يوجد اتصال، وعندك عشرون شيئاً محفوظاً لم يُرسل، فلا نستطيع حفظ المزيد. أرسلها أولاً حين تعود الشبكة.', 'There is no connection, and you already have twenty unsent items kept, so no more can be kept. Send them first once the network is back.'),
+      KeepResult.noOwner => tr('لا يوجد اتصال، وتعذّر حفظ ما كتبتَه لأنّ الجلسة غير معروفة. أعد المحاولة حين تتّصل.', 'There is no connection, and what you wrote could not be kept because the session is unknown. Try again when you are online.'),
       // The website's «unfit» is a file in the form; the app's form has none, so it can only be a field too long.
-      KeepResult.unfit => 'لا يوجد اتصال، ولا يمكن حفظ هذا النموذج لأنّ فيه نصّاً أطول من أن يُحفظ. أعد المحاولة حين تتّصل.',
-      KeepResult.unavailable => 'لا يوجد اتصال، وتعذّر حفظ ما كتبتَه على هذا الهاتف. أعد المحاولة حين تتّصل.',
+      KeepResult.unfit => tr('لا يوجد اتصال، ولا يمكن حفظ هذا النموذج لأنّ فيه نصّاً أطول من أن يُحفظ. أعد المحاولة حين تتّصل.', 'There is no connection, and this form cannot be kept because it has text too long to keep. Try again when you are online.'),
+      KeepResult.unavailable => tr('لا يوجد اتصال، وتعذّر حفظ ما كتبتَه على هذا الهاتف. أعد المحاولة حين تتّصل.', 'There is no connection, and what you wrote could not be kept on this phone. Try again when you are online.'),
     };
 
 class SendReport {
@@ -481,13 +482,16 @@ class SendReport {
 
 /// The messages `AccountController` raises when a request never got an answer about the form itself: no network, the
 /// site not set, a session that ended (the person signs in again and the entry still waits), or a server that was
-/// down (a 5xx with no JSON). Anything else is the server's own refusal of the form.
+/// down (a 5xx, with or without the route's own words: a 503 says the book could not be reached). Anything else is
+/// the server's own refusal of the form.
 bool isOutage(ApiException e) {
   final m = e.message;
-  return m.startsWith('تعذّر الاتصال') ||
-      m.startsWith('التطبيق غير مضبوط') ||
-      m == 'ادخل إلى حسابك.' ||
-      m == 'انتهت جلستك. ادخل من جديد.' ||
+  final s = e.status;
+  if (s != null && s >= 500) return true;
+  return m.startsWith(tr('تعذّر الاتصال', 'Could not connect')) ||
+      m.startsWith(tr('التطبيق غير مضبوط', 'The app is not set up')) ||
+      m == tr('ادخل إلى حسابك.', 'Sign in to your account.') ||
+      m == tr('انتهت جلستك. ادخل من جديد.', 'Your session has ended. Sign in again.') ||
       RegExp(r'\(5\d\d\)').hasMatch(m);
 }
 
@@ -636,8 +640,15 @@ class LedgerOutbox {
 
   /// Keeps a form that could not be sent, stamped with the phone's day as `entry_date` unless it has one, and with an
   /// idempotency key (`client_key`) unless it has one — a form that already tried to go keeps the key it went with.
+  ///
+  /// Under the same lock as sending (backlog 209): a send takes its items out of the box and may put the unsent back,
+  /// and an entry kept between those two writes would otherwise be written over by one of them.
   Future<KeepResult> keep({required String key, required String? userId, required Map<String, String> fields}) async {
     if (userId == null) return KeepResult.noOwner;
+    return _exclusive(() => _keep(key: key, userId: userId, fields: fields));
+  }
+
+  Future<KeepResult> _keep({required String key, required String userId, required Map<String, String> fields}) async {
     final form = <String, String>{};
     for (final e in fields.entries) {
       if (_secret.hasMatch(e.key)) continue;
@@ -659,7 +670,7 @@ class LedgerOutbox {
     final item = OutboxItem(
       id: '${now.toRadixString(36)}-${_random.nextInt(0xffffff).toRadixString(36)}',
       key: key,
-      label: 'قيد مصروف أو إيراد',
+      label: tr('قيد مصروف أو إيراد', 'A cost or revenue entry'),
       userId: userId,
       createdAt: now,
       fields: form,
@@ -669,7 +680,9 @@ class LedgerOutbox {
     return KeepResult.kept;
   }
 
-  Future<void> drop(String id) async => _save([for (final i in await load()) if (i.id != id) i]);
+  Future<void> drop(String id) => _exclusive(() async {
+        await _save([for (final i in await load()) if (i.id != id) i]);
+      });
 
   /// Sends what this account kept for [key] (every ledger item when null). Each item leaves the box before it is sent,
   /// and one send runs at a time on the whole phone (a second waits for the first, then finds what is left), so no
@@ -702,7 +715,9 @@ class LedgerOutbox {
     if (mine.isEmpty) return SendReport(sent: 0, refused: const [], waiting: (await pending(userId, key)).length);
     final ids = {for (final i in mine) i.id};
     await _save([for (final i in all) if (!ids.contains(i.id)) i]);
-    Future<void> putBack(int n) async => _save([...await load(), ...mine.sublist(n)].take(maxItems).toList());
+    // What was not sent goes back whole: the box's limit is for keeping new forms (keep says «full»), never a reason to
+    // drop one that is already waiting (backlog 209).
+    Future<void> putBack(int n) async => _save([...await load(), ...mine.sublist(n)]);
     for (var n = 0; n < mine.length; n++) {
       final item = mine[n];
       final season = item.seasonId ?? seasonFor!(item)!;
@@ -782,7 +797,7 @@ class SeasonsApi {
   Future<String> completeStage(String seasonId, String stageId) async {
     final r = await _account.call('POST', '/api/app/seasons/${Uri.encodeComponent(seasonId)}/stages',
         body: {'stage_id': stageId});
-    return r['message'] as String? ?? 'اعتُمدت المرحلة.';
+    return r['message'] as String? ?? tr('اعتُمدت المرحلة.', 'The stage was signed off.');
   }
 
   /// «أضف دليلاً»: a photo or a PDF recorded as the stage's evidence by the website's own step (addStageEvidence).
@@ -793,16 +808,16 @@ class SeasonsApi {
       'caption': file.captionOr(caption, evidenceKindLabel(kind)),
       ...await _evidence.attach('stages', file),
     });
-    return r['message'] as String? ?? 'رُفع الدليل.';
+    return r['message'] as String? ?? tr('رُفع الدليل.', 'The evidence was uploaded.');
   }
 }
 
 /// The kinds the website's stage form offers (src/components/StageEvidence.tsx).
-const stageEvidenceKinds = <(String, String)>[
-  ('photo', 'صورة'),
-  ('invoice', 'فاتورة'),
-  ('inspection', 'معاينة'),
+List<(String, String)> get stageEvidenceKinds => <(String, String)>[
+  ('photo', tr('صورة', 'Photo')),
+  ('invoice', tr('فاتورة', 'Invoice')),
+  ('inspection', tr('معاينة', 'Inspection')),
 ];
 
 String evidenceKindLabel(String key) =>
-    stageEvidenceKinds.firstWhere((k) => k.$1 == key, orElse: () => (key, 'دليل')).$2;
+    stageEvidenceKinds.firstWhere((k) => k.$1 == key, orElse: () => (key, tr('دليل', 'Evidence'))).$2;

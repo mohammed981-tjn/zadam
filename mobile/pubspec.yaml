@@ -30,8 +30,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Arabic date, number and Material string localisation, so the whole app
-  # lays out right-to-left without every screen wrapping itself.
+  # Arabic and English date, number and Material string localisation, so the
+  # whole app lays out right-to-left in Arabic and left-to-right in English
+  # (lib/i18n.dart, backlog 208) without every screen wrapping itself.
   flutter_localizations:
     sdk: flutter
   # Plain HTTP is enough: the app reads world-readable rows over PostgREST and
@@ -70,6 +71,11 @@ dependencies:
   # the website's file field does (PDF only, up to 20 MB).
   file_picker: ^13.3.2
   image_picker: ^1.2.4
+  # «إشعارات الجوّال» (البند ٢٠٧): FCM, the server sending (src/lib/fcm.ts). The lines that resolve with Flutter 3.47
+  # and the plugins above (pub get, 6 November 2026); firebase_core 5 needs minSdk 24, Flutter's own default. Without
+  # google-services.json the app runs with notifications off (lib/push.dart).
+  firebase_core: ^5.1.0
+  firebase_messaging: ^17.0.1
 
 dev_dependencies:
   flutter_test:

@@ -14,6 +14,7 @@ library;
 import 'package:http/http.dart' as http;
 
 import 'account.dart';
+import 'i18n.dart';
 import 'prices.dart' show arDay, siteJson;
 
 num? _num(Object? v) => v is num ? v : (v is String ? num.tryParse(v) : null);
@@ -80,8 +81,8 @@ class ExportChoices {
   String pairNote(String commodityId, String destinationId) {
     final n = studiedCount(commodityId, destinationId);
     return n != null
-        ? 'شروطُ هذه الوجهة لهذا المنتج مدروسة: $n مستنداتٍ.'
-        : 'لم تُدرس شروطُ هذه الوجهة لهذا المنتج في المنصّة بعد — اسأل المصدّرَ المرخَّص عن مستنداتها.';
+        ? tr('شروطُ هذه الوجهة لهذا المنتج مدروسة: $n مستنداتٍ.', 'This destination\'s terms for this product have been studied: $n documents.')
+        : tr('لم تُدرس شروطُ هذه الوجهة لهذا المنتج في المنصّة بعد — اسأل المصدّرَ المرخَّص عن مستنداتها.', 'This destination\'s terms for this product have not been studied on the platform yet — ask a licensed exporter for its documents.');
   }
 
   factory ExportChoices.fromJson(Map<String, dynamic> j) => ExportChoices(
@@ -116,8 +117,8 @@ class Requirement {
   bool get required => mode == 'required';
 
   String get dateLine {
-    final from = standing == 'upcoming' ? 'يسري من ${arDay(effectiveFrom)}' : 'ساري منذ ${arDay(effectiveFrom)}';
-    return effectiveTo == null ? from : '$from حتى ${arDay(effectiveTo!)}';
+    final from = standing == 'upcoming' ? tr('يسري من ${arDay(effectiveFrom)}', 'Takes effect from ${arDay(effectiveFrom)}') : tr('ساري منذ ${arDay(effectiveFrom)}', 'In force since ${arDay(effectiveFrom)}');
+    return effectiveTo == null ? from : tr('$from حتى ${arDay(effectiveTo!)}', '$from until ${arDay(effectiveTo!)}');
   }
 
   factory Requirement.fromJson(Map<String, dynamic> j) => Requirement(
@@ -145,10 +146,10 @@ class RulesStatus {
   final String? sourceNote;
 
   String get line {
-    if (lastReviewedAt == null) return '⚠ قواعدُ هذا الممرّ لم تُراجَع بعد — تحقّق منها قبل الشحن.';
+    if (lastReviewedAt == null) return tr('⚠ قواعدُ هذا الممرّ لم تُراجَع بعد — تحقّق منها قبل الشحن.', '⚠ This corridor\'s rules have not been reviewed yet — check them before shipping.');
     return stale
-        ? '⚠ قواعدُ هذا الممرّ لم تُراجَع منذ $daysSince يوماً — والحدُّ $reviewDays. قد تكون تغيّرت.'
-        : 'قواعدُ هذا الممرّ رُوجعت قبل $daysSince يوماً.';
+        ? tr('⚠ قواعدُ هذا الممرّ لم تُراجَع منذ $daysSince يوماً — والحدُّ $reviewDays. قد تكون تغيّرت.', '⚠ This corridor\'s rules have not been reviewed for $daysSince days — and the limit is $reviewDays. They may have changed.')
+        : tr('قواعدُ هذا الممرّ رُوجعت قبل $daysSince يوماً.', 'This corridor\'s rules were reviewed $daysSince days ago.');
   }
 
   static RulesStatus? tryParse(Object? raw) {
@@ -228,10 +229,10 @@ class ReadinessLine {
 }
 
 /// The moves the website's buttons offer for each status, in its words.
-const offerMoves = <String, List<({String to, String label})>>{
-  'draft': [(to: 'submitted', label: 'أرسل للمراجعة'), (to: 'withdrawn', label: 'اسحب')],
-  'submitted': [(to: 'draft', label: 'أعده مسوّدة')],
-  'rejected': [(to: 'draft', label: 'أصلحه وأعده مسوّدة')],
+Map<String, List<({String to, String label})>> get offerMoves => <String, List<({String to, String label})>>{
+  'draft': [(to: 'submitted', label: tr('أرسل للمراجعة', 'Send for review')), (to: 'withdrawn', label: tr('اسحب', 'Withdraw'))],
+  'submitted': [(to: 'draft', label: tr('أعده مسوّدة', 'Return to draft'))],
+  'rejected': [(to: 'draft', label: tr('أصلحه وأعده مسوّدة', 'Fix it and return to draft'))],
 };
 
 class MyOffer {
@@ -330,17 +331,17 @@ class OfferDraft {
   /// The website form's checks, in its order and words. The server makes them
   /// again, and the database holds the boundary.
   String? get problem {
-    if (commodityId.isEmpty || destinationId.isEmpty) return 'اختر المنتج والوجهة.';
+    if (commodityId.isEmpty || destinationId.isEmpty) return tr('اختر المنتج والوجهة.', 'Choose the product and the destination.');
     if (!positiveDecimal(quantity, 4) || !positiveDecimal(unitPrice, 2)) {
-      return 'الكمّية والسعر يجب أن يكونا رقمين أكبر من صفر — الكمّية بأربع خانات عشرية على الأكثر، والسعر بخانتين.';
+      return tr('الكمّية والسعر يجب أن يكونا رقمين أكبر من صفر — الكمّية بأربع خانات عشرية على الأكثر، والسعر بخانتين.', 'The quantity and the price must be numbers above zero — the quantity with at most four decimal places, the price with two.');
     }
-    if (plotRef.trim().isEmpty) return 'اسم القطعة أو رقمها مطلوب.';
+    if (plotRef.trim().isEmpty) return tr('اسم القطعة أو رقمها مطلوب.', 'The plot\'s name or number is required.');
     if (!_coordinate(latitude) || !_coordinate(longitude)) {
-      return 'الإحداثيّة مطلوبة، رقماً عشرياً — مثال: 13.183333 و30.216667.';
+      return tr('الإحداثيّة مطلوبة، رقماً عشرياً — مثال: 13.183333 و30.216667.', 'The coordinate is required, as a decimal number — for example 13.183333 and 30.216667.');
     }
     final area = double.tryParse(areaHectares.trim());
     if (area != null && area >= 4 && boundary.trim().isEmpty) {
-      return 'القطعة أكبر من أربعة هكتارات، واللائحة الأوروبية تطلب لها مضلَّع حدودٍ كاملاً لا نقطةً واحدة.';
+      return tr('القطعة أكبر من أربعة هكتارات، واللائحة الأوروبية تطلب لها مضلَّع حدودٍ كاملاً لا نقطةً واحدة.', 'The plot is larger than four hectares, and the European regulation asks for a full boundary polygon for it, not a single point.');
     }
     return null;
   }
@@ -470,11 +471,11 @@ class ExportClient {
   /// Saves the draft; returns the website's confirmation sentence.
   Future<String> saveOffer(OfferDraft draft) async {
     final body = await accountController.call('POST', '/api/app/export/offers', body: draft.toJson());
-    return body['message'] as String? ?? 'حُفظ العرض مسوّدة.';
+    return body['message'] as String? ?? tr('حُفظ العرض مسوّدة.', 'The offer was saved as a draft.');
   }
 
   Future<String> move(String id, String to) async {
     final body = await accountController.call('POST', '/api/app/export/offers/move', body: {'id': id, 'to': to});
-    return body['message'] as String? ?? 'تغيّرت حالة العرض.';
+    return body['message'] as String? ?? tr('تغيّرت حالة العرض.', 'The offer\'s status changed.');
   }
 }

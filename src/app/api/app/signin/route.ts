@@ -4,6 +4,8 @@ import { toE164 } from "@/lib/phone";
 import { phoneToEmail } from "@/lib/phoneIdentity";
 import { checkRateLimit, clientAddress } from "@/lib/rateLimit";
 import { passwordSession } from "@/lib/supabase/bearer";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * الدخول من التطبيق (البند ١٣٨).
@@ -19,10 +21,11 @@ import { passwordSession } from "@/lib/supabase/bearer";
  * a password guess endpoint.
  */
 export async function POST(req: Request) {
+  const locale = appLocale(req);
   const verdict = await checkRateLimit("app-auth", clientAddress(req.headers));
   if (!verdict.allowed) {
     return NextResponse.json(
-      { error: "محاولاتٌ كثيرة في وقتٍ قصير. انتظر دقيقةً ثمّ أعد المحاولة." },
+      { error: tr(locale, "محاولاتٌ كثيرة في وقتٍ قصير. انتظر دقيقةً ثمّ أعد المحاولة.", "Too many attempts in a short time. Wait a minute and try again.") },
       { status: 429 },
     );
   }
@@ -31,21 +34,21 @@ export async function POST(req: Request) {
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير مفهوم." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير مفهوم.", "The request was not understood.") }, { status: 400 });
   }
   const text = (k: string) => String(body[k] ?? "").trim();
   const method = text("method") === "email" ? "email" : "phone";
   const password = text("password");
-  if (!password) return NextResponse.json({ error: "أدخل كلمة المرور." }, { status: 400 });
+  if (!password) return NextResponse.json({ error: tr(locale, "أدخل كلمة المرور.", "Enter the password.") }, { status: 400 });
 
   let email: string;
   if (method === "email") {
     email = text("email");
     if (!email.includes("@")) {
-      return NextResponse.json({ error: "أدخل بريدك الإلكتروني." }, { status: 400 });
+      return NextResponse.json({ error: tr(locale, "أدخل بريدك الإلكتروني.", "Enter your email.") }, { status: 400 });
     }
   } else {
-    const phone = toE164(text("dial_code"), text("phone"), "ar");
+    const phone = toE164(text("dial_code"), text("phone"), locale);
     if (!phone.ok) return NextResponse.json({ error: phone.message }, { status: 400 });
     email = phoneToEmail(phone.e164);
   }
@@ -55,7 +58,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: result.error, must_change_password: true }, { status: 403 });
   }
   if ("error" in result) {
-    return NextResponse.json({ error: translateAuthError(result.error ?? "", method, "ar") }, { status: 401 });
+    return NextResponse.json({ error: translateAuthError(result.error ?? "", method, locale) }, { status: 401 });
   }
   return NextResponse.json(result.session, { headers: { "cache-control": "no-store" } });
 }

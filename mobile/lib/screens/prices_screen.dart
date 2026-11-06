@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../account.dart';
 import '../api.dart';
+import '../i18n.dart';
 import '../prices.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -43,16 +44,16 @@ class _PricesScreenState extends State<PricesScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الأسعار والسوق'),
+        title: Text(tr('الأسعار والسوق', 'Prices and market')),
         bottom: TabBar(
           controller: _tabs,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          tabs: const [
-            Tab(text: 'المحاصيل'),
-            Tab(text: 'العملات'),
-            Tab(text: 'المدخلات والوقود'),
-            Tab(text: 'تنبيهاتي'),
+          tabs: [
+            Tab(text: tr('المحاصيل', 'Crops')),
+            Tab(text: tr('العملات', 'Currencies')),
+            Tab(text: tr('المدخلات والوقود', 'Inputs and fuel')),
+            Tab(text: tr('تنبيهاتي', 'My alerts')),
           ],
         ),
       ),
@@ -90,7 +91,7 @@ Future<void> openLink(BuildContext context, String url) async {
   final messenger = ScaffoldMessenger.of(context);
   final uri = Uri.tryParse(url);
   final ok = uri != null && uri.hasScheme && await launchUrl(uri, mode: LaunchMode.externalApplication);
-  if (!ok) messenger.showSnackBar(const SnackBar(content: Text('تعذّر فتح الرابط.')));
+  if (!ok) messenger.showSnackBar(SnackBar(content: Text(tr('تعذّر فتح الرابط.', 'Could not open the link.'))));
 }
 
 /// A page of the website, for what is still done there.
@@ -99,9 +100,11 @@ Future<void> openSite(BuildContext context, String path) =>
 
 /// A source link: small, green, with the open-outside icon.
 class SourceLink extends StatelessWidget {
-  const SourceLink(this.url, {super.key, this.label = 'المصدر'});
+  const SourceLink(this.url, {super.key, this.label});
   final String url;
-  final String label;
+
+  /// «المصدر» when none is given.
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +121,7 @@ class SourceLink extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                label,
+                label ?? tr('المصدر', 'Source'),
                 style: TextStyle(
                   fontSize: 12,
                   color: textGreenOn(context),
@@ -227,7 +230,7 @@ class _BoardViewState<T> extends State<BoardView<T>> with AutomaticKeepAliveClie
           if (snap.connectionState != ConnectionState.done) return const LoadingView();
           if (snap.hasError) {
             final e = snap.error;
-            return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل البيانات.', onRetry: _reload, scrollable: true);
+            return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل البيانات.', 'Could not load the data.'), onRetry: _reload, scrollable: true);
           }
           final children = widget.build(context, snap.data as T, _reload);
           return ListView.separated(
@@ -263,11 +266,11 @@ Widget _pct(BuildContext context, num? p) {
 List<Widget> _cropsTab(BuildContext context, MarketBoard b, void Function(String?) onAlert) {
   final monthly = _monthly(context, b);
   return [
-    const BoardHero(
+    BoardHero(
       icon: Icons.storefront_rounded,
-      title: 'سوق المحاصيل اليوم',
-      text: 'آخر ما نُشر من أسعار بورصتي القضارف والأبيض: بالوحدة التي يُباع بها المحصول هناك، بالجنيه وبما يقابله '
-          'بالدولار، مع الوارد والتغيّر وتاريخ كلّ رقمٍ ومصدره.',
+      title: tr('سوق المحاصيل اليوم', 'Crop market today'),
+      text: tr('آخر ما نُشر من أسعار بورصتي القضارف والأبيض: بالوحدة التي يُباع بها المحصول هناك، بالجنيه وبما يقابله '
+          'بالدولار، مع الوارد والتغيّر وتاريخ كلّ رقمٍ ومصدره.', 'The latest published prices from the Gedaref and El Obeid bourses: in the unit the crop is sold in there, in pounds and their equivalent in dollars, with arrivals, the change, and each figure\'s date and source.'),
     ),
     if (b.staleFeeds.isNotEmpty)
       PanelCard(
@@ -279,24 +282,24 @@ List<Widget> _cropsTab(BuildContext context, MarketBoard b, void Function(String
             Row(children: [
               Icon(Icons.schedule_rounded, color: warnOn(context), size: 20),
               const SizedBox(width: 8),
-              Expanded(child: _bold('بعض الأسعار لم تتجدّد في موعدها')),
+              Expanded(child: _bold(tr('بعض الأسعار لم تتجدّد في موعدها', 'Some prices were not renewed on time'))),
             ]),
             const SizedBox(height: 6),
             for (final l in b.staleLines) Text('• $l', style: TextStyle(color: warnOn(context), fontSize: 12.5, height: 1.7)),
             const SizedBox(height: 4),
-            _muted(context, 'القراءة اليوميّة لم تجد رقماً أحدث خلال مهلتها. نعرض آخر رقمٍ موثّق بتاريخه، فتحقّق قبل أن تعتمد عليه.'),
+            _muted(context, tr('القراءة اليوميّة لم تجد رقماً أحدث خلال مهلتها. نعرض آخر رقمٍ موثّق بتاريخه، فتحقّق قبل أن تعتمد عليه.', 'The daily reading found no newer figure within its window. We show the last documented figure with its date, so check before you rely on it.')),
           ],
         ),
       ),
-    const IntroNote(
-      'البورصتان لا تنشران نشرةً على الإنترنت؛ تصل أرقامهما في أخبار وكالة السودان للأنباء (سونا) والصحف، وأحياناً تغيب '
-      'أسابيع. لذلك نكتب تاريخ كلّ رقم، ونعلّمه بالذهبيّ الداكن إذا مضى عليه أكثر من ثلاثة أيام. لا نقدّر رقماً لم نجده.',
+    IntroNote(
+      tr('البورصتان لا تنشران نشرةً على الإنترنت؛ تصل أرقامهما في أخبار وكالة السودان للأنباء (سونا) والصحف، وأحياناً تغيب '
+      'أسابيع. لذلك نكتب تاريخ كلّ رقم، ونعلّمه بالذهبيّ الداكن إذا مضى عليه أكثر من ثلاثة أيام. لا نقدّر رقماً لم نجده.', 'The two bourses publish no bulletin online; their figures come in news from the Sudan News Agency (SUNA) and the papers, and are sometimes missing for weeks. So we write each figure\'s date, and mark it in dark gold when it is more than three days old. We do not estimate a figure we did not find.'),
     ),
     if (b.quiet) _quietNotice(context, b),
     if (b.quiet) ...monthly,
-    if (b.quiet) SectionTitle('آخر أرقام البورصتين'),
+    if (b.quiet) SectionTitle(tr('آخر أرقام البورصتين', 'The bourses\' last figures')),
     if (b.crops.isEmpty)
-      const StateView(icon: Icons.cloud_off_rounded, title: 'تعذّرت قراءة الأسعار الآن.', warn: true, compact: true)
+      StateView(icon: Icons.cloud_off_rounded, title: tr('تعذّرت قراءة الأسعار الآن.', 'The rates could not be read just now.'), warn: true, compact: true)
     else
       for (final c in b.crops) _CropCardView(card: c, onAlert: onAlert),
     if (!b.quiet) ...monthly,
@@ -304,14 +307,14 @@ List<Widget> _cropsTab(BuildContext context, MarketBoard b, void Function(String
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _bold('نبّهني حين يتغيّر السعر'),
+          _bold(tr('نبّهني حين يتغيّر السعر', 'Tell me when the price moves')),
           const SizedBox(height: 4),
-          _muted(context, 'ضع حدّاً لسعر محصولٍ أو للدولار، فيصلك إشعارٌ حين يتجاوزه آخر سعرٍ منشور.'),
+          _muted(context, tr('ضع حدّاً لسعر محصولٍ أو للدولار، فيصلك إشعارٌ حين يتجاوزه آخر سعرٍ منشور.', 'Set a limit on a crop or on the dollar and get a notification when the latest published price passes it.')),
           const SizedBox(height: 10),
           FilledButton.icon(
             onPressed: () => onAlert(null),
             icon: const Icon(Icons.notifications_active_outlined, size: 20),
-            label: const Text('ضع تنبيهاً'),
+            label: Text(tr('ضع تنبيهاً', 'Set an alert')),
           ),
         ],
       ),
@@ -320,12 +323,12 @@ List<Widget> _cropsTab(BuildContext context, MarketBoard b, void Function(String
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _bold('ما بعد الأسعار: إيصالات المخازن'),
+          _bold(tr('ما بعد الأسعار: إيصالات المخازن', 'Beyond prices: warehouse receipts')),
           const SizedBox(height: 4),
           _muted(
             context,
-            'السعر وحده لا يحمي المزارع الذي يبيع ساعة الحصاد بأدنى سعر لأنه يحتاج النقد. الخطوة التالية التي ندرسها: أن '
-            'يودع محصوله مخزناً معتمداً ويأخذ إيصالاً يُرهن أو يُباع في بورصة الولاية للسلع، فيبيع حين يشاء لا حين يُضطرّ.',
+            tr('السعر وحده لا يحمي المزارع الذي يبيع ساعة الحصاد بأدنى سعر لأنه يحتاج النقد. الخطوة التالية التي ندرسها: أن '
+            'يودع محصوله مخزناً معتمداً ويأخذ إيصالاً يُرهن أو يُباع في بورصة الولاية للسلع، فيبيع حين يشاء لا حين يُضطرّ.', 'A price alone does not protect the farmer who sells at harvest time at the lowest price because they need cash. The next step we are studying: depositing the crop in an approved warehouse for a receipt that can be pledged or sold on the state\'s commodity exchange, so they sell when they choose, not when forced to.'),
           ),
         ],
       ),
@@ -333,15 +336,15 @@ List<Widget> _cropsTab(BuildContext context, MarketBoard b, void Function(String
     Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle('الوحدات'),
+        SectionTitle(tr('الوحدات', 'Units')),
         _muted(context, b.unitsNote),
         const SizedBox(height: 4),
         _muted(
           context,
           b.usdSell != null
-              ? 'الدولار بسعر ${b.usdBank ?? 'بنك الخرطوم'} اليوم (${money(b.usdSell!, digits: 2)} جنيه، بتاريخ ${arDay(b.usdDate ?? '')}) — '
-                  'لا بسعر يوم الرقم نفسه؛ فهو للمقارنة لا للمحاسبة.'
-              : 'تعذّرت قراءة سعر الصرف، فلا يظهر الدولار.',
+              ? tr('الدولار بسعر ${b.usdBank ?? 'بنك الخرطوم'} اليوم (${money(b.usdSell!, digits: 2)} جنيه، بتاريخ ${arDay(b.usdDate ?? '')}) — '
+                  'لا بسعر يوم الرقم نفسه؛ فهو للمقارنة لا للمحاسبة.', 'Dollars at today\'s ${b.usdBank ?? 'Bank of Khartoum'} rate (${money(b.usdSell!, digits: 2)} pounds, dated ${arDay(b.usdDate ?? '')}) — not at the rate of the figure\'s own day; it is for comparison, not accounting.')
+              : tr('تعذّرت قراءة سعر الصرف، فلا يظهر الدولار.', 'The exchange rate could not be read, so dollars are not shown.'),
         ),
       ],
     ),
@@ -349,8 +352,8 @@ List<Widget> _cropsTab(BuildContext context, MarketBoard b, void Function(String
 }
 
 Widget _quietNotice(BuildContext context, MarketBoard b) {
-  final bulletins = b.lastBulletins.map((x) => 'آخر رقمٍ منشور من ${x.market}: ${arDay(x.date)}').join('، و');
-  final checked = b.checked == null ? '' : 'بحثنا عن أحدث منها آخر مرّة في ${arDay(b.checked!)} فلم نجد: ';
+  final bulletins = b.lastBulletins.map((x) => tr('آخر رقمٍ منشور من ${x.market}: ${arDay(x.date)}', 'The last figure published from ${x.market}: ${arDay(x.date)}')).join(tr('، و', ', and '));
+  final checked = b.checked == null ? '' : tr('بحثنا عن أحدث منها آخر مرّة في ${arDay(b.checked!)} فلم نجد: ', 'We last looked for a newer one on ${arDay(b.checked!)} and found none:');
   final w = b.wfpMonthly;
   String pct(double n) => '${n > 0 ? '+' : ''}${money(n)}%';
   return PanelCard(
@@ -359,11 +362,11 @@ Widget _quietNotice(BuildContext context, MarketBoard b) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _bold('لماذا آخر أسعار البورصة قديمة؟'),
+        _bold(tr('لماذا آخر أسعار البورصة قديمة؟', 'Why are the latest bourse prices old?')),
         const SizedBox(height: 6),
         Text(
-          '$bulletins. $checkedلم تُنشر للبورصتين نشرةٌ بعدها في الأخبار التي نقرؤها. نضيفها يوم تظهر، وحتى ذلك الحين هذه '
-          'أحدث الأرقام الموثّقة، شهريّةً من برنامج الأغذية العالمي.',
+          tr('$bulletins. $checkedلم تُنشر للبورصتين نشرةٌ بعدها في الأخبار التي نقرؤها. نضيفها يوم تظهر، وحتى ذلك الحين هذه '
+          'أحدث الأرقام الموثّقة، شهريّةً من برنامج الأغذية العالمي.', '$bulletins. ${checked}No bulletin for the two bourses has been published since in the news we read. We add it the day it appears; until then these are the latest documented figures, monthly from the World Food Programme.'),
           style: TextStyle(fontSize: 13, height: 1.8, color: inkOn(context)),
         ),
         if (w != null) ...[
@@ -373,17 +376,17 @@ Widget _quietNotice(BuildContext context, MarketBoard b) {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _bold('أحدث رقمٍ موثّق: ${arMonth(w.month)}، من برنامج الأغذية العالمي', size: 13.5),
+                _bold(tr('أحدث رقمٍ موثّق: ${arMonth(w.month)}، من برنامج الأغذية العالمي', 'The latest documented figure: ${arMonth(w.month)}, from the World Food Programme'), size: 13.5),
                 const SizedBox(height: 6),
                 Text(
-                  '• سوق مزاد الذرة بالقضارف: وصله ${money(w.arrivalsTonnes)} طنّاً (${pct(w.arrivalsVsLastMonthPct)} عن الشهر السابق)، '
+                  tr('• سوق مزاد الذرة بالقضارف: وصله ${money(w.arrivalsTonnes)} طنّاً (${pct(w.arrivalsVsLastMonthPct)} عن الشهر السابق)، '
                   'وتغيّر متوسّط سعر الذرة فيه ${pct(w.priceVsLastMonthPct)} عن الشهر السابق و${pct(w.priceVsLastYearPct)} عن '
                   'الشهر نفسه من العام الماضي.\n'
                   '• الذرة بالتجزئة في شمال كردفان (الأبيض): ${money(w.kordofanPrice)} جنيه للكيلو، وكانت ${money(w.kordofanLastMonth)} في الشهر السابق.\n'
-                  '• متوسّط الذرة بالتجزئة في السودان: ${money(w.nationalPrice)} جنيه للكيلو، وكان ${money(w.nationalLastMonth)} في الشهر السابق.',
+                  '• متوسّط الذرة بالتجزئة في السودان: ${money(w.nationalPrice)} جنيه للكيلو، وكان ${money(w.nationalLastMonth)} في الشهر السابق.', '• Gedaref sorghum auction market: ${money(w.arrivalsTonnes)} tonnes arrived (${pct(w.arrivalsVsLastMonthPct)} on the previous month), and the average sorghum price there changed ${pct(w.priceVsLastMonthPct)} on the previous month and ${pct(w.priceVsLastYearPct)} on the same month last year.\n• Retail sorghum in North Kordofan (El Obeid): ${money(w.kordofanPrice)} pounds per kilo, against ${money(w.kordofanLastMonth)} the previous month.\n• Average retail sorghum in Sudan: ${money(w.nationalPrice)} pounds per kilo, against ${money(w.nationalLastMonth)} the previous month.'),
                   style: const TextStyle(fontSize: 12.5, height: 1.8),
                 ),
-                SourceLink(w.source, label: w.report.isEmpty ? 'المصدر' : w.report),
+                SourceLink(w.source, label: w.report.isEmpty ? tr('المصدر', 'Source') : w.report),
               ],
             ),
           ),
@@ -441,12 +444,12 @@ class _SeriesRow extends StatelessWidget {
                   Text.rich(
                     TextSpan(children: [
                       TextSpan(text: money(s.price), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                      const TextSpan(text: ' جنيه', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                      TextSpan(text: tr(' جنيه', ' SDG'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                     ]),
                   ),
                   _muted(
                     context,
-                    s.usd != null ? '${s.perUnit} · ≈ \$${money(s.usd!, digits: 2)} بسعر بنك الخرطوم اليوم' : s.perUnit,
+                    s.usd != null ? tr('${s.perUnit} · ≈ \$${money(s.usd!, digits: 2)} بسعر بنك الخرطوم اليوم', '${s.perUnit} · ≈ \$${money(s.usd!, digits: 2)} at today\'s Bank of Khartoum rate') : s.perUnit,
                     size: 12,
                   ),
                 ],
@@ -463,8 +466,8 @@ class _SeriesRow extends StatelessWidget {
           children: [
             if (change != null)
               Text(
-                '${up ? '▲' : down ? '▼' : '＝'} ${change > 0 ? '+' : ''}${money(change)} '
-                '(${(s.changePct ?? 0) > 0 ? '+' : ''}${money(s.changePct ?? 0, digits: 1)}%) عن الرقم السابق',
+                tr('${up ? '▲' : down ? '▼' : '＝'} ${change > 0 ? '+' : ''}${money(change)} '
+                '(${(s.changePct ?? 0) > 0 ? '+' : ''}${money(s.changePct ?? 0, digits: 1)}%) عن الرقم السابق', '${up ? '▲' : down ? '▼' : '＝'} ${change > 0 ? '+' : ''}${money(change)} (${(s.changePct ?? 0) > 0 ? '+' : ''}${money(s.changePct ?? 0, digits: 1)}%) on the previous figure'),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -472,7 +475,7 @@ class _SeriesRow extends StatelessWidget {
                 ),
               ),
             if (s.arrivals != null)
-              _muted(context, 'الوارد: ${money(s.arrivals!)} جوال${s.allSorghum ? ' (الذرة كلّها)' : ''}', size: 12),
+              _muted(context, tr('الوارد: ${money(s.arrivals!)} جوال${s.allSorghum ? ' (الذرة كلّها)' : ''}', 'Arrivals: ${money(s.arrivals!)} sacks${s.allSorghum ? ' (all sorghum)' : ''}'), size: 12),
           ],
         ),
         const SizedBox(height: 4),
@@ -493,7 +496,7 @@ class _SeriesRow extends StatelessWidget {
             TextButton.icon(
               onPressed: () => onAlert(s.alertSubject),
               icon: const Icon(Icons.notifications_none_rounded, size: 18),
-              label: const Text('نبّهني'),
+              label: Text(tr('نبّهني', 'Alert me')),
             ),
           ],
         ),
@@ -513,7 +516,7 @@ class Sparkline extends StatelessWidget {
   Widget build(BuildContext context) {
     if (points.length < 2) return SizedBox(width: width, height: height);
     return Semantics(
-      label: 'تاريخ السعر',
+      label: tr('تاريخ السعر', 'Price date'),
       child: CustomPaint(
         size: Size(width, height),
         painter: _SparkPainter(points, textGreenOn(context), leafTintOn(context)),
@@ -565,15 +568,15 @@ class _SparkPainter extends CustomPainter {
 
 List<Widget> _monthly(BuildContext context, MarketBoard b) {
   return [
-    const SectionTitle(
-      'الأسعار الشهرية',
-      subtitle: 'من شبكة الإنذار المبكر بالمجاعة (FEWS NET): متوسّط شهري لأسعار الذرة والدخن بالتجزئة في مدن السودان، '
-          'القضارف والأبيض أولاً. يتأخّر شهراً أو اثنين، وهو مرجعٌ للاتجاه لا سعر بورصة اليوم.',
+    SectionTitle(
+      tr('الأسعار الشهرية', 'Monthly prices'),
+      subtitle: tr('من شبكة الإنذار المبكر بالمجاعة (FEWS NET): متوسّط شهري لأسعار الذرة والدخن بالتجزئة في مدن السودان، '
+          'القضارف والأبيض أولاً. يتأخّر شهراً أو اثنين، وهو مرجعٌ للاتجاه لا سعر بورصة اليوم.', 'From the Famine Early Warning Systems Network (FEWS NET): a monthly average of retail sorghum and millet prices in Sudan\'s towns, Gedaref and El Obeid first. It lags a month or two, and is a reference for the trend, not today\'s bourse price.'),
     ),
     PanelCard(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       child: b.fews == null
-          ? _muted(context, 'تعذّر الوصول إلى بيانات FEWS NET الآن.')
+          ? _muted(context, tr('تعذّر الوصول إلى بيانات FEWS NET الآن.', 'FEWS NET\'s data could not be reached just now.'))
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -614,12 +617,12 @@ List<Widget> _monthly(BuildContext context, MarketBoard b) {
     ),
     if (b.wfpTowns.isNotEmpty) ...[
       SectionTitle(
-        'أسعار التجزئة في ${b.wfpTowns.length} مدينة — برنامج الأغذية العالمي',
-        subtitle: 'الحبوب واللحوم والسكر والزيت والبصل، كما جمعها البرنامج في عاصمة كلّ ولاية. أحدث شهر: '
-            '${arMonth(b.wfpLatest ?? '')}. والتغيّر محسوبٌ من أرقام البرنامج نفسه للشهر السابق والعام الماضي.',
+        tr('أسعار التجزئة في ${b.wfpTowns.length} مدينة — برنامج الأغذية العالمي', 'Retail prices in ${b.wfpTowns.length} towns — World Food Programme'),
+        subtitle: tr('الحبوب واللحوم والسكر والزيت والبصل، كما جمعها البرنامج في عاصمة كلّ ولاية. أحدث شهر: '
+            '${arMonth(b.wfpLatest ?? '')}. والتغيّر محسوبٌ من أرقام البرنامج نفسه للشهر السابق والعام الماضي.', 'Grain, meat, sugar, oil and onions, as the programme collected them in each state\'s capital. Latest month: ${arMonth(b.wfpLatest ?? '')}. The change is worked out from the programme\'s own figures for the previous month and last year.'),
       ),
       for (var i = 0; i < b.wfpTowns.length; i++) _WfpTownTile(town: b.wfpTowns[i], latest: b.wfpLatest ?? '', open: i < 2),
-      SourceLink(b.wfpSource, label: 'برنامج الأغذية العالمي — أسعار الغذاء في السودان (HDX)'),
+      SourceLink(b.wfpSource, label: tr('برنامج الأغذية العالمي — أسعار الغذاء في السودان (HDX)', 'WFP — Sudan food prices (HDX)')),
     ],
   ];
 }
@@ -632,7 +635,7 @@ class _WfpTownTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final when = town.latest.compareTo(latest) < 0 ? 'آخر رقم: ${arMonth(town.latest)}' : arMonth(town.latest);
+    final when = town.latest.compareTo(latest) < 0 ? tr('آخر رقم: ${arMonth(town.latest)}', 'Last figure: ${arMonth(town.latest)}') : arMonth(town.latest);
     return PanelCard(
       padding: EdgeInsets.zero,
       child: Theme(
@@ -659,8 +662,8 @@ class _WfpTownTile extends StatelessWidget {
                           if (it.unusual != null && it.median != null)
                             Text(
                               it.unusual == 'low'
-                                  ? 'أقلّ بكثير من وسط المدن (${money(it.median!)}) — تحقّق منه'
-                                  : 'أعلى بكثير من وسط المدن (${money(it.median!)}) — تحقّق منه',
+                                  ? tr('أقلّ بكثير من وسط المدن (${money(it.median!)}) — تحقّق منه', 'Much lower than the towns\' median (${money(it.median!)}) — check it')
+                                  : tr('أعلى بكثير من وسط المدن (${money(it.median!)}) — تحقّق منه', 'Much higher than the towns\' median (${money(it.median!)}) — check it'),
                               style: TextStyle(fontSize: 11, color: warnOn(context), fontWeight: FontWeight.w600),
                             ),
                         ],
@@ -672,7 +675,7 @@ class _WfpTownTile extends StatelessWidget {
                   ],
                 ),
               ),
-            Align(alignment: AlignmentDirectional.centerStart, child: _muted(context, 'العمودان الأخيران: عن الشهر السابق · عن العام الماضي', size: 11)),
+            Align(alignment: AlignmentDirectional.centerStart, child: _muted(context, tr('العمودان الأخيران: عن الشهر السابق · عن العام الماضي', 'The last two columns: on the previous month · on last year'), size: 11)),
           ],
         ),
       ),
@@ -710,11 +713,11 @@ class _RatesBodyState extends State<_RatesBody> {
             Text.rich(
               TextSpan(children: [
                 TextSpan(text: money(q.sell, digits: 2), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-                const TextSpan(text: ' جنيه للدولار', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                TextSpan(text: tr(' جنيه للدولار', ' SDG per dollar'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
               ]),
               textAlign: TextAlign.center,
             ),
-            _muted(context, 'شراء ${money(q.buy, digits: 2)} · بيع ${money(q.sell, digits: 2)}', size: 12),
+            _muted(context, tr('شراء ${money(q.buy, digits: 2)} · بيع ${money(q.sell, digits: 2)}', 'Buy ${money(q.buy, digits: 2)} · Sell ${money(q.sell, digits: 2)}'), size: 12),
             const SizedBox(height: 6),
             Text(
               q.freshness,
@@ -740,27 +743,27 @@ class _RatesBodyState extends State<_RatesBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const BoardHero(
+        BoardHero(
           icon: Icons.currency_exchange_rounded,
-          title: 'أسعار العملات مقابل الجنيه السوداني',
-          text: 'سعران للجنيه، لأنّ الفرق بينهما كبير: سعر بنك الخرطوم، وسعر السوق الموازي. كلٌّ بتاريخه ومصدره.',
+          title: tr('أسعار العملات مقابل الجنيه السوداني', 'Exchange rates against the Sudanese pound'),
+          text: tr('سعران للجنيه، لأنّ الفرق بينهما كبير: سعر بنك الخرطوم، وسعر السوق الموازي. كلٌّ بتاريخه ومصدره.', 'Two rates for the pound, because the gap between them is large: Bank of Khartoum\'s rate and the parallel-market rate, each with its date and source.'),
         ),
         const SizedBox(height: 14),
         if (b.bank == null || b.parallel == null)
-          const StateView(icon: Icons.cloud_off_rounded, title: 'تعذّرت قراءة الأسعار الآن.', warn: true, compact: true)
+          StateView(icon: Icons.cloud_off_rounded, title: tr('تعذّرت قراءة الأسعار الآن.', 'The rates could not be read just now.'), warn: true, compact: true)
         else ...[
-          _quote('سعر البنك — ${b.bank!.name ?? 'بنك الخرطوم'}', b.bank!),
+          _quote(tr('سعر البنك — ${b.bank!.name ?? 'بنك الخرطوم'}', 'Bank rate — ${b.bank!.name ?? 'Bank of Khartoum'}'), b.bank!),
           const SizedBox(height: 12),
-          _quote('السوق الموازي', b.parallel!),
+          _quote(tr('السوق الموازي', 'Parallel market'), b.parallel!),
           const SizedBox(height: 14),
           PanelCard(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
             child: Column(
               children: [
                 Row(children: [
-                  Expanded(flex: 4, child: _muted(context, 'العملة')),
-                  Expanded(flex: 3, child: _muted(context, 'بسعر بنك الخرطوم')),
-                  Expanded(flex: 3, child: _muted(context, 'بالسوق الموازي')),
+                  Expanded(flex: 4, child: _muted(context, tr('العملة', 'Currency'))),
+                  Expanded(flex: 3, child: _muted(context, tr('بسعر بنك الخرطوم', 'At Bank of Khartoum'))),
+                  Expanded(flex: 3, child: _muted(context, tr('بالسوق الموازي', 'Parallel market'))),
                 ]),
                 for (final r in rows) ...[
                   Divider(height: 14, color: Theme.of(context).colorScheme.outline),
@@ -774,7 +777,7 @@ class _RatesBodyState extends State<_RatesBody> {
             ),
           ),
           const SizedBox(height: 14),
-          const SectionTitle('محوّل العملات'),
+          SectionTitle(tr('محوّل العملات', 'Currency converter')),
           PanelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -786,7 +789,7 @@ class _RatesBodyState extends State<_RatesBody> {
                       controller: _amount,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       textDirection: TextDirection.ltr,
-                      decoration: const InputDecoration(labelText: 'المبلغ'),
+                      decoration: InputDecoration(labelText: tr('المبلغ', 'Amount')),
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
@@ -799,25 +802,25 @@ class _RatesBodyState extends State<_RatesBody> {
                 ]),
                 const SizedBox(height: 10),
                 if (converted != null) ...[
-                  _bold('بسعر بنك الخرطوم: ${money(converted.bank ?? 0, digits: 2)} جنيه', size: 14),
+                  _bold(tr('بسعر بنك الخرطوم: ${money(converted.bank ?? 0, digits: 2)} جنيه', 'At Bank of Khartoum: ${money(converted.bank ?? 0, digits: 2)} pounds'), size: 14),
                   const SizedBox(height: 2),
-                  Text('بالسوق الموازي: ${money(converted.parallel ?? 0, digits: 2)} جنيه', style: const TextStyle(fontSize: 14)),
+                  Text(tr('بالسوق الموازي: ${money(converted.parallel ?? 0, digits: 2)} جنيه', 'Parallel market: ${money(converted.parallel ?? 0, digits: 2)} pounds'), style: const TextStyle(fontSize: 14)),
                 ],
               ],
             ),
           ),
         ],
         const SizedBox(height: 14),
-        const SectionTitle('من أين تأتي الأسعار'),
+        SectionTitle(tr('من أين تأتي الأسعار', 'Where the rates come from')),
         _muted(
           context,
-          'نشرة بنك السودان المركزي على موقعه متوقّفة منذ ${arDay(b.cbosLastBulletin ?? '')}، وفي ${arDay(b.cbosLiberalised ?? '')} حرّر '
+          tr('نشرة بنك السودان المركزي على موقعه متوقّفة منذ ${arDay(b.cbosLastBulletin ?? '')}، وفي ${arDay(b.cbosLiberalised ?? '')} حرّر '
           'البنك سعر الصرف وترك لكلّ مصرف أن يعلن سعره (المنشور ${b.cbosCircular ?? ''}). لذلك نعرض سعر بنك الخرطوم، أكبر المصارف، '
-          'وسعر السوق الموازي، ونحدّثهما بعد مراجعة كلّ رقمٍ، من مصادر منشورة نذكرها بجانب كلّ رقم. ولا نعرض رقماً قديماً على أنّه سعر اليوم.',
+          'وسعر السوق الموازي، ونحدّثهما بعد مراجعة كلّ رقمٍ، من مصادر منشورة نذكرها بجانب كلّ رقم. ولا نعرض رقماً قديماً على أنّه سعر اليوم.', 'The Central Bank of Sudan\'s bulletin on its website has stopped since ${arDay(b.cbosLastBulletin ?? '')}, and on ${arDay(b.cbosLiberalised ?? '')} the bank liberalised the exchange rate and left each bank to announce its own rate (circular ${b.cbosCircular ?? ''}). So we show the rate of Bank of Khartoum, the largest bank, and the parallel-market rate, and update both after reviewing each figure, from published sources we name beside each figure. We never show an old figure as today\'s rate.'),
         ),
-        SourceLink(b.cbosSource ?? '', label: 'خبر التحرير'),
+        SourceLink(b.cbosSource ?? '', label: tr('خبر التحرير', 'The liberalisation')),
         const SizedBox(height: 6),
-        _muted(context, 'أسعار العملات الأخرى مقابل الدولار (الريال والدرهم واليورو…) من خدمة ExchangeRate-API المفتوحة.'),
+        _muted(context, tr('أسعار العملات الأخرى مقابل الدولار (الريال والدرهم واليورو…) من خدمة ExchangeRate-API المفتوحة.', 'Other currencies against the dollar (riyal, dirham, euro…) come from ExchangeRate-API\'s open service.')),
         SourceLink(b.crossSource ?? '', label: 'Rates By Exchange Rate API'),
       ],
     );
@@ -830,11 +833,11 @@ class _RatesBodyState extends State<_RatesBody> {
 
 List<Widget> _inputsTab(BuildContext context, InputsBoard b) {
   return [
-    const BoardHero(
+    BoardHero(
       icon: Icons.local_gas_station_rounded,
-      title: 'أين السماد والجازولين هذا الأسبوع وبكم',
-      text: 'لا جهةَ تنشر سعرَ اليوريا أو الجازولين في السودان كلَّ أسبوع. لذلك يأتي سعرُ هذا الأسبوع من الناس: مزارعٌ أو '
-          'تاجرٌ يقول بكم اشترى وأين ومتى، أو أنّه لم يجده. وتحته الموردون الموثّقون، ثمّ آخر ما نشرته المصادر بتاريخه.',
+      title: tr('أين السماد والجازولين هذا الأسبوع وبكم', 'Where fertiliser and diesel are this week, and at what price'),
+      text: tr('لا جهةَ تنشر سعرَ اليوريا أو الجازولين في السودان كلَّ أسبوع. لذلك يأتي سعرُ هذا الأسبوع من الناس: مزارعٌ أو '
+          'تاجرٌ يقول بكم اشترى وأين ومتى، أو أنّه لم يجده. وتحته الموردون الموثّقون، ثمّ آخر ما نشرته المصادر بتاريخه.', 'No body publishes the price of urea or diesel in Sudan every week. So this week\'s price comes from people: a farmer or trader saying what they paid, where and when, or that they could not find it. Below that are the verified suppliers, then the latest the sources published, with its date.'),
     ),
     Wrap(
       spacing: 8,
@@ -843,24 +846,24 @@ List<Widget> _inputsTab(BuildContext context, InputsBoard b) {
         FilledButton.icon(
           onPressed: () => openSite(context, '/market/inputs/report'),
           icon: const Icon(Icons.campaign_outlined, size: 20),
-          label: const Text('بلّغ عن سعر'),
+          label: Text(tr('بلّغ عن سعر', 'Report a price')),
         ),
-        OutlinedButton(onPressed: () => openSite(context, '/suppliers?item=fertilizer'), child: const Text('موردو السماد')),
+        OutlinedButton(onPressed: () => openSite(context, '/suppliers?item=fertilizer'), child: Text(tr('موردو السماد', 'Fertiliser suppliers'))),
       ],
     ),
     SectionTitle(
-      'بلاغات آخر ${b.windowDays} يوماً',
-      subtitle: 'من مزارعين وتجّار مسجّلين. المنصّة لم تتحقّق منها؛ لذلك نكتب عدد البلاغات وعدد من أرسلوها، والأدنى والأعلى '
-          'والوسيط. لا نُظهر اسم من بلّغ.',
+      tr('بلاغات آخر ${b.windowDays} يوماً', 'Reports from the last ${b.windowDays} days'),
+      subtitle: tr('من مزارعين وتجّار مسجّلين. المنصّة لم تتحقّق منها؛ لذلك نكتب عدد البلاغات وعدد من أرسلوها، والأدنى والأعلى '
+          'والوسيط. لا نُظهر اسم من بلّغ.', 'From registered farmers and traders. The platform has not checked them, so we write the number of reports and of people who sent them, the lowest, the highest and the median. We never show who reported.'),
     ),
     if (b.pending)
-      PanelCard(child: _muted(context, 'البلاغات تُفعَّل قريباً.'))
+      PanelCard(child: _muted(context, tr('البلاغات تُفعَّل قريباً.', 'Reports open soon.')))
     else if (b.groups.isEmpty)
       PanelCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _bold('لا بلاغ بعد في آخر أسبوعين.', size: 14),
+          _bold(tr('لا بلاغ بعد في آخر أسبوعين.', 'No reports in the last two weeks yet.'), size: 14),
           const SizedBox(height: 4),
-          _muted(context, 'كن الأوّل: إن اشتريت يوريا أو جازولين هذا الأسبوع، أو بحثت ولم تجد، فبلاغك يفيد كلّ من في ولايتك.'),
+          _muted(context, tr('كن الأوّل: إن اشتريت يوريا أو جازولين هذا الأسبوع، أو بحثت ولم تجد، فبلاغك يفيد كلّ من في ولايتك.', 'Be the first: if you bought urea or diesel this week, or looked and could not find it, your report helps everyone in your state.')),
         ]),
       )
     else ...[
@@ -879,14 +882,14 @@ List<Widget> _inputsTab(BuildContext context, InputsBoard b) {
                 const SizedBox(height: 4),
                 if (r.median != null)
                   Text.rich(TextSpan(children: [
-                    TextSpan(text: '${money(r.median!)} جنيه', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+                    TextSpan(text: tr('${money(r.median!)} جنيه', '${money(r.median!)} pounds'), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
                     TextSpan(
-                      text: ' ${r.perUnit}${r.low != null && r.high != null ? ' · الوسيط؛ من ${money(r.low!)} إلى ${money(r.high!)}' : ''}',
+                      text: tr(' ${r.perUnit}${r.low != null && r.high != null ? ' · الوسيط؛ من ${money(r.low!)} إلى ${money(r.high!)}' : ''}', ' ${r.perUnit}${r.low != null && r.high != null ? ' · the median; from ${money(r.low!)} to ${money(r.high!)}' : ''}'),
                       style: TextStyle(fontSize: 12, color: mutedOn(context)),
                     ),
                   ]))
                 else
-                  _muted(context, 'لا سعر: كلّ البلاغات تقول إنّه غير موجود.', size: 12),
+                  _muted(context, tr('لا سعر: كلّ البلاغات تقول إنّه غير موجود.', 'No price: every report says it could not be found.'), size: 12),
                 _muted(context, r.countLine, size: 11.5),
               ],
             ],
@@ -898,7 +901,7 @@ List<Widget> _inputsTab(BuildContext context, InputsBoard b) {
           child: Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
-              title: _bold('كلّ البلاغات (${b.reports.length})', size: 14),
+              title: _bold(tr('كلّ البلاغات (${b.reports.length})', 'All reports (${b.reports.length})'), size: 14),
               childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               children: [
                 for (final r in b.reports)
@@ -907,10 +910,10 @@ List<Widget> _inputsTab(BuildContext context, InputsBoard b) {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${r.item} — ${r.state}، ${r.locality}${r.kind == null ? '' : ' · ${r.kind}'}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
+                        Text(tr('${r.item} — ${r.state}، ${r.locality}${r.kind == null ? '' : ' · ${r.kind}'}', '${r.item} — ${r.state}, ${r.locality}${r.kind == null ? '' : ' · ${r.kind}'}'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
                         Text(
                           r.price != null
-                              ? '${money(r.price!)} جنيه ${r.perUnit}${r.availability == 'limited' ? ' · ${r.availabilityLabel}' : ''} · ${arDay(r.observedOn)}'
+                              ? tr('${money(r.price!)} جنيه ${r.perUnit}${r.availability == 'limited' ? ' · ${r.availabilityLabel}' : ''} · ${arDay(r.observedOn)}', '${money(r.price!)} pounds ${r.perUnit}${r.availability == 'limited' ? ' · ${r.availabilityLabel}' : ''} · ${arDay(r.observedOn)}')
                               : '${r.availabilityLabel} · ${arDay(r.observedOn)}',
                           style: TextStyle(fontSize: 12, color: r.price == null ? warnOn(context) : null),
                         ),
@@ -923,17 +926,17 @@ List<Widget> _inputsTab(BuildContext context, InputsBoard b) {
           ),
         ),
     ],
-    const SectionTitle('موردو السماد الموثّقون في سوداقري'),
+    SectionTitle(tr('موردو السماد الموثّقون في سوداقري', 'Verified fertiliser suppliers on Sudagri')),
     Wrap(spacing: 8, runSpacing: 8, children: [
-      for (final s in b.suppliers) TagPill('${s.name}: ${s.count} مورّد', icon: Icons.verified_outlined),
+      for (final s in b.suppliers) TagPill(tr('${s.name}: ${s.count} مورّد', '${s.name}: ${s.count} suppliers'), icon: Icons.verified_outlined),
     ]),
-    _muted(context, 'الموردون يعرضون السعر بالدولار، ويوصلون إلى الولايات التي يذكرونها.'),
-    const SectionTitle(
-      'آخر ما نشرته المصادر',
-      subtitle: 'منسوخةٌ باليد من مصدرها، كلّ رقمٍ بتاريخ نشره. هي أقدم من البلاغات، فاجعلها مرجعاً لا سعرَ اليوم.',
+    _muted(context, tr('الموردون يعرضون السعر بالدولار، ويوصلون إلى الولايات التي يذكرونها.', 'Suppliers list their price in dollars, and deliver to the states they name. ')),
+    SectionTitle(
+      tr('آخر ما نشرته المصادر', 'The latest published figures'),
+      subtitle: tr('منسوخةٌ باليد من مصدرها، كلّ رقمٍ بتاريخ نشره. هي أقدم من البلاغات، فاجعلها مرجعاً لا سعرَ اليوم.', 'Copied by hand from their sources, each figure with the date it was published. They are older than the reports: use them as a reference, not as today\'s price.'),
     ),
     if (b.figures == null)
-      _muted(context, 'تعذّرت قراءة ملفّ المصادر.')
+      _muted(context, tr('تعذّرت قراءة ملفّ المصادر.', 'The sources file could not be read.'))
     else ...[
       for (final f in b.figures!)
         PanelCard(
@@ -942,7 +945,7 @@ List<Widget> _inputsTab(BuildContext context, InputsBoard b) {
             children: [
               Text('${f.item} — ${f.place}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
               Text.rich(TextSpan(children: [
-                TextSpan(text: '${money(f.price)} جنيه', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                TextSpan(text: tr('${money(f.price)} جنيه', '${money(f.price)} pounds'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
                 TextSpan(text: ' ${f.perUnit}', style: TextStyle(fontSize: 12, color: mutedOn(context))),
               ])),
               if (f.note != null) _muted(context, f.note!, size: 12),
@@ -955,7 +958,7 @@ List<Widget> _inputsTab(BuildContext context, InputsBoard b) {
           ),
         ),
       if (b.trends.isNotEmpty) ...[
-        const SectionTitle('الاتّجاه الشهريّ'),
+        SectionTitle(tr('الاتّجاه الشهريّ', 'The monthly trend')),
         for (final t in b.trends)
           PanelCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -967,16 +970,16 @@ List<Widget> _inputsTab(BuildContext context, InputsBoard b) {
         if (b.trends.length > 1)
           _muted(
             context,
-            'المصدران يختلفان في اتّجاه وقود السوق الموازي في أغسطس: برنامج الأغذية يقول انخفض عن يوليو، والمعهد يقول واصل '
-            'الارتفاع. بلاغاتُ الناس أعلاه أقربُ إلى سعر هذا الأسبوع من الاثنين.',
+            tr('المصدران يختلفان في اتّجاه وقود السوق الموازي في أغسطس: برنامج الأغذية يقول انخفض عن يوليو، والمعهد يقول واصل '
+            'الارتفاع. بلاغاتُ الناس أعلاه أقربُ إلى سعر هذا الأسبوع من الاثنين.', 'The two sources disagree on the direction of parallel-market fuel in August: the food programme says it fell from July, and the institute says it kept rising. People\'s reports above are closer to this week\'s price than either.'),
           ),
       ],
     ],
     PanelCard(
       child: _muted(
         context,
-        'لماذا لا نقرأ هذا من FEWS NET كما نقرأ أسعار الذرة؟ لأنّه لا سلسلةَ عنده للسماد في السودان، وسلاسل الجازولين عنده بلا '
-        'قيمةٍ منذ ٢٠٢٤ («لم يُجمع»). تحقّقنا من ذلك في ٢١ أكتوبر ٢٠٢٦.',
+        tr('لماذا لا نقرأ هذا من FEWS NET كما نقرأ أسعار الذرة؟ لأنّه لا سلسلةَ عنده للسماد في السودان، وسلاسل الجازولين عنده بلا '
+        'قيمةٍ منذ ٢٠٢٤ («لم يُجمع»). تحقّقنا من ذلك في ٢١ أكتوبر ٢٠٢٦.', 'Why don\'t we read this from FEWS NET as we read sorghum prices? Because it has no series for fertiliser in Sudan, and its diesel series have had no value since 2024 («not collected»). We checked this on 21 October 2026.'),
       ),
     ),
   ];
@@ -997,12 +1000,12 @@ class _AlertsTab extends StatelessWidget {
       valueListenable: accountController,
       builder: (context, session, _) {
         if (session == null) {
-          return const StateView(
+          return StateView(
             key: Key('alerts-signed-out'),
             icon: Icons.lock_outline_rounded,
-            title: 'ادخل إلى حسابك لتضع تنبيهاً',
-            message: 'التنبيهات لصاحبها وحده. ادخل من «حسابي» ثمّ عُد إلى هنا: ضع حدّاً لسعر محصولٍ أو للدولار، فيصلك '
-                'إشعارٌ مرّةً واحدة حين يتجاوزه آخر سعرٍ منشور.',
+            title: tr('ادخل إلى حسابك لتضع تنبيهاً', 'Sign in to your account to set an alert'),
+            message: tr('التنبيهات لصاحبها وحده. ادخل من «حسابي» ثمّ عُد إلى هنا: ضع حدّاً لسعر محصولٍ أو للدولار، فيصلك '
+                'إشعارٌ مرّةً واحدة حين يتجاوزه آخر سعرٍ منشور.', 'Alerts belong to their owner alone. Sign in from «My account», then come back here: set a limit on a crop\'s price or the dollar, and get a notification once when the latest published price passes it.'),
             scrollable: true,
           );
         }
@@ -1010,25 +1013,25 @@ class _AlertsTab extends StatelessWidget {
           key: ValueKey('alerts-${session.accessToken.hashCode}'),
           load: client.alerts,
           build: (context, b, reload) => [
-            const BoardHero(
+            BoardHero(
               icon: Icons.notifications_active_outlined,
-              title: 'نبّهني حين يتغيّر السعر',
-              text: 'ضع حدّاً لسعر محصولٍ أو للدولار. حين يتجاوزه آخر سعرٍ منشور يصلك إشعارٌ مرّةً واحدة. الأسعار تُنشر حين '
-                  'تصدر نشراتها، فقد يتأخّر التنبيه عن السوق نفسه.',
+              title: tr('نبّهني حين يتغيّر السعر', 'Tell me when the price moves'),
+              text: tr('ضع حدّاً لسعر محصولٍ أو للدولار. حين يتجاوزه آخر سعرٍ منشور يصلك إشعارٌ مرّةً واحدة. الأسعار تُنشر حين '
+                  'تصدر نشراتها، فقد يتأخّر التنبيه عن السوق نفسه.', 'Set a limit on a crop\'s price or the dollar. When the latest published price passes it you get a notification once. Prices are published when their bulletins come out, so the alert may lag the market itself.'),
             ),
             PanelCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _bold('تنبيهٌ جديد'),
+                  _bold(tr('تنبيهٌ جديد', 'A new alert')),
                   const SizedBox(height: 8),
                   if (b.full)
                     Text(
-                      'عندك ${b.maxActive} تنبيهات شغّالة، وهذا الحدّ الأقصى. أوقف واحداً لتضيف غيره.',
+                      tr('عندك ${b.maxActive} تنبيهات شغّالة، وهذا الحدّ الأقصى. أوقف واحداً لتضيف غيره.', 'You have ${b.maxActive} running alerts, and that is the limit. Stop one to add another.'),
                       style: TextStyle(color: warnOn(context), fontSize: 13, height: 1.7),
                     )
                   else if (b.options.isEmpty)
-                    _muted(context, 'لا أسعار منشورة الآن لنتابعها.')
+                    _muted(context, tr('لا أسعار منشورة الآن لنتابعها.', 'There are no published prices to follow right now.'))
                   else
                     AlertForm(options: b.options, preselect: preselect, client: client, onSaved: reload),
                 ],
@@ -1038,18 +1041,18 @@ class _AlertsTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _bold('تنبيهاتك الشغّالة'),
-                  if (b.running.isEmpty) ...[const SizedBox(height: 6), _muted(context, 'لا تنبيهات شغّالة.')],
+                  _bold(tr('تنبيهاتك الشغّالة', 'Your running alerts')),
+                  if (b.running.isEmpty) ...[const SizedBox(height: 6), _muted(context, tr('لا تنبيهات شغّالة.', 'No running alerts.'))],
                   for (final a in b.running) ...[
                     Divider(height: 18, color: Theme.of(context).colorScheme.outline),
                     Row(children: [
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(a.text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, height: 1.5)),
-                          if (a.createdAt != null) _muted(context, 'أُضيف ${arDay(a.createdAt!.toIso8601String())}', size: 11.5),
+                          if (a.createdAt != null) _muted(context, tr('أُضيف ${arDay(a.createdAt!.toIso8601String())}', 'Added ${arDay(a.createdAt!.toIso8601String())}'), size: 11.5),
                         ]),
                       ),
-                      OutlinedButton(onPressed: () => _stop(context, a, reload), child: const Text('أوقف')),
+                      OutlinedButton(onPressed: () => _stop(context, a, reload), child: Text(tr('أوقف', 'Stop'))),
                     ]),
                   ],
                 ],
@@ -1060,7 +1063,7 @@ class _AlertsTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _bold('ما انتهى'),
+                    _bold(tr('ما انتهى', 'Finished')),
                     for (final a in b.settled) ...[
                       Divider(height: 18, color: Theme.of(context).colorScheme.outline),
                       Text(a.text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, height: 1.5)),
@@ -1080,11 +1083,11 @@ class _AlertsTab extends StatelessWidget {
     final yes = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('أوقف هذا التنبيه؟'),
-        content: Text('${a.text}\n\nلا يُحذف؛ يبقى مسجَّلاً موقوفاً تحت «ما انتهى».'),
+        title: Text(tr('أوقف هذا التنبيه؟', 'Stop this alert?')),
+        content: Text(tr('${a.text}\n\nلا يُحذف؛ يبقى مسجَّلاً موقوفاً تحت «ما انتهى».', '${a.text}\n\nIt is not deleted; it stays recorded as stopped under «Finished».')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('لا')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('أوقفه')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('لا', 'No'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('أوقفه', 'Stop it'))),
         ],
       ),
     );
@@ -1179,22 +1182,22 @@ class _AlertFormState extends State<AlertForm> {
           key: const Key('alert-subject'),
           initialValue: _subject,
           isExpanded: true,
-          decoration: const InputDecoration(labelText: 'أيّ سعر تتابع؟'),
+          decoration: InputDecoration(labelText: tr('أيّ سعر تتابع؟', 'Which price?')),
           items: [for (final o in widget.options) DropdownMenuItem(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))],
           onChanged: (v) => setState(() => _subject = v ?? _subject),
         ),
         if (chosen != null) ...[
           const SizedBox(height: 6),
-          _muted(context, 'آخر سعرٍ منشور: ${money(chosen.price)} ${chosen.unit} · ${arDay(chosen.date)}'),
+          _muted(context, tr('آخر سعرٍ منشور: ${money(chosen.price)} ${chosen.unit} · ${arDay(chosen.date)}', 'The latest published price: ${money(chosen.price)} ${chosen.unit} · ${arDay(chosen.date)}')),
         ],
         const SizedBox(height: 12),
-        _muted(context, 'نبّهني حين يصير السعر…', size: 13),
+        _muted(context, tr('نبّهني حين يصير السعر…', 'Tell me when the price goes…'), size: 13),
         const SizedBox(height: 6),
         SegmentedButton<String>(
           key: const Key('alert-direction'),
-          segments: const [
-            ButtonSegment(value: 'above', label: Text('فوق الحدّ'), icon: Icon(Icons.north_rounded)),
-            ButtonSegment(value: 'below', label: Text('تحت الحدّ'), icon: Icon(Icons.south_rounded)),
+          segments: [
+            ButtonSegment(value: 'above', label: Text(tr('فوق الحدّ', 'above the limit')), icon: Icon(Icons.north_rounded)),
+            ButtonSegment(value: 'below', label: Text(tr('تحت الحدّ', 'below the limit')), icon: Icon(Icons.south_rounded)),
           ],
           selected: {_direction},
           onSelectionChanged: (s) => setState(() => _direction = s.first),
@@ -1205,7 +1208,7 @@ class _AlertFormState extends State<AlertForm> {
           controller: _threshold,
           keyboardType: TextInputType.number,
           textDirection: TextDirection.ltr,
-          decoration: const InputDecoration(labelText: 'الحدّ (بالجنيه)', hintText: '600000'),
+          decoration: InputDecoration(labelText: tr('الحدّ (بالجنيه)', 'The limit (in pounds)'), hintText: '600000'),
         ),
         if (_message != null) ...[
           const SizedBox(height: 10),
@@ -1219,7 +1222,7 @@ class _AlertFormState extends State<AlertForm> {
         FilledButton(
           key: const Key('alert-submit'),
           onPressed: _saving ? null : _save,
-          child: Text(_saving ? 'جارٍ الحفظ…' : 'أضف التنبيه'),
+          child: Text(_saving ? tr('جارٍ الحفظ…', 'Saving…') : tr('أضف التنبيه', 'Add the alert')),
         ),
       ],
     );

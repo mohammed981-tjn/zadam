@@ -3,6 +3,8 @@ import { loadExportChoices, loadCorridorRules, requirementStanding } from "@/lib
 import { readinessModeLabel } from "@/lib/exportReadiness";
 import { khartoumToday } from "@/lib/inputBoard";
 import { createPublicClient } from "@/lib/supabase/public";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -17,17 +19,18 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  *     and against what (`export_corridor_rules_status`, the line the offer page shows under the readiness).
  */
 export async function GET(req: Request) {
+  const locale = appLocale(req);
   const url = new URL(req.url);
   const commodity = url.searchParams.get("commodity");
   const destination = url.searchParams.get("destination");
   const supabase = createPublicClient();
 
   if (commodity === null && destination === null) {
-    const choices = await loadExportChoices(supabase, "ar");
+    const choices = await loadExportChoices(supabase, locale);
     return NextResponse.json(choices, { headers: { "cache-control": "no-store" } });
   }
   if (!commodity || !destination || !UUID.test(commodity) || !UUID.test(destination)) {
-    return NextResponse.json({ error: "اختر المنتج والوجهة." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "اختر المنتج والوجهة.", "Choose the product and the destination.") }, { status: 400 });
   }
 
   const today = khartoumToday();
@@ -38,7 +41,7 @@ export async function GET(req: Request) {
     name: r.nameAr,
     note: r.noteAr,
     mode: r.mode,
-    mode_label: readinessModeLabel(r.mode, "ar"),
+    mode_label: readinessModeLabel(r.mode, locale),
     effective_from: r.effectiveFrom,
     effective_to: r.effectiveTo,
     standing: requirementStanding(r, today),

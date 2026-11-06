@@ -35,7 +35,9 @@ const SECTIONS = [
 const errors = [];
 const missing = [];
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: "ar" });
+// COLOR_SCHEME=dark photographs the app as a phone set to dark mode shows it.
+const colorScheme = process.env.COLOR_SCHEME === "dark" ? "dark" : "light";
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: "ar", colorScheme });
 const page = await ctx.newPage();
 page.on("pageerror", (e) => errors.push((e.message.split("\n")[0] || "Error") + (process.env.PREVIEW_DEBUG ? "\n" + (e.stack ?? "") : "")));
 await page.goto(url, { waitUntil: "networkidle", timeout: 120000 });

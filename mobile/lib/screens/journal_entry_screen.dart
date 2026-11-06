@@ -9,13 +9,15 @@ import 'package:flutter/services.dart';
 
 import '../api.dart';
 import '../evidence.dart';
+import '../i18n.dart';
 import '../journal.dart';
+import '../seasons.dart' show isOutage;
 import '../theme.dart';
 import '../ui.dart';
 import 'evidence_sheet.dart';
 import 'seasons_screen.dart';
 
-final _figure = [FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩.,٬٫]'))];
+final _figure = [FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩.,٬٫]'))]; // ar-only
 
 class JournalEntryScreen extends StatelessWidget {
   const JournalEntryScreen({super.key, this.api, this.sender, this.pick, this.book});
@@ -31,9 +33,9 @@ class JournalEntryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('قيدٌ جديد')),
+      appBar: AppBar(title: Text(tr('قيدٌ جديد', 'New entry'))),
       body: RequireSignIn(
-        what: 'دفترك',
+        what: tr('دفترك', 'your book'),
         builder: (_) => JournalEntryBody(api: api ?? JournalApi(), sender: sender, pick: pick, book: book),
       ),
     );
@@ -62,6 +64,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
   String _currency = 'USD';
   bool _adjusting = false;
   EvidenceFile? _file;
+  final _receipt = ReceiptKeeper();
   String _key = newEntryKey();
   bool _busy = false;
   String? _message;
@@ -104,7 +107,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
       if (filled == null) {
         _template = null;
         _ok = false;
-        _message = 'في دفترك حسابٌ ينقص هذا القيد الجاهز؛ اكتبه يدويّاً.';
+        _message = tr('في دفترك حسابٌ ينقص هذا القيد الجاهز؛ اكتبه يدويّاً.', 'Your book lacks an account this ready entry needs; write it by hand.');
         return;
       }
       _lines = filled;
@@ -146,7 +149,10 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
       _message = null;
     });
     try {
-      final attachment = _file == null ? null : await (widget.sender ?? EvidenceSender()).attach('ledger', _file!);
+      // Stored once and kept with the entry until it is answered: a retry carries the same path with the same key.
+      final file = _file;
+      final attachment = await _receipt.forFile(
+          file, () async => widget.api.storeReceipt(await (widget.sender ?? EvidenceSender()).attach('ledger', file!)));
       final (_, message) = await widget.api.submit({
         'book': c.bookId,
         'key': _key,
@@ -158,6 +164,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
         'template': ?_template?.key,
         'kind': _adjusting ? 'adjusting' : 'manual',
       }, attachment: attachment);
+      _receipt.reset();
       if (!mounted) return;
       setState(() {
         _ok = true;
@@ -170,6 +177,8 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
         _lines = _template != null ? (fillTemplate(_template!, c.accounts) ?? _lines) : [JournalLine(side: 'D'), JournalLine(side: 'C')];
       });
     } on ApiException catch (e) {
+      // After an outage the stored receipt waits for the retry; a refusal removed it on the server.
+      _receipt.settle(outage: isOutage(e));
       if (mounted) {
         setState(() {
           _ok = false;
@@ -189,7 +198,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
         if (snap.connectionState != ConnectionState.done) return const LoadingView();
         if (snap.hasError) {
           final e = snap.error;
-          return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل الدفتر.',
+          return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل الدفتر.', 'Could not load the book.'),
               onRetry: () => setState(() {
         _future = _load(widget.book);
       }), scrollable: true);
@@ -197,10 +206,10 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
         final c = snap.data!;
         final book = c.book;
         if (book == null) {
-          return const StateView(
+          return StateView(
             icon: Icons.menu_book_outlined,
-            title: 'لا دفتر تكتب فيه بعد',
-            message: 'يُفتح دفتر مزرعتك من الموقع أو بأوّل قيدٍ في أحد مواسمك.',
+            title: tr('لا دفتر تكتب فيه بعد', 'No book to write in yet'),
+            message: tr('يُفتح دفتر مزرعتك من الموقع أو بأوّل قيدٍ في أحد مواسمك.', 'Your farm book opens from the website or with the first entry in one of your seasons.'),
           );
         }
         final t = totalsOf(_template != null ? [for (final l in _lines) JournalLine(account: l.account, side: l.side, amount: _amount.text)] : _lines);
@@ -214,7 +223,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
                 child: DropdownButtonFormField<String>(
                   initialValue: book.id,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'الدفتر'),
+                  decoration: InputDecoration(labelText: tr('الدفتر', 'Book')),
                   items: [for (final b in c.books) DropdownMenuItem(value: b.id, child: Text(b.label))],
                   onChanged: (v) => v == null || v == book.id ? null : _switchBook(v),
                 ),
@@ -222,15 +231,15 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
             Text(
               [
                 book.label,
-                if (book.closedThrough != null) 'مقفل حتى ${book.closedThrough}',
-                if (book.preparer) 'أنت مُعِدّ: ما ترسله ينتظر اعتماد صاحب الدفتر' else if (book.alwaysReview) 'طلبت مراجعة كلّ قيد',
+                if (book.closedThrough != null) tr('مقفل حتى ${book.closedThrough}', 'Closed through ${book.closedThrough}'),
+                if (book.preparer) tr('أنت مُعِدّ: ما ترسله ينتظر اعتماد صاحب الدفتر', 'You are a preparer: what you send waits for the book owner\'s approval') else if (book.alwaysReview) tr('طلبت مراجعة كلّ قيد', 'You asked to review every entry'),
               ].join(' · '),
               style: TextStyle(color: mutedOn(context)),
             ),
             const SizedBox(height: 12),
-            const SectionTitle('قيودٌ جاهزة', subtitle: 'نقرةٌ تملأ السطور، ثمّ اكتب المبلغ والبيان.'),
+            SectionTitle(tr('قيودٌ جاهزة', 'Ready entries'), subtitle: tr('نقرةٌ تملأ السطور، ثمّ اكتب المبلغ والبيان.', 'One tap fills the lines; then write the amount and the description.')),
             Wrap(spacing: 6, runSpacing: 6, children: [
-              ChoiceChip(label: const Text('قيدٌ يدويّ'), selected: _template == null, onSelected: (_) => _pickTemplate(null, c)),
+              ChoiceChip(label: Text(tr('قيدٌ يدويّ', 'Manual entry')), selected: _template == null, onSelected: (_) => _pickTemplate(null, c)),
               for (final x in c.templates)
                 ChoiceChip(label: Text(x.name), selected: _template?.key == x.key, onSelected: (_) => _pickTemplate(x, c)),
             ]),
@@ -242,16 +251,16 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
             TextField(
               controller: _date,
               keyboardType: TextInputType.datetime,
-              decoration: const InputDecoration(labelText: 'التاريخ', hintText: 'YYYY-MM-DD'),
+              decoration: InputDecoration(labelText: tr('التاريخ', 'Date'), hintText: 'YYYY-MM-DD'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _memo,
               maxLength: 500,
-              decoration: const InputDecoration(labelText: 'البيان', hintText: 'ماذا حدث، ولمن، ولماذا'),
+              decoration: InputDecoration(labelText: tr('البيان', 'Description'), hintText: tr('ماذا حدث، ولمن، ولماذا', 'What happened, with whom, and why')),
             ),
             SegmentedButton<String>(
-              segments: const [ButtonSegment(value: 'USD', label: Text('دولار')), ButtonSegment(value: 'SDG', label: Text('جنيه'))],
+              segments: [ButtonSegment(value: 'USD', label: Text(tr('دولار', 'USD'))), ButtonSegment(value: 'SDG', label: Text(tr('جنيه', 'SDG')))],
               selected: {_currency},
               onSelectionChanged: (s) => setState(() => _currency = s.first),
             ),
@@ -261,7 +270,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
                 controller: _rate,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: _figure,
-                decoration: const InputDecoration(labelText: 'سعر الصرف (جنيه لكلّ دولار)', helperText: 'اتركه فارغاً لسعر السوق المنشور'),
+                decoration: InputDecoration(labelText: tr('سعر الصرف (جنيه لكلّ دولار)', 'Exchange rate (pounds per dollar)'), helperText: tr('اتركه فارغاً لسعر السوق المنشور', 'Leave it empty for the published market rate')),
               ),
             ],
             if (_template == null)
@@ -269,17 +278,17 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
                 contentPadding: EdgeInsets.zero,
                 value: _adjusting,
                 onChanged: (v) => setState(() => _adjusting = v ?? false),
-                title: const Text('قيد تسوية آخر الفترة'),
+                title: Text(tr('قيد تسوية آخر الفترة', 'End-of-period adjusting entry')),
               ),
             const SizedBox(height: 12),
-            const SectionTitle('السطور'),
+            SectionTitle(tr('السطور', 'Lines')),
             if (_template != null)
               TextField(
                 controller: _amount,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: _figure,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(labelText: 'المبلغ'),
+                decoration: InputDecoration(labelText: tr('المبلغ', 'Amount')),
               ),
             for (var i = 0; i < _lines.length; i++) _LineRow(
               key: ValueKey('line-$_lineKeys-$i'),
@@ -303,34 +312,34 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
                 child: TextButton.icon(
                   onPressed: () => setState(() => _lines.add(JournalLine())),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('أضف سطراً'),
+                  label: Text(tr('أضف سطراً', 'Add a line')),
                 ),
               ),
             const SizedBox(height: 6),
             Text(
-              'المدين ${formatMinor(t.debit)} · الدائن ${formatMinor(t.credit)} · ${balanced ? 'متوازن' : 'الفرق ${formatMinor((t.debit - t.credit).abs())}'}',
+              tr('المدين ${formatMinor(t.debit)} · الدائن ${formatMinor(t.credit)} · ${balanced ? 'متوازن' : 'الفرق ${formatMinor((t.debit - t.credit).abs())}'}', 'Debit ${formatMinor(t.debit)} · Credit ${formatMinor(t.credit)} · ${balanced ? 'Balanced' : 'Difference ${formatMinor((t.debit - t.credit).abs())}'}'),
               style: TextStyle(fontWeight: FontWeight.w700, color: balanced ? textGreenOn(context) : mutedOn(context)),
             ),
             const SizedBox(height: 16),
-            const SectionTitle('المستند', subtitle: 'صورة الإيصال أو الفاتورة، أو PDF حتى ١٠ ميجابايت.'),
+            SectionTitle(tr('المستند', 'Document'), subtitle: tr('صورة الإيصال أو الفاتورة، أو PDF حتى ١٠ ميجابايت.', 'A photo of the receipt or invoice, or a PDF up to 10 MB.')),
             if (_file != null)
               Row(children: [
                 Icon(_file!.pdf ? Icons.picture_as_pdf_outlined : Icons.photo_outlined, size: 18),
                 const SizedBox(width: 6),
-                Expanded(child: Text(_file!.pdf ? (_file!.name.isEmpty ? 'مستند PDF' : _file!.name) : 'صورةٌ مرفقة')),
-                TextButton(onPressed: () => setState(() => _file = null), child: const Text('أزله')),
+                Expanded(child: Text(_file!.pdf ? (_file!.name.isEmpty ? tr('مستند PDF', 'PDF document') : _file!.name) : tr('صورةٌ مرفقة', 'An attached photo'))),
+                TextButton(onPressed: () => setState(() => _file = null), child: Text(tr('أزله', 'Remove it'))),
               ])
             else
               Wrap(spacing: 8, runSpacing: 8, children: [
                 OutlinedButton.icon(
                   onPressed: () => _attach(EvidenceSource.camera),
                   icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                  label: const Text('صوّر الإيصال'),
+                  label: Text(tr('صوّر الإيصال', 'Photograph the receipt')),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => _attach(EvidenceSource.gallery),
                   icon: const Icon(Icons.photo_library_outlined, size: 18),
-                  label: const Text('من الصور'),
+                  label: Text(tr('من الصور', 'From photos')),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => _attach(EvidenceSource.pdf),
@@ -338,7 +347,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
                   label: const Text('PDF'),
                 ),
               ]),
-            Text('القيد بلا مستندٍ يُقبل، ويظهر في تقرير الاستثناءات.', style: TextStyle(color: mutedOn(context), fontSize: 12)),
+            Text(tr('القيد بلا مستندٍ يُقبل، ويظهر في تقرير الاستثناءات.', 'An entry without a document is accepted, and shows in the exceptions report.'), style: TextStyle(color: mutedOn(context), fontSize: 12)),
             if (_message != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -353,7 +362,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _busy ? null : () => _send(c),
-              child: Text(_busy ? 'يُرسَل…' : (book.preparer ? 'أرسله لاعتماد صاحب الدفتر' : 'رحِّل القيد')),
+              child: Text(_busy ? tr('يُرسَل…', 'Sending…') : (book.preparer ? tr('أرسله لاعتماد صاحب الدفتر', 'Send it for the owner\'s approval') : tr('رحِّل القيد', 'Post the entry'))),
             ),
           ],
         );
@@ -409,7 +418,7 @@ class _LineRowState extends State<_LineRow> {
         DropdownButtonFormField<String>(
           initialValue: known ? l.account : null,
           isExpanded: true,
-          decoration: InputDecoration(labelText: 'حساب السطر ${widget.index + 1}'),
+          decoration: InputDecoration(labelText: tr('حساب السطر ${widget.index + 1}', 'Account for line ${widget.index + 1}')),
           items: [for (final a in widget.accounts) DropdownMenuItem(value: a.code, child: Text(a.label, overflow: TextOverflow.ellipsis))],
           onChanged: widget.accounts.length <= 1 && widget.fixed
               ? null
@@ -421,7 +430,7 @@ class _LineRowState extends State<_LineRow> {
         const SizedBox(height: 8),
         Row(children: [
           SegmentedButton<String>(
-            segments: const [ButtonSegment(value: 'D', label: Text('مدين')), ButtonSegment(value: 'C', label: Text('دائن'))],
+            segments: [ButtonSegment(value: 'D', label: Text(tr('مدين', 'Debit'))), ButtonSegment(value: 'C', label: Text(tr('دائن', 'Credit')))],
             selected: {l.side},
             onSelectionChanged: widget.fixed
                 ? null
@@ -441,11 +450,11 @@ class _LineRowState extends State<_LineRow> {
                   l.amount = v;
                   widget.onChanged();
                 },
-                decoration: InputDecoration(labelText: 'مبلغ السطر ${widget.index + 1}'),
+                decoration: InputDecoration(labelText: tr('مبلغ السطر ${widget.index + 1}', 'Amount for line ${widget.index + 1}')),
               ),
             ),
           if (widget.onRemove != null)
-            IconButton(onPressed: widget.onRemove, tooltip: 'احذف السطر', icon: const Icon(Icons.close)),
+            IconButton(onPressed: widget.onRemove, tooltip: tr('احذف السطر', 'Remove line'), icon: const Icon(Icons.close)),
         ]),
       ]),
     );

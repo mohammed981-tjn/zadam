@@ -91,7 +91,14 @@ const shapeDart = readFileSync("mobile/lib/land_shape.dart", "utf8");
 const screenDart = readFileSync("mobile/lib/screens/land_map_screen.dart", "utf8");
 ok(new RegExp(`const m2PerFeddan = ${M2_PER_FEDDAN};`).test(shapeDart), "الفدان نفسه بالمتر المربّع");
 ok(new RegExp(`const maxCorners = ${MAX_CORNERS};`).test(shapeDart), "وحدّ الأركان نفسه");
-const block = (name: string) => screenDart.slice(screenDart.indexOf(`const ${name} =`), screenDart.indexOf(";", screenDart.indexOf(`const ${name} =`)));
+// A list the app shows in English too is a getter, its labels `tr('عربي', 'English')` (backlog 208): the Arabic half is
+// compared, and the stored values stay as they were.
+const declared = (name: string) => {
+  const i = screenDart.indexOf(`const ${name} =`);
+  return i >= 0 ? i : screenDart.search(new RegExp(`\\bget ${name} =>`));
+};
+const block = (name: string) =>
+  screenDart.slice(declared(name), screenDart.indexOf(";", declared(name))).replace(/tr\('([^']+)', '[^']*'\)/g, "'$1'");
 const quoted = (text: string) => [...text.matchAll(/'([^']+)'/g)].map((m) => m[1]);
 ok(JSON.stringify(quoted(block("sudanStates"))) === JSON.stringify([...SUDAN_STATES]), "والولايات نفسها بترتيبها");
 const water = quoted(block("waterSources"));

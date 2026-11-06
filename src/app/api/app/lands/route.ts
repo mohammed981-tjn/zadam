@@ -4,6 +4,8 @@ import { dbText } from "@/lib/dbText";
 import { boundaryOf, isWaterSource, landInputProblem, nearestStation, type Corner } from "@/lib/landInput";
 import { recordSoilEstimate } from "@/lib/landSoil";
 import { wrbShort } from "@/lib/soilClasses";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «حدّد أرضك» في التطبيق (البند ١٣٤؛ اختار المالك المشي والنقر معاً، 28 أكتوبر 2026).
@@ -18,13 +20,14 @@ import { wrbShort } from "@/lib/soilClasses";
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const text = (k: string, max: number) => (typeof body[k] === "string" ? (body[k] as string).trim().slice(0, max) : "");
 
@@ -37,7 +40,7 @@ export async function POST(req: Request) {
   const shape = boundaryOf(corners);
   if (!shape) {
     return NextResponse.json(
-      { error: "حدّد ثلاثة أركانٍ على الأقلّ تحيط بالأرض، بالمشي حولها أو بالنقر على الخريطة." },
+      { error: tr(locale, "حدّد ثلاثة أركانٍ على الأقلّ تحيط بالأرض، بالمشي حولها أو بالنقر على الخريطة.", "Mark at least three corners around the land, by walking around it or tapping on the map.") },
       { status: 400 },
     );
   }
@@ -52,7 +55,7 @@ export async function POST(req: Request) {
 
   const problem = landInputProblem(input, (ar) => ar);
   if (problem || !isWaterSource(waterSource)) {
-    return NextResponse.json({ error: problem ?? "مصدر مياه غير معروف." }, { status: 400 });
+    return NextResponse.json({ error: problem ?? tr(locale, "مصدر مياه غير معروف.", "Unknown water source.") }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -79,7 +82,7 @@ export async function POST(req: Request) {
     .select("id")
     .single();
   if (error || !data) {
-    return NextResponse.json({ error: `تعذّر تسجيل الأرض: ${await dbText(error?.message ?? "")}` }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, `تعذّر تسجيل الأرض: ${await dbText(error?.message ?? "")}`, `Could not register the land: ${await dbText(error?.message ?? "")}`) }, { status: 400 });
   }
 
   const soil = await recordSoilEstimate(user.id, data.id as string, longitude, latitude);
@@ -92,7 +95,7 @@ export async function POST(req: Request) {
     station: stationKey,
     soil: soil ? { name: wrbShort(soil.wrb), probability: soil.probability } : null,
     message:
-      "سُجّلت الأرض. لن تظهر لأحد حتى ترفع مستنداتها من الموقع وتعتمدها الإدارة — " +
-      "إثبات الحيازة، وصور بإحداثيات، ومعاينة ميدانية.",
+      tr(locale, "سُجّلت الأرض. لن تظهر لأحد حتى ترفع مستنداتها من الموقع وتعتمدها الإدارة — ", "The land was registered. Nobody will see it until you upload its documents from the website and the administrators approve it —") +
+      tr(locale, "إثبات الحيازة، وصور بإحداثيات، ومعاينة ميدانية.", "proof of tenure, photos with coordinates, and a field inspection."),
   });
 }

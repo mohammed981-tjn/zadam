@@ -18,6 +18,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../account.dart';
 import '../api.dart';
+import '../i18n.dart';
+import '../push.dart';
 import '../theme.dart';
 import '../ui.dart';
 import 'invest_screen.dart';
@@ -32,7 +34,7 @@ Future<void> openOnSite(BuildContext context, String path) async {
       await launchUrl(Uri.parse('${ApiConfig.siteUrl}$path'),
           mode: LaunchMode.externalApplication);
   if (!ok) {
-    messenger.showSnackBar(const SnackBar(content: Text('تعذّر فتح الموقع.')));
+    messenger.showSnackBar(SnackBar(content: Text(tr('تعذّر فتح الموقع.', 'Could not open the website.'))));
   }
 }
 
@@ -42,7 +44,7 @@ class AccountScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('حسابي')),
+      appBar: AppBar(title: Text(tr('حسابي', 'My account'))),
       body: ValueListenableBuilder<Session?>(
         valueListenable: accountController,
         builder: (context, session, _) {
@@ -80,9 +82,9 @@ class _SignedOutState extends State<_SignedOut> {
               children: [
                 const IconChip(Icons.person_rounded, size: 52),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'حسابك في سوداقري هو نفسه في الموقع والتطبيق: الرقم وكلمة المرور نفسهما.',
+                    tr('حسابك في سوداقري هو نفسه في الموقع والتطبيق: الرقم وكلمة المرور نفسهما.', 'Your Sudagri account is the same on the website and in the app: the same number and password.'),
                     style: TextStyle(height: 1.7, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -92,9 +94,9 @@ class _SignedOutState extends State<_SignedOut> {
         ),
         const SizedBox(height: 18),
         SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(value: false, label: Text('ادخل'), icon: Icon(Icons.login)),
-            ButtonSegment(value: true, label: Text('حساب جديد'), icon: Icon(Icons.person_add_alt)),
+          segments: [
+            ButtonSegment(value: false, label: Text(tr('ادخل', 'Sign in')), icon: Icon(Icons.login)),
+            ButtonSegment(value: true, label: Text(tr('حساب جديد', 'New account')), icon: Icon(Icons.person_add_alt)),
           ],
           selected: {_signUp},
           onSelectionChanged: (s) => setState(() => _signUp = s.first),
@@ -114,7 +116,30 @@ class _SignedOutState extends State<_SignedOut> {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        const _LanguageCard(),
       ],
+    );
+  }
+}
+
+/// «اللغة» in «حسابي» (backlog 208), the same choice as in the menu: Arabic or English for the whole app.
+class _LanguageCard extends StatelessWidget {
+  const _LanguageCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SectionTitle(t(context, 'اللغة', 'Language')),
+            const LanguagePicker(),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -139,7 +164,7 @@ class _PhoneField extends StatelessWidget {
             child: DropdownButtonFormField<String>(
               initialValue: dial,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'المفتاح'),
+              decoration: InputDecoration(labelText: tr('المفتاح', 'Code')),
               // The open list names the country; the closed field has room
               // for the code alone, and a name cut to «ال…» says nothing.
               selectedItemBuilder: (context) => [
@@ -158,7 +183,7 @@ class _PhoneField extends StatelessWidget {
               controller: controller,
               keyboardType: TextInputType.phone,
               autofillHints: const [AutofillHints.telephoneNumberNational],
-              decoration: const InputDecoration(labelText: 'رقم الجوال', hintText: '0912345678'),
+              decoration: InputDecoration(labelText: tr('رقم الجوال', 'Mobile number'), hintText: '0912345678'),
             ),
           ),
         ],
@@ -234,7 +259,7 @@ class _PasswordFieldState extends State<_PasswordField> {
       decoration: InputDecoration(
         labelText: widget.label,
         suffixIcon: IconButton(
-          tooltip: _shown ? 'أخفِ كلمة المرور' : 'أظهر كلمة المرور',
+          tooltip: _shown ? tr('أخفِ كلمة المرور', 'Hide the password') : tr('أظهر كلمة المرور', 'Show the password'),
           icon: Icon(_shown ? Icons.visibility_off : Icons.visibility),
           onPressed: () => setState(() => _shown = !_shown),
         ),
@@ -299,14 +324,14 @@ class _SignInFormState extends State<_SignInForm> {
               keyboardType: TextInputType.emailAddress,
               textDirection: TextDirection.ltr,
               autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
+              decoration: InputDecoration(labelText: tr('البريد الإلكتروني', 'Email')),
             )
           else
             _PhoneField(dial: _dial, onDial: (v) => setState(() => _dial = v), controller: _phone),
           const SizedBox(height: 12),
           _PasswordField(
             controller: _password,
-            label: 'كلمة المرور',
+            label: tr('كلمة المرور', 'Password'),
             hints: const [AutofillHints.password],
             onSubmitted: (_) => _busy ? null : _submit(),
           ),
@@ -315,7 +340,7 @@ class _SignInFormState extends State<_SignInForm> {
             onPressed: _busy ? null : _submit,
             child: _busy
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('دخول'),
+                : Text(tr('دخول', 'Sign in')),
           ),
           _Error(_error),
           const SizedBox(height: 12),
@@ -332,7 +357,7 @@ class _SignInFormState extends State<_SignInForm> {
                     }
                   },
             icon: const Icon(Icons.account_circle_outlined),
-            label: const Text('الدخول بحساب Google'),
+            label: Text(tr('الدخول بحساب Google', 'Sign in with Google')),
           ),
           ValueListenableBuilder<String?>(
             valueListenable: accountController.providerError,
@@ -344,11 +369,11 @@ class _SignInFormState extends State<_SignInForm> {
               _byEmail = !_byEmail;
               _error = null;
             }),
-            child: Text(_byEmail ? 'الدخول برقم الجوال' : 'الدخول بالبريد الإلكتروني'),
+            child: Text(_byEmail ? tr('الدخول برقم الجوال', 'Sign in with a mobile number') : tr('الدخول بالبريد الإلكتروني', 'Sign in with email')),
           ),
           TextButton(
             onPressed: () => openOnSite(context, '/reset'),
-            child: const Text('نسيت كلمة المرور؟'),
+            child: Text(tr('نسيت كلمة المرور؟', 'Forgot your password?')),
           ),
         ],
       ),
@@ -412,15 +437,15 @@ class _SignUpFormState extends State<_SignUpForm> {
           controller: _name,
           textCapitalization: TextCapitalization.words,
           autofillHints: const [AutofillHints.name],
-          decoration: const InputDecoration(labelText: 'اسمك الكامل'),
+          decoration: InputDecoration(labelText: tr('اسمك الكامل', 'Your full name')),
         ),
         const SizedBox(height: 12),
-        Text('أنت هنا', style: TextStyle(color: mutedOn(context), fontSize: 13)),
+        Text(tr('أنت هنا', 'You are here'), style: TextStyle(color: mutedOn(context), fontSize: 13)),
         const SizedBox(height: 6),
         SegmentedButton<String>(
-          segments: const [
-            ButtonSegment(value: 'farmer', label: Text('مزارع وصاحب أرض')),
-            ButtonSegment(value: 'investor', label: Text('مستثمر')),
+          segments: [
+            ButtonSegment(value: 'farmer', label: Text(tr('مزارع وصاحب أرض', 'Farmer and landowner'))),
+            ButtonSegment(value: 'investor', label: Text(tr('مستثمر', 'Investor'))),
           ],
           selected: {_role},
           onSelectionChanged: (s) => setState(() => _role = s.first),
@@ -430,12 +455,12 @@ class _SignUpFormState extends State<_SignUpForm> {
         const SizedBox(height: 12),
         _PasswordField(
           controller: _password,
-          label: 'كلمة المرور (ثمانية أحرف على الأقل)',
+          label: tr('كلمة المرور (ثمانية أحرف على الأقل)', 'Password (at least eight characters)'),
           hints: const [AutofillHints.newPassword],
         ),
         const SizedBox(height: 8),
         Text(
-          'رقمك هو اسم دخولك، ولا تصله رسالة. احفظ كلمة المرور: بها تدخل من الموقع والتطبيق.',
+          tr('رقمك هو اسم دخولك، ولا تصله رسالة. احفظ كلمة المرور: بها تدخل من الموقع والتطبيق.', 'Your number is your sign-in name, and no message is sent to it. Keep the password: you sign in with it on the website and in the app.'),
           style: TextStyle(fontSize: 12, color: mutedOn(context), height: 1.7),
         ),
         const SizedBox(height: 16),
@@ -443,11 +468,11 @@ class _SignUpFormState extends State<_SignUpForm> {
           onPressed: _busy ? null : _submit,
           child: _busy
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('أنشئ حسابي'),
+              : Text(tr('أنشئ حسابي', 'Create my account')),
         ),
         _Error(_error),
-        if (_error != null && _error!.startsWith('أُنشئ حسابك'))
-          TextButton(onPressed: widget.onCreatedElsewhere, child: const Text('ادخل الآن')),
+        if (_error != null && _error!.startsWith(tr('أُنشئ حسابك', 'Your account was created')))
+          TextButton(onPressed: widget.onCreatedElsewhere, child: Text(tr('ادخل الآن', 'Sign in now'))),
       ],
     );
   }
@@ -500,7 +525,11 @@ class _SignedInState extends State<_SignedIn> {
               const SizedBox(height: 16),
               _NoticesCard(account: a, onChanged: _reload),
               const SizedBox(height: 16),
+              const PhonePushCard(),
+              const SizedBox(height: 16),
               _LandsCard(account: a, onChanged: _reload),
+              const SizedBox(height: 16),
+              const _LanguageCard(),
             ],
           );
         },
@@ -527,12 +556,12 @@ class _WhoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'أنت داخل بحساب',
+                Text(
+                  tr('أنت داخل بحساب', 'Signed in as'),
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
                 Text(
-                  account.name.isEmpty ? 'بلا اسم' : account.name,
+                  account.name.isEmpty ? tr('بلا اسم', 'no name') : account.name,
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
@@ -544,15 +573,15 @@ class _WhoCard extends StatelessWidget {
                   SegmentedButton<String>(
                     key: const Key('side-switch'),
                     showSelectedIcon: false,
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: 'farmer',
-                        label: Text('أرضي'),
+                        label: Text(tr('أرضي', 'My land')),
                         icon: Icon(Icons.grass, size: 18),
                       ),
                       ButtonSegment(
                         value: 'investor',
-                        label: Text('استثماري'),
+                        label: Text(tr('استثماري', 'My investments')),
                         icon: Icon(Icons.trending_up, size: 18),
                       ),
                     ],
@@ -580,7 +609,7 @@ class _WhoCard extends StatelessWidget {
           TextButton.icon(
             onPressed: () => accountSignOut(context),
             icon: const Icon(Icons.logout, size: 18),
-            label: const Text('خروج'),
+            label: Text(tr('خروج', 'Sign out')),
           ),
         ],
       ),
@@ -592,11 +621,11 @@ Future<void> accountSignOut(BuildContext context) async {
   final yes = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
-      title: const Text('الخروج من حسابك؟'),
-      content: const Text('تدخل بعدها برقمك أو بريدك وكلمة المرور.'),
+      title: Text(tr('الخروج من حسابك؟', 'Sign out of your account?')),
+      content: Text(tr('تدخل بعدها برقمك أو بريدك وكلمة المرور.', 'Afterwards you sign in with your number or email and the password.')),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
-        FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('خروج')),
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('إلغاء', 'Cancel'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('خروج', 'Sign out'))),
       ],
     ),
   );
@@ -652,22 +681,22 @@ class _ReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = account.reviewTotal ?? 0;
     return _Section(
-      title: total > 0 ? 'قائمة المراجعة ($total)' : 'قائمة المراجعة',
+      title: total > 0 ? tr('قائمة المراجعة ($total)', 'Review list ($total)') : tr('قائمة المراجعة', 'Review list'),
       icon: Icons.fact_check_outlined,
       trailing: TextButton(
         onPressed: () => openOnSite(context, '/admin/inbox'),
-        child: const Text('في الموقع'),
+        child: Text(tr('في الموقع', 'On the website')),
       ),
       children: [
         if (account.reviewNote != null)
           Text(account.reviewNote!, style: TextStyle(color: mutedOn(context)))
         else if (account.review.isEmpty)
-          Text('لا شيء ينتظر قرارك الآن.', style: TextStyle(color: mutedOn(context))),
+          Text(tr('لا شيء ينتظر قرارك الآن.', 'Nothing is waiting for your decision now.'), style: TextStyle(color: mutedOn(context))),
         for (final s in account.review)
           ExpansionTile(
             tilePadding: EdgeInsets.zero,
             title: Text('${s.title} (${s.count})', style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text(s.info ? 'للاطّلاع — ${s.what}' : s.what,
+            subtitle: Text(s.info ? tr('للاطّلاع — ${s.what}', 'For your information — ${s.what}') : s.what,
                 style: TextStyle(fontSize: 12, color: mutedOn(context))),
             children: [
               for (final i in s.items)
@@ -682,7 +711,7 @@ class _ReviewCard extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: () => openOnSite(context, s.href),
                   icon: const Icon(Icons.open_in_new, size: 16),
-                  label: const Text('قرّر في الموقع'),
+                  label: Text(tr('قرّر في الموقع', 'Decide on the website')),
                 ),
               ),
             ],
@@ -701,7 +730,7 @@ class _NoticesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = account;
     return _Section(
-      title: a.unread > 0 ? 'الإشعارات (${a.unread} جديد)' : 'الإشعارات',
+      title: a.unread > 0 ? tr('الإشعارات (${a.unread} جديد)', 'Notifications (${a.unread} new)') : tr('الإشعارات', 'Notifications'),
       icon: Icons.notifications_none_rounded,
       trailing: a.unread > 0
           ? TextButton(
@@ -714,12 +743,12 @@ class _NoticesCard extends StatelessWidget {
                   messenger.showSnackBar(SnackBar(content: Text(e.message)));
                 }
               },
-              child: const Text('علّم الكلّ مقروءاً'),
+              child: Text(tr('علّم الكلّ مقروءاً', 'Mark all as read')),
             )
           : null,
       children: [
         if (a.notifications.isEmpty)
-          Text('لا إشعارات بعد.', style: TextStyle(color: mutedOn(context))),
+          Text(tr('لا إشعارات بعد.', 'No notifications yet.'), style: TextStyle(color: mutedOn(context))),
         for (final n in a.notifications.take(15))
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -748,6 +777,95 @@ class _NoticesCard extends StatelessWidget {
   }
 }
 
+/// «إشعارات الجوّال» (البند ٢٠٧): the account's switch for notifications that reach this app with it closed — the
+/// same switch as on the website's notifications page.
+class PhonePushCard extends StatefulWidget {
+  const PhonePushCard({super.key, this.push});
+
+  /// The app's own when null.
+  final PushController? push;
+
+  @override
+  State<PhonePushCard> createState() => _PhonePushCardState();
+}
+
+class _PhonePushCardState extends State<PhonePushCard> {
+  late final PushController _push = widget.push ?? pushController;
+  bool? _enabled;
+  int _devices = 0;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final s = await _push.status();
+      if (!mounted) return;
+      setState(() {
+        _enabled = s.enabled;
+        _devices = s.devices;
+        _error = null;
+      });
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    }
+  }
+
+  Future<void> _set(bool on) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final now = await _push.setEnabled(on);
+      if (mounted) setState(() => _enabled = now);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = TextStyle(color: mutedOn(context), height: 1.6);
+    return _Section(
+      title: tr('إشعارات الجوّال', 'Phone notifications'),
+      icon: Icons.notifications_active_outlined,
+      children: [
+        Text(
+            tr('تصلك والتطبيق مغلق: تنبيه سعر، جرادٌ قرب أرضك، قيدٌ ينتظر اعتمادك، عقدٌ ينتظر توقيعك، رسالةٌ جديدة.',
+                'They reach you with the app closed: a price alert, locusts near your land, an entry awaiting your approval, a contract awaiting your signature, a new message.'),
+            style: muted),
+        if (_enabled == null && _error == null)
+          const Padding(padding: EdgeInsets.all(8), child: Center(child: CircularProgressIndicator()))
+        else if (_enabled != null)
+          SwitchListTile(
+            key: const Key('phone-push-switch'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(_enabled! ? tr('مفعَّلة', 'On') : tr('مطفأة', 'Off'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(_devices > 0
+                ? tr('مسجَّلة على $_devices جوّال.', 'Registered on $_devices phone(s).')
+                : tr('لم يُسجَّل هذا الجوّال بعد.', 'This phone is not registered yet.')),
+            value: _enabled!,
+            onChanged: _busy ? null : _set,
+          ),
+        if (!_push.available)
+          Text(
+              tr('لا تصل الإشعارات إلى هذه النسخة من التطبيق بعد؛ تصل حين تُضبط في نسخةٍ قادمة. والإشعارات في «حسابي» كما هي.',
+                  'Notifications do not reach this version of the app yet; they will once a coming version is set up. The notifications in «My account» are unchanged.'),
+              key: const Key('phone-push-unavailable'), style: muted),
+        if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      ],
+    );
+  }
+}
+
 /// صندوق الرسائل (البند ١٤٤): the way in from «حسابي».
 class _MessagesCard extends StatelessWidget {
   const _MessagesCard();
@@ -755,16 +873,16 @@ class _MessagesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Section(
-      title: 'الرسائل',
+      title: tr('الرسائل', 'Messages'),
       icon: Icons.forum_outlined,
       children: [
-        Text('محادثات طلبات الشراكة وعقودها، و«راسل سوداقري».',
+        Text(tr('محادثات طلبات الشراكة وعقودها، و«راسل سوداقري».', 'Conversations about partnership requests and their contracts, and «Write to Sudagri».'),
             style: TextStyle(color: mutedOn(context), height: 1.6)),
         const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MessagesScreen())),
           icon: const Icon(Icons.chat_bubble_outline),
-          label: const Text('افتح الرسائل'),
+          label: Text(tr('افتح الرسائل', 'Open the messages')),
         ),
       ],
     );
@@ -780,11 +898,11 @@ class _LandsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = account;
     return _Section(
-      title: 'أراضيّ',
+      title: tr('أراضيّ', 'My lands'),
       icon: Icons.landscape_outlined,
       children: [
         if (a.lands.isEmpty)
-          Text('لم تسجّل أرضاً بعد.', style: TextStyle(color: mutedOn(context))),
+          Text(tr('لم تسجّل أرضاً بعد.', 'You have not registered a land yet.'), style: TextStyle(color: mutedOn(context))),
         for (final l in a.lands)
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -804,9 +922,9 @@ class _LandsCard extends StatelessWidget {
                   l.state,
                   if (l.locality != null && l.locality!.isNotEmpty) l.locality,
                 ].join(' · '),
-                if (l.feddans != null) '${l.feddans} فدان',
+                if (l.feddans != null) tr('${l.feddans} فدان', '${l.feddans} feddans'),
                 l.statusLabel,
-                if (l.openToInvestors) 'مفتوحة للمستثمرين',
+                if (l.openToInvestors) tr('مفتوحة للمستثمرين', 'Open to investors'),
               ].join(' — '),
             ),
             onTap: () => Navigator.of(context)
@@ -825,19 +943,19 @@ class _LandsCard extends StatelessWidget {
                 if (saved == true) onChanged();
               },
               icon: const Icon(Icons.add_location_alt, size: 18),
-              label: const Text('حدّد أرضك على الخريطة'),
+              label: Text(tr('حدّد أرضك على الخريطة', 'Mark your land on the map')),
             ),
             OutlinedButton.icon(
               onPressed: () => Navigator.of(context)
                   .push(MaterialPageRoute(builder: (_) => const InvestScreen())),
               icon: const Icon(Icons.handshake, size: 18),
-              label: const Text('فرص الاستثمار'),
+              label: Text(tr('فرص الاستثمار', 'Investment opportunities')),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          'تسجيل الأرض وطلب الشراكة يفتحان في الموقع الآن، ويأتيان إلى التطبيق مع «حدّد أرضك من الخريطة».',
+          tr('تسجيل الأرض وطلب الشراكة يفتحان في الموقع الآن، ويأتيان إلى التطبيق مع «حدّد أرضك من الخريطة».', 'Registering land and asking for a partnership open on the website for now, and come to the app with «Mark your land on the map».'),
           style: TextStyle(fontSize: 12, color: mutedOn(context), height: 1.7),
         ),
       ],

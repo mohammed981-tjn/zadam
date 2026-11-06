@@ -9,6 +9,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../rain_map.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -40,15 +41,15 @@ class _RainScreenState extends State<RainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('توقّع الأمطار والخرائط')),
+      appBar: AppBar(title: Text(tr('توقّع الأمطار والخرائط', 'Rain forecast and maps'))),
       body: RefreshIndicator(
         onRefresh: () async => setState(() => _future = _api.rain()),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            const IntroNote(
-              'الأيام السبعة القادمة على خريطة السودان، ثمّ يوماً بيوم لكل '
-              'مدينة. توقّعاتٌ من نماذج الأرصاد لا قياسات، وتُحدَّث كل ثلاث ساعات.',
+            IntroNote(
+              tr('الأيام السبعة القادمة على خريطة السودان، ثمّ يوماً بيوم لكل '
+              'مدينة. توقّعاتٌ من نماذج الأرصاد لا قياسات، وتُحدَّث كل ثلاث ساعات.', 'The next seven days on the map of Sudan, then day by day for each town. Forecasts from weather models, not measurements, updated every three hours.'),
               icon: Icons.umbrella_outlined,
             ),
             const SizedBox(height: 16),
@@ -106,12 +107,12 @@ class _RainScreenState extends State<RainScreen> {
                             Text(
                               switch (layer.key) {
                                 'elev' =>
-                                  'ثابتةٌ لا تتغيّر مع الطقس — بدقّة المربّع، للصورة العامة لا لمسح موقع.',
+                                  tr('ثابتةٌ لا تتغيّر مع الطقس — بدقّة المربّع، للصورة العامة لا لمسح موقع.', 'Fixed, not changing with the weather — at the square\'s resolution, for the general picture, not a site survey.'),
                                 'soil' =>
-                                  'الصنف الغالب في خمس نقاطٍ من كل مربّع — صورة البلد العامة، لا فحص تربة حقلك.',
+                                  tr('الصنف الغالب في خمس نقاطٍ من كل مربّع — صورة البلد العامة، لا فحص تربة حقلك.', 'The prevailing class at five points in each square — the country\'s general picture, not a test of your field\'s soil.'),
                                 'lands' =>
-                                  'بعددها في كل مربّع — لا تضع الخريطة نقطةً على أرض أحد.',
-                                _ => 'من ${grid.from} إلى ${grid.to}',
+                                  tr('بعددها في كل مربّع — لا تضع الخريطة نقطةً على أرض أحد.', 'Counted per square — the map never puts a dot on anyone\'s land.'),
+                                _ => tr('من ${grid.from} إلى ${grid.to}', 'From ${grid.from} to ${grid.to}'),
                               },
                               style: TextStyle(
                                   fontSize: 12, color: mutedOn(context)),
@@ -123,8 +124,8 @@ class _RainScreenState extends State<RainScreen> {
                                 grid.cells.every(
                                     (c) => c.values['lands'] == null)) ...[
                               const SizedBox(height: 8),
-                              const Text(
-                                  'لا أرضَ موثّقة معروضة بعد. سجّل أرضك فتظهر هنا حين تُوثَّق ويعرضها صاحبها.',
+                              Text(
+                                  tr('لا أرضَ موثّقة معروضة بعد. سجّل أرضك فتظهر هنا حين تُوثَّق ويعرضها صاحبها.', 'No verified land is shown yet. Register your land and it appears here once it is verified and its owner shows it.'),
                                   style: TextStyle(fontSize: 13)),
                             ],
                             const SizedBox(height: 12),
@@ -137,12 +138,12 @@ class _RainScreenState extends State<RainScreen> {
                     ),
                     if (grid.daily != null) ...[
                       const SizedBox(height: 24),
-                      const Text('المطر يوماً بيوم',
+                      Text(tr('المطر يوماً بيوم', 'Rain day by day'),
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w800)),
                       const SizedBox(height: 4),
                       Text(
-                        'بالمليمتر لكل يوم، بألوان الخريطة نفسها. النقطة تعني أقلّ من ١ مم.',
+                        tr('بالمليمتر لكل يوم، بألوان الخريطة نفسها. النقطة تعني أقلّ من ١ مم.', 'In millimetres per day, in the map\'s colours. A dot means less than 1 mm.'),
                         style:
                             TextStyle(fontSize: 13, color: mutedOn(context)),
                       ),
@@ -363,7 +364,7 @@ class _RainPainter extends CustomPainter {
       canvas.drawCircle(o, 2.5, Paint()..color = foreground);
       _text(
         canvas,
-        t.name,
+        placeName(t.name),
         o + Offset(0, t.above ? -fontSize * 0.8 : fontSize * 0.8),
         size: fontSize * 0.8,
         colour: foreground,
@@ -387,7 +388,7 @@ class _RainPainter extends CustomPainter {
               foreground: stroke,
             ),
           ),
-          textDirection: TextDirection.rtl,
+          textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
         )..layout();
 
     final haloPaint = Paint()
@@ -539,8 +540,8 @@ class _MapPainter extends CustomPainter {
         canvas.drawCircle(o, 2.4, stroke(card, 1));
         final v = t.value;
         final text = v == null
-            ? t.name
-            : '${t.name} ${layer.key == 'rain' && v < 0.5 ? 0 : v.round()}';
+            ? placeName(t.name)
+            : '${placeName(t.name)} ${layer.key == 'rain' && v < 0.5 ? 0 : v.round()}';
         _text(canvas, text, o, t.side,
             size: fs, colour: foreground, halo: card);
       }
@@ -572,7 +573,7 @@ class _MapPainter extends CustomPainter {
               foreground: strokePaint,
             ),
           ),
-          textDirection: TextDirection.rtl,
+          textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
         )..layout();
     final plain = make(null);
     final w = plain.width;
@@ -653,7 +654,7 @@ class _Legend extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              const Text('مسار القناة القوسية',
+              Text(tr('مسار القناة القوسية', 'Arc Canal route'),
                   style: TextStyle(fontSize: 12)),
             ],
           ),
@@ -675,8 +676,8 @@ class _DailyTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = mutedOn(context);
-    const weekdays = [
-      'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'
+    final weekdays = [
+      tr('الاثنين', 'Monday'), tr('الثلاثاء', 'Tuesday'), tr('الأربعاء', 'Wednesday'), tr('الخميس', 'Thursday'), tr('الجمعة', 'Friday'), tr('السبت', 'Saturday'), tr('الأحد', 'Sunday')
     ];
 
     Widget cell(Widget child, {Color? bg}) => Container(
@@ -696,7 +697,7 @@ class _DailyTable extends StatelessWidget {
               horizontalInside: BorderSide(color: theme.dividerColor)),
           children: [
             TableRow(children: [
-              cell(Text('المدينة',
+              cell(Text(tr('المدينة', 'Town'),
                   style: TextStyle(fontSize: 12, color: muted))),
               for (final d in table.dates)
                 cell(Column(children: [
@@ -705,14 +706,14 @@ class _DailyTable extends StatelessWidget {
                   Text('${DateTime.parse(d).day}',
                       style: TextStyle(fontSize: 11, color: muted)),
                 ])),
-              cell(Text('المجموع',
+              cell(Text(tr('المجموع', 'Total'),
                   style: TextStyle(fontSize: 12, color: muted))),
-              cell(Text('أعلى حرارة',
+              cell(Text(tr('أعلى حرارة', 'Max temp.'),
                   style: TextStyle(fontSize: 12, color: muted))),
             ]),
             for (final t in table.towns)
               TableRow(children: [
-                cell(Text(t.name,
+                cell(Text(placeName(t.name),
                     style: const TextStyle(fontWeight: FontWeight.w700))),
                 for (final date in table.dates)
                   _dayCell(cell, t, date, muted),

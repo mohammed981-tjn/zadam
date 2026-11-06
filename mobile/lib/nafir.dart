@@ -7,32 +7,34 @@
 /// in test/nafir_test.dart pins them.
 library;
 
-const nafirKinds = <String, String>{
-  'harvest': 'حصاد',
-  'planting': 'زراعة',
-  'canal': 'تطهير قناة أو ترعة',
-  'building': 'بناء',
-  'cleaning': 'نظافة وإصلاح',
-  'other': 'عملٌ آخر',
+import 'i18n.dart';
+
+Map<String, String> get nafirKinds => <String, String>{
+  'harvest': tr('حصاد', 'Harvest'),
+  'planting': tr('زراعة', 'Planting'),
+  'canal': tr('تطهير قناة أو ترعة', 'Clearing a canal or ditch'),
+  'building': tr('بناء', 'Building'),
+  'cleaning': tr('نظافة وإصلاح', 'Cleaning and repairs'),
+  'other': tr('عملٌ آخر', 'Other work'),
 };
 
-const fazaCauses = <String, String>{
-  'flood': 'سيلٌ أو فيضان',
-  'pest': 'آفة',
-  'fire': 'حريق',
-  'drought': 'جفاف',
-  'livestock': 'نفوق ماشية',
-  'illness': 'مرضٌ أقعد صاحبه',
-  'other': 'سببٌ آخر',
+Map<String, String> get fazaCauses => <String, String>{
+  'flood': tr('سيلٌ أو فيضان', 'Flash flood or flooding'),
+  'pest': tr('آفة', 'Pests'),
+  'fire': tr('حريق', 'Fire'),
+  'drought': tr('جفاف', 'Drought'),
+  'livestock': tr('نفوق ماشية', 'Livestock deaths'),
+  'illness': tr('مرضٌ أقعد صاحبه', 'Illness that laid the farmer up'),
+  'other': tr('سببٌ آخر', 'Another cause'),
 };
 
-const fazaNeeds = <String, String>{
-  'labor': 'أيدٍ عاملة',
-  'tools': 'آلات وأدوات',
-  'seeds': 'بذور وتقاوي',
-  'transport': 'ترحيل',
-  'advice': 'مشورة وخبرة',
-  'other': 'غير ذلك',
+Map<String, String> get fazaNeeds => <String, String>{
+  'labor': tr('أيدٍ عاملة', 'Labour'),
+  'tools': tr('آلات وأدوات', 'Machinery and tools'),
+  'seeds': tr('بذور وتقاوي', 'Seed'),
+  'transport': tr('ترحيل', 'Transport'),
+  'advice': tr('مشورة وخبرة', 'Advice and know-how'),
+  'other': tr('غير ذلك', 'Other'),
 };
 
 class NafirCall {

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { createPlanFromStudyCore } from "@/lib/studyProject";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «حوّلها إلى مشروع» من دراسة الجدوى في التطبيق (البند ٢٠٣): كما يحفظها زرّ الموقع.
@@ -12,12 +14,13 @@ import { createPlanFromStudyCore } from "@/lib/studyProject";
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
 
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const text = (k: string) => (typeof body[k] === "string" ? (body[k] as string).trim() : "");
   const feddans = typeof body.feddans === "number" ? body.feddans : text("feddans") ? Number(text("feddans")) : null;
@@ -25,7 +28,7 @@ export async function POST(req: Request) {
   const done = await createPlanFromStudyCore(
     auth.supabase,
     { crop: text("crop"), feddans: feddans !== null && Number.isFinite(feddans) ? feddans : null, title: text("title"), landId: text("land_id") || null },
-    "ar",
+    locale,
   );
   if (!done.ok) return NextResponse.json({ error: done.message }, { status: 400 });
   return NextResponse.json({ ok: true, message: done.message });

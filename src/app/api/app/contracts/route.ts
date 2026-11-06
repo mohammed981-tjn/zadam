@@ -6,6 +6,7 @@ import { OFFER_UNIT_NAME } from "@/lib/marketOffers";
 import { FORWARD_STATUS_LABEL, type ForwardContract } from "@/lib/forwardContracts";
 import { AGREEMENT_TITLE, signerRoles } from "@/lib/agreements";
 import type { InvestorModel } from "@/lib/investors";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «عقودي» في التطبيق (البند ٢٠٣): every contract the reader is a party to, as the website lists them —
@@ -24,6 +25,7 @@ import type { InvestorModel } from "@/lib/investors";
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
   const me = user.id;
 
@@ -48,7 +50,7 @@ export async function GET(req: Request) {
     ref: c.ref,
     crop: c.crop,
     quantity: Number(c.quantity),
-    unit: OFFER_UNIT_NAME[c.unit]?.ar ?? c.unit,
+    unit: OFFER_UNIT_NAME[c.unit]?.[locale] ?? c.unit,
     price: Number(c.price),
     currency: c.currency,
     delivery_from: c.delivery_from,
@@ -127,7 +129,7 @@ export async function GET(req: Request) {
         return {
           id: a.id,
           ref: a.ref,
-          title: AGREEMENT_TITLE[a.model]?.ar ?? a.model,
+          title: AGREEMENT_TITLE[a.model]?.[locale] ?? a.model,
           model: a.model,
           status: a.status,
           version: a.version,
@@ -146,9 +148,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const body = await readJson(req);
   const interest = body ? text(body, "interest_id", 64) : "";
   const { data, error } = await auth.supabase.rpc("partnership_agreement_open", { p_interest: interest });
-  if (error || !data) return NextResponse.json({ error: explain("ar", error) }, { status: 400 });
+  if (error || !data) return NextResponse.json({ error: explain(locale, error) }, { status: 400 });
   return NextResponse.json({ id: data });
 }

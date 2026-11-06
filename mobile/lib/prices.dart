@@ -18,6 +18,7 @@ import 'package:http/http.dart' as http;
 
 import 'account.dart';
 import 'api.dart';
+import 'i18n.dart';
 
 // ── Reading a public route ──────────────────────────────────────────────────
 
@@ -30,13 +31,13 @@ Future<Map<String, dynamic>> siteJson(
   String? siteUrl,
 }) async {
   final site = siteUrl ?? ApiConfig.siteUrl;
-  if (site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+  if (site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
   final c = client ?? http.Client();
   late final http.Response res;
   try {
     res = await c.get(Uri.parse('$site$path')).timeout(const Duration(seconds: 30));
   } catch (_) {
-    throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+    throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
   } finally {
     if (client == null) c.close();
   }
@@ -45,19 +46,19 @@ Future<Map<String, dynamic>> siteJson(
     body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
   } catch (_) {
     // A proxy or an error page can answer with HTML: a failed load, not a crash.
-    throw ApiException('تعذّر تحميل البيانات (${res.statusCode}).');
+    throw ApiException(tr('تعذّر تحميل البيانات (${res.statusCode}).', 'Could not load the data (${res.statusCode}).'));
   }
   if (res.statusCode != 200) {
-    throw ApiException(body['error'] as String? ?? 'تعذّر تحميل البيانات (${res.statusCode}).');
+    throw ApiException(body['error'] as String? ?? tr('تعذّر تحميل البيانات (${res.statusCode}).', 'Could not load the data (${res.statusCode}).'));
   }
   return body;
 }
 
 // ── Words and numbers, as the pages write them ──────────────────────────────
 
-const arMonths = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+List<String> get arMonths => [
+  tr('يناير', 'January'), tr('فبراير', 'February'), tr('مارس', 'March'), tr('أبريل', 'April'), tr('مايو', 'May'), tr('يونيو', 'June'),
+  tr('يوليو', 'July'), tr('أغسطس', 'August'), tr('سبتمبر', 'September'), tr('أكتوبر', 'October'), tr('نوفمبر', 'November'), tr('ديسمبر', 'December'),
 ];
 
 /// «3 نوفمبر 2026» from 2026-11-03, as the website writes a market day.
@@ -90,7 +91,7 @@ String money(num v, {int digits = 0}) {
 }
 
 /// «اليوم» · «أمس» · «منذ ٣ أيّام», as the inputs board says when a report came.
-String agoLabel(int days) => days <= 0 ? 'اليوم' : days == 1 ? 'أمس' : 'منذ $days أيّام';
+String agoLabel(int days) => days <= 0 ? tr('اليوم', 'Today') : days == 1 ? tr('أمس', 'Yesterday') : tr('منذ $days أيّام', '$days days ago');
 
 /// What a figure's date line says: its day, and, when it is older than the
 /// page's limit, how old and what to do — the website's wording for each board.
@@ -107,22 +108,22 @@ String freshnessLabel({
   switch (kind) {
     case FreshnessKind.crop:
       return stale
-          ? 'بتاريخ $day — مضى $ageDays يوماً، فتحقّق قبل أن تبيع أو تشتري عليه'
-          : 'بتاريخ $day';
+          ? tr('بتاريخ $day — مضى $ageDays يوماً، فتحقّق قبل أن تبيع أو تشتري عليه', 'Dated $day — $ageDays days old, so check before you sell or buy on it')
+          : tr('بتاريخ $day', 'Dated $day');
     case FreshnessKind.rate:
-      return stale ? 'بتاريخ $day — مضى $ageDays أيام، فتحقّق قبل أن تعتمده' : 'بتاريخ $day';
+      return stale ? tr('بتاريخ $day — مضى $ageDays أيام، فتحقّق قبل أن تعتمده', 'Dated $day — $ageDays days old, so check before you rely on it') : tr('بتاريخ $day', 'Dated $day');
     case FreshnessKind.published:
-      return stale ? 'نُشر في $day — قديم، فتحقّق قبل أن تشتري عليه' : 'نُشر في $day';
+      return stale ? tr('نُشر في $day — قديم، فتحقّق قبل أن تشتري عليه', 'Published on $day — old, so check before you buy on it') : tr('نُشر في $day', 'Published on $day');
   }
 }
 
 enum FreshnessKind { crop, rate, published }
 
 /// The daily feeds whose freshness the site watches (src/lib/priceFreshness.ts).
-const feedNames = {
-  'fx_bank': 'سعر بنك الخرطوم',
-  'fx_parallel': 'سعر السوق الموازي',
-  'crop_obeid': 'نشرة سوق الأبيض',
+Map<String, String> get feedNames => {
+  'fx_bank': tr('سعر بنك الخرطوم', 'Bank of Khartoum'),
+  'fx_parallel': tr('سعر السوق الموازي', 'Parallel-market rate'),
+  'crop_obeid': tr('نشرة سوق الأبيض', 'El Obeid bulletin'),
 };
 
 num? _num(Object? v) => v is num ? v : (v is String ? num.tryParse(v) : null);
@@ -522,10 +523,10 @@ class InputSummaryRow {
 
   /// The line under the price, as the board writes it.
   String get countLine {
-    final parts = ['$reports بلاغ من $reporters شخص'];
-    if (unavailable > 0) parts.add('$unavailable قال «غير موجود»');
-    parts.add('آخرها ${agoLabel(latestDaysAgo)}');
-    if (reporters == 1) parts.add('بلاغُ شخصٍ واحد: خذه بحذر');
+    final parts = [tr('$reports بلاغ من $reporters شخص', '$reports reports from $reporters people')];
+    if (unavailable > 0) parts.add(tr('$unavailable قال «غير موجود»', '$unavailable said “not available”'));
+    parts.add(tr('آخرها ${agoLabel(latestDaysAgo)}', 'the latest ${agoLabel(latestDaysAgo)}'));
+    if (reporters == 1) parts.add(tr('بلاغُ شخصٍ واحد: خذه بحذر', 'One person\'s report: take it with care'));
     return parts.join(' · ');
   }
 
@@ -678,8 +679,8 @@ class AlertEntry {
 
   /// What «ما انتهى» says under a finished alert.
   String get outcome => status == 'fired'
-      ? 'أُطلق بسعر ${money(firedValue ?? 0)} بتاريخ ${firedMarketDate ?? ''}'
-      : 'أوقفتَه ${settledAt == null ? '' : arDay(settledAt!.toIso8601String())}'.trim();
+      ? tr('أُطلق بسعر ${money(firedValue ?? 0)} بتاريخ ${firedMarketDate ?? ''}', 'Fired at a price of ${money(firedValue ?? 0)} on ${firedMarketDate ?? ''}')
+      : tr('أوقفتَه ${settledAt == null ? '' : arDay(settledAt!.toIso8601String())}', 'You stopped it ${settledAt == null ? '' : arDay(settledAt!.toIso8601String())}').trim();
 
   factory AlertEntry.fromJson(Map<String, dynamic> j, {String status = 'active'}) => AlertEntry(
         id: _str(j['id']),
@@ -713,8 +714,8 @@ class AlertsBoard {
 /// website's `parseThreshold`. Null when it is not a usable limit in pounds.
 double? parseThreshold(String input) {
   final raw = input
-      .replaceAllMapped(RegExp('[٠-٩]'), (m) => '${m[0]!.codeUnitAt(0) - 0x660}')
-      .replaceAll(RegExp(r'[,٬\s]'), '');
+      .replaceAllMapped(RegExp('[٠-٩]'), (m) => '${m[0]!.codeUnitAt(0) - 0x660}') // ar-only
+      .replaceAll(RegExp(r'[,٬\s]'), ''); // ar-only
   if (raw.isEmpty) return null;
   final v = double.tryParse(raw);
   if (v == null || !v.isFinite || v <= 0 || v > 100000000000) return null;
@@ -724,15 +725,15 @@ double? parseThreshold(String input) {
 /// The alert form's checks, in the website's order and words, before the
 /// round trip. The server makes them again; this only saves a refusal.
 String? alertFormProblem({AlertOption? option, String? direction, required String threshold}) {
-  if (option == null) return 'اختر ما تريد متابعة سعره.';
-  if (direction != 'above' && direction != 'below') return 'اختر: حين يصير السعر فوق الحدّ أو تحته.';
+  if (option == null) return tr('اختر ما تريد متابعة سعره.', 'Choose the price you want to follow.');
+  if (direction != 'above' && direction != 'below') return tr('اختر: حين يصير السعر فوق الحدّ أو تحته.', 'Choose: when the price goes above or below the limit.');
   final limit = parseThreshold(threshold);
-  if (limit == null) return 'اكتب سعراً صحيحاً بالجنيه.';
+  if (limit == null) return tr('اكتب سعراً صحيحاً بالجنيه.', 'Enter a valid price in pounds.');
   final past = direction == 'above' ? option.price > limit : option.price < limit;
   if (past) {
-    final word = direction == 'above' ? 'فوق' : 'تحت';
-    final other = direction == 'above' ? 'أعلى' : 'أدنى';
-    return 'السعر الآن ${money(option.price)} وهو $word ${money(limit)} أصلاً. اختر حدّاً $other منه.';
+    final word = direction == 'above' ? tr('فوق', 'above') : tr('تحت', 'below');
+    final other = direction == 'above' ? tr('أعلى', 'above') : tr('أدنى', 'below');
+    return tr('السعر الآن ${money(option.price)} وهو $word ${money(limit)} أصلاً. اختر حدّاً $other منه.', 'The price is now ${money(option.price)}, already $word ${money(limit)}. Choose a limit $other it.');
   }
   return null;
 }
@@ -769,11 +770,11 @@ class PricesClient {
       'direction': direction,
       'threshold': threshold,
     });
-    return body['message'] as String? ?? 'أضفنا التنبيه.';
+    return body['message'] as String? ?? tr('أضفنا التنبيه.', 'The alert was added.');
   }
 
   Future<String> stopAlert(String id) async {
     final body = await accountController.call('POST', '/api/app/prices/alerts/stop', body: {'id': id});
-    return body['message'] as String? ?? 'أوقفنا التنبيه.';
+    return body['message'] as String? ?? tr('أوقفنا التنبيه.', 'The alert was stopped.');
   }
 }

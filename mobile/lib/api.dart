@@ -17,6 +17,7 @@ library;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'i18n.dart';
 import 'nafir.dart';
 import 'rain_map.dart';
 
@@ -125,8 +126,12 @@ class NewsItem {
 
 /// Raised for anything the caller should show the user rather than swallow.
 class ApiException implements Exception {
-  ApiException(this.message);
+  ApiException(this.message, {this.status});
   final String message;
+
+  /// The HTTP status of the route's answer, when there was one: a 5xx with the route's own words (a 503 that says the
+  /// book could not be reached) is still an outage, not a refusal of the form (backlog 209).
+  final int? status;
   @override
   String toString() => message;
 }
@@ -145,7 +150,7 @@ class SudagriApi {
     Map<String, String> params,
   ) async {
     if (!ApiConfig.isConfigured) {
-      throw ApiException('التطبيق غير مضبوط للاتصال بالخادم.');
+      throw ApiException(tr('التطبيق غير مضبوط للاتصال بالخادم.', 'The app is not set up to connect to the server.'));
     }
 
     final uri = Uri.parse('${ApiConfig.supabaseUrl}/rest/v1/$table')
@@ -158,11 +163,11 @@ class SudagriApi {
         'authorization': 'Bearer ${ApiConfig.supabaseAnonKey}',
       }).timeout(_timeout);
     } catch (_) {
-      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
     }
 
     if (res.statusCode != 200) {
-      throw ApiException('تعذّر تحميل البيانات (${res.statusCode}).');
+      throw ApiException(tr('تعذّر تحميل البيانات (${res.statusCode}).', 'Could not load the data (${res.statusCode}).'));
     }
 
     return (jsonDecode(utf8.decode(res.bodyBytes)) as List<dynamic>)
@@ -213,7 +218,7 @@ class SudagriApi {
     final params = <String, String>{
       'select': 'crop,topic,title,content,source_country,source_note',
       'assistant_only': 'eq.false',
-      'crop': mining ? 'eq.تعدين' : 'neq.تعدين',
+      'crop': mining ? 'eq.تعدين' : 'neq.تعدين', // ar-only
       'order': 'created_at.desc',
       'limit': '$limit',
     };
@@ -236,7 +241,7 @@ class SudagriApi {
   /// Asks the assistant, returning its answer and which engine produced it.
   Future<({String answer, String source})> ask(String question) async {
     if (!ApiConfig.hasAssistant) {
-      throw ApiException('المساعد غير مضبوط في هذه النسخة من التطبيق.');
+      throw ApiException(tr('المساعد غير مضبوط في هذه النسخة من التطبيق.', 'The assistant is not set up in this version of the app.'));
     }
 
     late final http.Response res;
@@ -249,7 +254,7 @@ class SudagriApi {
           )
           .timeout(_timeout);
     } catch (_) {
-      throw ApiException('تعذّر الوصول للمساعد. تحقّق من الشبكة.');
+      throw ApiException(tr('تعذّر الوصول للمساعد. تحقّق من الشبكة.', 'Could not reach the assistant. Check the network.'));
     }
 
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
@@ -258,7 +263,7 @@ class SudagriApi {
     // showing its text beats replacing it with a status code.
     if (res.statusCode != 200) {
       throw ApiException(
-        body['error'] as String? ?? 'تعذّر الحصول على إجابة (${res.statusCode}).',
+        body['error'] as String? ?? tr('تعذّر الحصول على إجابة (${res.statusCode}).', 'Could not get an answer (${res.statusCode}).'),
       );
     }
 
@@ -271,7 +276,7 @@ class SudagriApi {
   /// The week's rain map, from the website so both draw the same grid.
   Future<RainGrid> rain() async {
     if (ApiConfig.siteUrl.isEmpty) {
-      throw ApiException('خريطة الأمطار غير مضبوطة في هذه النسخة من التطبيق.');
+      throw ApiException(tr('خريطة الأمطار غير مضبوطة في هذه النسخة من التطبيق.', 'The rain map is not set up in this version of the app.'));
     }
 
     late final http.Response res;
@@ -280,7 +285,7 @@ class SudagriApi {
           .get(Uri.parse('${ApiConfig.siteUrl}/api/rain'))
           .timeout(_timeout);
     } catch (_) {
-      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
     }
 
     // A proxy or an error page can answer with HTML; that is a failed load,
@@ -290,14 +295,14 @@ class SudagriApi {
           jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       if (res.statusCode != 200) {
         throw ApiException(
-          body['error'] as String? ?? 'تعذّر تحميل التوقّع (${res.statusCode}).',
+          body['error'] as String? ?? tr('تعذّر تحميل التوقّع (${res.statusCode}).', 'Could not load the forecast (${res.statusCode}).'),
         );
       }
       return RainGrid.fromJson(body);
     } on ApiException {
       rethrow;
     } catch (_) {
-      throw ApiException('تعذّر تحميل التوقّع (${res.statusCode}).');
+      throw ApiException(tr('تعذّر تحميل التوقّع (${res.statusCode}).', 'Could not load the forecast (${res.statusCode}).'));
     }
   }
 

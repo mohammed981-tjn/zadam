@@ -184,13 +184,14 @@ class MapTown {
 
 /// Used only if the server sends no towns (a response from before it did).
 const fallbackTowns = <MapTown>[
-  MapTown('الخرطوم', 32.53, 15.6, above: true),
-  MapTown('بورتسودان', 37.22, 19.62, above: true),
-  MapTown('القضارف', 35.39, 14.03, above: true),
-  MapTown('الأبيض', 30.22, 13.18, above: false),
-  MapTown('نيالا', 24.88, 12.05, above: true),
-  MapTown('دنقلا', 30.48, 19.17, above: false),
-  MapTown('حلايب', 36.64, 22.22, above: false),
+  // The names are data, as the server sends them; the map shows them through placeName() (i18n.dart).
+  MapTown('الخرطوم', 32.53, 15.6, above: true), // ar-only
+  MapTown('بورتسودان', 37.22, 19.62, above: true), // ar-only
+  MapTown('القضارف', 35.39, 14.03, above: true), // ar-only
+  MapTown('الأبيض', 30.22, 13.18, above: false), // ar-only
+  MapTown('نيالا', 24.88, 12.05, above: true), // ar-only
+  MapTown('دنقلا', 30.48, 19.17, above: false), // ar-only
+  MapTown('حلايب', 36.64, 22.22, above: false), // ar-only
 ];
 
 class RainGrid {

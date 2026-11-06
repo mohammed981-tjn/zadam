@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
 import '../herds.dart';
+import '../i18n.dart';
 import '../lands.dart' show fmt0;
 import '../theme.dart';
 import '../ui.dart';
@@ -52,7 +53,7 @@ class _HerdsScreenState extends State<HerdsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('القطعان')),
+      appBar: AppBar(title: Text(tr('القطعان', 'Herds'))),
       body: FutureBuilder<HerdsPage>(
         future: _page,
         builder: (context, snap) {
@@ -64,8 +65,8 @@ class _HerdsScreenState extends State<HerdsScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
-                const IntroNote(
-                  'كل دورة مقسّمة إلى مراحل بتواريخها وتقدير علفها، ويمكن التعاقد على خدماتها البيطرية والتغذوية بالمراحل.',
+                IntroNote(
+                  tr('كل دورة مقسّمة إلى مراحل بتواريخها وتقدير علفها، ويمكن التعاقد على خدماتها البيطرية والتغذوية بالمراحل.', 'Each cycle is divided into stages with their dates and feed estimates, and its veterinary and feeding services can be contracted stage by stage.'),
                   icon: Icons.pets_outlined,
                 ),
                 const SizedBox(height: 12),
@@ -73,18 +74,18 @@ class _HerdsScreenState extends State<HerdsScreen> {
                   key: const Key('new-herd'),
                   onPressed: p.species.isEmpty ? null : () => _new(p.species),
                   icon: const Icon(Icons.add),
-                  label: const Text('دورة جديدة'),
+                  label: Text(tr('دورة جديدة', 'New cycle')),
                 ),
                 const SizedBox(height: 14),
                 _DiseaseCard(watch: p.diseases),
                 const SizedBox(height: 14),
-                SectionTitle('قطعاني', subtitle: p.herds.isEmpty ? null : '${p.herds.length} دورة'),
+                SectionTitle(tr('قطعاني', 'My herds'), subtitle: p.herds.isEmpty ? null : tr('${p.herds.length} دورة', '${p.herds.length} cycles')),
                 if (p.herds.isEmpty)
-                  const StateView(
+                  StateView(
                     icon: Icons.pets_outlined,
-                    title: 'لا توجد دورات بعد',
-                    message: 'الدورة هي ما يقابل الموسم في الجانب الحيواني: قطيع له بداية ونهاية، ومراحل من '
-                        'الاقتناء والحجر الصحي حتى التسويق، لكل مرحلة تاريخ وميزانية.',
+                    title: tr('لا توجد دورات بعد', 'No cycles yet'),
+                    message: tr('الدورة هي ما يقابل الموسم في الجانب الحيواني: قطيع له بداية ونهاية، ومراحل من '
+                        'الاقتناء والحجر الصحي حتى التسويق، لكل مرحلة تاريخ وميزانية.', 'A cycle is the livestock counterpart of a season: a herd with a beginning and an end, and stages from acquisition and quarantine to marketing, each with a date and a budget.'),
                     compact: true,
                   )
                 else
@@ -99,11 +100,11 @@ class _HerdsScreenState extends State<HerdsScreen> {
                             leading: const IconChip(Icons.pets_outlined, size: 40),
                             title: Text(h.name, style: const TextStyle(fontWeight: FontWeight.w800)),
                             subtitle: Text(
-                              '${h.kindLine}\nالمراحل المنجزة: ${h.stagesDone} من ${h.stagesTotal}',
+                              tr('${h.kindLine}\nالمراحل المنجزة: ${h.stagesDone} من ${h.stagesTotal}', '${h.kindLine}\nStages completed: ${h.stagesDone} of ${h.stagesTotal}'),
                               style: const TextStyle(height: 1.6),
                             ),
                             isThreeLine: true,
-                            trailing: Text('${fmt0(h.headCount)} رأس', style: const TextStyle(fontWeight: FontWeight.w800)),
+                            trailing: Text(tr('${fmt0(h.headCount)} رأس', '${fmt0(h.headCount)} head'), style: const TextStyle(fontWeight: FontWeight.w800)),
                           ),
                         ),
                       ),
@@ -133,12 +134,12 @@ class _DiseaseCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SectionTitle('أمراض الماشية في السودان وجيرانه'),
+            SectionTitle(tr('أمراض الماشية في السودان وجيرانه', 'Livestock diseases in Sudan and next door')),
             if (w == null)
-              Text('تعذّر الوصول إلى بيانات الفاو عن أمراض الماشية الآن.', style: muted)
+              Text(tr('تعذّر الوصول إلى بيانات الفاو عن أمراض الماشية الآن.', 'FAO\'s livestock disease data could not be reached just now.'), style: muted)
             else ...[
               Text(
-                'ما وصل إلى الفاو في آخر ١٢ شهراً. يصل الحدث إلى الجدول بعد أسابيع من وقوعه، ولا يظهر هنا إلّا ما أُبلغ عنه.',
+                tr('ما وصل إلى الفاو في آخر ١٢ شهراً. يصل الحدث إلى الجدول بعد أسابيع من وقوعه، ولا يظهر هنا إلّا ما أُبلغ عنه.', 'What reached FAO in the last 12 months. An event reaches the table weeks after it happens, and only what was reported shows here.'),
                 style: muted,
               ),
               if (w.alerts.isNotEmpty) ...[
@@ -153,15 +154,17 @@ class _DiseaseCard extends StatelessWidget {
                       Row(children: [
                         Icon(Icons.warning_amber_rounded, color: warnOn(context), size: 20),
                         const SizedBox(width: 6),
-                        Text('مرضٌ مُبلَّغٌ عنه في ولايتك',
-                            style: TextStyle(fontWeight: FontWeight.w800, color: warnOn(context))),
+                        Flexible(
+                          child: Text(tr('مرضٌ مُبلَّغٌ عنه في ولايتك', 'A disease reported in your state'),
+                              style: TextStyle(fontWeight: FontWeight.w800, color: warnOn(context))),
+                        ),
                       ]),
                       const SizedBox(height: 4),
                       for (final a in w.alerts)
-                        Text('«${a.land}» في ${a.state}: ${a.diseases.join('، ')}', style: const TextStyle(height: 1.7)),
+                        Text(tr('«${a.land}» في ${a.state}: ${a.diseases.join('، ')}', '«${a.land}» in ${a.state}: ${a.diseases.join(', ')}'), style: const TextStyle(height: 1.7)),
                       const SizedBox(height: 4),
-                      const Text(
-                        'اتّصل بالطبيب البيطريّ في محليّتك أو بوزارة الثروة الحيوانيّة في الولاية عن التطعيم وعزل القطيع.',
+                      Text(
+                        tr('اتّصل بالطبيب البيطريّ في محليّتك أو بوزارة الثروة الحيوانيّة في الولاية عن التطعيم وعزل القطيع.', 'Call the veterinarian in your locality or the state livestock ministry about vaccination and isolating the herd.'),
                         style: TextStyle(fontSize: 12.5, height: 1.7),
                       ),
                     ],
@@ -175,13 +178,13 @@ class _DiseaseCard extends StatelessWidget {
               if (!w.hasLands) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'أضف أرضك بولايتها وموقعها في «أراضيّ» ليصلك إشعارٌ إن أُبلغ عن مرضٍ في ولايتك، ولو لم تفتح هذه الصفحة.',
+                  tr('أضف أرضك بولايتها وموقعها في «أراضيّ» ليصلك إشعارٌ إن أُبلغ عن مرضٍ في ولايتك، ولو لم تفتح هذه الصفحة.', 'Add your land with its state and location in «My lands» to get a notification if a disease is reported in your state, even if you do not open this page.'),
                   style: muted,
                 ),
               ],
               if (!w.sudanEvents) ...[
                 const SizedBox(height: 8),
-                const Text('لم يصل إلى الفاو حدثٌ في السودان خلال هذه الفترة.'),
+                Text(tr('لم يصل إلى الفاو حدثٌ في السودان خلال هذه الفترة.', 'No event in Sudan reached FAO in this period.')),
               ],
               if (w.groups.isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -194,7 +197,7 @@ class _DiseaseCard extends StatelessWidget {
                         Expanded(
                           flex: 3,
                           child: Text(
-                            '${g.country}${g.states.isEmpty ? '' : ' (${g.states.join('، ')})'}',
+                            tr('${g.country}${g.states.isEmpty ? '' : ' (${g.states.join('، ')})'}', '${g.country}${g.states.isEmpty ? '' : ' (${g.states.join(', ')})'}'),
                             style: const TextStyle(fontSize: 13),
                           ),
                         ),
@@ -254,9 +257,9 @@ class _NewHerdScreenState extends State<NewHerdScreen> {
 
   Future<void> _save() async {
     final heads = int.tryParse(_heads.text.trim());
-    if (_name.text.trim().isEmpty) return setState(() => _error = 'اسم الدورة مطلوب.');
+    if (_name.text.trim().isEmpty) return setState(() => _error = tr('اسم الدورة مطلوب.', 'The cycle name is required.'));
     if (heads == null || heads <= 0 || _purpose == null) {
-      return setState(() => _error = 'اكتب عدد الرؤوس واختر الغرض.');
+      return setState(() => _error = tr('اكتب عدد الرؤوس واختر الغرض.', 'Enter the number of head and choose the purpose.'));
     }
     setState(() {
       _saving = true;
@@ -283,20 +286,20 @@ class _NewHerdScreenState extends State<NewHerdScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('دورة جديدة')),
+      appBar: AppBar(title: Text(tr('دورة جديدة', 'New cycle'))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const IntroNote(
-            'أدخل النوع والغرض والعدد وتاريخ البدء، وسيولّد النظام مراحل الدورة بتواريخها وتقدير العلف لكل مرحلة وحصتها من الميزانية.',
+          IntroNote(
+            tr('أدخل النوع والغرض والعدد وتاريخ البدء، وسيولّد النظام مراحل الدورة بتواريخها وتقدير العلف لكل مرحلة وحصتها من الميزانية.', 'Enter the species, purpose, number of head and start date, and the system will generate the cycle\'s stages with their dates, the feed estimate for each stage and its share of the budget.'),
           ),
           const SizedBox(height: 12),
-          TextField(key: const Key('herd-name'), controller: _name, decoration: const InputDecoration(labelText: 'اسم الدورة')),
+          TextField(key: const Key('herd-name'), controller: _name, decoration: InputDecoration(labelText: tr('اسم الدورة', 'Cycle name'))),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _species.key,
-            decoration: const InputDecoration(labelText: 'النوع'),
+            decoration: InputDecoration(labelText: tr('النوع', 'Species')),
             items: [for (final s in widget.species) DropdownMenuItem(value: s.key, child: Text(s.label))],
             onChanged: (v) => setState(() {
               _species = widget.species.firstWhere((s) => s.key == v, orElse: () => _species);
@@ -308,30 +311,30 @@ class _NewHerdScreenState extends State<NewHerdScreen> {
             key: ValueKey('purpose-${_species.key}'),
             isExpanded: true,
             initialValue: _purpose,
-            decoration: const InputDecoration(labelText: 'الغرض'),
+            decoration: InputDecoration(labelText: tr('الغرض', 'Purpose')),
             items: [for (final p in _species.purposes) DropdownMenuItem(value: p.key, child: Text(p.label))],
             onChanged: (v) => setState(() => _purpose = v),
           ),
           const SizedBox(height: 8),
-          TextField(controller: _breed, decoration: const InputDecoration(labelText: 'السلالة (اختياري)')),
+          TextField(controller: _breed, decoration: InputDecoration(labelText: tr('السلالة (اختياري)', 'Breed (optional)'))),
           const SizedBox(height: 8),
           TextField(
             key: const Key('herd-heads'),
             controller: _heads,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'عدد الرؤوس'),
+            decoration: InputDecoration(labelText: tr('عدد الرؤوس', 'Head')),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _start,
             textDirection: TextDirection.ltr,
-            decoration: const InputDecoration(labelText: 'تاريخ البدء (سنة-شهر-يوم)'),
+            decoration: InputDecoration(labelText: tr('تاريخ البدء (سنة-شهر-يوم)', 'Start date (year-month-day)')),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _budget,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'الميزانية للرأس (اختياري)', hintText: 'مثال: 45000'),
+            decoration: InputDecoration(labelText: tr('الميزانية للرأس (اختياري)', 'Budget per head (optional)'), hintText: tr('مثال: 45000', 'e.g. 45000')),
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
@@ -341,7 +344,7 @@ class _NewHerdScreenState extends State<NewHerdScreen> {
           FilledButton(
             key: const Key('herd-save'),
             onPressed: _saving ? null : _save,
-            child: Text(_saving ? 'يُحفظ…' : 'أنشئ الدورة'),
+            child: Text(_saving ? tr('يُحفظ…', 'Saving…') : tr('أنشئ الدورة', 'Create the cycle')),
           ),
         ],
       ),
@@ -393,7 +396,7 @@ class _HerdScreenState extends State<HerdScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.name.isEmpty ? 'دورة إنتاج حيواني' : widget.name)),
+      appBar: AppBar(title: Text(widget.name.isEmpty ? tr('دورة إنتاج حيواني', 'Livestock cycle') : widget.name)),
       body: FutureBuilder<HerdDetail>(
         future: _detail,
         builder: (context, snap) {
@@ -413,14 +416,14 @@ class _HerdScreenState extends State<HerdScreen> {
                       children: [
                         Text(d.herd.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
                         const SizedBox(height: 4),
-                        Text('${d.herd.kindLine} — ${fmt0(d.herd.headCount)} رأس'),
+                        Text(tr('${d.herd.kindLine} — ${fmt0(d.herd.headCount)} رأس', '${d.herd.kindLine} — ${fmt0(d.herd.headCount)} head')),
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            _Stat('المراحل المنجزة', '${d.done} / ${d.stageCount}'),
-                            _Stat('العلف التقديري', '${fmt0(d.feedKg)} كجم'),
-                            _Stat('الميزانية', d.budget > 0 ? fmt0(d.budget) : '—',
-                                below: d.budget > 0 ? '${fmt0(d.perHead)} للرأس' : null),
+                            _Stat(tr('المراحل المنجزة', 'Stages completed'), '${d.done} / ${d.stageCount}'),
+                            _Stat(tr('العلف التقديري', 'Estimated feed'), tr('${fmt0(d.feedKg)} كجم', '${fmt0(d.feedKg)} kg')),
+                            _Stat(tr('الميزانية', 'Budget'), d.budget > 0 ? fmt0(d.budget) : '—',
+                                below: d.budget > 0 ? tr('${fmt0(d.perHead)} للرأس', '${fmt0(d.perHead)} per head') : null),
                           ],
                         ),
                       ],
@@ -429,9 +432,9 @@ class _HerdScreenState extends State<HerdScreen> {
                   const SizedBox(height: 12),
                   _BudgetCard(detail: d, run: (perHead) => _run(() => _api.setBudget(widget.id, perHead))),
                   const SizedBox(height: 12),
-                  const IntroNote(
-                    'تقدير العلف مبنٍ على متوسطات استهلاك المادة الجافة كنسبة من وزن الحيوان، وليس حساباً مرجعياً كاحتياج '
-                    'المحاصيل المائي. اعتمده كنقطة بداية وعدّله على واقع قطيعك.',
+                  IntroNote(
+                    tr('تقدير العلف مبنٍ على متوسطات استهلاك المادة الجافة كنسبة من وزن الحيوان، وليس حساباً مرجعياً كاحتياج '
+                    'المحاصيل المائي. اعتمده كنقطة بداية وعدّله على واقع قطيعك.', 'The feed estimate is built on average dry-matter intake as a share of the animal\'s weight, not a reference calculation like the crops\' water requirement. Use it as a starting point and adjust it to your herd\'s reality.'),
                     icon: Icons.info_outline,
                   ),
                   const SizedBox(height: 12),
@@ -527,9 +530,9 @@ class _BudgetCardState extends State<_BudgetCard> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: warnTintOn(context), borderRadius: BorderRadius.circular(12)),
-                child: const Text(
-                  'لم تُدخَل ميزانيّةٌ لهذه الدورة. حقلُ «الميزانية للرأس» اختياريٌّ عند الإنشاء، وتُرك فارغاً — فالأصفارُ '
-                  'ليست حساباً فشل، بل رقماً لم يُكتب. اكتبه الآن ويُقسَّم على المراحل بنسبة العلف.',
+                child: Text(
+                  tr('لم تُدخَل ميزانيّةٌ لهذه الدورة. حقلُ «الميزانية للرأس» اختياريٌّ عند الإنشاء، وتُرك فارغاً — فالأصفارُ '
+                  'ليست حساباً فشل، بل رقماً لم يُكتب. اكتبه الآن ويُقسَّم على المراحل بنسبة العلف.', 'No budget was entered for this cycle. The «Budget per head» field is optional at creation and was left empty — so the zeros are not a failed calculation but a number never written. Enter it now and it is split across the stages in proportion to feed.'),
                   style: TextStyle(height: 1.7),
                 ),
               ),
@@ -539,9 +542,9 @@ class _BudgetCardState extends State<_BudgetCard> {
               key: const Key('budget-per-head'),
               controller: _perHead,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'الميزانية للرأس — وتُقسَّم على المراحل بنسبة العلف',
-                hintText: 'مثال: 45000',
+              decoration: InputDecoration(
+                labelText: tr('الميزانية للرأس — وتُقسَّم على المراحل بنسبة العلف', 'Budget per head — split across the stages in proportion to feed'),
+                hintText: tr('مثال: 45000', 'e.g. 45000'),
               ),
             ),
             const SizedBox(height: 8),
@@ -552,7 +555,7 @@ class _BudgetCardState extends State<_BudgetCard> {
                   final v = num.tryParse(_perHead.text.trim());
                   if (v != null) widget.run(v);
                 },
-                child: Text(d.budget > 0 ? 'حدّث الميزانية' : 'أضف الميزانية'),
+                child: Text(d.budget > 0 ? tr('حدّث الميزانية', 'Update budget') : tr('أضف الميزانية', 'Add budget')),
               ),
             ),
           ],
@@ -571,12 +574,12 @@ class _StageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = stage;
     final facts = <(String, String)>[
-      ('من', s.plannedStart ?? '—'),
-      ('إلى', s.plannedEnd ?? '—'),
-      ('المدّة', s.days == null ? '—' : '${s.days} يوماً'),
-      ('العلف التقديري', s.feedKg == null ? '—' : '${fmt0(s.feedKg!)} كجم'),
-      ('حصّتها من الميزانية', s.budget > 0 ? fmt0(s.budget) : 'لم تُدخَل'),
-      if (s.feedShare != null) ('من علف الدورة', '${s.feedShare}٪'),
+      (tr('من', 'From'), s.plannedStart ?? '—'),
+      (tr('إلى', 'To'), s.plannedEnd ?? '—'),
+      (tr('المدّة', 'Duration'), s.days == null ? '—' : tr('${s.days} يوماً', '${s.days} days')),
+      (tr('العلف التقديري', 'Estimated feed'), s.feedKg == null ? '—' : tr('${fmt0(s.feedKg!)} كجم', '${fmt0(s.feedKg!)} kg')),
+      (tr('حصّتها من الميزانية', 'Share of budget'), s.budget > 0 ? fmt0(s.budget) : tr('لم تُدخَل', 'Not entered')),
+      if (s.feedShare != null) (tr('من علف الدورة', 'Of the cycle\'s feed'), tr('${s.feedShare}٪', '${s.feedShare}%')),
     ];
     return Card(
       color: s.completed ? leafTintOn(context) : null,
@@ -590,7 +593,7 @@ class _StageCard extends StatelessWidget {
                 Expanded(
                   child: Text('${s.order}. ${s.name}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                 ),
-                TagPill(s.completed ? 'منجزة' : 'مفتوحة', gold: !s.completed),
+                TagPill(s.completed ? tr('منجزة', 'Done') : tr('مفتوحة', 'Open'), gold: !s.completed),
               ],
             ),
             const SizedBox(height: 8),
@@ -613,7 +616,7 @@ class _StageCard extends StatelessWidget {
               const SizedBox(height: 10),
               Align(
                 alignment: AlignmentDirectional.centerStart,
-                child: OutlinedButton(onPressed: onComplete, child: const Text('اعتمد المرحلة')),
+                child: OutlinedButton(onPressed: onComplete, child: Text(tr('اعتمد المرحلة', 'Sign off stage'))),
               ),
             ],
           ],
@@ -706,15 +709,15 @@ class _ReadinessCardState extends State<_ReadinessCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SectionTitle(
-              'الجاهزيّة للتصدير',
-              subtitle: 'سجلٌّ تحفظه لقطيعك تقدّمه للمصدّر وللطبيب البيطريّ في المحجر. يساعد المحجر ولا يغني عنه.',
+            SectionTitle(
+              tr('الجاهزيّة للتصدير', 'Export readiness'),
+              subtitle: tr('سجلٌّ تحفظه لقطيعك تقدّمه للمصدّر وللطبيب البيطريّ في المحجر. يساعد المحجر ولا يغني عنه.', 'A record you keep for your herd and give to the exporter and to the veterinarian at the quarantine. It helps the quarantine and does not replace it.'),
             ),
             Wrap(
               spacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                const Text('الوجهة:', style: TextStyle(fontWeight: FontWeight.w700)),
+                Text(tr('الوجهة:', 'Destination:'), style: TextStyle(fontWeight: FontWeight.w700)),
                 for (final d in r.destinations)
                   ChoiceChip(
                     label: Text(d.label),
@@ -748,7 +751,7 @@ class _ReadinessCardState extends State<_ReadinessCard> {
                             onTap: l.sourceUrl == null
                                 ? null
                                 : () => launchUrl(Uri.parse(l.sourceUrl!), mode: LaunchMode.externalApplication),
-                            child: Text('المصدر: ${l.source} (${l.sourceMeta})',
+                            child: Text(tr('المصدر: ${l.source} (${l.sourceMeta})', 'Source: ${l.source} (${l.sourceMeta})'),
                                 style: muted.copyWith(decoration: TextDecoration.underline)),
                           ),
                         ],
@@ -759,21 +762,21 @@ class _ReadinessCardState extends State<_ReadinessCard> {
               ),
             Text(r.note, style: muted),
             const Divider(height: 24),
-            const Text('أرقام الآذان', style: TextStyle(fontWeight: FontWeight.w800)),
+            Text(tr('أرقام الآذان', 'Ear tags'), style: TextStyle(fontWeight: FontWeight.w800)),
             Text(
-              'مرقَّمٌ في القطيع: ${r.tagsPresent} من ${widget.headCount} رأساً'
-              '${r.tagsOther.isEmpty ? '' : ' · ${r.tagsOther.join(' · ')}'}',
+              tr('مرقَّمٌ في القطيع: ${r.tagsPresent} من ${widget.headCount} رأساً'
+              '${r.tagsOther.isEmpty ? '' : ' · ${r.tagsOther.join(' · ')}'}', 'Tagged in the herd: ${r.tagsPresent} of ${widget.headCount} head${r.tagsOther.isEmpty ? '' : ' · ${r.tagsOther.join(' · ')}'}'),
             ),
             if (r.tagSample.isNotEmpty) Text(r.tagSample.join(', '), textDirection: TextDirection.ltr, style: muted),
             if (widget.active) ...[
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Expanded(child: TextField(controller: _prefix, textDirection: TextDirection.ltr, decoration: const InputDecoration(labelText: 'الحرف الثابت', hintText: 'SD-'))),
+                  Expanded(child: TextField(controller: _prefix, textDirection: TextDirection.ltr, decoration: InputDecoration(labelText: tr('الحرف الثابت', 'Prefix'), hintText: 'SD-'))),
                   const SizedBox(width: 8),
-                  Expanded(child: TextField(controller: _from, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'من'))),
+                  Expanded(child: TextField(controller: _from, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('من', 'From')))),
                   const SizedBox(width: 8),
-                  Expanded(child: TextField(controller: _to, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'إلى'))),
+                  Expanded(child: TextField(controller: _to, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('إلى', 'To')))),
                 ],
               ),
               const SizedBox(height: 6),
@@ -785,20 +788,20 @@ class _ReadinessCardState extends State<_ReadinessCard> {
                     if (from == null) return;
                     widget.addTags(_prefix.text.trim(), from, int.tryParse(_to.text.trim()));
                   },
-                  child: const Text('أضف الأرقام'),
+                  child: Text(tr('أضف الأرقام', 'Add the tags')),
                 ),
               ),
             ],
             const Divider(height: 24),
-            const Text('سجلّ الصحّة', style: TextStyle(fontWeight: FontWeight.w800)),
-            if (r.records.isEmpty) Text('لم يُسجَّل تطعيمٌ ولا فحصٌ ولا علاجٌ بعد.', style: muted),
+            Text(tr('سجلّ الصحّة', 'Health record'), style: TextStyle(fontWeight: FontWeight.w800)),
+            if (r.records.isEmpty) Text(tr('لم يُسجَّل تطعيمٌ ولا فحصٌ ولا علاجٌ بعد.', 'No vaccination, test or treatment recorded yet.'), style: muted),
             for (final h in r.records)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Text(
-                  '${h.kind}: ${h.item} · ${h.doneOn} · ${h.heads} رأساً'
+                  tr('${h.kind}: ${h.item} · ${h.doneOn} · ${h.heads} رأساً'
                   '${h.result != null ? ' · ${h.result}' : ''}${h.vet != null ? ' · ${h.vet}' : ''}'
-                  '${h.withdrawn ? ' · (سُحب)' : ''}',
+                  '${h.withdrawn ? ' · (سُحب)' : ''}', '${h.kind}: ${h.item} · ${h.doneOn} · ${h.heads} head${h.result != null ? ' · ${h.result}' : ''}${h.vet != null ? ' · ${h.vet}' : ''}${h.withdrawn ? ' · (withdrawn)' : ''}'),
                   style: TextStyle(
                     height: 1.6,
                     decoration: h.withdrawn ? TextDecoration.lineThrough : null,
@@ -809,43 +812,43 @@ class _ReadinessCardState extends State<_ReadinessCard> {
             if (widget.active)
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
-                title: const Text('سجّل تطعيماً أو فحصاً أو علاجاً', style: TextStyle(fontWeight: FontWeight.w700)),
+                title: Text(tr('سجّل تطعيماً أو فحصاً أو علاجاً', 'Record a vaccination, test or treatment'), style: TextStyle(fontWeight: FontWeight.w700)),
                 children: [
                   DropdownButtonFormField<String>(
                     isExpanded: true,
                     initialValue: _choice,
-                    decoration: const InputDecoration(labelText: 'ماذا'),
+                    decoration: InputDecoration(labelText: tr('ماذا', 'What')),
                     items: [
                       for (final i in r.items)
                         DropdownMenuItem(
                           value: i.choice,
-                          child: Text('${switch (i.kind) { 'vaccination' => 'تطعيم', 'test' => 'فحص', _ => 'علاج' }}: ${i.label}'),
+                          child: Text(tr('${switch (i.kind) { 'vaccination' => 'تطعيم', 'test' => 'فحص', _ => 'علاج' }}: ${i.label}', '${switch (i.kind) { 'vaccination' => 'Vaccination', 'test' => 'Test', _ => 'Treatment' }}: ${i.label}')),
                         ),
                     ],
                     onChanged: (v) => setState(() => _choice = v),
                   ),
                   Row(
                     children: [
-                      Expanded(child: TextField(controller: _doneOn, textDirection: TextDirection.ltr, decoration: const InputDecoration(labelText: 'التاريخ'))),
+                      Expanded(child: TextField(controller: _doneOn, textDirection: TextDirection.ltr, decoration: InputDecoration(labelText: tr('التاريخ', 'Date')))),
                       const SizedBox(width: 8),
-                      Expanded(child: TextField(controller: _heads, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'عدد الرؤوس'))),
+                      Expanded(child: TextField(controller: _heads, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('عدد الرؤوس', 'Head')))),
                     ],
                   ),
                   if (isTest)
                     DropdownButtonFormField<String>(
                       initialValue: _result,
-                      decoration: const InputDecoration(labelText: 'النتيجة'),
-                      items: const [
+                      decoration: InputDecoration(labelText: tr('النتيجة', 'Outcome')),
+                      items: [
                         DropdownMenuItem(value: '', child: Text('—')),
-                        DropdownMenuItem(value: 'negative', child: Text('سلبيّ (سليم)')),
-                        DropdownMenuItem(value: 'positive', child: Text('إيجابيّ')),
+                        DropdownMenuItem(value: 'negative', child: Text(tr('سلبيّ (سليم)', 'Negative'))),
+                        DropdownMenuItem(value: 'positive', child: Text(tr('إيجابيّ', 'Positive'))),
                       ],
                       onChanged: (v) => setState(() => _result = v ?? ''),
                     ),
-                  TextField(controller: _vet, maxLength: 120, decoration: const InputDecoration(labelText: 'الطبيب البيطريّ')),
-                  TextField(controller: _product, maxLength: 120, decoration: const InputDecoration(labelText: 'المنتج أو اللقاح')),
-                  TextField(controller: _batch, maxLength: 60, textDirection: TextDirection.ltr, decoration: const InputDecoration(labelText: 'رقم التشغيلة')),
-                  TextField(controller: _note, maxLength: 500, decoration: const InputDecoration(labelText: 'ملاحظة')),
+                  TextField(controller: _vet, maxLength: 120, decoration: InputDecoration(labelText: tr('الطبيب البيطريّ', 'Veterinarian'))),
+                  TextField(controller: _product, maxLength: 120, decoration: InputDecoration(labelText: tr('المنتج أو اللقاح', 'Product or vaccine'))),
+                  TextField(controller: _batch, maxLength: 60, textDirection: TextDirection.ltr, decoration: InputDecoration(labelText: tr('رقم التشغيلة', 'Batch number'))),
+                  TextField(controller: _note, maxLength: 500, decoration: InputDecoration(labelText: tr('ملاحظة', 'Note'))),
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: FilledButton(
@@ -861,7 +864,7 @@ class _ReadinessCardState extends State<_ReadinessCard> {
                                 batch: _batch.text.trim(),
                                 note: _note.text.trim(),
                               )),
-                      child: const Text('سجّل'),
+                      child: Text(tr('سجّل', 'Record')),
                     ),
                   ),
                   const SizedBox(height: 8),

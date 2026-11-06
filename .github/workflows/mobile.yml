@@ -101,6 +101,25 @@ jobs:
           path: ${{ runner.temp }}/app-preview
           retention-days: 14
 
+      # إشعارات الجوّال (البند ٢٠٧): إعداد مشروع Firebase من سرّ المستودع GOOGLE_SERVICES_JSON، إن ضبطه المالك
+      # (docs/push-setup-ar.md). الملفّ ليس سرّاً، لكنّه خاصٌّ بمشروعه والمستودع عامّ، فيبقى في الأسرار لا في الشجرة.
+      # وبلا السرّ يُبنى التطبيق كما كان والإشعارات مطفأة: Gradle لا يطبّق إضافة Google إلا حين يوجد الملفّ.
+      - name: Firebase configuration for phone notifications (if set)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            if ! python3 -c 'import json,sys; d=json.load(open("android/app/google-services.json")); sys.exit(0 if any(c["client_info"]["android_client_info"]["package_name"]=="sd.sudagri.sudagri" for c in d["client"]) else 1)'; then
+              echo "::error::GOOGLE_SERVICES_JSON is not a google-services.json for the package sd.sudagri.sudagri."
+              exit 1
+            fi
+            echo "Phone notifications: on (google-services.json written from the secret)."
+          else
+            echo "::notice::GOOGLE_SERVICES_JSON is not set — this APK builds with phone notifications off."
+          fi
+
       # None of these are secrets — the Supabase anon key is publishable by
       # design and every table it reaches is guarded by row-level security on
       # the server. They live in repository variables so a fork building this
@@ -140,25 +159,33 @@ jobs:
           # a build whose versionCode is lower than the one already present, and
           # a version pinned in pubspec.yaml never moves — so without this every
           # build after the first looks like a downgrade to the device.
+          # The 1000 on top: the public build of 6 November (versionCode 1001) came from another workflow, and a
+          # later build here must still count as newer than it.
           flutter build apk --release \
             --obfuscate --split-debug-info=build/symbols \
-            --build-number=${{ github.run_number }} \
+            --build-number=$((1000 + ${{ github.run_number }})) \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
             --dart-define=SITE_URL="$SITE_URL"
 
-      # The APK used to go to the «app-latest» release. The repository is public now and the owner chose to keep the
-      # build to himself (26 October): it is locked and sent in the conversation
-      # (.github/delivery/lock.sh).
-      - name: Lock the APK for the owner
+      # A public, permanent link (the owner, 6 November 2026: «رابط عامّ دائم»), replacing the locked delivery of
+      # 26 October: each manual build replaces sudagri.apk on the «app-latest» release, so
+      # https://github.com/mohammed981-tjn/zadam/releases/download/app-latest/sudagri.apk is always the newest.
+      - name: Publish the APK on the public link
         if: github.event_name == 'workflow_dispatch'
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk sudagri.apk
-          ../.github/delivery/lock.sh sudagri-app-${{ github.run_number }} sudagri.apk
+          sha256sum sudagri.apk
+          if gh release view app-latest >/dev/null 2>&1; then
+            gh release upload app-latest sudagri.apk --clobber
+          else
+            gh release create app-latest sudagri.apk --target main --latest \
+              --title "تطبيق سوداقري للأندرويد" \
+              --notes "حمّل sudagri.apk وثبّته على جوّال أندرويد. كلّ نسخةٍ جديدة تُثبَّت فوق السابقة."
+          fi
 
       # Without these a crash report from an obfuscated build is unreadable
       # noise. They are only useful next to the exact APK they came from, hence

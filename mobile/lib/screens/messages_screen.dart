@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../account.dart';
 import '../api.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../ui.dart';
 
@@ -38,7 +39,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الرسائل')),
+      appBar: AppBar(title: Text(tr('الرسائل', 'Messages'))),
       body: RefreshIndicator(
         onRefresh: () async => _reload(),
         child: FutureBuilder<List<ConversationRow>>(
@@ -50,7 +51,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             if (snap.hasError) {
               final e = snap.error;
               return StateView.error(
-                e is ApiException ? e.message : 'تعذّر تحميل الرسائل.',
+                e is ApiException ? e.message : tr('تعذّر تحميل الرسائل.', 'Could not load the messages.'),
                 onRetry: _reload,
                 scrollable: true,
               );
@@ -61,8 +62,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
                 Text(
-                  'كلّ محادثةٍ مربوطةٌ بطلب شراكةٍ أو بعقده، أو بعرضٍ في السوق، أو بإدارة سوداقري. '
-                  'وتقرأ الإدارة المحادثات، ولا يُحذف منها شيء.',
+                  tr('كلّ محادثةٍ مربوطةٌ بطلب شراكةٍ أو بعقده، أو بعرضٍ في السوق، أو بإدارة سوداقري. '
+                  'وتقرأ الإدارة المحادثات، ولا يُحذف منها شيء.', 'Every conversation is tied to a partnership request or its contract, to a market offer, or to Sudagri\'s administrators. The administrators read the conversations, and nothing in them is deleted.'),
                   style: TextStyle(color: mutedOn(context), height: 1.7, fontSize: 13),
                 ),
                 const SizedBox(height: 12),
@@ -70,14 +71,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   FilledButton.icon(
                     onPressed: _support,
                     icon: const Icon(Icons.support_agent),
-                    label: const Text('راسل سوداقري'),
+                    label: Text(tr('راسل سوداقري', 'Write to Sudagri')),
                   ),
                 const SizedBox(height: 8),
                 if (rows.isEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 24),
                     child: Text(
-                      'لا محادثات بعد. تبدأ المحادثة من طلب الشراكة، أو من «راسل صاحب العرض» في عروض السوق على الموقع.',
+                      tr('لا محادثات بعد. تبدأ المحادثة من طلب الشراكة، أو من «راسل صاحب العرض» في عروض السوق على الموقع.', 'No conversations yet. A conversation starts from a partnership request, or from «Message the seller» on the market offers on the website.'),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: mutedOn(context)),
                     ),
@@ -93,9 +94,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       subtitle: Text(
                         [
                           if (r.lastBody.isNotEmpty) r.lastBody,
-                          if (!r.open) 'مغلقة',
-                          if (r.isAdmin && r.reported) 'مبلَّغٌ عنها',
-                          if (r.isAdmin && r.needsReply) 'تنتظر ردّك',
+                          if (!r.open) tr('مغلقة', 'Closed'),
+                          if (r.isAdmin && r.reported) tr('مبلَّغٌ عنها', 'Reported'),
+                          if (r.isAdmin && r.needsReply) tr('تنتظر ردّك', 'Awaiting your reply'),
                         ].join(' · '),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -176,14 +177,14 @@ class _ThreadScreenState extends State<ThreadScreen> {
       builder: (context, snap) {
         final v = snap.data;
         return Scaffold(
-          appBar: AppBar(title: Text(v?.title ?? 'محادثة', maxLines: 1, overflow: TextOverflow.ellipsis)),
+          appBar: AppBar(title: Text(v?.title ?? tr('محادثة', 'Conversation'), maxLines: 1, overflow: TextOverflow.ellipsis)),
           body: snap.connectionState != ConnectionState.done && v == null
               ? const Center(child: CircularProgressIndicator())
               : snap.hasError
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text(snap.error is ApiException ? (snap.error as ApiException).message : 'تعذّر فتح المحادثة.'),
+                        child: Text(snap.error is ApiException ? (snap.error as ApiException).message : tr('تعذّر فتح المحادثة.', 'Could not open the conversation.')),
                       ),
                     )
                   : _Thread(view: v!, text: _text, busy: _busy, onSend: _send, onRefresh: () async => _reload()),
@@ -214,8 +215,8 @@ class _Thread extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Text(
             v.pending
-                ? 'تقرأ إدارة سوداقري هذه المحادثة. ولا يُكتب رقم هاتفٍ قبل أن يقبل صاحب الأرض الطلب؛ بعد القبول يظهر الهاتف لكلٍّ منكما.'
-                : 'تقرأ إدارة سوداقري هذه المحادثة، ولا يُحذف منها شيء.',
+                ? tr('تقرأ إدارة سوداقري هذه المحادثة. ولا يُكتب رقم هاتفٍ قبل أن يقبل صاحب الأرض الطلب؛ بعد القبول يظهر الهاتف لكلٍّ منكما.', 'Sudagri\'s administrators read this conversation. No phone number is written before the land owner accepts the request; after acceptance each of you sees the other\'s phone.')
+                : tr('تقرأ إدارة سوداقري هذه المحادثة، ولا يُحذف منها شيء.', 'Sudagri\'s administrators read this conversation, and nothing in it is deleted.'),
             style: const TextStyle(fontSize: 12, height: 1.6),
           ),
         ),
@@ -230,7 +231,7 @@ class _Thread extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(v.kind == 'market' ? 'العرض في السوق' : 'طلب الشراكة',
+                        Text(v.kind == 'market' ? tr('العرض في السوق', 'The market offer') : tr('طلب الشراكة', 'The partnership request'),
                             style: TextStyle(fontSize: 12, color: mutedOn(context), fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Text(v.request!),
@@ -251,7 +252,7 @@ class _Thread extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(m.mine ? 'أنت' : (senderLabels[m.role] ?? ''),
+                            Text(m.mine ? tr('أنت', 'You') : (senderLabels[m.role] ?? ''),
                                 style: TextStyle(fontSize: 12, color: mutedOn(context), fontWeight: FontWeight.w700)),
                             if (m.body.isNotEmpty) ...[const SizedBox(height: 4), Text(m.body)],
                             if (m.fileUrl != null && m.attachmentKind == 'photo')
@@ -260,7 +261,7 @@ class _Thread extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.network(m.fileUrl!, height: 200, fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) => const Text('تعذّر عرض الصورة.')),
+                                      errorBuilder: (_, _, _) => Text(tr('تعذّر عرض الصورة.', 'Could not show the image.'))),
                                 ),
                               ),
                               if (m.body.isNotEmpty) ...[
@@ -278,7 +279,7 @@ class _Thread extends StatelessWidget {
                                       height: 200,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, _, _) =>
-                                          const Text('تعذّر عرض الصورة.'),
+                                          Text(tr('تعذّر عرض الصورة.', 'Could not show the image.')),
                                     ),
                                   ),
                                 ),
@@ -290,13 +291,13 @@ class _Thread extends StatelessWidget {
                                     mode: LaunchMode.externalApplication,
                                   ),
                                   icon: const Icon(Icons.description),
-                                  label: const Text('افتح المستند'),
+                                  label: Text(tr('افتح المستند', 'Open the document')),
                                 ),
                               if (m.id == seen)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
-                                    '✓✓ قُرئت',
+                                    tr('✓✓ قُرئت', '✓✓ Read'),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: textGreenOn(context),
@@ -327,7 +328,7 @@ class _Thread extends StatelessWidget {
                     maxLines: 4,
                     maxLength: 2000,
                     decoration: InputDecoration(
-                      hintText: v.me == 'admin' ? 'ردّ باسم سوداقري' : 'رسالتك',
+                      hintText: v.me == 'admin' ? tr('ردّ باسم سوداقري', 'Reply as Sudagri') : tr('رسالتك', 'Your message'),
                       counterText: '',
                     ),
                   ),
@@ -338,7 +339,7 @@ class _Thread extends StatelessWidget {
                   icon: busy
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.send),
-                  tooltip: 'أرسل',
+                  tooltip: tr('أرسل', 'Send'),
                 ),
               ]),
             ),
@@ -346,7 +347,7 @@ class _Thread extends StatelessWidget {
         else
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Text('أُغلق هذا الطلب، فلا رسائل جديدة فيه. ما كُتب يبقى محفوظاً.',
+            child: Text(tr('أُغلق هذا الطلب، فلا رسائل جديدة فيه. ما كُتب يبقى محفوظاً.', 'This request is closed, so no new messages. What was written stays on record.'),
                 style: TextStyle(color: mutedOn(context))),
           ),
       ],

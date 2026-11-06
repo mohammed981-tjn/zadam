@@ -18,6 +18,8 @@ import {
   withdrawPledgeStep,
 } from "@/lib/supplyCore";
 import { UUID, badRequest, dollarRate, noStore, readJson, stepJson } from "@/lib/appApi";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * One group order in the app (البند ٢٠٣), as /suppliers/orders/[id]: the order (group_order_detail decides what the
@@ -28,14 +30,15 @@ import { UUID, badRequest, dollarRate, noStore, readJson, stepJson } from "@/lib
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
   const { id } = await params;
-  if (!UUID.test(id)) return NextResponse.json({ error: "لا طلب بهذا الرابط." }, { status: 404 });
+  if (!UUID.test(id)) return NextResponse.json({ error: tr(locale, "لا طلب بهذا الرابط.", "No order at this link.") }, { status: 404 });
 
   const { data, error } = await supabase.rpc("group_order_detail", { p_order: id });
   if (isNotDeployed(error)) return NextResponse.json({ coming_soon: true }, noStore);
   const order = ((data ?? []) as GroupOrderDetail[])[0] ?? null;
-  if (!order) return NextResponse.json({ error: "لا طلب بهذا الرابط." }, { status: 404 });
+  if (!order) return NextResponse.json({ error: tr(locale, "لا طلب بهذا الرابط.", "No order at this link.") }, { status: 404 });
 
   const [{ data: lines }, { data: totals }, { data: pledges }, { data: profile }] = await Promise.all([
     supabase.from("group_order_lines").select("*").eq("order_id", order.id).order("position"),
@@ -64,7 +67,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       my_name: (profile as { full_name: string | null } | null)?.full_name ?? "",
       carriers: carriers.map((c) => ({ id: c.id, name: c.name, vehicle: c.vehicle, capacity_tonnes: c.capacity_tonnes })),
       deliveries,
-      ...(await dollarRate()),
+      ...(await dollarRate(locale)),
     },
     noStore,
   );
@@ -82,11 +85,12 @@ const STEPS = {
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { id } = await params;
   const body = await readJson(req);
   const action = String(body?.action ?? "");
-  if (!body || !UUID.test(id) || !(action in STEPS)) return badRequest();
+  if (!body || !UUID.test(id) || !(action in STEPS)) return badRequest(locale);
   // The order is the one in the address, whatever the body says.
   const step = STEPS[action as keyof typeof STEPS];
-  return stepJson(await step(auth.supabase, jsonFields({ ...body, order_id: id }), "ar"));
+  return stepJson(await step(auth.supabase, jsonFields({ ...body, order_id: id }), locale));
 }

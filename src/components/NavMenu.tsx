@@ -152,7 +152,9 @@ export default function NavMenu({
         <div
           ref={panelRef}
           role="menu"
-          className="fixed inset-x-3 top-[calc(4.5rem_+_3px)] z-50 pb-16 sm:pb-0 max-h-[calc(100dvh_-_5.9rem_-_var(--nav-bottom))] overflow-y-auto rounded-3xl border border-border bg-card shadow-float sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-[22rem]"
+          // text-foreground: the sheet hangs from the header, whose ink is white on the logo palette, and the section
+          // titles inherited it — white on the white card (owner, 6 November 2026: «غير واضحة في قائمة الويب»).
+          className="fixed inset-x-3 top-[calc(4.5rem_+_3px)] z-50 pb-16 sm:pb-0 max-h-[calc(100dvh_-_5.9rem_-_var(--nav-bottom))] overflow-y-auto rounded-3xl border border-border bg-card text-foreground shadow-float sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-[22rem]"
         >
           <button
             role="menuitem"

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { forwardStep } from "@/lib/contractSteps";
-import { APP_SAY, num, readJson, text } from "@/lib/appRoute";
+import { appSay, num, readJson, text } from "@/lib/appRoute";
 import { OFFER_UNIT_NAME } from "@/lib/marketOffers";
 import {
   FORWARD_EVENT_LABEL,
@@ -9,6 +9,8 @@ import {
   type ForwardContract,
   type ForwardEvent,
 } from "@/lib/forwardContracts";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * One forward contract in the app (backlog 203), as /market/forward/[id] reads it: its terms, its two parties (named
@@ -22,9 +24,10 @@ import {
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
   const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/.test(id)) return NextResponse.json({ error: "لم نجد هذا العقد." }, { status: 404 });
+  if (!/^[0-9a-f-]{36}$/.test(id)) return NextResponse.json({ error: tr(locale, "لم نجد هذا العقد.", "We could not find this contract.") }, { status: 404 });
 
   const [{ data: row }, { data: partyRows }, { data: eventRows }, { data: profile }] = await Promise.all([
     supabase.from("forward_contracts").select("*").eq("id", id).maybeSingle(),
@@ -33,7 +36,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
   ]);
   const c = row as ForwardContract | null;
-  if (!c) return NextResponse.json({ error: "لم نجد هذا العقد." }, { status: 404 });
+  if (!c) return NextResponse.json({ error: tr(locale, "لم نجد هذا العقد.", "We could not find this contract.") }, { status: 404 });
   const parties = ((partyRows ?? []) as {
     buyer_name: string | null;
     buyer_phone: string | null;
@@ -41,8 +44,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     farmer_phone: string | null;
   }[])[0];
   // The proposer typed the other side's number; until they sign, the other side is named by its last digits.
-  const named = (name: string | null | undefined, tail: boolean) => name ?? (tail ? `صاحب الرقم …${c.phone_tail}` : "—");
-  const actor = (a: string | null) => (a === c.buyer_id ? "المشتري" : a === c.farmer_id ? "المزارع" : "الإدارة");
+  const named = (name: string | null | undefined, tail: boolean) => name ?? (tail ? tr(locale, `صاحب الرقم …${c.phone_tail}`, `The holder of the number …${c.phone_tail}`) : "—");
+  const actor = (a: string | null) => (a === c.buyer_id ? tr(locale, "المشتري", "The buyer") : a === c.farmer_id ? tr(locale, "المزارع", "the farmer") : tr(locale, "الإدارة", "Administration"));
 
   return NextResponse.json(
     {
@@ -50,7 +53,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       quantity: Number(c.quantity),
       price: Number(c.price),
       value: Number(c.price) * Number(c.quantity),
-      unit_label: OFFER_UNIT_NAME[c.unit]?.ar ?? c.unit,
+      unit_label: OFFER_UNIT_NAME[c.unit]?.[locale] ?? c.unit,
       status_label: FORWARD_STATUS_LABEL[c.status]?.[0] ?? c.status,
       me: user.id,
       is_admin: (profile as { role: string } | null)?.role === "admin",
@@ -73,9 +76,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { id } = await params;
   const body = await readJson(req);
-  if (!body) return NextResponse.json({ error: "طلبٌ غير مفهوم." }, { status: 400 });
+  if (!body) return NextResponse.json({ error: tr(locale, "طلبٌ غير مفهوم.", "The request was not understood.") }, { status: 400 });
 
   const result = await forwardStep(
     auth.supabase,
@@ -87,8 +91,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       deliveredOn: text(body, "delivered_on", 10),
       gradeMet: text(body, "grade_met", 3),
     },
-    APP_SAY,
+    appSay(locale),
   );
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
-  return NextResponse.json({ ok: true, message: "تمّ، وأُخبر الطرف الآخر." });
+  return NextResponse.json({ ok: true, message: tr(locale, "تمّ، وأُخبر الطرف الآخر.", "Done, and the other side has been told.") });
 }

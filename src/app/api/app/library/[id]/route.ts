@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import { loadPublishedResearch, researchCitation } from "@/lib/researchLibrary";
 import { RESEARCH_KIND_LABEL } from "@/lib/research";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * عملٌ منشور في المكتبة، في التطبيق (البند ٢٠٣) — /library/[id] كما هي: ملخّصه ومن كتبه وطريقة الاستشهاد به.
@@ -14,15 +16,16 @@ import { RESEARCH_KIND_LABEL } from "@/lib/research";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const locale = appLocale(req);
   const { id } = await params;
   const item = await loadPublishedResearch(createPublicClient(), id);
-  if (!item) return NextResponse.json({ error: "هذا العمل غير موجود أو لم يُنشر." }, { status: 404 });
+  if (!item) return NextResponse.json({ error: tr(locale, "هذا العمل غير موجود أو لم يُنشر.", "This work does not exist or is not published.") }, { status: 404 });
   return NextResponse.json({
     ...item,
     file_path: undefined,
     kindLabel: RESEARCH_KIND_LABEL[item.kind][0],
     hasFile: !!item.file_path,
     pageUrl: new URL(`/library/${item.id}`, req.url).toString(),
-    citation: researchCitation(item, "ar"),
+    citation: researchCitation(item, locale),
   });
 }

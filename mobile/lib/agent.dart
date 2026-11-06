@@ -10,34 +10,35 @@ library;
 import 'dart:convert';
 
 import 'account.dart';
+import 'i18n.dart';
 
-const agentScopes = <String, String>{'lands': 'الأراضي', 'seasons': 'المواسم', 'herds': 'القطيع'};
+Map<String, String> get agentScopes => <String, String>{'lands': tr('الأراضي', 'Land'), 'seasons': tr('المواسم', 'Seasons'), 'herds': tr('القطيع', 'Herds')};
 
 /// What each permission covers, as the website's request form says it.
-const agentScopeLong = <String, String>{
-  'lands': 'الأراضي: يراها ويسجّل أرضاً ويعدّلها ويرفع مستنداتها',
-  'seasons': 'المواسم: يراها ويعتمد مراحلها ويرفع أدلّتها، معلَّمةً باسمه، وتعترض على ما كتبه',
-  'herds': 'القطيع: يراه ويتابع مراحله',
+Map<String, String> get agentScopeLong => <String, String>{
+  'lands': tr('الأراضي: يراها ويسجّل أرضاً ويعدّلها ويرفع مستنداتها', 'Land: sees it, registers and edits a land, uploads its papers'),
+  'seasons': tr('المواسم: يراها ويعتمد مراحلها ويرفع أدلّتها، معلَّمةً باسمه، وتعترض على ما كتبه', 'Seasons: sees them, signs off their stages and uploads their evidence, marked in their name, and you can object to what they wrote'),
+  'herds': tr('القطيع: يراه ويتابع مراحله', 'Herds: sees them and follows their stages'),
 };
 
 /// The kinds of evidence an agent may record on a stage.
-const evidenceKinds = <String, String>{'photo': 'صورة', 'invoice': 'فاتورة', 'inspection': 'معاينة'};
+Map<String, String> get evidenceKinds => <String, String>{'photo': tr('صورة', 'Photo'), 'invoice': tr('فاتورة', 'Invoice'), 'inspection': tr('معاينة', 'Inspection')};
 
 /// The mark on a stage or a piece of evidence an agent wrote, as src/components/AgentWriteMark.tsx says it to the farmer.
 String agentMark({String? company, required bool stage, String? caption}) {
-  final who = company != null && company.isNotEmpty ? 'الوكيل «$company»' : 'وكيلك';
+  final who = company != null && company.isNotEmpty ? tr('الوكيل «$company»', 'the agent «$company»') : tr('وكيلك', 'Your agent');
   return stage
-      ? 'سجّلها $who: اعتمد هذه المرحلة باسمك.'
-      : 'سجّله $who: رفع الدليل${caption != null && caption.isNotEmpty ? ' «$caption»' : ''} باسمك.';
+      ? tr('سجّلها $who: اعتمد هذه المرحلة باسمك.', 'Recorded by $who: signed off this stage in your name.')
+      : tr('سجّله $who: رفع الدليل${caption != null && caption.isNotEmpty ? ' «$caption»' : ''} باسمك.', 'Recorded by $who: uploaded the evidence${caption != null && caption.isNotEmpty ? ' «$caption»' : ''} in your name.');
 }
 
 /// What reopening means, under the objection form (AgentWriteMark).
 String objectionNote({required bool stage}) => stage
-    ? 'تُفتح المرحلة من جديد إن لم تُعتمد بعدها مرحلة، فتعتمدها أنت حين تتمّ. ودليلها يبقى.'
-    : 'يبقى الدليل، معلَّماً أنّك اعترضت عليه.';
+    ? tr('تُفتح المرحلة من جديد إن لم تُعتمد بعدها مرحلة، فتعتمدها أنت حين تتمّ. ودليلها يبقى.', 'The stage reopens if no later stage has been signed off, and you sign it off when it is done. Its evidence stays.')
+    : tr('يبقى الدليل، معلَّماً أنّك اعترضت عليه.', 'The evidence stays, marked as objected to.');
 
 String _day(String? iso) {
-  const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  final months = [tr('يناير', 'January'), tr('فبراير', 'February'), tr('مارس', 'March'), tr('أبريل', 'April'), tr('مايو', 'May'), tr('يونيو', 'June'), tr('يوليو', 'July'), tr('أغسطس', 'August'), tr('سبتمبر', 'September'), tr('أكتوبر', 'October'), tr('نوفمبر', 'November'), tr('ديسمبر', 'December')];
   final d = iso == null ? null : DateTime.tryParse(iso);
   return d == null ? '' : '${d.day} ${months[d.month - 1]} ${d.year}';
 }
@@ -61,11 +62,11 @@ class AgentFarmer {
   final Map<String, dynamic> j;
   String get id => j['id'] as String;
   String? get farmerId => j['farmer_id'] as String?;
-  String get fullName => (j['full_name'] as String?)?.trim().isNotEmpty == true ? j['full_name'] as String : 'مزارع';
+  String get fullName => (j['full_name'] as String?)?.trim().isNotEmpty == true ? j['full_name'] as String : tr('مزارع', 'Farmer');
   String? get phone => j['phone'] as String?;
   String get phoneTail => j['phone_tail'] as String? ?? '';
   List<String> get scopes => _strings(j['scopes']);
-  String get scopesLabel => j['scopes_label'] as String? ?? scopes.map((s) => agentScopes[s] ?? s).join(' و');
+  String get scopesLabel => j['scopes_label'] as String? ?? scopes.map((s) => agentScopes[s] ?? s).join(tr(' و', ','));
   String get status => j['status'] as String? ?? 'pending';
   String get statusLabel => j['status_label'] as String? ?? status;
   bool get managed => j['managed'] == true;
@@ -143,7 +144,7 @@ class FarmerView {
   final Map<String, dynamic> j;
   Map<String, dynamic> get _f => j['farmer'] as Map<String, dynamic>? ?? const {};
   String get id => _f['id'] as String? ?? '';
-  String get fullName => (_f['full_name'] as String?)?.trim().isNotEmpty == true ? _f['full_name'] as String : 'مزارع';
+  String get fullName => (_f['full_name'] as String?)?.trim().isNotEmpty == true ? _f['full_name'] as String : tr('مزارع', 'Farmer');
   String? get phone => _f['phone'] as String?;
   List<String> get scopes => _strings(_f['scopes']);
   String get scopesLabel => _f['scopes_label'] as String? ?? '';
@@ -193,7 +194,7 @@ class AgentWrite {
   bool get canObject => j['can_object'] == true;
 
   /// «سجّلها الوكيل «…»» for a season's stage or evidence; the plain line for the rest.
-  String get mark => onSeason ? agentMark(company: company, stage: isStage) : '${company ?? 'وكيل'} · $label';
+  String get mark => onSeason ? agentMark(company: company, stage: isStage) : tr('${company ?? 'وكيل'} · $label', '${company ?? 'Agent'} · $label');
 }
 
 class MyAgentsView {

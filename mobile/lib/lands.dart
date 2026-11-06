@@ -11,6 +11,7 @@ library;
 
 import 'account.dart';
 import 'evidence.dart';
+import 'i18n.dart';
 
 num _num(Object? v) => v is num ? v : num.tryParse('$v') ?? 0;
 num? _numOrNull(Object? v) => v == null ? null : (v is num ? v : num.tryParse('$v'));
@@ -78,8 +79,8 @@ class LandSummary {
 
   /// The website's counter: kinds on file against kinds required, «مكتملة» once enough (backlog 123).
   String get documentsLine => documentsOnFile >= documentsRequired
-      ? 'المستندات مكتملة ✓'
-      : 'المستندات: $documentsOnFile من $documentsRequired';
+      ? tr('المستندات مكتملة ✓', 'Documents complete ✓')
+      : tr('المستندات: $documentsOnFile من $documentsRequired', 'Documents: $documentsOnFile of $documentsRequired');
 
   factory LandSummary.fromJson(Map<String, dynamic> j) => LandSummary(
         id: j['id'] as String,
@@ -204,7 +205,7 @@ class LandTestRow {
   final String? note;
   final bool deletable;
 
-  String get kindLabel => kind == 'water' ? 'ماء' : 'تربة';
+  String get kindLabel => kind == 'water' ? tr('ماء', 'Water') : tr('تربة', 'Soil');
 }
 
 class SeasonRow {
@@ -318,8 +319,8 @@ class LandCard {
   bool get hasLocation => latitude != null && longitude != null;
 
   String get documentsLine => documentsOnFile >= documentsRequired
-      ? 'المستندات مكتملة ✓'
-      : 'المستندات: $documentsOnFile من $documentsRequired';
+      ? tr('المستندات مكتملة ✓', 'Documents complete ✓')
+      : tr('المستندات: $documentsOnFile من $documentsRequired', 'Documents: $documentsOnFile of $documentsRequired');
 
   factory LandCard.fromJson(Map<String, dynamic> j) {
     final l = Map<String, dynamic>.from(j['land'] as Map? ?? const {});
@@ -491,7 +492,7 @@ class LandsApi {
       'caption': file.captionOr(caption, kindLabel),
       ...await _evidence.attach('lands', file),
     });
-    return j['message'] as String? ?? 'رُفع المستند.';
+    return j['message'] as String? ?? tr('رُفع المستند.', 'The document was uploaded.');
   }
 
   Future<List<LandSummary>> mine() async {
@@ -506,7 +507,7 @@ class LandsApi {
   /// One of the owner's steps on the card; the website's sentence for what happened.
   Future<String> _step(String id, Map<String, dynamic> body) async {
     final j = await _account.call('POST', '/api/app/lands/$id', body: body);
-    return j['message'] as String? ?? 'تمّ.';
+    return j['message'] as String? ?? tr('تمّ.', 'Done.');
   }
 
   Future<String> setInvestors(String id, {required bool open, List<String> models = const [], String note = ''}) =>

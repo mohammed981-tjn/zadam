@@ -21,7 +21,7 @@
  *
  * Bumping VERSION drops every old cache on the next activation.
  */
-const VERSION = "sudagri-v3";
+const VERSION = "sudagri-v4";
 const PAGES = `${VERSION}-pages`;
 const ASSETS = `${VERSION}-assets`;
 const OFFLINE_URL = "/offline.html";
@@ -100,8 +100,12 @@ self.addEventListener("fetch", (event) => {
       try {
         const res = await fetch(req);
         // Only a clean, public, full-page answer is kept — never a redirect
-        // (which could be a login bounce) and never a private route.
-        if (isPublic && res.ok && res.type === "basic" && !res.redirected) {
+        // (which could be a login bounce), never a private route, and never a
+        // page answered to a signed-in person (src/proxy.ts marks those): since
+        // item 206 the homepage shows that person's seasons, money and lands,
+        // and every page shows their name. v4 drops copies kept before this.
+        const isPrivate = res.headers.get("x-sudagri-private") === "1";
+        if (isPublic && !isPrivate && res.ok && res.type === "basic" && !res.redirected) {
           const cache = await caches.open(PAGES);
           cache.put(req, res.clone());
         }

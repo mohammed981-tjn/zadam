@@ -17,6 +17,8 @@ import {
   type PriceSeries,
 } from "@/lib/marketPrices";
 import { WFP_PRICES_SOURCE, medianFor, orderTowns, pctChange, unusual, wfpItem, wfpMarketPlace, wfpTown, wfpUnit } from "@/lib/wfpPrices";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «سوق المحاصيل اليوم» في التطبيق (البند ٢٠٣): what /market shows, from the same loader (`loadMarketBoard`), laid out
@@ -24,12 +26,13 @@ import { WFP_PRICES_SOURCE, medianFor, orderTowns, pctChange, unusual, wfpItem, 
  * quiet-bourse notice with WFP's monthly figures, FEWS NET's and WFP's monthly tables, and how fresh each daily feed is
  * (`priceFreshness.ts`). Public, as the page is: read with the anon key, so only published rows come back.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const locale = appLocale(req);
   const now = new Date();
   const [board, feeds] = await Promise.all([loadMarketBoard(now), loadFeedStates(createPublicClient(), now).catch(() => [])]);
   const { data, fx, fews, wfp, wfpPrices, wfpMedians, usdRate, byCrop, crops, lastBulletin, quiet, checked } = board;
 
-  const perUnit = (s: PriceSeries) => `لل${UNIT_NAME[s.unit].ar.slice(2)}`;
+  const perUnit = (s: PriceSeries) => tr(locale, `لل${UNIT_NAME[s.unit][locale].slice(2)}`, `per ${UNIT_NAME[s.unit].en}`);
   const card = (s: PriceSeries) => {
     const m = data!.markets[s.market];
     const { last, change, changePct } = latest(s);
@@ -68,12 +71,12 @@ export async function GET() {
       crops:
         data === null
           ? []
-          : crops.map((crop) => ({ crop, name: cropName(crop, "ar"), series: byCrop.get(crop)!.map(card) })),
+          : crops.map((crop) => ({ crop, name: cropName(crop, locale), series: byCrop.get(crop)!.map(card) })),
       wfp_monthly: wfp,
       fews: fews?.map((f) => ({
-        market: fewsMarket(f.market, "ar"),
-        product: fewsProduct(f.product, "ar"),
-        unit: f.unit ? fewsUnit(f.unit, "ar") : "",
+        market: fewsMarket(f.market, locale),
+        product: fewsProduct(f.product, locale),
+        unit: f.unit ? fewsUnit(f.unit, locale) : "",
         value: f.value,
         prev: f.prev,
         month: f.date.slice(0, 7),
@@ -83,15 +86,15 @@ export async function GET() {
         ? {
             latest: wfpPrices.latest,
             source: WFP_PRICES_SOURCE,
-            towns: orderTowns(wfpPrices.towns, "ar").map((town) => ({
-              name: wfpTown(town.market, "ar"),
-              place: wfpMarketPlace(town.market, "ar"),
+            towns: orderTowns(wfpPrices.towns, locale).map((town) => ({
+              name: wfpTown(town.market, locale),
+              place: wfpMarketPlace(town.market, locale),
               latest: town.latest,
               items: town.items.map((it) => {
                 const median = medianFor(wfpMedians, it);
                 return {
-                  name: wfpItem(it.commodity, "ar"),
-                  unit: wfpUnit(it.unit, "ar"),
+                  name: wfpItem(it.commodity, locale),
+                  unit: wfpUnit(it.unit, locale),
                   month: it.month,
                   price: it.price,
                   vs_month_pct: pctChange(it.price, it.prevMonth),
@@ -104,7 +107,7 @@ export async function GET() {
           }
         : null,
       feeds: feeds.map((f) => ({ key: f.key, newest: f.newest, age_days: f.ageDays, limit_days: f.limitDays, stale: f.stale })),
-      stale_lines: staleLines(feeds, "ar"),
+      stale_lines: staleLines(feeds, locale),
       units_note: `${UNIT_NAME.qintar.noteAr} ${UNIT_NAME.ardeb.noteAr}`,
     },
     { headers: { "cache-control": "no-store" } },

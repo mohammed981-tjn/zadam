@@ -5,19 +5,20 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
 import '../suppliers.dart';
 import '../ui.dart';
 import 'suppliers_kit.dart';
 
-const _orderSteps = [
-  ('١. يفتح المنظّم الطلب', 'المورد، والأصناف بأسعارها، ونقطة الاستلام، ويوم التوصيل، وآخر موعد.'),
-  ('٢. يتعهّد المزارعون', 'كلٌّ بكميّته، والحمولة تُحسب بالطن أمام الجميع.'),
-  ('٣. المقدّم مباشرةً', '١٠٪ إلى حساب المورد أو الجمعية، والمنظّم يسجّل رقم التحويل.'),
-  ('٤. يوم التوصيل', 'الاستلام من النقطة، والباقي يُدفع عندها. أو توصيلٌ إلى الأرض بالرمز.'),
+List<(String, String)> get _orderSteps => [
+  (tr('١. يفتح المنظّم الطلب', '1. The organiser opens the order'), tr('المورد، والأصناف بأسعارها، ونقطة الاستلام، ويوم التوصيل، وآخر موعد.', 'Supplier, items and prices, pickup point, drop day, deadline.')),
+  (tr('٢. يتعهّد المزارعون', '2. Farmers pledge'), tr('كلٌّ بكميّته، والحمولة تُحسب بالطن أمام الجميع.', 'Each their quantity; the load in tonnes is shown to all.')),
+  (tr('٣. المقدّم مباشرةً', '3. Deposit, directly'), tr('١٠٪ إلى حساب المورد أو الجمعية، والمنظّم يسجّل رقم التحويل.', '10% into the supplier’s or cooperative’s account; the organiser records the transfer reference.')),
+  (tr('٤. يوم التوصيل', '4. Drop day'), tr('الاستلام من النقطة، والباقي يُدفع عندها. أو توصيلٌ إلى الأرض بالرمز.', 'Collect at the point and pay the rest there — or delivery to the farm, confirmed by code.')),
 ];
 
-const _noMoneyHeld = 'سوداقري لا تستلم أيّ مبلغ ولا تمسكه: المقدّم يذهب من المزارع إلى حساب المورد أو الجمعية مباشرةً، '
-    'والباقي يُدفع عند الاستلام. لا تحوّل لأيّ حسابٍ غير المكتوب في الطلب.';
+String get _noMoneyHeld => tr('سوداقري لا تستلم أيّ مبلغ ولا تمسكه: المقدّم يذهب من المزارع إلى حساب المورد أو الجمعية مباشرةً، '
+    'والباقي يُدفع عند الاستلام. لا تحوّل لأيّ حسابٍ غير المكتوب في الطلب.', 'Sudagri receives and holds no money: the deposit goes from the farmer straight to the supplier\'s or the cooperative\'s account, and the rest is paid on collection. Do not transfer to any account other than the one written in the order.');
 
 class OrdersTab extends StatefulWidget {
   const OrdersTab({super.key, required this.api});
@@ -35,7 +36,7 @@ class _OrdersTabState extends State<OrdersTab> {
   @override
   Widget build(BuildContext context) {
     return SignedInGate(
-      why: 'ادخل لترى الطلبات الجماعية وتتعهّد بكميّتك، أو لتفتح طلباً لجمعيتك أو قسمك.',
+      why: tr('ادخل لترى الطلبات الجماعية وتتعهّد بكميّتك، أو لتفتح طلباً لجمعيتك أو قسمك.', 'Sign in to see the group orders and pledge your quantity, or to open an order for your cooperative or block.'),
       builder: (context) {
         _board ??= widget.api.orders();
         return FutureBuilder<OrdersBoard>(
@@ -49,9 +50,9 @@ class _OrdersTabState extends State<OrdersTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
-                  const IntroNote(
-                    'جوالٌ واحدٌ يُشترى بسعر التجزئة، وحمولةُ شاحنةٍ بسعرٍ أفضل. تفتح الجمعية أو مندوب القسم طلباً على موردٍ '
-                    'موثّق، ويتعهّد كلُّ مزارعٍ بكميّته حتى تكتمل الحمولة، ثمّ تصل الشاحنة نقطة الاستلام في اليوم المعلن.',
+                  IntroNote(
+                    tr('جوالٌ واحدٌ يُشترى بسعر التجزئة، وحمولةُ شاحنةٍ بسعرٍ أفضل. تفتح الجمعية أو مندوب القسم طلباً على موردٍ '
+                    'موثّق، ويتعهّد كلُّ مزارعٍ بكميّته حتى تكتمل الحمولة، ثمّ تصل الشاحنة نقطة الاستلام في اليوم المعلن.', 'One sack is bought at the retail price, and a truck load at a better price. The cooperative or the block\'s representative opens an order with a verified supplier, and each farmer pledges a quantity until the load is complete; then the truck reaches the pickup point on the day announced.'),
                     icon: Icons.local_shipping_outlined,
                   ),
                   const SizedBox(height: 10),
@@ -63,10 +64,10 @@ class _OrdersTabState extends State<OrdersTab> {
                     ],
                   ]),
                   const SizedBox(height: 10),
-                  const Muted(_noMoneyHeld),
+                  Muted(_noMoneyHeld),
                   const SizedBox(height: 16),
                   SectionTitle(
-                    'الطلبات الجارية',
+                    tr('الطلبات الجارية', 'Current orders'),
                     trailing: b.comingSoon || b.suppliers.isEmpty
                         ? null
                         : FilledButton.icon(
@@ -75,16 +76,16 @@ class _OrdersTabState extends State<OrdersTab> {
                               if (mounted) _reload();
                             },
                             icon: const Icon(Icons.add_rounded, size: 18),
-                            label: const Text('افتح طلباً'),
+                            label: Text(tr('افتح طلباً', 'Open an order')),
                           ),
                   ),
                   if (b.comingSoon)
-                    const StateView(icon: Icons.hourglass_empty_rounded, title: 'يُفعَّل قريباً', compact: true)
+                    StateView(icon: Icons.hourglass_empty_rounded, title: tr('يُفعَّل قريباً', 'Coming soon'), compact: true)
                   else if (b.orders.isEmpty)
-                    const StateView(
+                    StateView(
                       icon: Icons.groups_outlined,
-                      title: 'لا طلب جماعيّاً بعد',
-                      message: 'كن أوّل من يفتح واحداً لجمعيتك.',
+                      title: tr('لا طلب جماعيّاً بعد', 'No group order yet'),
+                      message: tr('كن أوّل من يفتح واحداً لجمعيتك.', 'Be the first to open one for your cooperative.'),
                       compact: true,
                     )
                   else
@@ -93,7 +94,7 @@ class _OrdersTabState extends State<OrdersTab> {
                       const SizedBox(height: 10),
                     ],
                   if (!b.comingSoon && b.suppliers.isEmpty)
-                    const Muted('لا مورد موثّقاً بعد يُفتح عليه طلب. دُلّ تاجرك على «صفحتي كمورد».'),
+                    Muted(tr('لا مورد موثّقاً بعد يُفتح عليه طلب. دُلّ تاجرك على «صفحتي كمورد».', 'No verified supplier to open an order with yet. Point your dealer to «My supplier page».')),
                 ],
               ),
             );
@@ -121,10 +122,10 @@ class OrderCard extends StatelessWidget {
       onTap: onTap,
       children: [
         Text(o.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-        Muted('${o.supplierName} ← ${o.pickupName ?? o.pickupLocality}، ${o.pickupState}'),
+        Muted(tr('${o.supplierName} ← ${o.pickupName ?? o.pickupLocality}، ${o.pickupState}', '${o.supplierName} → ${o.pickupName ?? o.pickupLocality}, ${o.pickupState}')),
         Row(
           children: [
-            Expanded(child: Text('يوم التوصيل: ${dateAr(o.dropDay)}', style: const TextStyle(fontSize: 12.5))),
+            Expanded(child: Text(tr('يوم التوصيل: ${dateAr(o.dropDay)}', 'Drop day: ${dateAr(o.dropDay)}'), style: const TextStyle(fontSize: 12.5))),
             Flexible(child: TagPill(o.statusLabel, gold: o.status != 'open')),
           ],
         ),
@@ -134,7 +135,7 @@ class OrderCard extends StatelessWidget {
           child: LinearProgressIndicator(value: o.fill, minHeight: 8),
         ),
         const SizedBox(height: 4),
-        Muted('${figure(o.pledgedTonnes, 1)} من ${figure(o.targetTonnes, 1)} طن · ${o.members} مزارع'),
+        Muted(tr('${figure(o.pledgedTonnes, 1)} من ${figure(o.targetTonnes, 1)} طن · ${o.members} مزارع', '${figure(o.pledgedTonnes, 1)} of ${figure(o.targetTonnes, 1)} t · ${o.members} farmers')),
       ],
     );
   }
@@ -262,9 +263,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('افتح طلباً جماعيّاً')),
+      appBar: AppBar(title: Text(tr('افتح طلباً جماعيّاً', 'Open a group order'))),
       body: SignedInGate(
-        why: 'ادخل لتفتح طلباً لجمعيتك أو قسمك.',
+        why: tr('ادخل لتفتح طلباً لجمعيتك أو قسمك.', 'Sign in to open an order for your cooperative or block.'),
         builder: (context) {
           if (_board == null || _loadedFor != _supplier) _load();
           return FutureBuilder<OrdersBoard>(
@@ -274,10 +275,10 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
               if (snap.hasError) return StateView.error(snap.error, onRetry: () => setState(_load));
               final b = snap.data!;
               if (b.suppliers.isEmpty) {
-                return const StateView(
+                return StateView(
                   icon: Icons.storefront_outlined,
-                  title: 'لا مورد موثّقاً بعد',
-                  message: 'لا مورد موثّقاً بعد يُفتح عليه طلب. دُلّ تاجرك على «صفحتي كمورد».',
+                  title: tr('لا مورد موثّقاً بعد', 'No verified supplier yet'),
+                  message: tr('لا مورد موثّقاً بعد يُفتح عليه طلب. دُلّ تاجرك على «صفحتي كمورد».', 'No verified supplier to open an order with yet. Point your dealer to «My supplier page».'),
                 );
               }
               final chosen = b.suppliers.where((s) => s.id == _supplier).firstOrNull;
@@ -287,7 +288,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: chosen?.id,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: '١) اختر المورد الموثّق'),
+                    decoration: InputDecoration(labelText: tr('١) اختر المورد الموثّق', '1) Choose the verified supplier')),
                     items: [for (final s in b.suppliers) DropdownMenuItem(value: s.id, child: Text('${s.name} — ${s.state}'))],
                     onChanged: (v) => setState(() {
                       _supplier = v;
@@ -308,30 +309,30 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     const gap = SizedBox(height: 10);
     return [
       gap,
-      TextField(controller: _title, maxLength: 100, decoration: const InputDecoration(labelText: 'عنوان الطلب', hintText: 'يوريا قسم الحصاحيصا — موسم الشتاء')),
-      TextField(controller: _organiser, maxLength: 60, decoration: const InputDecoration(labelText: 'اسمك أو اسم الجمعية')),
+      TextField(controller: _title, maxLength: 100, decoration: InputDecoration(labelText: tr('عنوان الطلب', 'Order title'), hintText: tr('يوريا قسم الحصاحيصا — موسم الشتاء', 'Hasaheisa block urea — winter season'))),
+      TextField(controller: _organiser, maxLength: 60, decoration: InputDecoration(labelText: tr('اسمك أو اسم الجمعية', 'Your name or the cooperative’s'))),
       gap,
       TextField(
         controller: _phone,
         keyboardType: TextInputType.phone,
         textDirection: TextDirection.ltr,
-        decoration: const InputDecoration(labelText: 'هاتفك', helperText: 'يراه المتعهّدون وحدهم'),
+        decoration: InputDecoration(labelText: tr('هاتفك', 'Your phone'), helperText: tr('يراه المتعهّدون وحدهم', 'Only those who pledge see it')),
       ),
       const SizedBox(height: 16),
-      const SectionTitle('نقطة الاستلام'),
-      TextField(controller: _pickup, maxLength: 100, decoration: const InputDecoration(labelText: 'الجمعية، أو مكتب القسم، أو مخزن تاجرٍ شريك')),
-      TextField(controller: _locality, maxLength: 80, decoration: const InputDecoration(labelText: 'المحلية أو القرية')),
+      SectionTitle(tr('نقطة الاستلام', 'Pickup point')),
+      TextField(controller: _pickup, maxLength: 100, decoration: InputDecoration(labelText: tr('الجمعية، أو مكتب القسم، أو مخزن تاجرٍ شريك', 'The cooperative, the block office, or a partner dealer’s store'))),
+      TextField(controller: _locality, maxLength: 80, decoration: InputDecoration(labelText: tr('المحلية أو القرية', 'Locality or village'))),
       gap,
       StateField(value: _pickupState, onChanged: (v) => setState(() => _pickupState = v)),
       const SizedBox(height: 16),
       Row(
         children: [
           Expanded(
-            child: OutlinedButton(onPressed: () => _pickDate(true), child: Text('آخر موعدٍ للانضمام\n${dateAr(_deadline)}', textAlign: TextAlign.center)),
+            child: OutlinedButton(onPressed: () => _pickDate(true), child: Text(tr('آخر موعدٍ للانضمام\n${dateAr(_deadline)}', 'Joining deadline\n${dateAr(_deadline)}'), textAlign: TextAlign.center)),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: OutlinedButton(onPressed: () => _pickDate(false), child: Text('يوم التوصيل\n${dateAr(_dropDay)}', textAlign: TextAlign.center)),
+            child: OutlinedButton(onPressed: () => _pickDate(false), child: Text(tr('يوم التوصيل\n${dateAr(_dropDay)}', 'Drop day\n${dateAr(_dropDay)}'), textAlign: TextAlign.center)),
           ),
         ],
       ),
@@ -342,49 +343,49 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             child: TextField(
               controller: _target,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'الحمولة المستهدفة (طن)'),
+              decoration: InputDecoration(labelText: tr('الحمولة المستهدفة (طن)', 'Target load (t)')),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: TextField(controller: _deposit, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'المقدّم ٪')),
+            child: TextField(controller: _deposit, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('المقدّم ٪', 'Deposit %'))),
           ),
         ],
       ),
       const SizedBox(height: 16),
-      const SectionTitle('أين يُدفع المقدّم؟'),
+      SectionTitle(tr('أين يُدفع المقدّم؟', 'Where is the deposit paid?')),
       SegmentedButton<String>(
-        segments: const [
-          ButtonSegment(value: 'cooperative', label: Text('حساب الجمعية')),
-          ButtonSegment(value: 'supplier', label: Text('حساب المورد')),
+        segments: [
+          ButtonSegment(value: 'cooperative', label: Text(tr('حساب الجمعية', 'The cooperative’s account'))),
+          ButtonSegment(value: 'supplier', label: Text(tr('حساب المورد', 'The supplier’s account'))),
         ],
         selected: {_payee},
         onSelectionChanged: (s) => setState(() => _payee = s.first),
       ),
       gap,
-      TextField(controller: _account, maxLength: 200, decoration: const InputDecoration(labelText: 'بنكك: رقم الحساب واسم صاحبه')),
-      const Muted('يراه من تعهّد وحده. المال يذهب من المزارع إلى هذا الحساب مباشرةً — المنصّة لا تمسك شيئاً.'),
+      TextField(controller: _account, maxLength: 200, decoration: InputDecoration(labelText: tr('بنكك: رقم الحساب واسم صاحبه', 'Bankak: account number and holder’s name'))),
+      Muted(tr('يراه من تعهّد وحده. المال يذهب من المزارع إلى هذا الحساب مباشرةً — المنصّة لا تمسك شيئاً.', 'Only those who pledge see it. Money goes from the farmer straight to this account — the platform holds nothing.')),
       const SizedBox(height: 16),
       SectionTitle(
-        'الأصناف',
-        subtitle: 'الوحدة كما تُسلَّم (جوال ٥٠ كجم)، ووزنها بالكيلو لتُحسب الحمولة، وسعرها بالدولار من المورد.',
+        tr('الأصناف', 'Categories'),
+        subtitle: tr('الوحدة كما تُسلَّم (جوال ٥٠ كجم)، ووزنها بالكيلو لتُحسب الحمولة، وسعرها بالدولار من المورد.', 'The unit as handed over (50 kg sack), its weight in kg for the load, and the supplier’s dollar price.'),
         trailing: IconButton(onPressed: () => setState(() => _lines.add(_LineInput())), icon: const Icon(Icons.add_circle_outline)),
       ),
       for (final l in _lines)
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: InfoCard(children: [
-            TextField(controller: l.name, decoration: const InputDecoration(labelText: 'الصنف')),
+            TextField(controller: l.name, decoration: InputDecoration(labelText: tr('الصنف', 'Item'))),
             const SizedBox(height: 6),
             Row(
               children: [
-                Expanded(child: TextField(controller: l.unit, decoration: const InputDecoration(labelText: 'الوحدة'))),
+                Expanded(child: TextField(controller: l.unit, decoration: InputDecoration(labelText: tr('الوحدة', 'Unit')))),
                 const SizedBox(width: 6),
                 Expanded(
                   child: TextField(
                     controller: l.kg,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'كجم/وحدة'),
+                    decoration: InputDecoration(labelText: tr('كجم/وحدة', 'kg/unit')),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -399,9 +400,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             ),
           ]),
         ),
-      TextField(controller: _notes, maxLength: 1000, maxLines: 2, decoration: const InputDecoration(labelText: 'ملاحظات (اختياري): ساعات الاستلام، ما يُحضره المزارع')),
+      TextField(controller: _notes, maxLength: 1000, maxLines: 2, decoration: InputDecoration(labelText: tr('ملاحظات (اختياري): ساعات الاستلام، ما يُحضره المزارع', 'Notes (optional): pickup hours, what farmers should bring'))),
       gap,
-      FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'جارٍ الفتح…' : 'افتح الطلب')),
+      FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? tr('جارٍ الفتح…', 'Opening…') : tr('افتح الطلب', 'Open the order'))),
     ];
   }
 }
@@ -439,21 +440,21 @@ class _OrderScreenState extends State<OrderScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: qty, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'الكميّة (وحدات)')),
+              TextField(controller: qty, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: tr('الكميّة (وحدات)', 'Quantity (units)'))),
               const SizedBox(height: 8),
-              TextField(controller: name, maxLength: 60, decoration: const InputDecoration(labelText: 'اسمك كما يراه المنظّم')),
+              TextField(controller: name, maxLength: 60, decoration: InputDecoration(labelText: tr('اسمك كما يراه المنظّم', 'Your name for the organiser'))),
               TextField(
                 controller: phone,
                 keyboardType: TextInputType.phone,
                 textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(labelText: 'هاتفك (للمنظّم وحده)'),
+                decoration: InputDecoration(labelText: tr('هاتفك (للمنظّم وحده)', 'Your phone (organiser only)')),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(my != null && my.status == 'pledged' ? 'عدّل' : 'تعهّد')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('إلغاء', 'Cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(my != null && my.status == 'pledged' ? tr('عدّل', 'Update') : tr('تعهّد', 'Pledge'))),
         ],
       ),
     );
@@ -463,9 +464,9 @@ class _OrderScreenState extends State<OrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('طلب جماعي')),
+      appBar: AppBar(title: Text(tr('طلب جماعي', 'Group order'))),
       body: SignedInGate(
-        why: 'ادخل لتتعهّد بكميّتك في هذا الطلب.',
+        why: tr('ادخل لتتعهّد بكميّتك في هذا الطلب.', 'Sign in to pledge your quantity in this order.'),
         builder: (context) {
           _view ??= widget.api.order(widget.id);
           return FutureBuilder<OrderView>(
@@ -492,7 +493,7 @@ class _OrderScreenState extends State<OrderScreen> {
             children: [
               Text(o.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
               const SizedBox(height: 4),
-              Text('المورد: ${o.supplierName}${o.organiserName != null ? ' · ينظّمه: ${o.organiserName}' : ''}'),
+              Text(tr('المورد: ${o.supplierName}${o.organiserName != null ? ' · ينظّمه: ${o.organiserName}' : ''}', 'Supplier: ${o.supplierName}${o.organiserName != null ? ' · organised by: ${o.organiserName}' : ''}')),
               const SizedBox(height: 6),
               TagPill(o.statusLabel, gold: o.status != 'open'),
             ],
@@ -500,31 +501,31 @@ class _OrderScreenState extends State<OrderScreen> {
         ),
         const SizedBox(height: 12),
         InfoCard(children: [
-          const Text('الحمولة حتى الآن', style: TextStyle(fontWeight: FontWeight.w800)),
+          Text(tr('الحمولة حتى الآن', 'The load so far'), style: TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(value: o.fill, minHeight: 10)),
           const SizedBox(height: 4),
-          Muted('${figure(o.pledgedTonnes, 1)} من ${figure(o.targetTonnes, 1)} طن · ${o.members} مزارع'),
+          Muted(tr('${figure(o.pledgedTonnes, 1)} من ${figure(o.targetTonnes, 1)} طن · ${o.members} مزارع', '${figure(o.pledgedTonnes, 1)} of ${figure(o.targetTonnes, 1)} t · ${o.members} farmers')),
           const Divider(height: 20),
-          LabelValue('نقطة الاستلام', '${o.pickupName != null ? '${o.pickupName} — ' : ''}${o.pickupLocality}، ${o.pickupState}'),
-          if (o.pickupName == null) const Muted('المكان الدقيق يظهر لمن انضمّ إلى الطلب.'),
+          LabelValue(tr('نقطة الاستلام', 'Pickup point'), tr('${o.pickupName != null ? '${o.pickupName} — ' : ''}${o.pickupLocality}، ${o.pickupState}', '${o.pickupName != null ? '${o.pickupName} — ' : ''}${o.pickupLocality}, ${o.pickupState}')),
+          if (o.pickupName == null) Muted(tr('المكان الدقيق يظهر لمن انضمّ إلى الطلب.', 'The exact place shows to those who have joined the order.')),
           if (o.pickupLat != null && o.pickupLng != null)
             TextButton.icon(
               onPressed: () => openLink(context, 'https://www.google.com/maps?q=${o.pickupLat},${o.pickupLng}'),
               icon: const Icon(Icons.map_outlined, size: 18),
-              label: const Text('الخريطة'),
+              label: Text(tr('الخريطة', 'Map')),
             ),
-          LabelValue('يوم التوصيل', dateAr(o.dropDay)),
-          LabelValue('آخر موعدٍ للانضمام', dateAr(o.deadline)),
+          LabelValue(tr('يوم التوصيل', 'Drop day'), dateAr(o.dropDay)),
+          LabelValue(tr('آخر موعدٍ للانضمام', 'Joining deadline'), dateAr(o.deadline)),
           if (o.notes != null && o.notes!.isNotEmpty) Text(o.notes!, style: const TextStyle(height: 1.7)),
         ]),
         const SizedBox(height: 16),
-        const SectionTitle('الأصناف'),
+        SectionTitle(tr('الأصناف', 'Categories')),
         for (final l in v.lines) ...[_lineCard(v, l), const SizedBox(height: 10)],
         if (v.mine.any((p) => p.live)) _depositCard(v),
         if (v.isOrganiser) ...[const SizedBox(height: 16), _organiserPanel(v)],
         const SizedBox(height: 16),
-        const Muted(_noMoneyHeld),
+        Muted(_noMoneyHeld),
       ],
     );
   }
@@ -546,22 +547,22 @@ class _OrderScreenState extends State<OrderScreen> {
           ),
         ],
       ),
-      Muted('تعهّد الأعضاء حتى الآن: ${figure(v.totals[l.id] ?? 0, 1)} وحدة'),
-      if (my != null) Text('تعهّدك: ${figure(my.quantity, 3)} — ${my.statusLabel}', style: const TextStyle(fontSize: 13.5)),
+      Muted(tr('تعهّد الأعضاء حتى الآن: ${figure(v.totals[l.id] ?? 0, 1)} وحدة', 'Members have pledged so far: ${figure(v.totals[l.id] ?? 0, 1)} units')),
+      if (my != null) Text(tr('تعهّدك: ${figure(my.quantity, 3)} — ${my.statusLabel}', 'Your pledge: ${figure(my.quantity, 3)} — ${my.statusLabel}'), style: const TextStyle(fontSize: 13.5)),
       if (canPledge || (my != null && my.status == 'pledged'))
         Wrap(
           spacing: 8,
           children: [
             if (canPledge)
-              FilledButton(onPressed: () => _pledge(v, l, my), child: Text(my != null && my.status == 'pledged' ? 'عدّل' : 'تعهّد')),
+              FilledButton(onPressed: () => _pledge(v, l, my), child: Text(my != null && my.status == 'pledged' ? tr('عدّل', 'Update') : tr('تعهّد', 'Pledge'))),
             if (my != null && my.status == 'pledged')
               TextButton(
                 onPressed: () async {
-                  if (await askSure(context, title: 'الانسحاب', message: 'تنسحب من هذا الصنف؟', action: 'انسحب')) {
+                  if (await askSure(context, title: tr('الانسحاب', 'Withdrawing'), message: tr('تنسحب من هذا الصنف؟', 'Withdraw from this item?'), action: tr('انسحب', 'Withdraw'))) {
                     await _step('withdraw', {'pledge_id': my.id});
                   }
                 },
-                child: const Text('انسحب من هذا الصنف'),
+                child: Text(tr('انسحب من هذا الصنف', 'Withdraw from this item')),
               ),
           ],
         ),
@@ -571,17 +572,17 @@ class _OrderScreenState extends State<OrderScreen> {
   Widget _depositCard(OrderView v) {
     final o = v.order;
     return InfoCard(highlight: true, children: [
-      const Text('مقدّمك وكيف تدفعه', style: TextStyle(fontWeight: FontWeight.w800)),
+      Text(tr('مقدّمك وكيف تدفعه', 'Your deposit and how to pay it'), style: TextStyle(fontWeight: FontWeight.w800)),
       const SizedBox(height: 6),
       Text(
-        'قيمة تعهّدك ${usd(v.myValue)}، والمقدّم ${figure(o.depositPct)}٪ = ${usd(v.myDeposit)}'
-        '${v.rate != null ? ' (≈ ${sdg(v.myDeposit * v.rate!)})' : ''}',
+        tr('قيمة تعهّدك ${usd(v.myValue)}، والمقدّم ${figure(o.depositPct)}٪ = ${usd(v.myDeposit)}'
+        '${v.rate != null ? ' (≈ ${sdg(v.myDeposit * v.rate!)})' : ''}', 'Your pledge is worth ${usd(v.myValue)}, and the deposit of ${figure(o.depositPct)}% = ${usd(v.myDeposit)}${v.rate != null ? ' (≈ ${sdg(v.myDeposit * v.rate!)})' : ''}'),
       ),
       const SizedBox(height: 6),
-      Text(o.payee == 'supplier' ? 'حوّله مباشرةً إلى حساب المورد:' : 'حوّله مباشرةً إلى حساب الجمعية:'),
+      Text(o.payee == 'supplier' ? tr('حوّله مباشرةً إلى حساب المورد:', 'Transfer it directly to the supplier’s account:') : tr('حوّله مباشرةً إلى حساب الجمعية:', 'Transfer it directly to the cooperative’s account:')),
       SelectableText(o.payeeAccount ?? '—', style: const TextStyle(fontWeight: FontWeight.w700)),
       const SizedBox(height: 6),
-      const Text('ثمّ أرسل رقم التحويل إلى المنظّم، والباقي تدفعه عند الاستلام.'),
+      Text(tr('ثمّ أرسل رقم التحويل إلى المنظّم، والباقي تدفعه عند الاستلام.', 'Then send the transfer reference to the organiser, and pay the rest on collection.')),
       if (o.organiserPhone != null)
         Wrap(spacing: 6, children: [
           OutlinedButton.icon(
@@ -592,20 +593,20 @@ class _OrderScreenState extends State<OrderScreen> {
           OutlinedButton.icon(
             onPressed: () => openLink(context, whatsappLink(o.organiserPhone!)),
             icon: const Icon(Icons.chat_outlined, size: 18),
-            label: const Text('واتساب'),
+            label: Text(tr('واتساب', 'WhatsApp')),
           ),
         ]),
-      const Muted('سوداقري لا تستلم أيّ مبلغ. لا تحوّل لأيّ حسابٍ غير المكتوب هنا.'),
+      Muted(tr('سوداقري لا تستلم أيّ مبلغ. لا تحوّل لأيّ حسابٍ غير المكتوب هنا.', 'Sudagri never receives any money. Do not transfer to any account other than the one written here.')),
     ]);
   }
 
   Widget _organiserPanel(OrderView v) {
     final o = v.order;
     return InfoCard(children: [
-      const Text('لوحة المنظّم', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-      const Muted(
-        'سجّل المقدّم حين يصلك رقم التحويل وتتأكّد منه في كشف الحساب. وإن تعثّر عضوٌ فعلّمه متعثّراً: يخرج تعهّده وحده '
-        'من الحمولة، ولا يتغيّر شيءٌ لغيره.',
+      Text(tr('لوحة المنظّم', 'Organiser’s panel'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+      Muted(
+        tr('سجّل المقدّم حين يصلك رقم التحويل وتتأكّد منه في كشف الحساب. وإن تعثّر عضوٌ فعلّمه متعثّراً: يخرج تعهّده وحده '
+        'من الحمولة، ولا يتغيّر شيءٌ لغيره.', 'Record the deposit when you get the transfer reference and have checked it in the statement. If a member defaults, mark them defaulted: only their pledge leaves the load, and nothing changes for anyone else.'),
       ),
       const SizedBox(height: 6),
       Wrap(
@@ -615,7 +616,7 @@ class _OrderScreenState extends State<OrderScreen> {
           for (final s in orderMoves[o.status] ?? const <String>[])
             OutlinedButton(
               onPressed: () async {
-                if (s != 'cancelled' || await askSure(context, title: 'إلغاء الطلب', message: 'يُلغى الطلب كلّه؟', action: 'ألغِ الطلب')) {
+                if (s != 'cancelled' || await askSure(context, title: tr('إلغاء الطلب', 'Cancelling the order'), message: tr('يُلغى الطلب كلّه؟', 'Cancel the whole order?'), action: tr('ألغِ الطلب', 'Cancel the request'))) {
                   await _step('order_status', {'status': s});
                 }
               },
@@ -624,23 +625,23 @@ class _OrderScreenState extends State<OrderScreen> {
         ],
       ),
       const Divider(height: 24),
-      Text('التعهّدات (${v.pledges.length})', style: const TextStyle(fontWeight: FontWeight.w800)),
-      if (v.pledges.isEmpty) const Muted('لا تعهّد بعد. أرسل رابط هذه الصفحة لأعضاء الجمعية.'),
+      Text(tr('التعهّدات (${v.pledges.length})', 'Pledges (${v.pledges.length})'), style: const TextStyle(fontWeight: FontWeight.w800)),
+      if (v.pledges.isEmpty) Muted(tr('لا تعهّد بعد. أرسل رابط هذه الصفحة لأعضاء الجمعية.', 'No pledges yet. Send this page’s link to the cooperative’s members.')),
       for (final p in v.pledges) _pledgeRow(v, p),
       const Divider(height: 24),
-      const Text('الشاحنة إلى نقطة الاستلام', style: TextStyle(fontWeight: FontWeight.w800)),
+      Text(tr('الشاحنة إلى نقطة الاستلام', 'The truck to the pickup point'), style: TextStyle(fontWeight: FontWeight.w800)),
       for (final d in v.deliveries.where((d) => d.kind == 'to_pickup' && d.status != 'cancelled'))
-        Muted('${d.destination} — ${d.statusLabel} (رمز الاستلام والتفاصيل في «التوصيل»)'),
+        Muted(tr('${d.destination} — ${d.statusLabel} (رمز الاستلام والتفاصيل في «التوصيل»)', '${d.destination} — ${d.statusLabel} (the handover code and details are in «Deliveries»)')),
       if (v.carriers.isEmpty)
-        const Muted('لا ناقل موثّقاً بعد. يسجّل الناقلون من «التوصيل».')
+        Muted(tr('لا ناقل موثّقاً بعد. يسجّل الناقلون من «التوصيل».', 'No verified carrier yet. Carriers register from «Deliveries».'))
       else
         TextButton.icon(
           onPressed: () => _assign(v, null, '${o.pickupName ?? ''} — ${o.pickupLocality}'),
           icon: const Icon(Icons.local_shipping_outlined, size: 18),
-          label: const Text('أسند الحمولة إلى ناقل'),
+          label: Text(tr('أسند الحمولة إلى ناقل', 'Assign the load to a carrier')),
         ),
-      const Muted(
-        'يُعلَّم التوصيل «مستحقّ الدفع» للناقل حين يُدخل رمز المستلم مع صورةٍ وموقع. الدفع للناقل منك أو من المورد، خارج المنصّة.',
+      Muted(
+        tr('يُعلَّم التوصيل «مستحقّ الدفع» للناقل حين يُدخل رمز المستلم مع صورةٍ وموقع. الدفع للناقل منك أو من المورد، خارج المنصّة.', 'A delivery is marked “payable” to the carrier when they enter the recipient’s code with a photo and location. You or the supplier pay the carrier, outside the platform.'),
       ),
     ]);
   }
@@ -664,9 +665,9 @@ class _OrderScreenState extends State<OrderScreen> {
             Expanded(child: Text(p.displayName, style: const TextStyle(fontWeight: FontWeight.w700))),
             Flexible(child: TagPill(p.statusLabel, gold: p.status == 'defaulted' || p.status == 'pledged')),
           ]),
-          Muted('${l?.name ?? ''} × ${figure(p.quantity, 3)} = ${usd(value)} · المقدّم ${usd(value * v.order.depositPct / 100)}'
-              '${p.phone != null && p.phone!.isNotEmpty ? ' · ${p.phone}' : ''}'),
-          if (p.depositRef != null) Text('رقم التحويل: ${p.depositRef}', style: const TextStyle(fontSize: 12.5)),
+          Muted(tr('${l?.name ?? ''} × ${figure(p.quantity, 3)} = ${usd(value)} · المقدّم ${usd(value * v.order.depositPct / 100)}'
+              '${p.phone != null && p.phone!.isNotEmpty ? ' · ${p.phone}' : ''}', '${l?.name ?? ''} × ${figure(p.quantity, 3)} = ${usd(value)} · deposit ${usd(value * v.order.depositPct / 100)}${p.phone != null && p.phone!.isNotEmpty ? ' · ${p.phone}' : ''}')),
+          if (p.depositRef != null) Text(tr('رقم التحويل: ${p.depositRef}', 'Transfer ref.: ${p.depositRef}'), style: const TextStyle(fontSize: 12.5)),
           if (p.statusNote != null && p.statusNote!.isNotEmpty) Muted(p.statusNote!),
           Wrap(
             spacing: 6,
@@ -674,30 +675,30 @@ class _OrderScreenState extends State<OrderScreen> {
               if (p.status == 'pledged')
                 FilledButton(
                   onPressed: () async {
-                    final ref = await askText(context, title: 'استُلم المقدّم', label: 'رقم التحويل', minLength: 4, maxLength: 60, direction: TextDirection.ltr);
+                    final ref = await askText(context, title: tr('استُلم المقدّم', 'Deposit received'), label: tr('رقم التحويل', 'Transfer ref.'), minLength: 4, maxLength: 60, direction: TextDirection.ltr);
                     if (ref != null) await _step('deposit', {'pledge_id': p.id, 'reference': ref});
                   },
-                  child: const Text('استُلم المقدّم'),
+                  child: Text(tr('استُلم المقدّم', 'Deposit received')),
                 ),
               if (working) ...[
-                OutlinedButton(onPressed: () => _step('pledge_status', {'pledge_id': p.id, 'status': 'collected'}), child: const Text('استلم بضاعته')),
+                OutlinedButton(onPressed: () => _step('pledge_status', {'pledge_id': p.id, 'status': 'collected'}), child: Text(tr('استلم بضاعته', 'Collected'))),
                 OutlinedButton(
                   onPressed: () async {
-                    if (await askSure(context, title: 'متعثّر', message: 'يخرج تعهّد ${p.displayName} وحده من الحمولة.', action: 'متعثّر')) {
+                    if (await askSure(context, title: tr('متعثّر', 'Defaulted'), message: tr('يخرج تعهّد ${p.displayName} وحده من الحمولة.', 'Only ${p.displayName}\'s pledge leaves the load.'), action: tr('متعثّر', 'Defaulted'))) {
                       await _step('pledge_status', {'pledge_id': p.id, 'status': 'defaulted'});
                     }
                   },
-                  child: const Text('متعثّر'),
+                  child: Text(tr('متعثّر', 'Defaulted')),
                 ),
               ],
               if (p.status == 'defaulted' || p.status == 'collected')
-                OutlinedButton(onPressed: () => _step('pledge_status', {'pledge_id': p.id, 'status': 'pledged'}), child: const Text('أعده متعهّداً')),
+                OutlinedButton(onPressed: () => _step('pledge_status', {'pledge_id': p.id, 'status': 'pledged'}), child: Text(tr('أعده متعهّداً', 'Restore pledge'))),
             ],
           ),
           if (d != null)
-            Muted('التوصيل إلى الأرض: ${d.statusLabel} — التفاصيل في «التوصيل»')
+            Muted(tr('التوصيل إلى الأرض: ${d.statusLabel} — التفاصيل في «التوصيل»', 'Delivery to the farm: ${d.statusLabel} — details in «Deliveries»'))
           else if (working && v.carriers.isNotEmpty)
-            TextButton(onPressed: () => _assign(v, p.id, ''), child: const Text('أسند توصيلاً إلى أرضه')),
+            TextButton(onPressed: () => _assign(v, p.id, ''), child: Text(tr('أسند توصيلاً إلى أرضه', 'Assign delivery to their farm'))),
         ],
       ),
     );
@@ -712,7 +713,7 @@ class _OrderScreenState extends State<OrderScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          title: Text(pledgeId == null ? 'أسند الحمولة إلى ناقل' : 'أسند توصيلاً إلى أرضه'),
+          title: Text(pledgeId == null ? tr('أسند الحمولة إلى ناقل', 'Assign the load to a carrier') : tr('أسند توصيلاً إلى أرضه', 'Assign delivery to their farm')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -720,26 +721,26 @@ class _OrderScreenState extends State<OrderScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: carrier,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'الناقل الموثّق'),
+                  decoration: InputDecoration(labelText: tr('الناقل الموثّق', 'Verified carrier')),
                   items: [
                     for (final c in v.carriers)
-                      DropdownMenuItem(value: c.id, child: Text('${c.name} — ${c.vehicle} (${figure(c.capacityTonnes, 1)} طن)')),
+                      DropdownMenuItem(value: c.id, child: Text(tr('${c.name} — ${c.vehicle} (${figure(c.capacityTonnes, 1)} طن)', '${c.name} — ${c.vehicle} (${figure(c.capacityTonnes, 1)} t)'))),
                   ],
                   onChanged: (x) => setState(() => carrier = x),
                 ),
                 const SizedBox(height: 8),
-                TextField(controller: dest, maxLength: 200, decoration: const InputDecoration(labelText: 'إلى أين: الحواشة، القرية، العلامة')),
+                TextField(controller: dest, maxLength: 200, decoration: InputDecoration(labelText: tr('إلى أين: الحواشة، القرية، العلامة', 'Where to: plot, village, landmark'))),
                 TextField(
                   controller: fee,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'أجرة الناقل بالدولار (اختياري)'),
+                  decoration: InputDecoration(labelText: tr('أجرة الناقل بالدولار (اختياري)', 'Carrier fee, US\$ (optional)')),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-            FilledButton(onPressed: carrier == null ? null : () => Navigator.pop(ctx, true), child: const Text('أسند')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('إلغاء', 'Cancel'))),
+            FilledButton(onPressed: carrier == null ? null : () => Navigator.pop(ctx, true), child: Text(tr('أسند', 'Assign'))),
           ],
         ),
       ),

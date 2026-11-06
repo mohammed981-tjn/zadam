@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'account.dart';
 import 'api.dart';
 import 'contracts.dart' show AppCall;
+import 'i18n.dart';
 
 String _s(Object? v) => v is String ? v : (v == null ? '' : '$v');
 String? _sn(Object? v) => v is String && v.isNotEmpty ? v : null;
@@ -637,12 +638,12 @@ class InvestApi {
   /// A read open to a visitor: with the session when there is one, else plain.
   Future<Map<String, dynamic>> _read(String path) async {
     if (_signedIn()) return _call('GET', path);
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     late final http.Response res;
     try {
-      res = await _client.get(Uri.parse('$_site$path')).timeout(const Duration(seconds: 30));
+      res = await _client.get(Uri.parse('$_site$path'), headers: langController.header).timeout(const Duration(seconds: 30));
     } catch (_) {
-      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
     }
     Map<String, dynamic> body;
     try {
@@ -650,7 +651,7 @@ class InvestApi {
     } catch (_) {
       body = const {};
     }
-    if (res.statusCode != 200) throw ApiException(body['error'] as String? ?? 'تعذّر الطلب (${res.statusCode}).');
+    if (res.statusCode != 200) throw ApiException(body['error'] as String? ?? tr('تعذّر الطلب (${res.statusCode}).', 'The request failed (${res.statusCode}).'));
     return body;
   }
 

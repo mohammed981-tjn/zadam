@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../ui.dart';
 
@@ -48,7 +49,7 @@ class _KnowledgeScreenState extends State<KnowledgeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('قاعدة المعرفة')),
+      appBar: AppBar(title: Text(tr('قاعدة المعرفة', 'Knowledge base'))),
       body: Column(
         children: [
           Padding(
@@ -57,7 +58,7 @@ class _KnowledgeScreenState extends State<KnowledgeScreen> {
               controller: _search,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'ابحث عن محصول أو موضوع…',
+                hintText: tr('ابحث عن محصول أو موضوع…', 'Search for a crop or a topic…'),
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _query.isEmpty
                     ? null
@@ -91,8 +92,8 @@ class _KnowledgeScreenState extends State<KnowledgeScreen> {
                         ? Icons.menu_book_outlined
                         : Icons.search_off_rounded,
                     title: _query.isEmpty
-                        ? 'لا توجد مواد بعد.'
-                        : 'لا توجد نتائج لـ«$_query».',
+                        ? tr('لا توجد مواد بعد.', 'Nothing here yet.')
+                        : tr('لا توجد نتائج لـ«$_query».', 'No results for “$_query”.'),
                   );
                 }
 

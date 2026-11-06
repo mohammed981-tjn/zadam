@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../contracts.dart';
+import '../i18n.dart';
 import '../theme.dart';
 
 /// A card with an optional title.
@@ -110,7 +111,7 @@ Future<bool> confirmStep(
       title: Text(title),
       content: Text(body, style: const TextStyle(height: 1.7)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('تراجع', 'Back'))),
         FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(go)),
       ],
     ),
@@ -134,7 +135,7 @@ Future<String?> askReason(BuildContext context, {required String title, required
           onChanged: (_) => setState(() {}),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('تراجع')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('تراجع', 'Back'))),
           FilledButton(
             onPressed: text.text.trim().length >= 5 ? () => Navigator.pop(ctx, text.text.trim()) : null,
             child: Text(go),
@@ -265,7 +266,7 @@ class _SignaturePadState extends State<SignaturePad> {
                         if (d.isEmpty)
                           Center(
                             child: Text(
-                              'ارسم توقيعك هنا بإصبعك',
+                              tr('ارسم توقيعك هنا بإصبعك', 'Draw your signature here with your finger'),
                               style: TextStyle(color: SudagriColors.muted, fontWeight: FontWeight.w700),
                             ),
                           ),
@@ -282,7 +283,7 @@ class _SignaturePadState extends State<SignaturePad> {
           children: [
             Expanded(
               child: Text(
-                d.ready ? '✓ التوقيع جاهز' : 'التوقيع لم يكتمل بعد',
+                d.ready ? tr('✓ التوقيع جاهز', '✓ Signature ready') : tr('التوقيع لم يكتمل بعد', 'Signature not complete yet'),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: d.ready ? FontWeight.w800 : FontWeight.w400,
@@ -295,7 +296,7 @@ class _SignaturePadState extends State<SignaturePad> {
                 d.clear();
                 _changed();
               },
-              child: const Text('امسح وأعد'),
+              child: Text(tr('امسح وأعد', 'Clear and redo')),
             ),
           ],
         ),

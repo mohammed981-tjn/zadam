@@ -3,6 +3,8 @@ import { clientFromBearer } from "@/lib/supabase/bearer";
 import { formatMoney } from "@/lib/ledger/money";
 import { ledgerToday } from "@/lib/ledger/today";
 import { addFixedAsset, depreciateFarmAssets, disposeFixedAsset } from "@/lib/fixedAssetWrites";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * الأصول الثابتة في التطبيق (البند ٢٠٣): /books/assets on the website.
@@ -32,13 +34,14 @@ const usd = (minor: number) => formatMoney(BigInt(Math.round(Number(minor))), "U
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   const { data: book } = await supabase.from("ledger_books").select("id").eq("owner_id", user.id).eq("kind", "farm").maybeSingle();
   const { data, error } = book ? await supabase.rpc("ledger_fixed_assets_summary", { p_book: book.id }) : { data: null, error: null };
   if (error) {
     console.error("app assets: read failed", error);
-    return NextResponse.json({ error: "تعذّر تحميل الأصول الآن. أعد المحاولة بعد قليل." }, { status: 500 });
+    return NextResponse.json({ error: tr(locale, "تعذّر تحميل الأصول الآن. أعد المحاولة بعد قليل.", "Could not load the assets just now. Try again shortly.") }, { status: 500 });
   }
   const assets = (data ?? []) as Asset[];
   const total = (f: (a: Asset) => number) => assets.reduce((n, a) => n + Number(f(a)), 0);
@@ -50,7 +53,7 @@ export async function GET(req: Request) {
       assets: assets.map((a) => ({
         id: a.id,
         name: a.name,
-        kind: a.account_key === "machinery" ? "آلات ومعدّات" : "تحسينات أرض",
+        kind: a.account_key === "machinery" ? tr(locale, "آلات ومعدّات", "Machinery and equipment") : tr(locale, "تحسينات أرض", "Land improvements"),
         acquired_on: a.acquired_on,
         life_months: a.life_months,
         months_posted: a.months_posted,
@@ -74,13 +77,14 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase } = auth;
 
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const text = (k: string, max = 120) => (typeof body[k] === "string" ? (body[k] as string).slice(0, max) : "");
 
@@ -98,10 +102,10 @@ export async function POST(req: Request) {
             life_years: text("life_years", 10),
             paid_from: text("paid_from", 20),
           },
-          "ar",
+          locale,
         )
       : action === "depreciate"
-        ? await depreciateFarmAssets(supabase, "ar")
+        ? await depreciateFarmAssets(supabase, locale)
         : action === "dispose"
           ? await disposeFixedAsset(
               supabase,
@@ -111,9 +115,9 @@ export async function POST(req: Request) {
                 proceeds: text("proceeds", 40),
                 received_into: text("received_into", 20),
               },
-              "ar",
+              locale,
             )
-          : { ok: false, message: "خطوةٌ غير معروفة." };
+          : { ok: false, message: tr(locale, "خطوةٌ غير معروفة.", "Unknown step.") };
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
   return NextResponse.json({ ok: true, message: result.message });
 }

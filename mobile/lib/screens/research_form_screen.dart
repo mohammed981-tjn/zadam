@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../library.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -31,7 +32,7 @@ class _ResearchFormScreenState extends State<ResearchFormScreen> {
     if (f == null) return;
     final size = f.lengthSync() ?? await f.length() ?? 0;
     if (size > widget.maxBytes || !f.name.toLowerCase().endsWith('.pdf')) {
-      setState(() => _error = 'الملفّ PDF حتى ٢٠ ميجابايت.');
+      setState(() => _error = tr('الملفّ PDF حتى ٢٠ ميجابايت.', 'The file is a PDF of up to 20 MB.'));
       return;
     }
     final bytes = await f.readAsBytes();
@@ -73,43 +74,43 @@ class _ResearchFormScreenState extends State<ResearchFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('شارك دراستك أو بحثك')),
+      appBar: AppBar(title: Text(tr('شارك دراستك أو بحثك', 'Share your study or research'))),
       body: _done
           ? StateView(
               icon: Icons.mark_email_read_outlined,
-              title: 'وصل عملك، شكراً لك.',
-              message: 'تراجعه الإدارة، ثمّ تنشره في المكتبة باسمك أو تردّه إليك بسبب. إن كنت مسجَّلاً فسيصلك إشعار، '
-                  'وتتابعه من «ما أرسلتُه».',
+              title: tr('وصل عملك، شكراً لك.', 'Your work has arrived — thank you.'),
+              message: tr('تراجعه الإدارة، ثمّ تنشره في المكتبة باسمك أو تردّه إليك بسبب. إن كنت مسجَّلاً فسيصلك إشعار، '
+                  'وتتابعه من «ما أرسلتُه».', 'The administrators review it, then publish it in the library under your name or return it to you with a reason. If you are signed in you will get a notification, and you can follow it from «What I sent».'),
             )
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
               children: [
-                const IntroNote(
-                  'دراسة جدوى، أو بحثٌ علميّ، أو رسالةٌ جامعيّة، أو تقريرٌ عن الزراعة في السودان — بلا حساب إن شئت. '
-                  'تراجعه الإدارة قبل نشره، وينشر باسم مؤلّفيه، ولا تُنشر وسيلة تواصلك.',
+                IntroNote(
+                  tr('دراسة جدوى، أو بحثٌ علميّ، أو رسالةٌ جامعيّة، أو تقريرٌ عن الزراعة في السودان — بلا حساب إن شئت. '
+                  'تراجعه الإدارة قبل نشره، وينشر باسم مؤلّفيه، ولا تُنشر وسيلة تواصلك.', 'A feasibility study, research, a thesis or a report on farming in Sudan — without an account if you like. The administrators review it before publishing it, it is published under its authors\' names, and your contact details are never published.'),
                   icon: Icons.upload_file,
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   initialValue: _d.kind,
-                  decoration: const InputDecoration(labelText: 'نوع العمل'),
+                  decoration: InputDecoration(labelText: tr('نوع العمل', 'Kind of work')),
                   items: [
                     for (final e in researchKindLabels.entries) DropdownMenuItem(value: e.key, child: Text(e.value)),
                   ],
                   onChanged: (v) => _d.kind = v ?? _d.kind,
                 ),
                 const SizedBox(height: 12),
-                _field('العنوان', (v) => _d.title = v, max: 200),
-                _field('المؤلّف أو المؤلّفون', (v) => _d.authors = v, max: 200),
-                _field('الجهة (جامعة، مركز، شركة) — اختياريّ', (v) => _d.institution = v, max: 200),
-                _field('السنة — اختياريّ', (v) => _d.year = v, max: 4, type: TextInputType.number),
-                _field('المحصول أو الموضوع — اختياريّ', (v) => _d.crop = v, max: 60, hint: 'السمسم، القطن، الريّ…'),
+                _field(tr('العنوان', 'Title'), (v) => _d.title = v, max: 200),
+                _field(tr('المؤلّف أو المؤلّفون', 'Author or authors'), (v) => _d.authors = v, max: 200),
+                _field(tr('الجهة (جامعة، مركز، شركة) — اختياريّ', 'Institution (university, centre, company) — optional'), (v) => _d.institution = v, max: 200),
+                _field(tr('السنة — اختياريّ', 'Year — optional'), (v) => _d.year = v, max: 4, type: TextInputType.number),
+                _field(tr('المحصول أو الموضوع — اختياريّ', 'Crop or subject — optional'), (v) => _d.crop = v, max: 60, hint: tr('السمسم، القطن، الريّ…', 'Sesame, cotton, irrigation…')),
                 DropdownButtonFormField<String>(
                   initialValue: _d.state,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'الولاية — اختياريّ'),
+                  decoration: InputDecoration(labelText: tr('الولاية — اختياريّ', 'State — optional')),
                   items: [
-                    const DropdownMenuItem(value: '', child: Text('كلّ السودان')),
+                    DropdownMenuItem(value: '', child: Text(tr('كلّ السودان', 'All of Sudan'))),
                     for (final s in widget.states) DropdownMenuItem(value: s, child: Text(s)),
                   ],
                   onChanged: (v) => _d.state = v ?? '',
@@ -117,29 +118,29 @@ class _ResearchFormScreenState extends State<ResearchFormScreen> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _d.language,
-                  decoration: const InputDecoration(labelText: 'اللغة'),
-                  items: const [
-                    DropdownMenuItem(value: 'ar', child: Text('العربيّة')),
-                    DropdownMenuItem(value: 'en', child: Text('الإنجليزيّة')),
-                    DropdownMenuItem(value: 'other', child: Text('غيرهما')),
+                  decoration: InputDecoration(labelText: tr('اللغة', 'Language')),
+                  items: [
+                    DropdownMenuItem(value: 'ar', child: Text(tr('العربيّة', 'Arabic'))),
+                    DropdownMenuItem(value: 'en', child: Text(tr('الإنجليزيّة', 'English'))),
+                    DropdownMenuItem(value: 'other', child: Text(tr('غيرهما', 'Other'))),
                   ],
                   onChanged: (v) => _d.language = v ?? 'ar',
                 ),
                 const SizedBox(height: 12),
-                _field('الملخّص: ما الذي درسته، وكيف، وماذا وجدت', (v) => _d.abstract = v, lines: 5, max: 3000),
+                _field(tr('الملخّص: ما الذي درسته، وكيف، وماذا وجدت', 'Abstract: what you studied, how, and what you found'), (v) => _d.abstract = v, lines: 5, max: 3000),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('الملفّ (PDF حتى ٢٠ ميجابايت)', style: TextStyle(fontWeight: FontWeight.w700)),
+                        Text(tr('الملفّ (PDF حتى ٢٠ ميجابايت)', 'The file (PDF up to 20 MB)'), style: TextStyle(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 8),
                         Row(children: [
                           OutlinedButton.icon(
                             onPressed: _busy ? null : _pick,
                             icon: const Icon(Icons.attach_file),
-                            label: Text(_d.fileName == null ? 'اختر الملفّ' : 'غيّر الملفّ'),
+                            label: Text(_d.fileName == null ? tr('اختر الملفّ', 'Choose the file') : tr('غيّر الملفّ', 'Change the file')),
                           ),
                           const SizedBox(width: 10),
                           if (_d.fileName != null)
@@ -148,7 +149,7 @@ class _ResearchFormScreenState extends State<ResearchFormScreen> {
                             ),
                           if (_d.fileName != null)
                             IconButton(
-                              tooltip: 'أزل الملفّ',
+                              tooltip: tr('أزل الملفّ', 'Remove the file'),
                               onPressed: () => setState(() {
                                 _d.fileName = null;
                                 _d.fileBytes = null;
@@ -157,22 +158,22 @@ class _ResearchFormScreenState extends State<ResearchFormScreen> {
                             ),
                         ]),
                         const SizedBox(height: 10),
-                        _field('أو رابط العمل إن كان منشوراً', (v) => _d.linkUrl = v,
+                        _field(tr('أو رابط العمل إن كان منشوراً', 'Or a link to the work, if it is published'), (v) => _d.linkUrl = v,
                             max: 500, type: TextInputType.url, hint: 'https://'),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                _field('كيف نصل إليك إن احتجنا — اختياريّ، ولا يُنشر (هاتف أو بريد)', (v) => _d.contact = v, max: 200),
+                _field(tr('كيف نصل إليك إن احتجنا — اختياريّ، ولا يُنشر (هاتف أو بريد)', 'How we can reach you if needed — optional, never published (phone or email)'), (v) => _d.contact = v, max: 200),
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
                   value: _d.consent,
                   onChanged: (v) => setState(() => _d.consent = v ?? false),
-                  title: const Text(
-                    'أُقرّ بأنّ هذا العمل لي أو أنّ لي حقّ مشاركته، أو أنّه منشورٌ للعموم، وأوافق على نشره في المكتبة '
-                    'باسم مؤلّفيه.',
+                  title: Text(
+                    tr('أُقرّ بأنّ هذا العمل لي أو أنّ لي حقّ مشاركته، أو أنّه منشورٌ للعموم، وأوافق على نشره في المكتبة '
+                    'باسم مؤلّفيه.', 'I confirm that this work is mine or that I have the right to share it, or that it is published openly, and I agree to its publication in the library under its authors\' names.'),
                     style: TextStyle(fontSize: 13.5, height: 1.7),
                   ),
                 ),
@@ -186,7 +187,7 @@ class _ResearchFormScreenState extends State<ResearchFormScreen> {
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: _busy ? null : _send,
-                  child: Text(_busy ? 'يُرسَل…' : 'أرسل للمراجعة'),
+                  child: Text(_busy ? tr('يُرسَل…', 'Sending…') : tr('أرسل للمراجعة', 'Send for review')),
                 ),
               ],
             ),

@@ -43,6 +43,25 @@ export function dayBefore(iso: string): string {
   return new Date(Date.UTC(y, m - 1, d) - DAY).toISOString().slice(0, 10);
 }
 
+/** The day after an ISO day. */
+export function dayAfter(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d) + DAY).toISOString().slice(0, 10);
+}
+
+/**
+ * The day a season's income is closed on, unless the owner picks another (backlog 209): yesterday, like the period's
+ * own close — so closing the season and then the period through yesterday takes the season's closing into that period —
+ * or, when the book is closed (or its income closed) through yesterday already, today. Never a day in a closed period:
+ * the database refuses those.
+ */
+export function seasonCloseDefault(today: string, closedThrough: string | null, incomeClosedThrough: string | null): { value: string; min: string | null } {
+  const last = [closedThrough, incomeClosedThrough].filter((d): d is string => !!d).sort().pop() ?? null;
+  const min = last ? dayAfter(last) : null;
+  const yesterday = dayBefore(today);
+  return { value: min && min > yesterday ? today : yesterday, min };
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function parseReportParams(sp: Record<string, string | undefined>, today: string): ReportParams {

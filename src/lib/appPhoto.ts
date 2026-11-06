@@ -1,3 +1,4 @@
+import type { Locale } from "@/lib/i18n";
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NO_METADATA, readJpegMetadata, type PhotoMetadata } from "@/lib/exif";
@@ -87,9 +88,38 @@ export function stripJpegMetadata(b: Uint8Array): Uint8Array | null {
       i += 1; // fill byte
       continue;
     }
-    if (marker === 0xda) {
-      parts.push(b.subarray(i)); // start of scan: the pixels, to the end
+    if (marker === 0xd9) {
+      // End of image. Whatever follows it — a second JPEG, a motion photo's video, its own EXIF and GPS — is not the
+      // image and is not kept (backlog 209).
+      parts.push(b.subarray(i, i + 2));
       break;
+    }
+    if (marker === 0xda) {
+      // Start of scan: its header, then the pixels up to the next marker that is not part of them (a stuffed 0xFF00,
+      // a restart marker, or fill). That marker — another scan, a table, the end of the image — is read as any other.
+      if (i + 4 > b.length) return null;
+      const len = view.getUint16(i + 2, false);
+      if (len < 2 || i + 2 + len > b.length) return null;
+      let k = i + 2 + len;
+      for (;;) {
+        if (k + 1 >= b.length) return null; // no end-of-image: refused rather than stored with what it may carry
+        if (b[k] === 0xff) {
+          const next = b[k + 1];
+          if (next === 0x00 || (next >= 0xd0 && next <= 0xd7)) {
+            k += 2;
+            continue;
+          }
+          if (next === 0xff) {
+            k += 1;
+            continue;
+          }
+          break;
+        }
+        k += 1;
+      }
+      parts.push(b.subarray(i, k));
+      i = k;
+      continue;
     }
     if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
       parts.push(b.subarray(i, i + 2));
@@ -148,6 +178,22 @@ export function photoBytes(raw: unknown): Uint8Array | null {
   return new Uint8Array(Buffer.from(b64, "base64"));
 }
 
+/** The bucket did not take the file: not a fault of the photo, so a route may answer it as an outage (backlog 209). */
+export const PHOTO_UPLOAD_FAILED = "تعذّر رفع الصورة. أعد المحاولة.";
+
+/** Its refusals, said by uploadAppPhoto in Arabic as the website's form does, and their English twins (backlog 208). */
+const PHOTO_ERRORS_EN: Record<string, string> = {
+  "أرفق صورةً أوّلاً.": "Attach a photo first.",
+  "الصورة أكبر من ١٠ ميجابايت.": "The photo is larger than 10 MB.",
+  "صيغةٌ غير مقبولة. صوّر بالهاتف (JPG أو PNG).": "Format not accepted. Take a phone photo (JPG or PNG).",
+  "تعذّرت قراءة الصورة. صوّرها مرّةً أخرى.": "Could not read the photo. Take it again.",
+  "تعذّر رفع الصورة. أعد المحاولة.": "Could not upload the photo. Try again.",
+};
+
+/** A refusal of uploadAppPhoto in the language the app asked for. */
+export const photoError = (locale: Locale, message: string) =>
+  locale === "en" ? (PHOTO_ERRORS_EN[message] ?? message) : message;
+
 /**
  * Stores the photo at `<user>/<folder>/<random id><suffix>.<jpg|png>` and hands back the path, and the capture time
  * and place a JPEG carried (for evidence, as the website keeps them).
@@ -181,7 +227,7 @@ export async function uploadAppPhoto(
   const { error } = await supabase.storage.from("evidence").upload(path, file, { contentType: type, upsert: false });
   if (error) {
     console.error("app photo: upload failed", error.message);
-    return { error: "تعذّر رفع الصورة. أعد المحاولة." };
+    return { error: PHOTO_UPLOAD_FAILED };
   }
   return { path, metadata };
 }
@@ -196,6 +242,18 @@ export async function uploadAppPhoto(
 export function ownPdfPath(userId: string, folder: string, raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const m = /^([0-9a-f-]{36})\/([a-z]+)\/([0-9a-f-]{36})\.pdf$/.exec(raw.trim());
+  return m && m[1] === userId && m[2] === folder ? raw.trim() : null;
+}
+
+/**
+ * A file stored for an entry before the entry is sent (backlog 209): a PDF the app put in the sender's folder itself,
+ * or a photo the app's photo route stored there (`uploadAppPhoto`, `<user>/<folder>/<uuid>.jpg|png`) and the app kept
+ * with the entry waiting to go — so a retry carries the same path instead of storing the photo again. Null for any
+ * other path; the shared step then checks again that it is the sender's and that the file is there.
+ */
+export function ownUploadPath(userId: string, folder: string, raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const m = /^([0-9a-f-]{36})\/([a-z]+)\/([0-9a-f-]{36})\.(pdf|jpg|png)$/.exec(raw.trim());
   return m && m[1] === userId && m[2] === folder ? raw.trim() : null;
 }
 

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OAUTH_PROVIDERS, type OAuthProvider } from "@/lib/oauth";
 import { CHALLENGE } from "@/lib/appHandoff";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «الدخول بحساب Google» في التطبيق (البند ١٧٣): يفتحه التطبيق في متصفّح الجوّال.
@@ -13,11 +15,12 @@ import { CHALLENGE } from "@/lib/appHandoff";
  * the PKCE cookie Supabase sets here is there to be read.
  */
 export async function GET(req: Request) {
+  const locale = appLocale(req);
   const url = new URL(req.url);
   const provider = url.searchParams.get("provider") as OAuthProvider;
   const challenge = url.searchParams.get("challenge") ?? "";
   if (!(OAUTH_PROVIDERS as readonly string[]).includes(provider) || !CHALLENGE.test(challenge)) {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const side = url.searchParams.get("side") === "investor" ? "investor" : "farmer";
   const back = new URLSearchParams({ via: provider, side, app: challenge });
@@ -29,7 +32,7 @@ export async function GET(req: Request) {
   });
   if (error || !data?.url) {
     console.error("app oauth: start failed:", provider, error?.message);
-    return NextResponse.json({ error: "تعذّر الدخول بهذا الحساب الآن." }, { status: 502 });
+    return NextResponse.json({ error: tr(locale, "تعذّر الدخول بهذا الحساب الآن.", "Could not sign in with this account right now.") }, { status: 502 });
   }
   redirect(data.url);
 }

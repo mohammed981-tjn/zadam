@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../contracts.dart' show day;
+import '../i18n.dart';
 import '../invest.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -15,9 +16,11 @@ import 'deal_ui.dart';
 
 /// The risk notice (backlog 136), as the website puts it before every request.
 class RiskNotice extends StatelessWidget {
-  const RiskNotice(this.text, {super.key, this.lead = 'قبل أن تبدأ: '});
+  const RiskNotice(this.text, {super.key, this.lead});
   final String text;
-  final String lead;
+
+  /// The bold opening; «قبل أن تبدأ: » when none is given.
+  final String? lead;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -31,7 +34,7 @@ class RiskNotice extends StatelessWidget {
       TextSpan(
         children: [
           TextSpan(
-            text: lead,
+            text: lead ?? tr('قبل أن تبدأ: ', 'Before you start: '),
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           TextSpan(text: text),
@@ -76,33 +79,33 @@ class LandOfferTile extends StatelessWidget {
             Expanded(
               child: Text(l.place, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5)),
             ),
-            const TagPill('أرض موثّقة', icon: Icons.verified_outlined),
+            TagPill(tr('أرض موثّقة', 'Verified land'), icon: Icons.verified_outlined),
           ],
         ),
-        Muted([?l.area, if (l.documentsOnFile > 0) '${l.documentsOnFile} مستندات في الملفّ'].join(' · ')),
+        Muted([?l.area, if (l.documentsOnFile > 0) tr('${l.documentsOnFile} مستندات في الملفّ', '${l.documentsOnFile} documents on file')].join(' · ')),
         const SizedBox(height: 8),
         Wrap(spacing: 6, runSpacing: 6, children: [for (final m in l.models) TagPill(m.label)]),
         const SizedBox(height: 10),
-        InfoLine('مصدر المياه', l.water),
-        InfoLine('المياه للفدان (يعلنها المالك)', l.waterPerFeddan ?? '—'),
+        InfoLine(tr('مصدر المياه', 'Water source'), l.water),
+        InfoLine(tr('المياه للفدان (يعلنها المالك)', 'Water per feddan (declared by the owner)'), l.waterPerFeddan ?? '—'),
         InfoLine(l.soilLabel, [l.soil ?? '—', ?l.soilConfidence].join(' · ')),
-        InfoLine('المنطقة المناخيّة', l.climate),
-        if (l.crops.isNotEmpty) InfoLine('المحاصيل التي يريدها', l.crops.join(' · ')),
+        InfoLine(tr('المنطقة المناخيّة', 'Climate zone'), l.climate),
+        if (l.crops.isNotEmpty) InfoLine(tr('المحاصيل التي يريدها', 'Crops the owner wants'), l.crops.join(' · ')),
         if (l.note != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text('«${l.note}»', style: const TextStyle(fontStyle: FontStyle.italic, height: 1.6)),
           ),
         switch (action) {
-          OfferAction.mine => const Muted('هذه أرضك.'),
-          OfferAction.asked => TagPill(l.interestLabel ?? 'أرسلتَ طلباً'),
+          OfferAction.mine => Muted(tr('هذه أرضك.', 'This is your land.')),
+          OfferAction.asked => TagPill(l.interestLabel ?? tr('أرسلتَ طلباً', 'You sent a request')),
           OfferAction.signIn => FilledButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
-            child: const Text('سجّل كمستثمر لتطلب الشراكة'),
+            child: Text(tr('سجّل كمستثمر لتطلب الشراكة', 'Sign up as an investor to request a partnership')),
           ),
           OfferAction.request => FilledButton.icon(
             icon: const Icon(Icons.handshake_outlined),
-            label: const Text('اطلب الشراكة'),
+            label: Text(tr('اطلب الشراكة', 'Request a partnership')),
             onPressed: () async {
               final sent = await showPartnershipRequest(context, land: l, glossary: glossary, api: api);
               if (sent) onChanged();
@@ -114,12 +117,12 @@ class LandOfferTile extends StatelessWidget {
           if (l.inspectionLabel != null)
             TextButton(
               onPressed: () => openOnSite(context, '/invest/inspections/${l.inspectionId}'),
-              child: Text('معاينتك: ${l.inspectionLabel}'),
+              child: Text(tr('معاينتك: ${l.inspectionLabel}', 'Your inspection: ${l.inspectionLabel}')),
             )
           else if (l.canAskInspection(signedIn: signedIn, inspectionsOn: inspectionsOn))
             TextButton.icon(
               icon: const Icon(Icons.fact_check_outlined, size: 18),
-              label: const Text('اطلب تقرير معاينةٍ مستقلّ قبل أن تقرّر'),
+              label: Text(tr('اطلب تقرير معاينةٍ مستقلّ قبل أن تقرّر', 'Ask for an independent inspection before you decide')),
               onPressed: () async {
                 final sent = await showInspectionRequest(
                   context,
@@ -210,11 +213,11 @@ class _RequestSheetState extends State<_RequestSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'اطلب الشراكة — ${widget.land.place}',
+              tr('اطلب الشراكة — ${widget.land.place}', 'Request a partnership — ${widget.land.place}'),
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
             ),
             const SizedBox(height: 8),
-            const Text('نموذج الشراكة', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text(tr('نموذج الشراكة', 'Partnership model'), style: TextStyle(fontWeight: FontWeight.w700)),
             RadioGroup<String>(
               groupValue: _model,
               onChanged: (v) => setState(() => _model = v ?? _model),
@@ -231,32 +234,32 @@ class _RequestSheetState extends State<_RequestSheet> {
               maxLines: 3,
               maxLength: 1000,
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                labelText: 'رسالتك لصاحب الأرض',
-                hintText: 'من أنت، وماذا تقترح، ومتى تريد البدء.',
+              decoration: InputDecoration(
+                labelText: tr('رسالتك لصاحب الأرض', 'Your message to the owner'),
+                hintText: tr('من أنت، وماذا تقترح، ومتى تريد البدء.', 'Who you are, what you propose, and when you want to start.'),
               ),
             ),
-            const Muted(
-              'يصل صاحبَ الأرض إشعار. يرى اسمك، والبلد الذي سجّلت منه رقمك، وعدد عقودك الموقّعة على سوداقري؛ '
-              'وهاتفك وموقع الأرض لا يُكشفان إلا بعد قبوله.',
+            Muted(
+              tr('يصل صاحبَ الأرض إشعار. يرى اسمك، والبلد الذي سجّلت منه رقمك، وعدد عقودك الموقّعة على سوداقري؛ '
+              'وهاتفك وموقع الأرض لا يُكشفان إلا بعد قبوله.', 'The land owner gets a notification. They see your name, the country you registered your number from, and the number of contracts you have signed on Sudagri; your phone and the land\'s location are shown only after they accept.'),
               size: 12,
             ),
             const SizedBox(height: 10),
-            RiskNotice(widget.glossary.riskNotice, lead: 'قبل أن ترسل: '),
+            RiskNotice(widget.glossary.riskNotice, lead: tr('قبل أن ترسل: ', 'Before you send:')),
             CheckboxListTile(
               key: const Key('risk-ack'),
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               value: _ack,
               onChanged: (v) => setState(() => _ack = v ?? false),
-              title: const Text('قرأتُ هذا وفهمته.'),
+              title: Text(tr('قرأتُ هذا وفهمته.', 'I have read and understood this.')),
             ),
             if (_error != null) Text(_error!, style: TextStyle(color: warnOn(context))),
             const SizedBox(height: 6),
             FilledButton(
               key: const Key('interest-send'),
               onPressed: ready ? _send : null,
-              child: const Text('أرسل الطلب'),
+              child: Text(tr('أرسل الطلب', 'Send request')),
             ),
           ],
         ),
@@ -336,7 +339,7 @@ class _InspectionSheetState extends State<_InspectionSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('ما الذي يتحقّق منه المفتّش؟', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            Text(tr('ما الذي يتحقّق منه المفتّش؟', 'What should the inspector check?'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             for (final c in widget.glossary.checks)
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
@@ -350,16 +353,16 @@ class _InspectionSheetState extends State<_InspectionSheet> {
               controller: _note,
               maxLines: 2,
               maxLength: 1000,
-              decoration: const InputDecoration(labelText: 'ما يهمّك أكثر (اختياري)'),
+              decoration: InputDecoration(labelText: tr('ما يهمّك أكثر (اختياري)', 'What matters most to you (optional)')),
             ),
             Muted(
-              '${widget.feeLine} يزور الأرضَ مفتّشٌ تعيّنه سوداقري بعد موافقة صاحبها، وليس طرفاً في شيء. '
-              'ولا تعرف اسم صاحب الأرض ولا موقعها من التقرير.',
+              tr('${widget.feeLine} يزور الأرضَ مفتّشٌ تعيّنه سوداقري بعد موافقة صاحبها، وليس طرفاً في شيء. '
+              'ولا تعرف اسم صاحب الأرض ولا موقعها من التقرير.', '${widget.feeLine} The land is visited by an inspector Sudagri appoints after its owner agrees, who is not a party to anything. The report does not tell you the land owner\'s name or its location.'),
               size: 12,
             ),
             if (_error != null) Text(_error!, style: TextStyle(color: warnOn(context))),
             const SizedBox(height: 8),
-            FilledButton(onPressed: _checks.isNotEmpty && !_busy ? _send : null, child: const Text('اطلب المعاينة')),
+            FilledButton(onPressed: _checks.isNotEmpty && !_busy ? _send : null, child: Text(tr('اطلب المعاينة', 'Request the inspection'))),
           ],
         ),
       ),
@@ -424,7 +427,7 @@ class _ConsentFormState extends State<ConsentForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('ما الشراكة التي تقبلها؟', style: TextStyle(fontWeight: FontWeight.w700)),
+        Text(tr('ما الشراكة التي تقبلها؟', 'Which partnerships do you accept?'), style: TextStyle(fontWeight: FontWeight.w700)),
         for (final m in widget.models)
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
@@ -438,18 +441,18 @@ class _ConsentFormState extends State<ConsentForm> {
           controller: _note,
           maxLines: 2,
           maxLength: 500,
-          decoration: const InputDecoration(
-            labelText: 'سطرٌ عن أرضك للمستثمر (اختياري)',
-            hintText: 'مثال: أرضٌ على النيل بمضخّة تعمل، زرعتُها بامية وطماطم، وأريد ممّولاً للموسم الشتوي.',
+          decoration: InputDecoration(
+            labelText: tr('سطرٌ عن أرضك للمستثمر (اختياري)', 'A line about your land for investors (optional)'),
+            hintText: tr('مثال: أرضٌ على النيل بمضخّة تعمل، زرعتُها بامية وطماطم، وأريد ممّولاً للموسم الشتوي.', 'e.g. Land on the Nile with a working pump; grew okra and tomato; looking for finance for the winter season.'),
           ),
         ),
-        const Muted('لا تكتب اسمك ولا هاتفك هنا — يُكشفان بعد موافقتك.', size: 12),
+        Muted(tr('لا تكتب اسمك ولا هاتفك هنا — يُكشفان بعد موافقتك.', 'Don\'t write your name or phone here — they are shared after you agree.'), size: 12),
         const SizedBox(height: 8),
         FilledButton.icon(
           key: const Key('offer-land'),
           onPressed: _chosen.isNotEmpty && !_busy ? _offer : null,
           icon: const Icon(Icons.campaign_outlined),
-          label: const Text('اعرض أرضي على المستثمرين'),
+          label: Text(tr('اعرض أرضي على المستثمرين', 'Offer my land to investors')),
         ),
       ],
     );
@@ -478,7 +481,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('فرصة استثمار')),
+      appBar: AppBar(title: Text(tr('فرصة استثمار', 'Investment opportunity'))),
       body: RefreshIndicator(
         onRefresh: () async => _reload(),
         child: FutureBuilder<ProjectDetail>(
@@ -488,7 +491,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
             if (snap.hasError) {
               final e = snap.error;
               return StateView.error(
-                e is ApiException ? e.message : 'تعذّر فتح الفرصة.',
+                e is ApiException ? e.message : tr('تعذّر فتح الفرصة.', 'Could not open the opportunity.'),
                 onRetry: _reload,
                 scrollable: true,
               );
@@ -498,8 +501,8 @@ class _ProjectScreenState extends State<ProjectScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
-                if (d.trialNote != null) RiskNotice(d.trialNote!, lead: 'فرصة تجريبيّة. '),
-                if (d.demoNote != null) RiskNotice(d.demoNote!, lead: 'نموذج توضيحي. '),
+                if (d.trialNote != null) RiskNotice(d.trialNote!, lead: tr('فرصة تجريبيّة. ', 'Trial opportunity.')),
+                if (d.demoNote != null) RiskNotice(d.demoNote!, lead: tr('نموذج توضيحي. ', 'Illustrative example.')),
                 const SizedBox(height: 10),
                 Muted(p.location),
                 Text(p.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
@@ -510,9 +513,9 @@ class _ProjectScreenState extends State<ProjectScreen> {
                   children: [
                     TagPill(p.statusLabel),
                     TagPill(p.riskLabel, gold: p.riskLevel != 'low'),
-                    TagPill('${p.feddans} فدان'),
+                    TagPill(tr('${p.feddans} فدان', '${p.feddans} feddans')),
                     if (p.verifiedLand != null) TagPill(p.verifiedLand!, icon: Icons.verified_outlined),
-                    if (p.expectedReturn != null) TagPill('عائد سنوي متوقع ${p.expectedReturn}%'),
+                    if (p.expectedReturn != null) TagPill(tr('عائد سنوي متوقع ${p.expectedReturn}%', 'Expected annual return ${p.expectedReturn}%')),
                   ],
                 ),
                 if (p.description != null) ...[
@@ -521,7 +524,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
                 ],
                 const SizedBox(height: 14),
                 DealCard(
-                  title: 'دراسة الفرصة',
+                  title: tr('دراسة الفرصة', 'The opportunity\'s study'),
                   children: [
                     for (final r in d.study)
                       Padding(
@@ -535,8 +538,8 @@ class _ProjectScreenState extends State<ProjectScreen> {
                           ],
                         ),
                       ),
-                    const Muted(
-                      'ما تشهد به المنصّة أنّ ما يقوله العرض مسنودٌ بأوراق — لا أنّ الموسم سيربح. تلك تبقى مخاطرةً تخصّك.',
+                    Muted(
+                      tr('ما تشهد به المنصّة أنّ ما يقوله العرض مسنودٌ بأوراق — لا أنّ الموسم سيربح. تلك تبقى مخاطرةً تخصّك.', 'What the platform vouches for is that what the offer says is backed by papers — not that the season will make a profit. That remains a risk that is yours.'),
                       size: 12,
                     ),
                   ],
@@ -545,25 +548,25 @@ class _ProjectScreenState extends State<ProjectScreen> {
                 const SizedBox(height: 12),
                 if (p.verifiedLand != null) _PartnerSection(detail: d, api: _api, onChanged: _reload),
                 DealCard(
-                  title: d.investmentOpen ? 'الاستثمار بالحصص' : 'الدفع عبر المنصّة لم يُفتح بعد',
+                  title: d.investmentOpen ? tr('الاستثمار بالحصص', 'Investing in shares') : tr('الدفع عبر المنصّة لم يُفتح بعد', 'Paying through the platform is not open yet'),
                   children: [
                     if (!d.investmentOpen)
-                      const Muted(
-                        'لا تستقبل المنصّة أموالاً حتى تكتمل الترتيبات القانونية وترتيبُ حفظ المال. اترك بياناتك وسنبلغك أوّل ما يُفتح.',
+                      Muted(
+                        tr('لا تستقبل المنصّة أموالاً حتى تكتمل الترتيبات القانونية وترتيبُ حفظ المال. اترك بياناتك وسنبلغك أوّل ما يُفتح.', 'The platform accepts no money until the legal arrangements and a way to hold the money are in place. Leave your details and we will tell you as soon as it opens.'),
                       ),
-                    Text('سعر الحصة الاسترشادي: ${p.sharePrice}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(tr('سعر الحصة الاسترشادي: ${p.sharePrice}', 'Indicative share price: ${p.sharePrice}'), style: const TextStyle(fontWeight: FontWeight.w700)),
                     if (d.investmentOpen) ...[
-                      Muted('${p.fundedPct}% ممول'),
+                      Muted(tr('${p.fundedPct}% ممول', '${p.fundedPct}% funded')),
                       const SizedBox(height: 6),
                       FilledButton(
                         onPressed: () => openOnSite(context, '/projects/${p.slug}'),
-                        child: const Text('استثمر على الموقع'),
+                        child: Text(tr('استثمر على الموقع', 'Invest on the website')),
                       ),
                     ],
                   ],
                 ),
-                const SectionTitle('آخر التقارير الميدانية'),
-                if (d.updates.isEmpty) const Muted('لا توجد تقارير منشورة بعد لهذا المشروع.'),
+                SectionTitle(tr('آخر التقارير الميدانية', 'Latest field reports')),
+                if (d.updates.isEmpty) Muted(tr('لا توجد تقارير منشورة بعد لهذا المشروع.', 'No reports published for this project yet.')),
                 for (final u in d.updates)
                   DealCard(
                     title: u.$1,
@@ -591,11 +594,11 @@ class _PartnerSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = detail;
     return DealCard(
-      title: 'الشراكة مع صاحب الأرض',
+      title: tr('الشراكة مع صاحب الأرض', 'Partner with the landowner'),
       children: [
-        const Muted(
-          'تختار نوع الشراكة وتكتب لصاحب الأرض، فيصله إشعار. وحين يقبل يُكتب العقد ويوقّعه الطرفان على المنصّة، ثمّ يبدأ '
-          'الموسم وتتابعه بالصور والمصروفات. المال بينكما مباشرةً، لا يمرّ بالمنصّة.',
+        Muted(
+          tr('تختار نوع الشراكة وتكتب لصاحب الأرض، فيصله إشعار. وحين يقبل يُكتب العقد ويوقّعه الطرفان على المنصّة، ثمّ يبدأ '
+          'الموسم وتتابعه بالصور والمصروفات. المال بينكما مباشرةً، لا يمرّ بالمنصّة.', 'You choose the kind of partnership and write to the land owner, who gets a notification. When they accept, the contract is written and both parties sign it on the platform; then the season begins and you follow it with photos and costs. The money is between you directly and does not pass through the platform.'),
           size: 12,
         ),
         const SizedBox(height: 8),
@@ -612,12 +615,12 @@ class _PartnerSection extends StatelessWidget {
         else if (!d.signedIn)
           FilledButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
-            child: const Text('سجّل كمستثمر لتطلب الشراكة'),
+            child: Text(tr('سجّل كمستثمر لتطلب الشراكة', 'Sign up as an investor to request a partnership')),
           )
         else if (d.ownLandId != null) ...[
-          const Text('أرضك لم تُعرض على المستثمرين بعد.', style: TextStyle(fontWeight: FontWeight.w700)),
-          const Muted(
-            'اختر الشراكات التي تقبلها، فيظهر للمستثمرين هنا وفي «فرص الاستثمار» زرّ «اطلب الشراكة». لا يرون اسمك ولا موقع الأرض حتى تقبل طلباً.',
+          Text(tr('أرضك لم تُعرض على المستثمرين بعد.', 'Your land is not offered to investors yet.'), style: TextStyle(fontWeight: FontWeight.w700)),
+          Muted(
+            tr('اختر الشراكات التي تقبلها، فيظهر للمستثمرين هنا وفي «فرص الاستثمار» زرّ «اطلب الشراكة». لا يرون اسمك ولا موقع الأرض حتى تقبل طلباً.', 'Choose the partnerships you accept, and investors see «Request a partnership» here and on «Investment opportunities». They see neither your name nor the land\'s location until you accept a request.'),
             size: 12,
           ),
           ConsentForm(
@@ -629,11 +632,11 @@ class _PartnerSection extends StatelessWidget {
             onDone: onChanged,
           ),
         ] else if (d.isSubmitter)
-          const Muted(
-            'ليظهر للمستثمرين زرّ «اطلب الشراكة» هنا، افتح أرض هذا المشروع لهم من «أرضي» واختر نوع الشراكة الذي تقبله.',
+          Muted(
+            tr('ليظهر للمستثمرين زرّ «اطلب الشراكة» هنا، افتح أرض هذا المشروع لهم من «أرضي» واختر نوع الشراكة الذي تقبله.', 'For investors to see «Request a partnership» here, open this project\'s land to them from «My land» and choose the kind of partnership you accept.'),
           )
         else
-          const Muted('لم يفتح صاحب الأرض باب الشراكة بعد.'),
+          Muted(tr('لم يفتح صاحب الأرض باب الشراكة بعد.', 'The land owner has not opened the door to partnership yet.')),
       ],
     );
   }

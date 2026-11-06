@@ -7,6 +7,7 @@
 library;
 
 import 'account.dart';
+import 'i18n.dart';
 
 class HomeCard {
   const HomeCard({
@@ -101,14 +102,14 @@ class RoleHomeData {
   /// The headline under the hero, with the entries kept on this phone counted in.
   String headline(int offline) {
     final n = waiting + offline;
-    if (n == 0) return 'لا شيء ينتظرك الآن';
-    return 'ينتظرك $n';
+    if (n == 0) return tr('لا شيء ينتظرك الآن', 'Nothing is waiting for you now');
+    return tr('ينتظرك $n', '$n waiting for you');
   }
 
   /// The greeting: the first name, as the website's home says it.
   String get greeting {
     final first = name.trim().split(RegExp(r'\s+')).first;
-    return first.isEmpty ? 'أهلاً بك' : 'أهلاً $first';
+    return first.isEmpty ? tr('أهلاً بك', 'Welcome') : tr('أهلاً $first', 'Welcome, $first');
   }
 }
 

@@ -22,6 +22,7 @@ import 'package:http/http.dart' as http;
 
 import 'account.dart';
 import 'api.dart';
+import 'i18n.dart';
 import 'seasons.dart' show userIdOf;
 
 /// The bucket's own limit, as the website's upload enforces it.
@@ -44,15 +45,15 @@ class EvidenceFile {
 
 /// Why the file cannot be sent, in the website's words; null when it can.
 String? evidenceFileProblem(EvidenceFile f) {
-  if (f.bytes.isEmpty) return 'اختر ملفاً أولاً — صورة أو مستند PDF.';
+  if (f.bytes.isEmpty) return tr('اختر ملفاً أولاً — صورة أو مستند PDF.', 'Choose a file first — a photo or a PDF document.');
   if (f.bytes.length > evidenceMaxBytes) {
-    return 'الملف ${(f.bytes.length / 1048576).toStringAsFixed(1)} ميجابايت، والحد الأقصى 10.';
+    return tr('الملف ${(f.bytes.length / 1048576).toStringAsFixed(1)} ميجابايت، والحد الأقصى 10.', 'The file is ${(f.bytes.length / 1048576).toStringAsFixed(1)} MB, and the limit is 10.');
   }
   final b = f.bytes;
   final isPdf = b.length > 4 && b[0] == 0x25 && b[1] == 0x50 && b[2] == 0x44 && b[3] == 0x46; // %PDF
   final isJpeg = b.length > 3 && b[0] == 0xff && b[1] == 0xd8 && b[2] == 0xff;
   final isPng = b.length > 8 && b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4e && b[3] == 0x47;
-  if (f.pdf ? !isPdf : !(isJpeg || isPng)) return 'الصيغ المقبولة: JPG أو PNG أو PDF.';
+  if (f.pdf ? !isPdf : !(isJpeg || isPng)) return tr('الصيغ المقبولة: JPG أو PNG أو PDF.', 'Accepted formats: JPG, PNG or PDF.');
   return null;
 }
 
@@ -88,11 +89,11 @@ class EvidenceSender {
     if (problem != null) throw ApiException(problem);
     if (!f.pdf) return {'photo': base64Encode(f.bytes)};
 
-    if (_supabase.isEmpty || _anon.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_supabase.isEmpty || _anon.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     final s = await _account.fresh();
-    if (s == null) throw ApiException('ادخل إلى حسابك.');
+    if (s == null) throw ApiException(tr('ادخل إلى حسابك.', 'Sign in to your account.'));
     final user = userIdOf(s.accessToken);
-    if (user == null) throw ApiException('انتهت جلستك. ادخل من جديد.');
+    if (user == null) throw ApiException(tr('انتهت جلستك. ادخل من جديد.', 'Your session has ended. Sign in again.'));
     // The storage policy checks the first segment against the caller, so the user's id leads.
     final path = '$user/$folder/${newObjectId(random)}.pdf';
     late final http.Response res;
@@ -111,9 +112,9 @@ class EvidenceSender {
           )
           .timeout(const Duration(minutes: 3));
     } catch (_) {
-      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
     }
-    if (res.statusCode != 200) throw ApiException('تعذّر رفع الملف. أعد المحاولة.');
+    if (res.statusCode != 200) throw ApiException(tr('تعذّر رفع الملف. أعد المحاولة.', 'Could not upload the file. Try again.'));
     return {'storage_path': path};
   }
 }

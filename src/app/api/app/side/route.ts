@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «أرضي · استثماري» في التطبيق (البند ١٧٣): ما يفعله `switchSide` في الموقع (src/app/side/actions.ts).
@@ -11,16 +13,17 @@ import { clientFromBearer } from "@/lib/supabase/bearer";
 export async function POST(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   let side: unknown;
   try {
     side = ((await req.json()) as { side?: unknown }).side;
   } catch {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   if (side !== "farmer" && side !== "investor") {
-    return NextResponse.json({ error: "طلبٌ غير صالح." }, { status: 400 });
+    return NextResponse.json({ error: tr(locale, "طلبٌ غير صالح.", "Invalid request.") }, { status: 400 });
   }
   const { data, error } = await supabase
     .from("profiles")
@@ -31,7 +34,7 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (error) {
     console.error("app side:", error.message);
-    return NextResponse.json({ error: "تعذّر تغيير الجانب الآن." }, { status: 500 });
+    return NextResponse.json({ error: tr(locale, "تعذّر تغيير الجانب الآن.", "Could not change the side right now.") }, { status: 500 });
   }
   return NextResponse.json({ role: (data as { role?: string } | null)?.role ?? null });
 }

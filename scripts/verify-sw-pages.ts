@@ -23,6 +23,13 @@ for (const p of ["/seasons", "/seasons/0d4f6c1e-2b7a-4c55-9f0e-1a2b3c4d5e6f", "/
 }
 ok(/addAll\(\[OFFLINE_URL, "\/seasons\/offline"\]\)/.test(sw), "and it is stored at install, so it opens in the field even if never visited offline");
 
+// Since item 206 the homepage shows a signed-in person's seasons, money and lands, and every page their name: the proxy
+// marks such answers, and the worker never keeps one (review of 6 November 2026).
+const proxy = readFileSync("src/proxy.ts", "utf8");
+ok(/response\.headers\.set\("x-sudagri-private", "1"\)/.test(proxy) && /sb-\.\+-auth-token/.test(proxy), "the proxy marks every answer to a signed-in person private");
+ok(/const isPrivate = res\.headers\.get\("x-sudagri-private"\) === "1";/.test(sw) && /isPublic && !isPrivate && res\.ok/.test(sw), "and the service worker never keeps a private answer, even of a public page");
+ok(!/sudagri-v3"/.test(sw), "and its version moved on, so copies kept before are dropped");
+
 const page = readFileSync("src/app/seasons/offline/page.tsx", "utf8");
 ok(!/createClient|supabase|getUser|from\("/.test(page), "the kept page reads no one's data");
 const form = readFileSync("src/app/seasons/offline/BlankLedgerForm.tsx", "utf8");

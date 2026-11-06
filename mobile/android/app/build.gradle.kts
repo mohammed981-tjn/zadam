@@ -15,6 +15,21 @@ val keyProps = Properties().apply {
     if (f.exists()) FileInputStream(f).use { load(it) }
 }
 
+/*
+ * إشعارات الجوّال (البند ٢٠٧): إعداد مشروع Firebase في `android/app/google-services.json`.
+ *
+ * The file is project-specific (it names the owner's Firebase project) and is not in the repository: the build writes
+ * it from the GOOGLE_SERVICES_JSON secret when the owner has set one (.github/workflows/mobile.yml), or the owner drops
+ * it here for a local build (docs/push-setup-ar.md). Without it the Google services plugin is simply not applied: the
+ * APK builds as before, Firebase finds no configuration at start-up, and the app runs with phone notifications off
+ * (lib/push.dart). Applied unconditionally, the plugin would fail every build that lacks the file.
+ */
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.warn("sudagri: android/app/google-services.json not found — phone notifications are off in this build.")
+}
+
 
 android {
     namespace = "sd.sudagri.sudagri"

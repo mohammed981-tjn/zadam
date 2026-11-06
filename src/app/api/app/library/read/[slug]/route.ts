@@ -5,6 +5,8 @@ import { parseStudy } from "@/lib/studyDoc";
 import { pageBlocks } from "@/lib/pageBlocks";
 import { ROUTE, ROUTE_LENGTH_KM, distanceKm, summarise } from "@/lib/arcCanal";
 import { LOCALE_COOKIE } from "@/lib/i18n";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * الدراسات والدليل للقراءة في التطبيق (البند ٢٠٣): /studies/exchange-rate و/arc-canal و/guide.
@@ -34,6 +36,7 @@ async function renderedBlocks(req: Request, path: string) {
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const locale = appLocale(req);
   const { slug } = await params;
   const pageUrl = (path: string) => new URL(path, req.url).toString();
 
@@ -44,9 +47,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
       {
         slug,
         title: doc.title,
-        note: "دراسةٌ أرسلها مالكُ المنصّة، ونُشرت كما كُتبت — ٢٥ سبتمبر ٢٠٢٦",
+        note: tr(locale, "دراسةٌ أرسلها مالكُ المنصّة، ونُشرت كما كُتبت — ٢٥ سبتمبر ٢٠٢٦", "A study sent by the platform's owner and published as written, in Arabic — 25 September 2026"),
         caveat:
-          "عن الأرقام في الدراسة: كلُّ رقمٍ فيها منسوبٌ إلى مصدره وتاريخه كما ورد (رويترز، والجهاز المركزي للإحصاء، وغيرهما)، ويعكس سوقاً أو قناةً بعينها لا سعراً موحّداً لكلّ السودان — والدراسةُ نفسها تشترط تحديثه قبل أيّ قرار. ولم تُراجعه المنصّةُ مقابل مصادره.",
+          tr(locale, "عن الأرقام في الدراسة: كلُّ رقمٍ فيها منسوبٌ إلى مصدره وتاريخه كما ورد (رويترز، والجهاز المركزي للإحصاء، وغيرهما)، ويعكس سوقاً أو قناةً بعينها لا سعراً موحّداً لكلّ السودان — والدراسةُ نفسها تشترط تحديثه قبل أيّ قرار. ولم تُراجعه المنصّةُ مقابل مصادره.", "About the figures in the study: each is attributed to its source and date as given (Reuters, the Central Bureau of Statistics and others), and reflects a particular market or channel, not one price for all of Sudan — and the study itself asks for it to be updated before any decision. The platform has not checked it against its sources."),
         sections: doc.sections,
         blocks: doc.blocks,
         pageUrl: pageUrl("/studies/exchange-rate"),
@@ -56,7 +59,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   }
 
   if (slug !== "arc-canal" && slug !== "guide") {
-    return NextResponse.json({ error: "لا توجد صفحةٌ بهذا الاسم." }, { status: 404 });
+    return NextResponse.json({ error: tr(locale, "لا توجد صفحةٌ بهذا الاسم.", "There is no page by this name.") }, { status: 404 });
   }
 
   let blocks;
@@ -65,7 +68,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   } catch (e) {
     console.error("app read: page fetch failed", (e as Error).message);
     return NextResponse.json(
-      { error: "تعذّر تحميل الصفحة الآن. أعد المحاولة، أو افتحها في الموقع.", pageUrl: pageUrl(PAGES[slug]) },
+      { error: tr(locale, "تعذّر تحميل الصفحة الآن. أعد المحاولة، أو افتحها في الموقع.", "Could not load the page just now. Try again, or open it on the website."), pageUrl: pageUrl(PAGES[slug]) },
       { status: 502 },
     );
   }

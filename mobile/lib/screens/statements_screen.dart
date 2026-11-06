@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../statements.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -25,7 +26,7 @@ Future<Uri?> savePdfWithDialog(StatementsPdf pdf) => FilePicker.saveFile(
       fileName: pdf.fileName,
       bytes: Uint8List.fromList(pdf.bytes),
       mimeType: 'application/pdf',
-      dialogTitle: 'احفظ القوائم الماليّة',
+      dialogTitle: tr('احفظ القوائم الماليّة', 'Save the financial statements'),
     );
 
 class StatementsScreen extends StatelessWidget {
@@ -41,9 +42,9 @@ class StatementsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('القوائم الماليّة')),
+      appBar: AppBar(title: Text(tr('القوائم الماليّة', 'Financial statements'))),
       body: RequireSignIn(
-        what: 'قوائمك الماليّة',
+        what: tr('قوائمك الماليّة', 'your financial statements'),
         builder: (_) => _StatementsBody(api: api ?? StatementsApi(), book: book, save: save ?? savePdfWithDialog),
       ),
     );
@@ -79,12 +80,12 @@ class _StatementsBodyState extends State<_StatementsBody> {
       final where = await widget.save(pdf);
       if (!mounted) return;
       if (where == null) {
-        _say('لم يُحفظ الملفّ.');
+        _say(tr('لم يُحفظ الملفّ.', 'The file was not saved.'));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('حُفظت الحزمة: ${pdf.fileName}'),
+          content: Text(tr('حُفظت الحزمة: ${pdf.fileName}', 'The bundle was saved: ${pdf.fileName}')),
           action: SnackBarAction(
-            label: 'افتحها',
+            label: tr('افتحها', 'Open it'),
             onPressed: () => launchUrl(where, mode: LaunchMode.externalApplication),
           ),
         ));
@@ -92,7 +93,7 @@ class _StatementsBodyState extends State<_StatementsBody> {
     } on ApiException catch (e) {
       if (mounted) _say(e.message);
     } catch (_) {
-      if (mounted) _say('تعذّر حفظ الملفّ على الهاتف.');
+      if (mounted) _say(tr('تعذّر حفظ الملفّ على الهاتف.', 'Could not save the file on the phone.'));
     } finally {
       if (mounted) setState(() => _downloading = false);
     }
@@ -118,7 +119,7 @@ class _StatementsBodyState extends State<_StatementsBody> {
         if (snap.connectionState != ConnectionState.done) return const LoadingView();
         if (snap.hasError) {
           final e = snap.error;
-          return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل القوائم.', onRetry: () => _go(_q), scrollable: true);
+          return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل القوائم.', 'Could not load the statements.'), onRetry: () => _go(_q), scrollable: true);
         }
         final v = snap.data!;
         final thisYear = int.tryParse(v.today.substring(0, 4)) ?? DateTime.now().year;
@@ -135,9 +136,9 @@ class _StatementsBodyState extends State<_StatementsBody> {
                     const SizedBox(height: 4),
                     Text(v.period, style: const TextStyle(fontWeight: FontWeight.w700)),
                     if (v.previousPeriod != null)
-                      Text('مقارنةً بـ ${v.previousPeriod}', style: TextStyle(color: mutedOn(context), fontSize: 12)),
+                      Text(tr('مقارنةً بـ ${v.previousPeriod}', 'Compared with ${v.previousPeriod}'), style: TextStyle(color: mutedOn(context), fontSize: 12)),
                     const SizedBox(height: 6),
-                    Text('كلّ المبالغ بالدولار · حسابات إداريّة، لا قوائم قانونيّة مدقَّقة.',
+                    Text(tr('كلّ المبالغ بالدولار · حسابات إداريّة، لا قوائم قانونيّة مدقَّقة.', 'All amounts in dollars · management accounts, not audited statutory statements.'),
                         style: TextStyle(color: mutedOn(context), fontSize: 12)),
                   ]),
                 ),
@@ -145,9 +146,9 @@ class _StatementsBodyState extends State<_StatementsBody> {
               const SizedBox(height: 10),
               SegmentedButton<String>(
                 segments: [
-                  const ButtonSegment(value: 'year', label: Text('سنة')),
-                  const ButtonSegment(value: 'month', label: Text('شهر')),
-                  if (v.seasons.isNotEmpty) const ButtonSegment(value: 'season', label: Text('موسم')),
+                  ButtonSegment(value: 'year', label: Text(tr('سنة', 'A year'))),
+                  ButtonSegment(value: 'month', label: Text(tr('شهر', 'A month'))),
+                  if (v.seasons.isNotEmpty) ButtonSegment(value: 'season', label: Text(tr('موسم', 'A season'))),
                 ],
                 selected: {v.basis},
                 onSelectionChanged: (s) => _go(_q.copyWith(
@@ -176,7 +177,7 @@ class _StatementsBodyState extends State<_StatementsBody> {
                     onChanged: (id) => _go(_q.copyWith(season: id)),
                   ),
                 FilterChip(
-                  label: const Text('قارن بالفترة السابقة'),
+                  label: Text(tr('قارن بالفترة السابقة', 'Compare with the previous period')),
                   selected: v.compare,
                   onSelected: (on) => _go(_q.copyWith(compare: on)),
                 ),
@@ -187,68 +188,68 @@ class _StatementsBodyState extends State<_StatementsBody> {
                 icon: _downloading
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.picture_as_pdf_outlined),
-                label: const Text('حمّل PDF'),
+                label: Text(tr('حمّل PDF', 'Download PDF')),
               ),
               const SizedBox(height: 14),
               _Statement(
-                title: 'قائمة الدخل',
+                title: tr('قائمة الدخل', 'Income statement'),
                 compare: v.hasPrevious,
                 blocks: [
-                  ('الإيراد', v.revenue, ('مجموع الإيراد', v.totalRevenue)),
-                  ('المصروف', v.expense, ('مجموع المصروف', v.totalExpense)),
+                  (tr('الإيراد', 'Revenue'), v.revenue, (tr('مجموع الإيراد', 'Total revenue'), v.totalRevenue)),
+                  (tr('المصروف', 'Expense'), v.expense, (tr('مجموع المصروف', 'Total expense'), v.totalExpense)),
                 ],
-                foot: ('صافي الدخل', v.netIncome),
+                foot: (tr('صافي الدخل', 'Net income'), v.netIncome),
               ),
               _Statement(
-                title: 'الميزانيّة',
-                sub: 'في ${v.to}${v.previousTo != null ? ' مقارنةً بـ ${v.previousTo}' : ''}',
+                title: tr('الميزانيّة', 'Balance sheet'),
+                sub: tr('في ${v.to}${v.previousTo != null ? ' مقارنةً بـ ${v.previousTo}' : ''}', 'On ${v.to}${v.previousTo != null ? ' compared with ${v.previousTo}' : ''}'),
                 compare: v.hasPrevious,
-                verdict: _Verdict(ok: v.balanced, good: 'متوازنة: الأصول = الالتزامات + الملكيّة', bad: 'غير متوازنة — أبلغ الإدارة'),
+                verdict: _Verdict(ok: v.balanced, good: tr('متوازنة: الأصول = الالتزامات + الملكيّة', 'Balanced: assets equal liabilities plus equity'), bad: tr('غير متوازنة — أبلغ الإدارة', 'Not balanced — tell the administrators')),
                 blocks: [
-                  ('الأصول', v.assets, ('مجموع الأصول', v.totalAssets)),
-                  ('الالتزامات', v.liabilities, ('مجموع الالتزامات', v.totalLiabilities)),
-                  ('حقوق الملكيّة', v.equity, ('مجموع الملكيّة', v.totalEquity)),
+                  (tr('الأصول', 'Assets'), v.assets, (tr('مجموع الأصول', 'Total assets'), v.totalAssets)),
+                  (tr('الالتزامات', 'Liabilities'), v.liabilities, (tr('مجموع الالتزامات', 'Total liabilities'), v.totalLiabilities)),
+                  (tr('حقوق الملكيّة', 'Equity'), v.equity, (tr('مجموع الملكيّة', 'Total equity'), v.totalEquity)),
                 ],
               ),
               _Statement(
-                title: 'التدفّقات النقديّة',
+                title: tr('التدفّقات النقديّة', 'Cash flow'),
                 compare: v.hasPrevious,
-                verdict: _Verdict(ok: v.cashTies, good: 'النقد أوّل الفترة + الحركة = النقد آخرها', bad: 'لا يتطابق النقد — أبلغ الإدارة'),
-                blocks: [for (final (t, lines, total) in v.cashSections) (t, lines, ('الصافي', total))],
-                lead: ('النقد أوّل الفترة', v.cashOpening),
-                foot: ('النقد آخر الفترة', v.cashClosing),
+                verdict: _Verdict(ok: v.cashTies, good: tr('النقد أوّل الفترة + الحركة = النقد آخرها', 'Opening cash plus the movement equals closing cash'), bad: tr('لا يتطابق النقد — أبلغ الإدارة', 'Cash does not tie — tell the administrators')),
+                blocks: [for (final (t, lines, total) in v.cashSections) (t, lines, (tr('الصافي', 'Left with'), total))],
+                lead: (tr('النقد أوّل الفترة', 'Cash at the start'), v.cashOpening),
+                foot: (tr('النقد آخر الفترة', 'Cash at the end'), v.cashClosing),
               ),
               _Card(
-                title: 'قائمة التغيّر في حقوق الملكيّة',
+                title: tr('قائمة التغيّر في حقوق الملكيّة', 'Statement of changes in equity'),
                 sub: '${v.from} — ${v.to}',
                 children: [
                   for (final (line, name, amount) in v.equityRows)
                     _FigureRow(label: name, cells: [usd(amount)], bold: line == 'opening' || line == 'closing'),
                   const SizedBox(height: 6),
-                  _Verdict(ok: v.equityCloses, good: 'الملكيّة آخر الفترة = مجموع الملكيّة في الميزانيّة', bad: 'لا تطابق الميزانيّة — أبلغ الإدارة'),
+                  _Verdict(ok: v.equityCloses, good: tr('الملكيّة آخر الفترة = مجموع الملكيّة في الميزانيّة', 'Closing equity equals the balance sheet\'s equity'), bad: tr('لا تطابق الميزانيّة — أبلغ الإدارة', 'Does not agree with the balance sheet — tell the administrators')),
                 ],
               ),
               _Card(
-                title: 'أعمار الذمم',
-                sub: 'في ${v.ageingAsOf} · العمر من يوم القيد؛ سداد القيد الآجل يُطرح منه، وغيره من الأقدم.',
+                title: tr('أعمار الذمم', 'Ageing of what is owed'),
+                sub: tr('في ${v.ageingAsOf} · العمر من يوم القيد؛ سداد القيد الآجل يُطرح منه، وغيره من الأقدم.', 'On ${v.ageingAsOf} · age from the entry\'s date; a payment of a credit entry is taken off it, and others off the oldest.'),
                 children: [
-                  _AgeingBlock(title: 'لك على غيرك', side: v.receivable),
+                  _AgeingBlock(title: tr('لك على غيرك', 'Owed to you'), side: v.receivable),
                   const Divider(),
-                  _AgeingBlock(title: 'عليك لغيرك', side: v.payable),
+                  _AgeingBlock(title: tr('عليك لغيرك', 'You owe'), side: v.payable),
                 ],
               ),
               for (final s in v.budget)
                 _Card(
-                  title: 'الميزانيّة مقابل الفعليّ · ${s.name}',
+                  title: tr('الميزانيّة مقابل الفعليّ · ${s.name}', 'Budget against actual · ${s.name}'),
                   children: [
-                    const _FigureRow(label: 'المرحلة', cells: ['الخطّة', 'الفعليّ', 'الباقي'], header: true),
+                    _FigureRow(label: tr('المرحلة', 'Stage'), cells: [tr('الخطّة', 'The plan'), tr('الفعليّ', 'Actual'), tr('الباقي', 'Left')], header: true),
                     for (final st in s.stages)
                       _FigureRow(label: '${st.name} · ${percent(st.usedPct, sign: false)}', cells: [usd(st.budget), usd(st.actual), usd(st.variance)], warnLast: st.variance < 0),
-                    _FigureRow(label: 'مجموع الموسم · ${percent(s.usedPct, sign: false)}', cells: [usd(s.budget), usd(s.actual), usd(s.variance)], bold: true, warnLast: s.variance < 0),
+                    _FigureRow(label: tr('مجموع الموسم · ${percent(s.usedPct, sign: false)}', 'Season total · ${percent(s.usedPct, sign: false)}'), cells: [usd(s.budget), usd(s.actual), usd(s.variance)], bold: true, warnLast: s.variance < 0),
                   ],
                 ),
               _Card(
-                title: 'إيضاحات',
+                title: tr('إيضاحات', 'Notes'),
                 children: [
                   for (final (i, (title, body)) in v.notes.indexed)
                     Padding(
@@ -261,13 +262,13 @@ class _StatementsBodyState extends State<_StatementsBody> {
                 ],
               ),
               _Card(
-                title: 'بصمة الأرقام',
+                title: tr('بصمة الأرقام', 'Fingerprint of the figures'),
                 children: [
                   SelectableText('SHA-256 ${v.fingerprintGroups}',
                       textDirection: TextDirection.ltr, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
                   const SizedBox(height: 6),
                   Text(
-                    'هي نفسها المطبوعة في كلّ صفحةٍ من الحزمة PDF لهذه الفترة: إن تطابقت فأرقام الورق هي أرقام الدفتر الآن.',
+                    tr('هي نفسها المطبوعة في كلّ صفحةٍ من الحزمة PDF لهذه الفترة: إن تطابقت فأرقام الورق هي أرقام الدفتر الآن.', 'It is the same one printed on every page of the PDF bundle for this period: if they match, the figures on paper are the book\'s figures now.'),
                     style: TextStyle(color: mutedOn(context), fontSize: 12, height: 1.6),
                   ),
                 ],
@@ -277,7 +278,7 @@ class _StatementsBodyState extends State<_StatementsBody> {
                 child: TextButton.icon(
                   onPressed: () => openOnSite(context, '/books/statements${_q.query}'),
                   icon: const Icon(Icons.open_in_new, size: 18),
-                  label: const Text('افتحها على الموقع'),
+                  label: Text(tr('افتحها على الموقع', 'Open them on the website')),
                 ),
               ),
             ],
@@ -330,7 +331,7 @@ class _Statement extends StatelessWidget {
         _FigureRow(label: compare && f.pct != null ? '$label · ${percent(f.pct)}' : label, cells: _cells(f), bold: bold);
     return _Card(title: title, sub: sub, children: [
       ?verdict,
-      _FigureRow(label: 'البند', cells: compare ? const ['هذه', 'السابقة', 'التغيّر'] : const ['المبلغ'], header: true),
+      _FigureRow(label: tr('البند', 'Item'), cells: compare ? [tr('هذه', 'This'), tr('السابقة', 'Earlier'), tr('التغيّر', 'Change')] : [tr('المبلغ', 'Amount')], header: true),
       if (lead != null) row(lead!.$1, lead!.$2),
       for (final (name, lines, (totalLabel, total)) in blocks) ...[
         Padding(
@@ -393,13 +394,13 @@ class _AgeingBlock extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Text('$title: ${usd(side.total)}', style: const TextStyle(fontWeight: FontWeight.w800)),
       if (side.accounts.isEmpty)
-        Text('لا شيء.', style: TextStyle(color: mutedOn(context)))
+        Text(tr('لا شيء.', 'Nothing.'), style: TextStyle(color: mutedOn(context)))
       else ...[
         for (final k in side.keys)
           _FigureRow(label: bucketLabels[k] ?? k, cells: [usd(side.buckets[k] ?? 0)], warnLast: k == '90_plus' && (side.buckets[k] ?? 0) > 0),
         const SizedBox(height: 4),
         for (final a in side.accounts)
-          Text('${a.code} · ${a.name}: ${usd(a.total)} (${a.items} بنداً)', style: TextStyle(color: mutedOn(context), fontSize: 12)),
+          Text(tr('${a.code} · ${a.name}: ${usd(a.total)} (${a.items} بنداً)', '${a.code} · ${a.name}: ${usd(a.total)} (${a.items} items)'), style: TextStyle(color: mutedOn(context), fontSize: 12)),
       ],
     ]);
   }

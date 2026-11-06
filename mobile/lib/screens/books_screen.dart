@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 
 import '../api.dart';
 import '../books.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../ui.dart';
 import 'account_screen.dart';
@@ -26,8 +27,8 @@ class BooksScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('دفتر الحسابات')),
-      body: RequireSignIn(what: 'دفترك', builder: (_) => _BooksBody(api: api ?? BooksApi())),
+      appBar: AppBar(title: Text(tr('دفتر الحسابات', 'Ledger'))),
+      body: RequireSignIn(what: tr('دفترك', 'your book'), builder: (_) => _BooksBody(api: api ?? BooksApi())),
     );
   }
 }
@@ -75,7 +76,7 @@ class _BooksBodyState extends State<_BooksBody> {
         if (snap.connectionState != ConnectionState.done) return const LoadingView();
         if (snap.hasError) {
           final e = snap.error;
-          return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل الدفتر.', onRetry: _reload, scrollable: true);
+          return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل الدفتر.', 'Could not load the book.'), onRetry: _reload, scrollable: true);
         }
         final v = snap.data!;
         return RefreshIndicator(
@@ -86,18 +87,18 @@ class _BooksBodyState extends State<_BooksBody> {
               FadeIn(
                 child: HeroBand(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(v.book?.heading ?? 'لم يُفتح لك دفتر بعد',
+                    Text(v.book?.heading ?? tr('لم يُفتح لك دفتر بعد', 'No book opened for you yet'),
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 4),
                     Text(
                       [
-                        'كلّ المبالغ بالدولار',
-                        if (v.book?.closedThrough != null) 'مقفل حتى ${v.book!.closedThrough}',
+                        tr('كلّ المبالغ بالدولار', 'all amounts in US dollars'),
+                        if (v.book?.closedThrough != null) tr('مقفل حتى ${v.book!.closedThrough}', 'Closed through ${v.book!.closedThrough}'),
                       ].join(' · '),
                       style: TextStyle(color: mutedOn(context)),
                     ),
                     const SizedBox(height: 6),
-                    Text('حسابات إداريّة تساعدك على المتابعة، وليست قوائم قانونيّة مدقَّقة.',
+                    Text(tr('حسابات إداريّة تساعدك على المتابعة، وليست قوائم قانونيّة مدقَّقة.', 'Management accounts to help you keep track — not audited statutory statements.'),
                         style: TextStyle(color: mutedOn(context), fontSize: 12)),
                   ]),
                 ),
@@ -116,29 +117,29 @@ class _BooksBodyState extends State<_BooksBody> {
                 FilledButton.icon(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JournalHubScreen())).then((_) => _reload()),
                   icon: const Icon(Icons.edit_note_outlined, size: 18),
-                  label: const Text('القيود والمراجعة'),
+                  label: Text(tr('القيود والمراجعة', 'Entries and review')),
                 ),
                 if (v.book != null)
                   OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => StatementsScreen(book: _q.book))),
                     icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                    label: const Text('القوائم الماليّة'),
+                    label: Text(tr('القوائم الماليّة', 'Financial statements')),
                   ),
                 OutlinedButton.icon(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AssetsScreen(api: widget.api))),
                   icon: const Icon(Icons.agriculture_outlined, size: 18),
-                  label: const Text('الأصول الثابتة'),
+                  label: Text(tr('الأصول الثابتة', 'Fixed assets')),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => openOnSite(context, '/books/fees'),
                   icon: const Icon(Icons.open_in_new, size: 18),
-                  label: Text(v.feesWaiting > 0 ? 'رسوم المنصّة (${v.feesWaiting})' : 'رسوم المنصّة'),
+                  label: Text(v.feesWaiting > 0 ? tr('رسوم المنصّة (${v.feesWaiting})', 'Platform fees (${v.feesWaiting})') : tr('رسوم المنصّة', 'Platform fees')),
                 ),
                 if (v.book != null && v.book!.owned)
                   OutlinedButton.icon(
                     onPressed: () => openOnSite(context, '/books/reconcile${v.book!.kind == 'investor' ? '?book=investor' : ''}'),
                     icon: const Icon(Icons.open_in_new, size: 18),
-                    label: const Text('مطابقة الكشف'),
+                    label: Text(tr('مطابقة الكشف', 'Match a statement')),
                   ),
               ]),
               const SizedBox(height: 10),
@@ -162,11 +163,11 @@ class _BooksBodyState extends State<_BooksBody> {
               const SizedBox(height: 8),
               if (v.book != null || v.report == 'links') _dates(v),
               if (v.data == null && v.message != null) ...[
-                StateView(icon: Icons.menu_book_outlined, title: 'لا دفتر بعد', message: v.message, compact: true),
+                StateView(icon: Icons.menu_book_outlined, title: tr('لا دفتر بعد', 'No book yet'), message: v.message, compact: true),
                 Center(
                   child: FilledButton(
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SeasonsScreen())),
-                    child: const Text('مواسمي'),
+                    child: Text(tr('مواسمي', 'My seasons')),
                   ),
                 ),
               ],
@@ -193,10 +194,10 @@ class _BooksBodyState extends State<_BooksBody> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Wrap(spacing: 8, runSpacing: 8, children: [
         if (dates == ReportDates.period) ...[
-          chip('من', v.from, (d) => _go(BooksQuery(report: v.report, book: _q.book, from: d, to: v.to, account: _q.account))),
-          chip('إلى', v.to, (d) => _go(BooksQuery(report: v.report, book: _q.book, from: v.from, to: d, account: _q.account))),
+          chip(tr('من', 'From'), v.from, (d) => _go(BooksQuery(report: v.report, book: _q.book, from: d, to: v.to, account: _q.account))),
+          chip(tr('إلى', 'To'), v.to, (d) => _go(BooksQuery(report: v.report, book: _q.book, from: v.from, to: d, account: _q.account))),
         ] else
-          chip('حتى يوم', v.asOf, (d) => _go(BooksQuery(report: v.report, book: _q.book, asOf: d))),
+          chip(tr('حتى يوم', 'As of'), v.asOf, (d) => _go(BooksQuery(report: v.report, book: _q.book, asOf: d))),
       ]),
     );
   }
@@ -204,18 +205,18 @@ class _BooksBodyState extends State<_BooksBody> {
   Widget _report(BooksView v, BookReport r) {
     return switch (r) {
       TrialReport() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          _Verdict(ok: r.balanced, good: 'الميزان متوازن: المدين = الدائن', bad: 'الميزان غير متوازن — أبلغ الإدارة'),
+          _Verdict(ok: r.balanced, good: tr('الميزان متوازن: المدين = الدائن', 'Balanced: debits equal credits'), bad: tr('الميزان غير متوازن — أبلغ الإدارة', 'Not balanced — tell the administrators')),
           _Table(
-            head: const ['الحساب', 'مدين', 'دائن'],
+            head: [tr('الحساب', 'Account'), tr('مدين', 'Debit'), tr('دائن', 'Credit')],
             rows: [
               for (final l in r.rows) ['${l.code} · ${l.name}', l.debit, l.credit],
             ],
-            foot: ['المجموع', r.totalDebit, r.totalCredit],
+            foot: [tr('المجموع', 'Total'), r.totalDebit, r.totalCredit],
           ),
           if (r.memo.isNotEmpty) ...[
             const SizedBox(height: 10),
-            const Text('حسابات إحصائيّة (خارج الميزانيّة)', style: TextStyle(fontWeight: FontWeight.w800)),
-            _Table(head: const ['الحساب', 'مدين', 'دائن'], rows: [
+            Text(tr('حسابات إحصائيّة (خارج الميزانيّة)', 'Statistical accounts (off balance sheet)'), style: TextStyle(fontWeight: FontWeight.w800)),
+            _Table(head: [tr('الحساب', 'Account'), tr('مدين', 'Debit'), tr('دائن', 'Credit')], rows: [
               for (final l in r.memo) ['${l.code} · ${l.name}', l.debit, l.credit],
             ]),
           ],
@@ -223,64 +224,64 @@ class _BooksBodyState extends State<_BooksBody> {
       IncomeReport() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _Table(rows: [
             for (final l in r.revenue) ['${l.code} · ${l.name}', l.amount],
-          ], title: 'الإيرادات', foot: ['مجموع الإيراد', r.totalRevenue]),
+          ], title: tr('الإيرادات', 'Revenue'), foot: [tr('مجموع الإيراد', 'Total revenue'), r.totalRevenue]),
           _Table(rows: [
             for (final l in r.expense) ['${l.code} · ${l.name}', l.amount],
-          ], title: 'التكاليف والمصروفات', foot: ['مجموع المصروف', r.totalExpense]),
-          _Table(rows: const [], foot: ['صافي الدخل', r.netIncome]),
-          _note('تكلفة المواسم الجارية تُرسمل (حساب ٥٩٠٠ سالب) فلا تظهر مصروفاً حتى يُقفل الموسم وتصير «تكلفة المحصول المباع».'),
+          ], title: tr('التكاليف والمصروفات', 'Costs and expenses'), foot: [tr('مجموع المصروف', 'Total expense'), r.totalExpense]),
+          _Table(rows: const [], foot: [tr('صافي الدخل', 'Net income'), r.netIncome]),
+          _note(tr('تكلفة المواسم الجارية تُرسمل (حساب ٥٩٠٠ سالب) فلا تظهر مصروفاً حتى يُقفل الموسم وتصير «تكلفة المحصول المباع».', 'The cost of seasons still running is capitalised (account 5900, negative), so it shows as an expense only once the season closes and becomes the cost of the crop sold.')),
         ]),
       BalanceReport() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _Verdict(
             ok: r.balanced,
-            good: 'الميزانيّة متوازنة: الأصول = الالتزامات + الملكيّة',
-            bad: 'الميزانيّة غير متوازنة — أبلغ الإدارة',
+            good: tr('الميزانيّة متوازنة: الأصول = الالتزامات + الملكيّة', 'Balanced: assets equal liabilities plus equity'),
+            bad: tr('الميزانيّة غير متوازنة — أبلغ الإدارة', 'Not balanced — tell the administrators'),
           ),
-          _Table(title: 'الأصول', rows: [for (final l in r.assets) ['${l.code} · ${l.name}', l.amount]], foot: ['مجموع الأصول', r.totalAssets]),
+          _Table(title: tr('الأصول', 'Assets'), rows: [for (final l in r.assets) ['${l.code} · ${l.name}', l.amount]], foot: [tr('مجموع الأصول', 'Total assets'), r.totalAssets]),
           _Table(
-            title: 'الالتزامات',
+            title: tr('الالتزامات', 'Liabilities'),
             rows: [for (final l in r.liabilities) ['${l.code} · ${l.name}', l.amount]],
-            foot: ['مجموع الالتزامات', r.totalLiabilities],
+            foot: [tr('مجموع الالتزامات', 'Total liabilities'), r.totalLiabilities],
           ),
           _Table(
-            title: 'الملكيّة',
+            title: tr('الملكيّة', 'Equity'),
             rows: [
               for (final l in r.equity) ['${l.code} · ${l.name}', l.amount],
-              if (r.retainedIncome != null) ['أرباح السنوات السابقة (محتجزة)', r.retainedIncome!],
+              if (r.retainedIncome != null) [tr('أرباح السنوات السابقة (محتجزة)', 'Earnings of earlier years (retained)'), r.retainedIncome!],
               [r.currentIncomeLabel, r.currentIncome],
             ],
-            foot: ['مجموع الملكيّة', r.totalEquity],
+            foot: [tr('مجموع الملكيّة', 'Total equity'), r.totalEquity],
           ),
-          _Table(rows: const [], foot: ['الالتزامات + الملكيّة', r.totalLiabilitiesEquity]),
+          _Table(rows: const [], foot: [tr('الالتزامات + الملكيّة', 'Liabilities + equity'), r.totalLiabilitiesEquity]),
         ]),
       CashReport() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _Verdict(
             ok: r.ties,
-            good: 'الحركة تطابق رصيد النقد: أوّل الفترة + الحركة = آخرها',
-            bad: 'الحركة لا تطابق رصيد النقد — أبلغ الإدارة',
+            good: tr('الحركة تطابق رصيد النقد: أوّل الفترة + الحركة = آخرها', 'The movement matches the cash balance: opening + movement = closing'),
+            bad: tr('الحركة لا تطابق رصيد النقد — أبلغ الإدارة', 'The movement does not match the cash balance — tell the administrators'),
           ),
-          _Table(rows: const [], foot: ['رصيد النقد أوّل الفترة', r.opening]),
+          _Table(rows: const [], foot: [tr('رصيد النقد أوّل الفترة', 'Cash at the start'), r.opening]),
           for (final (title, rows, total) in r.sections)
-            _Table(title: title, rows: [for (final l in rows) ['${l.code} · ${l.name}', l.amount]], foot: ['الصافي', total]),
-          _Table(rows: [['صافي حركة النقد', r.net]], foot: ['رصيد النقد آخر الفترة', r.closing]),
+            _Table(title: title, rows: [for (final l in rows) ['${l.code} · ${l.name}', l.amount]], foot: [tr('الصافي', 'Left with'), total]),
+          _Table(rows: [[tr('صافي حركة النقد', 'Net movement'), r.net]], foot: [tr('رصيد النقد آخر الفترة', 'Cash at the end'), r.closing]),
         ]),
       SeasonsProfitReport() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          if (r.rows.isEmpty) _note('لا حركة في هذه الفترة.'),
+          if (r.rows.isEmpty) _note(tr('لا حركة في هذه الفترة.', 'No activity in this period.')),
           for (final s in r.rows)
             Card(
               child: ListTile(
                 title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: Text('الإيراد ${s.revenue} · المصروف ${s.expense}'),
+                subtitle: Text(tr('الإيراد ${s.revenue} · المصروف ${s.expense}', 'Revenue ${s.revenue} · Expense ${s.expense}')),
                 trailing: Text(s.profit, style: const TextStyle(fontWeight: FontWeight.w900)),
                 onTap: s.seasonId == null
                     ? null
                     : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SeasonScreen(id: s.seasonId!, name: s.name))),
               ),
             ),
-          _note('الموسم الجاري لا يُظهر مصروفاً لأنّ تكلفته مرسملة؛ يظهر ربحه الحقيقيّ حين يُقفل.'),
+          _note(tr('الموسم الجاري لا يُظهر مصروفاً لأنّ تكلفته مرسملة؛ يظهر ربحه الحقيقيّ حين يُقفل.', 'A running season shows no expense because its cost is capitalised; its real profit shows once it is closed.')),
         ]),
       JournalReport() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          if (r.entries.isEmpty) _note('لا قيود في هذه الفترة.'),
+          if (r.entries.isEmpty) _note(tr('لا قيود في هذه الفترة.', 'No entries in this period.')),
           for (final e in r.entries)
             Card(
               child: Padding(
@@ -288,12 +289,12 @@ class _BooksBodyState extends State<_BooksBody> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   Row(children: [
                     Text('#${e.entryNo} · ${e.date}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                    if (e.reversal) ...[const SizedBox(width: 6), const TagPill('قيد عاكس', gold: true)],
+                    if (e.reversal) ...[const SizedBox(width: 6), TagPill(tr('قيد عاكس', 'Reversal'), gold: true)],
                   ]),
                   if (e.memo.isNotEmpty) Text(e.memo, style: TextStyle(color: mutedOn(context), fontSize: 12)),
                   const SizedBox(height: 6),
                   _Table(
-                    head: const ['الحساب', 'مدين', 'دائن'],
+                    head: [tr('الحساب', 'Account'), tr('مدين', 'Debit'), tr('دائن', 'Credit')],
                     rows: [
                       for (final l in e.lines)
                         [l.foreign.isEmpty ? l.account : '${l.account}\n${l.foreign}', l.debit, l.credit],
@@ -304,12 +305,12 @@ class _BooksBodyState extends State<_BooksBody> {
             ),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             if (v.page > 1)
-              TextButton(onPressed: () => _go(_q.copyWith(page: v.page - 1)), child: const Text('→ الأحدث'))
+              TextButton(onPressed: () => _go(_q.copyWith(page: v.page - 1)), child: Text(tr('→ الأحدث', '← Newer')))
             else
               const SizedBox.shrink(),
-            if (r.hasMore) TextButton(onPressed: () => _go(_q.copyWith(page: v.page + 1)), child: const Text('الأقدم ←')),
+            if (r.hasMore) TextButton(onPressed: () => _go(_q.copyWith(page: v.page + 1)), child: Text(tr('الأقدم ←', 'Older →'))),
           ]),
-          _note('٢٥ قيداً في الصفحة، من الأحدث.'),
+          _note(tr('٢٥ قيداً في الصفحة، من الأحدث.', '25 entries a page, newest first.')),
         ]),
       ChartReport() => Card(
           child: Column(children: [
@@ -318,7 +319,7 @@ class _BooksBodyState extends State<_BooksBody> {
                 dense: true,
                 contentPadding: EdgeInsetsDirectional.only(start: 12.0 + a.depth * 12, end: 12),
                 title: Text(
-                  '${a.code} · ${a.name}${a.active ? '' : ' (موقوف)'}',
+                  tr('${a.code} · ${a.name}${a.active ? '' : ' (موقوف)'}', '${a.code} · ${a.name}${a.active ? '' : ' (suspended)'}'),
                   style: TextStyle(
                     fontWeight: a.postable ? FontWeight.w500 : FontWeight.w800,
                     color: a.postable ? textGreenOn(context) : null,
@@ -335,7 +336,7 @@ class _BooksBodyState extends State<_BooksBody> {
           Text('${r.code} · ${r.name}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
           _Table(
-            head: const ['التاريخ والبيان', 'الحركة', 'الرصيد'],
+            head: [tr('التاريخ والبيان', 'Date and description'), tr('الحركة', 'Movement'), tr('الرصيد', 'Balance')],
             rows: [
               for (final s in r.rows)
                 ['${s.date}${s.entryNo != null ? ' · #${s.entryNo}' : ''}\n${s.memo}', s.movement, s.balance],
@@ -345,7 +346,7 @@ class _BooksBodyState extends State<_BooksBody> {
             alignment: AlignmentDirectional.centerStart,
             child: TextButton(
               onPressed: () => _go(BooksQuery(report: 'chart', book: _q.book)),
-              child: const Text('← شجرة الحسابات'),
+              child: Text(tr('← شجرة الحسابات', '← Chart of accounts')),
             ),
           ),
         ]),
@@ -459,60 +460,60 @@ class _LinksPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = report;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const IntroNote(
-        'اقتراح القيد لا يدخل أيّ دفتر حتى يؤكّده الطرف الآخر؛ وعند التأكيد يُقيَّد في دفترَيكما معاً بالمبلغ والتاريخ والسعر نفسه. والمنصّة لا تلمس المال: هي تسجّل ما أقررتما به.',
+      IntroNote(
+        tr('اقتراح القيد لا يدخل أيّ دفتر حتى يؤكّده الطرف الآخر؛ وعند التأكيد يُقيَّد في دفترَيكما معاً بالمبلغ والتاريخ والسعر نفسه. والمنصّة لا تلمس المال: هي تسجّل ما أقررتما به.', 'A proposed entry enters no book until the other party confirms it; on confirmation it is booked in both your books with the same amount, date and rate. The platform never touches the money — it records what you both agreed happened.'),
       ),
       const SizedBox(height: 14),
-      const SectionTitle('تنتظر تأكيدك'),
-      if (r.waitingForMe.isEmpty) _empty(context, 'لا شيء ينتظرك.'),
+      SectionTitle(tr('تنتظر تأكيدك', 'Waiting for your confirmation')),
+      if (r.waitingForMe.isEmpty) _empty(context, tr('لا شيء ينتظرك.', 'Nothing is waiting for you.')),
       for (final l in r.waitingForMe)
         _LinkCard(link: l, highlight: true, actions: [
           FilledButton(
             onPressed: () => _confirm(context, l),
-            child: const Text('أؤكّد أنّ هذا حدث'),
+            child: Text(tr('أؤكّد أنّ هذا حدث', 'I confirm this happened')),
           ),
           OutlinedButton(
-            onPressed: () => _withReason(context, title: 'سبب الاعتراض', button: 'أعترض', run: (why) => api.answer('reject', linkId: l.id, reason: why)),
-            child: const Text('أعترض'),
+            onPressed: () => _withReason(context, title: tr('سبب الاعتراض', 'Reason for objecting'), button: tr('أعترض', 'Object'), run: (why) => api.answer('reject', linkId: l.id, reason: why)),
+            child: Text(tr('أعترض', 'Object')),
           ),
         ]),
       if (r.reversalsForMe.isNotEmpty) ...[
         const SizedBox(height: 10),
-        const SectionTitle('طلبات إلغاءٍ تنتظر ردّك'),
+        SectionTitle(tr('طلبات إلغاءٍ تنتظر ردّك', 'Cancellation requests waiting for your reply')),
         for (final l in r.reversalsForMe)
           _LinkCard(
             link: l,
             highlight: true,
             extra: [
-              Text('سبب الطلب: ${l.reversalReason ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700, height: 1.6)),
+              Text(tr('سبب الطلب: ${l.reversalReason ?? ''}', 'Reason for the request: ${l.reversalReason ?? ''}'), style: const TextStyle(fontWeight: FontWeight.w700, height: 1.6)),
               Text(
-                'إن وافقتَ عُكس القيد في دفترك ودفتر شريكك معاً، ويبقى القيدان الأصليّان في السجلّ. وإن رفضتَ بقي كلّ شيءٍ كما هو.',
+                tr('إن وافقتَ عُكس القيد في دفترك ودفتر شريكك معاً، ويبقى القيدان الأصليّان في السجلّ. وإن رفضتَ بقي كلّ شيءٍ كما هو.', 'If you agree, the entry is reversed in your book and your partner\'s together, and both original entries stay on record. If you refuse, everything stays as it is.'),
                 style: TextStyle(color: mutedOn(context), fontSize: 12, height: 1.6),
               ),
             ],
             actions: [
               FilledButton(
                 onPressed: () => _run(context, () => api.answer('accept_reversal', reversalId: l.reversalId)),
-                child: const Text('أوافق على إلغائه'),
+                child: Text(tr('أوافق على إلغائه', 'I agree to cancel it')),
               ),
               OutlinedButton(
                 onPressed: () => _withReason(context,
-                    title: 'سبب الرفض', button: 'أرفض', run: (why) => api.answer('reject_reversal', reversalId: l.reversalId, reason: why)),
-                child: const Text('أرفض'),
+                    title: tr('سبب الرفض', 'Reason for refusing'), button: tr('أرفض', 'Refuse'), run: (why) => api.answer('reject_reversal', reversalId: l.reversalId, reason: why)),
+                child: Text(tr('أرفض', 'Refuse')),
               ),
             ],
           ),
       ],
       const SizedBox(height: 10),
-      const SectionTitle('اقترحتَها وتنتظر ردّ شريكك'),
-      if (r.waitingForThem.isEmpty) _empty(context, 'لا شيء معلّق.'),
+      SectionTitle(tr('اقترحتَها وتنتظر ردّ شريكك', 'You proposed these; waiting for your partner')),
+      if (r.waitingForThem.isEmpty) _empty(context, tr('لا شيء معلّق.', 'Nothing pending.')),
       for (final l in r.waitingForThem)
         _LinkCard(link: l, actions: [
-          OutlinedButton(onPressed: () => _run(context, () => api.answer('cancel', linkId: l.id)), child: const Text('ألغِ الاقتراح')),
+          OutlinedButton(onPressed: () => _run(context, () => api.answer('cancel', linkId: l.id)), child: Text(tr('ألغِ الاقتراح', 'Cancel the proposal'))),
         ]),
       const SizedBox(height: 10),
-      const SectionTitle('ما بُتّ فيه'),
-      if (r.decided.isEmpty) _empty(context, 'لا شيء بعد.'),
+      SectionTitle(tr('ما بُتّ فيه', 'Decided')),
+      if (r.decided.isEmpty) _empty(context, tr('لا شيء بعد.', 'Nothing yet.')),
       for (final l in r.decided)
         _LinkCard(
           link: l,
@@ -536,18 +537,18 @@ class _LinksPanel extends StatelessWidget {
               TextButton(
                 onPressed: () => _withReason(
                   context,
-                  title: 'سبب الإلغاء (يراه شريكك)',
-                  button: 'أرسل الطلب',
+                  title: tr('سبب الإلغاء (يراه شريكك)', 'Why cancel it (your partner sees this)'),
+                  button: tr('أرسل الطلب', 'Send request'),
                   note:
-                      'لا يتغيّر شيء حتى يوافق شريكك. وإن وافق عُكس القيد في الدفترين؛ فإن كان قد بُني عليه قيدٌ آخر (تمويلٌ أُطفئ بنصيب حصادٍ مثلاً) فألغِ الأحدث أولاً.',
+                      tr('لا يتغيّر شيء حتى يوافق شريكك. وإن وافق عُكس القيد في الدفترين؛ فإن كان قد بُني عليه قيدٌ آخر (تمويلٌ أُطفئ بنصيب حصادٍ مثلاً) فألغِ الأحدث أولاً.', 'Nothing changes until your partner agrees. If they do, the entry is reversed in both books; if another entry was built on it (financing settled by a harvest share, say), cancel the later one first.'),
                   run: (why) => api.answer('request_reversal', linkId: l.id, reason: why),
                 ),
-                child: const Text('أطلب إلغاء هذا القيد'),
+                child: Text(tr('أطلب إلغاء هذا القيد', 'Ask to cancel this entry')),
               ),
             if (l.action == 'withdraw')
               OutlinedButton(
                 onPressed: () => _run(context, () => api.answer('withdraw_reversal', reversalId: l.reversalId)),
-                child: const Text('أسحب طلب الإلغاء'),
+                child: Text(tr('أسحب طلب الإلغاء', 'Withdraw my request')),
               ),
           ],
         ),
@@ -571,9 +572,9 @@ class _LinksPanel extends StatelessWidget {
     final account = await showDialog<String>(
       context: context,
       builder: (c) => SimpleDialog(
-        title: const Text('استلمتُ في'),
+        title: Text(tr('استلمتُ في', 'Received into')),
         children: [
-          for (final (k, label) in const [('cash', 'نقد'), ('bank', 'بنك'), ('wallet', 'محفظة')])
+          for (final (k, label) in [('cash', tr('نقد', 'Cash')), ('bank', tr('بنك', 'Bank')), ('wallet', tr('محفظة', 'Wallet'))])
             SimpleDialogOption(onPressed: () => Navigator.pop(c, k), child: Text(label)),
         ],
       ),
@@ -627,12 +628,12 @@ class _ReasonDialogState extends State<_ReasonDialog> {
           minLines: 2,
           maxLines: 4,
           onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(hintText: '٣ أحرفٍ فأكثر'),
+          decoration: InputDecoration(hintText: tr('٣ أحرفٍ فأكثر', '3 characters or more')),
         ),
         if (widget.note != null) Text(widget.note!, style: TextStyle(color: mutedOn(context), fontSize: 12, height: 1.6)),
       ]),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('تراجع')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('تراجع', 'Back'))),
         FilledButton(onPressed: ok ? () => Navigator.pop(context, _text.text.trim()) : null, child: Text(widget.button)),
       ],
     );
@@ -659,7 +660,7 @@ class _LinkCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(
-            '${l.kindLabel} · ${l.amount}${l.settles != null ? ' · يُطفئ من التمويل ${l.settles}' : ''}',
+            tr('${l.kindLabel} · ${l.amount}${l.settles != null ? ' · يُطفئ من التمويل ${l.settles}' : ''}', '${l.kindLabel} · ${l.amount}${l.settles != null ? ' · settles financing ${l.settles}' : ''}'),
             style: const TextStyle(fontWeight: FontWeight.w800, height: 1.5),
           ),
           Text(l.facts, style: TextStyle(color: mutedOn(context), fontSize: 12, height: 1.6)),
@@ -701,7 +702,7 @@ class _AssetsScreenState extends State<AssetsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الأصول الثابتة')),
+      appBar: AppBar(title: Text(tr('الأصول الثابتة', 'Fixed assets'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final today = (await _future.catchError((_) => const AssetsView(today: '', assets: [], totals: (cost: '', accumulated: '', bookValue: '')))).today;
@@ -718,7 +719,7 @@ class _AssetsScreenState extends State<AssetsScreen> {
           if (fields != null) await _step(() => _api.assetAction('add', fields));
         },
         icon: const Icon(Icons.add),
-        label: const Text('سجّل أصلاً'),
+        label: Text(tr('سجّل أصلاً', 'Register an asset')),
       ),
       body: FutureBuilder<AssetsView>(
         future: _future,
@@ -726,7 +727,7 @@ class _AssetsScreenState extends State<AssetsScreen> {
           if (snap.connectionState != ConnectionState.done) return const LoadingView();
           if (snap.hasError) {
             final e = snap.error;
-            return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل الأصول.', onRetry: _reload, scrollable: true);
+            return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل الأصول.', 'Could not load the assets.'), onRetry: _reload, scrollable: true);
           }
           final v = snap.data!;
           return RefreshIndicator(
@@ -734,16 +735,16 @@ class _AssetsScreenState extends State<AssetsScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               children: [
-                const IntroNote(
-                  'الجرّار والمضخّة والبئر والقناة: ما تملكه المزرعة لأكثر من موسم. يُقيَّد شراؤه مرّة، ثمّ يُوزَّع ثمنه على عمره شهراً بشهر (القسط الثابت)، فيحمل كلّ موسمٍ نصيبه من الآلة لا ثمنها كلّه في شهر شرائها. يُقيَّد الإهلاك وحده كلّ يوم لما انتهى من الأشهر.',
+                IntroNote(
+                  tr('الجرّار والمضخّة والبئر والقناة: ما تملكه المزرعة لأكثر من موسم. يُقيَّد شراؤه مرّة، ثمّ يُوزَّع ثمنه على عمره شهراً بشهر (القسط الثابت)، فيحمل كلّ موسمٍ نصيبه من الآلة لا ثمنها كلّه في شهر شرائها. يُقيَّد الإهلاك وحده كلّ يوم لما انتهى من الأشهر.', 'A tractor, a pump, a well, a canal: what the farm owns for more than a season. Its purchase is booked once, then its price is spread over its life month by month (straight line), so each season carries its share of the machine and not the whole price in the month it was bought. Depreciation is booked on its own each day for the months that have ended.'),
                   icon: Icons.agriculture_outlined,
                 ),
                 const SizedBox(height: 12),
                 if (v.assets.isEmpty)
-                  const StateView(
+                  StateView(
                     icon: Icons.inventory_2_outlined,
-                    title: 'لا أصول مسجّلة',
-                    message: 'سجّل الجرّار أو المضخّة أو البئر من «سجّل أصلاً»، فيُقيَّد شراؤه في دفتر مزرعتك.',
+                    title: tr('لا أصول مسجّلة', 'No assets registered'),
+                    message: tr('سجّل الجرّار أو المضخّة أو البئر من «سجّل أصلاً»، فيُقيَّد شراؤه في دفتر مزرعتك.', 'Register the tractor, the pump or the well from «Register an asset», and its purchase is booked in your farm book.'),
                     compact: true,
                   ),
                 for (final a in v.assets)
@@ -754,7 +755,7 @@ class _AssetsScreenState extends State<AssetsScreen> {
                         Text(a.name, style: const TextStyle(fontWeight: FontWeight.w800)),
                         Text(a.facts, style: TextStyle(color: mutedOn(context), fontSize: 12, height: 1.6)),
                         const SizedBox(height: 6),
-                        _AssetFigures([('الثمن', a.cost), ('الإهلاك المقيَّد', a.accumulated), ('القيمة الدفتريّة', a.bookValue)]),
+                        _AssetFigures([(tr('الثمن', 'Cost'), a.cost), (tr('الإهلاك المقيَّد', 'Depreciation booked'), a.accumulated), (tr('القيمة الدفتريّة', 'Book value'), a.bookValue)]),
                         if (a.disposal != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
@@ -771,7 +772,7 @@ class _AssetsScreenState extends State<AssetsScreen> {
                                 );
                                 if (fields != null) await _step(() => _api.assetAction('dispose', fields));
                               },
-                              child: const Text('بيع أو استبعاد'),
+                              child: Text(tr('بيع أو استبعاد', 'Sell or write off')),
                             ),
                           ),
                       ]),
@@ -782,12 +783,12 @@ class _AssetsScreenState extends State<AssetsScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(14),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        const Text('المجموع', style: TextStyle(fontWeight: FontWeight.w900)),
+                        Text(tr('المجموع', 'Total'), style: TextStyle(fontWeight: FontWeight.w900)),
                         const SizedBox(height: 6),
                         _AssetFigures([
-                          ('الثمن', v.totals.cost),
-                          ('الإهلاك المقيَّد', v.totals.accumulated),
-                          ('القيمة الدفتريّة', v.totals.bookValue),
+                          (tr('الثمن', 'Cost'), v.totals.cost),
+                          (tr('الإهلاك المقيَّد', 'Depreciation booked'), v.totals.accumulated),
+                          (tr('القيمة الدفتريّة', 'Book value'), v.totals.bookValue),
                         ]),
                       ]),
                     ),
@@ -796,7 +797,7 @@ class _AssetsScreenState extends State<AssetsScreen> {
                   OutlinedButton.icon(
                     onPressed: () => _step(() => _api.assetAction('depreciate')),
                     icon: const Icon(Icons.trending_down),
-                    label: const Text('قيّد ما استحقّ من الإهلاك الآن'),
+                    label: Text(tr('قيّد ما استحقّ من الإهلاك الآن', 'Book the depreciation due now')),
                   ),
                 ],
               ],
@@ -824,7 +825,7 @@ class _AssetFigures extends StatelessWidget {
   }
 }
 
-final _figure = [FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩.,٬]'))];
+final _figure = [FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩.,٬]'))]; // ar-only
 
 /// The website's «سجّل أصلاً» form. It returns the fields; the screen sends them.
 class _AssetForm extends StatefulWidget {
@@ -858,20 +859,20 @@ class _AssetFormState extends State<_AssetForm> {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const SectionTitle('سجّل أصلاً'),
+        SectionTitle(tr('سجّل أصلاً', 'Register an asset')),
         TextField(
           controller: _name,
           maxLength: 120,
           onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(labelText: 'اسم الأصل', hintText: 'جرّار ماسي فيرغسون ٢٩٠'),
+          decoration: InputDecoration(labelText: tr('اسم الأصل', 'Name'), hintText: tr('جرّار ماسي فيرغسون ٢٩٠', 'Massey Ferguson 290 tractor')),
         ),
         DropdownButtonFormField<String>(
           initialValue: _account,
           isExpanded: true,
-          decoration: const InputDecoration(labelText: 'النوع'),
-          items: const [
-            DropdownMenuItem(value: 'machinery', child: Text('آلات ومعدّات')),
-            DropdownMenuItem(value: 'land_improvements', child: Text('تحسينات أرض (قناة، بئر، سور)')),
+          decoration: InputDecoration(labelText: tr('النوع', 'Type')),
+          items: [
+            DropdownMenuItem(value: 'machinery', child: Text(tr('آلات ومعدّات', 'Machinery and equipment'))),
+            DropdownMenuItem(value: 'land_improvements', child: Text(tr('تحسينات أرض (قناة، بئر، سور)', 'Land improvements (canal, well, fence)'))),
           ],
           onChanged: (v) => setState(() => _account = v ?? 'machinery'),
         ),
@@ -879,7 +880,7 @@ class _AssetFormState extends State<_AssetForm> {
         TextField(
           controller: _date,
           keyboardType: TextInputType.datetime,
-          decoration: const InputDecoration(labelText: 'تاريخ الشراء', hintText: 'YYYY-MM-DD'),
+          decoration: InputDecoration(labelText: tr('تاريخ الشراء', 'Bought on'), hintText: 'YYYY-MM-DD'),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -887,14 +888,14 @@ class _AssetFormState extends State<_AssetForm> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: _figure,
           onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(labelText: 'الثمن بالدولار'),
+          decoration: InputDecoration(labelText: tr('الثمن بالدولار', 'Price in dollars')),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _salvage,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: _figure,
-          decoration: const InputDecoration(labelText: 'قيمته خردةً في آخر عمره (اختياري)', hintText: '0'),
+          decoration: InputDecoration(labelText: tr('قيمته خردةً في آخر عمره (اختياري)', 'Its scrap value at the end (optional)'), hintText: '0'),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -902,24 +903,24 @@ class _AssetFormState extends State<_AssetForm> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: _figure,
           onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(labelText: 'عمره بالسنوات'),
+          decoration: InputDecoration(labelText: tr('عمره بالسنوات', 'Life in years')),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           initialValue: _paidFrom,
           isExpanded: true,
-          decoration: const InputDecoration(labelText: 'دُفع ثمنه من'),
-          items: const [
-            DropdownMenuItem(value: 'cash_on_hand', child: Text('النقد')),
-            DropdownMenuItem(value: 'bank', child: Text('البنك')),
-            DropdownMenuItem(value: 'wallet', child: Text('محفظة إلكترونيّة')),
-            DropdownMenuItem(value: 'owner_capital', child: Text('كان عندي قبل الدفتر (رأس مال)')),
+          decoration: InputDecoration(labelText: tr('دُفع ثمنه من', 'Paid from')),
+          items: [
+            DropdownMenuItem(value: 'cash_on_hand', child: Text(tr('النقد', 'Cash'))),
+            DropdownMenuItem(value: 'bank', child: Text(tr('البنك', 'Bank'))),
+            DropdownMenuItem(value: 'wallet', child: Text(tr('محفظة إلكترونيّة', 'Mobile wallet'))),
+            DropdownMenuItem(value: 'owner_capital', child: Text(tr('كان عندي قبل الدفتر (رأس مال)', 'I had it before the book (capital)'))),
           ],
           onChanged: (v) => setState(() => _paidFrom = v ?? 'cash_on_hand'),
         ),
         const SizedBox(height: 8),
         Text(
-          'يُقيَّد الشراء الآن في دفتر مزرعتك، ويبدأ الإهلاك من الشهر التالي للشراء: (الثمن − الخردة) ÷ عدد الأشهر، كلّ شهرٍ بآخر يومٍ فيه. أعمارٌ شائعة: الجرّار ٨–١٠ سنوات، المضخّة ٥، البئر والقناة ١٥–٢٠.',
+          tr('يُقيَّد الشراء الآن في دفتر مزرعتك، ويبدأ الإهلاك من الشهر التالي للشراء: (الثمن − الخردة) ÷ عدد الأشهر، كلّ شهرٍ بآخر يومٍ فيه. أعمارٌ شائعة: الجرّار ٨–١٠ سنوات، المضخّة ٥، البئر والقناة ١٥–٢٠.', 'The purchase is booked now in your farm book, and depreciation starts the month after: (price − scrap) ÷ months, each month on its last day. Common lives: a tractor 8–10 years, a pump 5, a well or canal 15–20.'),
           style: TextStyle(color: mutedOn(context), fontSize: 12, height: 1.6),
         ),
         const SizedBox(height: 12),
@@ -935,7 +936,7 @@ class _AssetFormState extends State<_AssetForm> {
                     'paid_from': _paidFrom,
                   })
               : null,
-          child: const Text('سجّل وقيّد الشراء'),
+          child: Text(tr('سجّل وقيّد الشراء', 'Register and book the purchase')),
         ),
       ]),
     );
@@ -966,30 +967,30 @@ class _DisposeDialogState extends State<_DisposeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('بيع أو استبعاد: ${widget.asset.name}'),
+      title: Text(tr('بيع أو استبعاد: ${widget.asset.name}', 'Sell or write off: ${widget.asset.name}')),
       content: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: _date, decoration: const InputDecoration(labelText: 'التاريخ', hintText: 'YYYY-MM-DD')),
+          TextField(controller: _date, decoration: InputDecoration(labelText: tr('التاريخ', 'Date'), hintText: 'YYYY-MM-DD')),
           TextField(
             controller: _proceeds,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: _figure,
-            decoration: const InputDecoration(labelText: 'ما قُبض بالدولار (0 إن استُبعد)'),
+            decoration: InputDecoration(labelText: tr('ما قُبض بالدولار (0 إن استُبعد)', 'Received in dollars (0 if written off)')),
           ),
           DropdownButtonFormField<String>(
             initialValue: _into,
-            decoration: const InputDecoration(labelText: 'قُبض في'),
-            items: const [
-              DropdownMenuItem(value: 'cash_on_hand', child: Text('النقد')),
-              DropdownMenuItem(value: 'bank', child: Text('البنك')),
-              DropdownMenuItem(value: 'wallet', child: Text('محفظة إلكترونيّة')),
+            decoration: InputDecoration(labelText: tr('قُبض في', 'Received into')),
+            items: [
+              DropdownMenuItem(value: 'cash_on_hand', child: Text(tr('النقد', 'Cash'))),
+              DropdownMenuItem(value: 'bank', child: Text(tr('البنك', 'Bank'))),
+              DropdownMenuItem(value: 'wallet', child: Text(tr('محفظة إلكترونيّة', 'Mobile wallet'))),
             ],
             onChanged: (v) => setState(() => _into = v ?? 'cash_on_hand'),
           ),
         ]),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('تراجع')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('تراجع', 'Back'))),
         FilledButton(
           onPressed: () => Navigator.pop(context, {
             'asset_id': widget.asset.id,
@@ -997,7 +998,7 @@ class _DisposeDialogState extends State<_DisposeDialog> {
             'proceeds': _proceeds.text.trim(),
             'received_into': _into,
           }),
-          child: const Text('قيّد'),
+          child: Text(tr('قيّد', 'Book it')),
         ),
       ],
     );

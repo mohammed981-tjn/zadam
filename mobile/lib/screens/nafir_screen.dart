@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../nafir.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -39,16 +40,16 @@ class _NafirScreenState extends State<NafirScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('النفير — العمل المشترك')),
+      appBar: AppBar(title: Text(tr('النفير — العمل المشترك', 'Nafir — working together'))),
       body: RefreshIndicator(
         onRefresh: () async => setState(() => _future = _api.nafirBoard()),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            const IntroNote(
-              '«المؤمن للمؤمن كالبنيان يشدّ بعضه بعضاً». هنا يدعو المزارع '
+            IntroNote(
+              tr('«المؤمن للمؤمن كالبنيان يشدّ بعضه بعضاً». هنا يدعو المزارع '
               'جيرانه إلى حصادٍ أو تطهير قناة، ويطلب مَن أصابته جائحةٌ فزعةً '
-              'غير مالية. قيمٌ يعرفها الريف السوداني — صارت أداةً أوسع.',
+              'غير مالية. قيمٌ يعرفها الريف السوداني — صارت أداةً أوسع.', '“A believer to a believer is like a building whose parts hold each other up.” Here a farmer calls the neighbours to a harvest or to clear a canal, and someone struck by disaster asks for faza that is not money. Values the Sudanese countryside knows — made into a wider tool.'),
               icon: Icons.groups_outlined,
             ),
             const SizedBox(height: 16),
@@ -69,10 +70,10 @@ class _NafirScreenState extends State<NafirScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _Heading('دعواتٌ مفتوحة'),
+                    _Heading(tr('دعواتٌ مفتوحة', 'Open calls')),
                     if (b.open.isEmpty)
-                      const _Empty(
-                          'لا دعوة مفتوحة الآن. كن أوّل مَن يدعو — من الموقع.')
+                      _Empty(
+                          tr('لا دعوة مفتوحة الآن. كن أوّل مَن يدعو — من الموقع.', 'No call is open now. Be the first to call one — from the website.'))
                     else
                       ...b.open.map((c) => _CallCard(
                             call: c,
@@ -80,30 +81,30 @@ class _NafirScreenState extends State<NafirScreen> {
                           )),
                     if (b.faza.isNotEmpty) ...[
                       const SizedBox(height: 20),
-                      const _Heading('يطلبون الفزعة'),
+                      _Heading(tr('يطلبون الفزعة', 'Asking for faza')),
                       ...b.faza.map((r) => _FazaCard(request: r)),
                     ],
                     if (b.done.isNotEmpty) ...[
                       const SizedBox(height: 20),
-                      const _Heading('ما أُنجز'),
+                      _Heading(tr('ما أُنجز', 'What got done')),
                       ...b.done.map((c) => Card(
                             child: ListTile(
                               title: Text(c.outcome ?? c.title,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w700)),
                               subtitle: Text(
-                                  '${c.kindLabel} · ${c.state} — ${c.locality} · حضره ${c.attended ?? 0}'),
+                                  tr('${c.kindLabel} · ${c.state} — ${c.locality} · حضره ${c.attended ?? 0}', '${c.kindLabel} · ${c.state} — ${c.locality} · ${c.attended ?? 0} came')),
                             ),
                           )),
                     ],
                     if (b.indicators != null) ...[
                       const SizedBox(height: 20),
-                      const _Heading('هل تعمل القيم؟'),
+                      _Heading(tr('هل تعمل القيم؟', 'Are the values working?')),
                       _Indicators(i: b.indicators!),
                     ],
                     const SizedBox(height: 20),
-                    const _SiteLink(
-                      label: 'الميثاق والشورى ونبض الثقة على الموقع',
+                    _SiteLink(
+                      label: tr('الميثاق والشورى ونبض الثقة على الموقع', 'The charter, the shura and the trust pulse on the website'),
                       path: '/nafir/charter',
                     ),
                   ],
@@ -200,7 +201,7 @@ class _CallCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text('$joined من ${call.needed} لبّوا',
+                  Text(tr('$joined من ${call.needed} لبّوا', '$joined of ${call.needed} answered'),
                       style: const TextStyle(fontSize: 12)),
                 ],
               ),
@@ -227,22 +228,22 @@ class _CallCard extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w800, height: 1.5)),
               const SizedBox(height: 4),
-              Text('يدعو إليه ${call.displayName} · ${call.startsOn}',
+              Text(tr('يدعو إليه ${call.displayName} · ${call.startsOn}', 'Called by ${call.displayName} · ${call.startsOn}'),
                   style: TextStyle(color: mutedOn(context))),
               const SizedBox(height: 12),
               Text(call.description, style: const TextStyle(height: 1.8)),
               if (call.hosting != null) ...[
                 const SizedBox(height: 10),
-                Text('يقدّم المضيف: ${call.hosting}',
+                Text(tr('يقدّم المضيف: ${call.hosting}', 'The host provides: ${call.hosting}'),
                     style: const TextStyle(fontWeight: FontWeight.w600)),
               ],
               if (call.bringTools != null) ...[
                 const SizedBox(height: 6),
-                Text('احمل معك: ${call.bringTools}',
+                Text(tr('احمل معك: ${call.bringTools}', 'Bring with you: ${call.bringTools}'),
                     style: const TextStyle(fontWeight: FontWeight.w600)),
               ],
               const SizedBox(height: 16),
-              _SiteLink(label: 'لبِّ النداء من الموقع', path: '/nafir/${call.id}'),
+              _SiteLink(label: tr('لبِّ النداء من الموقع', 'Answer the call on the website'), path: '/nafir/${call.id}'),
             ],
           ),
         ),
@@ -291,7 +292,7 @@ class _FazaCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            _SiteLink(label: 'افزع له من الموقع', path: '/nafir/faza/${request.id}'),
+            _SiteLink(label: tr('افزع له من الموقع', 'Help them on the website'), path: '/nafir/faza/${request.id}'),
           ],
         ),
       ),
@@ -308,19 +309,19 @@ class _Indicators extends StatelessWidget {
   Widget build(BuildContext context) {
     final kept = i.pledgesTotal == 0
         ? '—'
-        : '${(i.pledgesKept * 100 / i.pledgesTotal).round()}٪';
+        : tr('${(i.pledgesKept * 100 / i.pledgesTotal).round()}٪', '${(i.pledgesKept * 100 / i.pledgesTotal).round()}%');
     final pulse = i.pulseTrustPeople != null
-        ? '${i.pulseTrustPeople!.toStringAsFixed(1)} / ٥'
-        : '${i.pulseCount} أجابوا';
+        ? tr('${i.pulseTrustPeople!.toStringAsFixed(1)} / ٥', '${i.pulseTrustPeople!.toStringAsFixed(1)} / 5')
+        : tr('${i.pulseCount} أجابوا', '${i.pulseCount} answered');
     final tiles = <(String, String, String)>[
-      ('وقّعوا الميثاق', '${i.signers}', 'منهم ${i.leaders} من القادة'),
-      ('نفيرٌ أُنجز', '${i.nafirDone}', 'حضره ${i.attended}'),
-      ('عهود الفزعة الموفاة', kept, '${i.pledgesKept} من ${i.pledgesTotal}'),
-      ('أسئلة الشورى المُجابة', '${i.shuraAnswered} من ${i.shuraTotal}', ''),
+      (tr('وقّعوا الميثاق', 'Signed the charter'), '${i.signers}', tr('منهم ${i.leaders} من القادة', '${i.leaders} of them leaders')),
+      (tr('نفيرٌ أُنجز', 'Nafirs completed'), '${i.nafirDone}', tr('حضره ${i.attended}', '${i.attended} came')),
+      (tr('عهود الفزعة الموفاة', 'Faza pledges kept'), kept, tr('${i.pledgesKept} من ${i.pledgesTotal}', '${i.pledgesKept} of ${i.pledgesTotal}')),
+      (tr('أسئلة الشورى المُجابة', 'Shura questions answered'), tr('${i.shuraAnswered} من ${i.shuraTotal}', '${i.shuraAnswered} of ${i.shuraTotal}'), ''),
       (
-        'نبض الثقة',
+        tr('نبض الثقة', 'Trust pulse'),
         pulse,
-        i.pulseTrustPeople == null ? 'يُعلن بعد ${i.pulseFloor} إجابات' : ''
+        i.pulseTrustPeople == null ? tr('يُعلن بعد ${i.pulseFloor} إجابات', 'Shown after ${i.pulseFloor} answers') : ''
       ),
     ];
     return Wrap(
@@ -381,7 +382,7 @@ class _SiteLink extends StatelessWidget {
         await Clipboard.setData(ClipboardData(text: url));
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('نُسخ الرابط: $url')),
+          SnackBar(content: Text(tr('نُسخ الرابط: $url', 'Link copied: $url'))),
         );
       },
     );

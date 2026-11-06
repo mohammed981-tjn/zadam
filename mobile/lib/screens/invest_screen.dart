@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../contracts.dart' show ContractsApi, money;
+import '../i18n.dart';
 import '../invest.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -81,15 +82,15 @@ class _InvestScreenState extends State<InvestScreen> {
       initialIndex: widget.initialTab,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('الاستثمار'),
-          bottom: const TabBar(
+          title: Text(tr('الاستثمار', 'Investment')),
+          bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             tabs: [
-              Tab(text: 'الفرص'),
-              Tab(text: 'طلباتي'),
-              Tab(text: 'أرضي'),
-              Tab(text: 'الشركات'),
+              Tab(text: tr('الفرص', 'Opportunities')),
+              Tab(text: tr('طلباتي', 'My requests')),
+              Tab(text: tr('أرضي', 'My land')),
+              Tab(text: tr('الشركات', 'Companies')),
             ],
           ),
         ),
@@ -97,10 +98,10 @@ class _InvestScreenState extends State<InvestScreen> {
           children: [
             _Future<InvestOverview>(future: _overview, onRetry: _reload, builder: _opportunities),
             _mine == null
-                ? _SignInFirst(onSignIn: _signIn, what: 'طلباتك واستثماراتك')
+                ? _SignInFirst(onSignIn: _signIn, what: tr('طلباتك واستثماراتك', 'your requests and investments'))
                 : _Future<MyInvest>(future: _mine!, onRetry: _reload, builder: _myRequests),
             _mine == null
-                ? _SignInFirst(onSignIn: _signIn, what: 'أراضيك وعرضها على المستثمرين')
+                ? _SignInFirst(onSignIn: _signIn, what: tr('أراضيك وعرضها على المستثمرين', 'your lands and offering them to investors'))
                 : _Future<MyInvest>(future: _mine!, onRetry: _reload, builder: _myLand),
             _Future<InvestOverview>(future: _overview, onRetry: _reload, builder: _companies),
           ],
@@ -114,15 +115,15 @@ class _InvestScreenState extends State<InvestScreen> {
   Widget _opportunities(BuildContext context, InvestOverview o) => ListView(
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
     children: [
-      const HeroBand(
+      HeroBand(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('فرص الاستثمار', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            Text(tr('فرص الاستثمار', 'Investment opportunities'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
             SizedBox(height: 6),
             Text(
-              'أراضٍ وثّقت سوداقري مستنداتها يبحث أصحابها عن شريك، ومشاريع مطروحة. أنت تموّل، وصاحب الأرض يقدّم '
-              'الأرض والماء والعمل، وسوداقري تتحقّق وتتابع. المال لا يمرّ بالمنصّة، ولا أحد يَعِدك بربح.',
+              tr('أراضٍ وثّقت سوداقري مستنداتها يبحث أصحابها عن شريك، ومشاريع مطروحة. أنت تموّل، وصاحب الأرض يقدّم '
+              'الأرض والماء والعمل، وسوداقري تتحقّق وتتابع. المال لا يمرّ بالمنصّة، ولا أحد يَعِدك بربح.', 'Land whose documents Sudagri has verified, whose owners are looking for a partner, and projects on offer. You finance, the land owner brings the land, the water and the work, and Sudagri verifies and follows up. The money does not pass through the platform, and nobody promises you a profit.'),
               style: TextStyle(height: 1.7, fontSize: 13),
             ),
           ],
@@ -134,7 +135,7 @@ class _InvestScreenState extends State<InvestScreen> {
       Card(
         child: ExpansionTile(
           shape: const Border(),
-          title: const Text('كيف يستفيد المستثمر من صاحب الأرض', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: Text(tr('كيف يستفيد المستثمر من صاحب الأرض', 'How an investor and a landowner work together'), style: TextStyle(fontWeight: FontWeight.w800)),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -143,26 +144,26 @@ class _InvestScreenState extends State<InvestScreen> {
                 m.label,
                 style: TextStyle(fontWeight: FontWeight.w800, color: textGreenOn(context)),
               ),
-              Text('المستثمر: ${m.investor}', style: const TextStyle(height: 1.6, fontSize: 13)),
-              Text('صاحب الأرض: ${m.owner}', style: const TextStyle(height: 1.6, fontSize: 13)),
+              Text(tr('المستثمر: ${m.investor}', 'Investor: ${m.investor}'), style: const TextStyle(height: 1.6, fontSize: 13)),
+              Text(tr('صاحب الأرض: ${m.owner}', 'Landowner: ${m.owner}'), style: const TextStyle(height: 1.6, fontSize: 13)),
               const SizedBox(height: 8),
             ],
-            const Muted('النسبة والأجرة والمدّة يتّفق عليها الطرفان كتابةً — سوداقري لا تحدّدها ولا تضمنها.', size: 12),
+            Muted(tr('النسبة والأجرة والمدّة يتّفق عليها الطرفان كتابةً — سوداقري لا تحدّدها ولا تضمنها.', 'The share, the rent and the term are agreed in writing between the two — Sudagri neither sets nor guarantees them.'), size: 12),
           ],
         ),
       ),
       const SizedBox(height: 12),
       SectionTitle(
-        o.lands.isEmpty ? 'أراضٍ تبحث عن شريك' : 'أراضٍ تبحث عن شريك (${o.lands.length})',
-        subtitle: 'الولاية والمساحة والتربة والماء، بلا اسمٍ ولا موقع حتى يقبل صاحبها',
+        o.lands.isEmpty ? tr('أراضٍ تبحث عن شريك', 'Land looking for a partner') : tr('أراضٍ تبحث عن شريك (${o.lands.length})', 'Land looking for a partner (${o.lands.length})'),
+        subtitle: tr('الولاية والمساحة والتربة والماء، بلا اسمٍ ولا موقع حتى يقبل صاحبها', 'State, area, soil and water, with no name or location until its owner accepts'),
       ),
       if (o.landsFailed)
-        const Muted('تعذّرت قراءة الأراضي الآن — والخلل عندنا. أعد المحاولة بعد قليل.')
+        Muted(tr('تعذّرت قراءة الأراضي الآن — والخلل عندنا. أعد المحاولة بعد قليل.', 'We couldn\'t load the land just now — the fault is ours. Try again shortly.'))
       else if (o.lands.isEmpty)
-        const StateView(
+        StateView(
           icon: Icons.landscape_outlined,
-          title: 'لا أرض معروضة بعد.',
-          message: 'تظهر هنا الأرض بعد أن توثّقها الإدارة ويفتحها صاحبها للمستثمرين من «أرضي».',
+          title: tr('لا أرض معروضة بعد.', 'No land on offer yet.'),
+          message: tr('تظهر هنا الأرض بعد أن توثّقها الإدارة ويفتحها صاحبها للمستثمرين من «أرضي».', 'Land shows here after the administrators verify it and its owner opens it to investors from «My land».'),
           compact: true,
         )
       else
@@ -180,30 +181,30 @@ class _InvestScreenState extends State<InvestScreen> {
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Muted(
-            'تقرير معاينةٍ مستقلّ: مفتّشٌ ليس طرفاً يزور الأرض ويكتب تقريراً بصوره. ${o.feeLine}${o.reports != null ? ' ${o.reports}' : ''}',
+            tr('تقرير معاينةٍ مستقلّ: مفتّشٌ ليس طرفاً يزور الأرض ويكتب تقريراً بصوره. ${o.feeLine}${o.reports != null ? ' ${o.reports}' : ''}', 'An independent inspection report: an inspector who is not a party visits the land and writes a report with photos. ${o.feeLine}${o.reports != null ? ' ${o.reports}' : ''}'),
             size: 12,
           ),
         ),
-      SectionTitle(o.projects.isEmpty ? 'مشاريع مطروحة' : 'مشاريع مطروحة (${o.projects.length})'),
+      SectionTitle(o.projects.isEmpty ? tr('مشاريع مطروحة', 'Projects on offer') : tr('مشاريع مطروحة (${o.projects.length})', 'Projects on offer (${o.projects.length})')),
       if (o.projects.isEmpty)
-        const Muted('لا مشروع مطروح بعد. المشروع فرصةٌ كتبها صاحبها بالمحصول والحصص، وراجعتها الإدارة قبل نشرها.'),
+        Muted(tr('لا مشروع مطروح بعد. المشروع فرصةٌ كتبها صاحبها بالمحصول والحصص، وراجعتها الإدارة قبل نشرها.', 'No project on offer yet. A project is an opportunity its owner wrote out with a crop and shares, reviewed by the administrators before publication.')),
       for (final p in o.projects) _ProjectTile(project: p, api: _api),
       const SizedBox(height: 12),
       DealCard(
-        title: 'عندك أرض وتبحث عن ممّول؟',
+        title: tr('عندك أرض وتبحث عن ممّول؟', 'Have land and looking for finance?'),
         children: [
-          const Muted(
-            'سجّلها مجّاناً وارفع مستنداتها. بعد أن توثّقها الإدارة، اعرضها على المستثمرين من «أرضي» واختر نماذج الشراكة التي تقبلها.',
+          Muted(
+            tr('سجّلها مجّاناً وارفع مستنداتها. بعد أن توثّقها الإدارة، اعرضها على المستثمرين من «أرضي» واختر نماذج الشراكة التي تقبلها.', 'Register it for free and upload its documents. After the administrators verify it, offer it to investors from «My land» and choose the partnership models you accept.'),
           ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             children: [
-              FilledButton(onPressed: () => DefaultTabController.of(context).animateTo(2), child: const Text('أرضي')),
-              OutlinedButton(onPressed: () => openOnSite(context, '/lands/new'), child: const Text('سجّل أرضاً')),
+              FilledButton(onPressed: () => DefaultTabController.of(context).animateTo(2), child: Text(tr('أرضي', 'My land'))),
+              OutlinedButton(onPressed: () => openOnSite(context, '/lands/new'), child: Text(tr('سجّل أرضاً', 'Register land'))),
               OutlinedButton(
                 onPressed: () => openOnSite(context, '/opportunities/new'),
-                child: const Text('ارفع فرصة (على الموقع)'),
+                child: Text(tr('ارفع فرصة (على الموقع)', 'Post an opportunity (on the website)')),
               ),
             ],
           ),
@@ -217,22 +218,22 @@ class _InvestScreenState extends State<InvestScreen> {
   Widget _myRequests(BuildContext context, MyInvest m) => ListView(
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
     children: [
-      const IntroNote('طلبات الشراكة التي أرسلتها. حين يقبل صاحب الأرض يظهر هنا اسمه وهاتفه وموقع الأرض.'),
+      IntroNote(tr('طلبات الشراكة التي أرسلتها. حين يقبل صاحب الأرض يظهر هنا اسمه وهاتفه وموقع الأرض.', 'The partnership requests you sent. Once an owner accepts, their name, phone and the land\'s location appear here.')),
       const SizedBox(height: 12),
       if (m.assigned.isNotEmpty) ...[
-        const SectionTitle('معايناتٌ أُسندت إليك'),
+        SectionTitle(tr('معايناتٌ أُسندت إليك', 'Inspections assigned to you')),
         for (final i in m.assigned) _InspectionTile(item: i),
       ],
       if (m.asked.isNotEmpty) ...[
-        const SectionTitle('طلبات المعاينة'),
+        SectionTitle(tr('طلبات المعاينة', 'Inspection requests')),
         for (final i in m.asked) _InspectionTile(item: i),
       ],
-      const SectionTitle('طلبات الشراكة'),
+      SectionTitle(tr('طلبات الشراكة', 'Partnership requests')),
       if (m.interests.isEmpty)
         StateView(
           icon: Icons.handshake_outlined,
-          title: 'لم ترسل طلباً بعد.',
-          message: 'تصفّح فرص الاستثمار، واطلب الشراكة على أرضٍ موثّقة.',
+          title: tr('لم ترسل طلباً بعد.', 'You have not sent a request yet.'),
+          message: tr('تصفّح فرص الاستثمار، واطلب الشراكة على أرضٍ موثّقة.', 'Browse the investment opportunities, and request a partnership on verified land.'),
           compact: true,
         ),
       for (final r in m.interests)
@@ -253,10 +254,10 @@ class _InvestScreenState extends State<InvestScreen> {
             if (r.canOpenAgreement) ...[
               const Divider(height: 20),
               Text(
-                'قَبِل صاحب الأرض — تواصلا',
+                tr('قَبِل صاحب الأرض — تواصلا', 'The owner accepted — get in touch'),
                 style: TextStyle(fontWeight: FontWeight.w800, color: textGreenOn(context)),
               ),
-              InfoLine('صاحب الأرض', r.ownerName ?? '—'),
+              InfoLine(tr('صاحب الأرض', 'Landowner'), r.ownerName ?? '—'),
               if (r.ownerPhone != null)
                 TextButton.icon(
                   onPressed: () => openLink(context, 'tel:${r.ownerPhone}'),
@@ -264,23 +265,23 @@ class _InvestScreenState extends State<InvestScreen> {
                   label: Text(r.ownerPhone!),
                 )
               else
-                const Muted('لم يضف هاتفاً بعد'),
-              if (r.village != null) InfoLine('القرية', r.village!),
+                Muted(tr('لم يضف هاتفاً بعد', 'none on file yet')),
+              if (r.village != null) InfoLine(tr('القرية', 'Village'), r.village!),
               if (r.map != null)
                 TextButton.icon(
                   onPressed: () => openLink(context, r.map!),
                   icon: const Icon(Icons.map_outlined, size: 18),
-                  label: const Text('افتح الخريطة'),
+                  label: Text(tr('افتح الخريطة', 'Open the map')),
                 ),
-              const Muted(
-                'عاينا الأرض، واتّفقا كتابةً على النسبة أو الأجرة والمدّة قبل أيّ دفع. وللإشراف والحرث والحصاد شركاتٌ شريكة موثّقة.',
+              Muted(
+                tr('عاينا الأرض، واتّفقا كتابةً على النسبة أو الأجرة والمدّة قبل أيّ دفع. وللإشراف والحرث والحصاد شركاتٌ شريكة موثّقة.', 'Inspect the land and agree the share or rent and the term in writing before any payment. Verified partner companies offer supervision, ploughing and harvest.'),
                 size: 12,
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
                 onPressed: () => _openAgreement(r.interestId),
                 icon: const Icon(Icons.draw_outlined),
-                label: const Text('اكتبا العقد ووقّعاه'),
+                label: Text(tr('اكتبا العقد ووقّعاه', 'Write the agreement and sign it together')),
               ),
             ],
             if (r.canWithdraw) ...[
@@ -288,13 +289,13 @@ class _InvestScreenState extends State<InvestScreen> {
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: WarnButton(
-                  label: 'اسحب الطلب',
+                  label: tr('اسحب الطلب', 'Withdraw'),
                   onPressed: () async {
                     if (!await confirmStep(
                       context,
-                      title: 'اسحب الطلب',
-                      body: 'يُسحب طلبك ولا يراه صاحب الأرض بعد ذلك.',
-                      go: 'اسحب',
+                      title: tr('اسحب الطلب', 'Withdraw'),
+                      body: tr('يُسحب طلبك ولا يراه صاحب الأرض بعد ذلك.', 'Your request is withdrawn and the land owner no longer sees it.'),
+                      go: tr('اسحب', 'Withdraw'),
                     )) {
                       return;
                     }
@@ -307,7 +308,7 @@ class _InvestScreenState extends State<InvestScreen> {
           ],
         ),
       if (m.investments.isNotEmpty) ...[
-        const SectionTitle('حصصي في المشاريع'),
+        SectionTitle(tr('حصصي في المشاريع', 'My shares in projects')),
         for (final i in m.investments)
           DealCard(
             children: [
@@ -319,38 +320,38 @@ class _InvestScreenState extends State<InvestScreen> {
                   TagPill(i.statusLabel),
                 ],
               ),
-              Muted('${i.shares} حصة · ${i.amount}', size: 12),
+              Muted(tr('${i.shares} حصة · ${i.amount}', '${i.shares} shares · ${i.amount}'), size: 12),
             ],
           ),
       ],
       if (m.plans.isNotEmpty) ...[
-        const SectionTitle(
-          'مشروعي — قائمة المدخلات',
-          subtitle: 'تدفع لكلّ مورد مباشرةً، وتسجّل هنا ما دفعت وما استلمت',
+        SectionTitle(
+          tr('مشروعي — قائمة المدخلات', 'My project — input list'),
+          subtitle: tr('تدفع لكلّ مورد مباشرةً، وتسجّل هنا ما دفعت وما استلمت', 'You pay each supplier directly, and record here what you paid and what you received'),
         ),
         for (final p in m.plans)
           DealCard(
             title: p.title,
             children: [
-              Muted('${p.crop} · ${p.feddans} فدان · ${p.statusLabel}', size: 12),
+              Muted(tr('${p.crop} · ${p.feddans} فدان · ${p.statusLabel}', '${p.crop} · ${p.feddans} feddans · ${p.statusLabel}'), size: 12),
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Expanded(child: InfoLine('التكلفة المسعّرة', '${p.costUsd} \$')),
-                  Expanded(child: InfoLine('ما دفعتَ', '${money(p.paidSdg)} SDG')),
+                  Expanded(child: InfoLine(tr('التكلفة المسعّرة', 'Priced cost'), '${p.costUsd} \$')),
+                  Expanded(child: InfoLine(tr('ما دفعتَ', 'Paid'), '${money(p.paidSdg)} SDG')),
                 ],
               ),
               Row(
                 children: [
-                  Expanded(child: InfoLine('ما استلمتَ', '${p.delivered} من ${p.items}')),
-                  Expanded(child: InfoLine('ما بقي دفعه', '${p.remainingUsd} \$')),
+                  Expanded(child: InfoLine(tr('ما استلمتَ', 'Delivered'), tr('${p.delivered} من ${p.items}', '${p.delivered} of ${p.items}'))),
+                  Expanded(child: InfoLine(tr('ما بقي دفعه', 'Left to pay'), '${p.remainingUsd} \$')),
                 ],
               ),
-              if (p.unpriced > 0) Muted('${p.unpriced} بنود بلا سعر بعد، فلا تدخل التكلفة.', size: 12),
+              if (p.unpriced > 0) Muted(tr('${p.unpriced} بنود بلا سعر بعد، فلا تدخل التكلفة.', '${p.unpriced} items have no price yet, so they are not in the cost.'), size: 12),
               TextButton.icon(
                 onPressed: () => openOnSite(context, '/my-project'),
                 icon: const Icon(Icons.open_in_new, size: 18),
-                label: const Text('سجّل الدفع والاستلام (على الموقع)'),
+                label: Text(tr('سجّل الدفع والاستلام (على الموقع)', 'Record payment and delivery (on the website)')),
               ),
             ],
           ),
@@ -367,16 +368,16 @@ class _InvestScreenState extends State<InvestScreen> {
       return ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
-          const IntroNote(
-            'بعد توثيق الأرض تستطيع عرضها على المستثمرين: مشاركة بالمحصول، أو إيجار، أو تمويل مدخلات. '
-            'لا يرى المستثمر اسمك ولا هاتفك ولا موقعها حتى تقبل طلبه.',
+          IntroNote(
+            tr('بعد توثيق الأرض تستطيع عرضها على المستثمرين: مشاركة بالمحصول، أو إيجار، أو تمويل مدخلات. '
+            'لا يرى المستثمر اسمك ولا هاتفك ولا موقعها حتى تقبل طلبه.', 'Once the land is verified you can offer it to investors: crop sharing, a lease, or input finance. The investor sees neither your name, your phone nor its location until you accept their request.'),
           ),
           const SizedBox(height: 12),
           if (m.lands.isEmpty)
             StateView(
               icon: Icons.landscape_outlined,
-              title: 'لا أرض مسجّلة بعد',
-              message: 'سجّل أرضك من «حدّد أرضك» في الحساب أو على الموقع، وارفع مستنداتها لتوثّقها الإدارة.',
+              title: tr('لا أرض مسجّلة بعد', 'No land registered yet'),
+              message: tr('سجّل أرضك من «حدّد أرضك» في الحساب أو على الموقع، وارفع مستنداتها لتوثّقها الإدارة.', 'Register your land from «Mark your land» in the account or on the website, and upload its documents for the administrators to verify.'),
               compact: true,
             ),
           for (final l in m.lands)
@@ -384,21 +385,21 @@ class _InvestScreenState extends State<InvestScreen> {
               title: l.name,
               highlight: l.requests.any((r) => r.canDecide),
               children: [
-                Muted('${l.place} · ${l.feddans} فدان', size: 12),
+                Muted(tr('${l.place} · ${l.feddans} فدان', '${l.place} · ${l.feddans} feddans'), size: 12),
                 const SizedBox(height: 8),
                 if (!l.investorsOn)
                   const SizedBox.shrink()
                 else if (!l.verified)
-                  const Muted('بعد توثيق الأرض تستطيع عرضها على المستثمرين.')
+                  Muted(tr('بعد توثيق الأرض تستطيع عرضها على المستثمرين.', 'Once the land is verified you can offer it to investors.'))
                 else if (l.open) ...[
                   Text(
-                    'أرضك معروضة في فرص الاستثمار بنماذج: ${l.modelLabels.join(' · ')}.',
+                    tr('أرضك معروضة في فرص الاستثمار بنماذج: ${l.modelLabels.join(' · ')}.', 'Your land is shown in the investment opportunities with the models: ${l.modelLabels.join(' · ')}.'),
                     style: const TextStyle(height: 1.6),
                   ),
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: WarnButton(
-                      label: 'أوقف عرضها',
+                      label: tr('أوقف عرضها', 'Stop showing it'),
                       onPressed: () =>
                           runStep(context, () => _api.setConsent(landId: l.id, open: false), then: _reload),
                     ),
@@ -415,19 +416,19 @@ class _InvestScreenState extends State<InvestScreen> {
                 for (final i in l.inspections) ...[
                   const Divider(height: 20),
                   Text(
-                    'طلب معاينةٍ من ${i.investorName ?? 'مستثمر'} — ${i.verdictLabel ?? i.statusLabel}',
+                    tr('طلب معاينةٍ من ${i.investorName ?? 'مستثمر'} — ${i.verdictLabel ?? i.statusLabel}', 'Inspection request from ${i.investorName ?? 'an investor'} — ${i.verdictLabel ?? i.statusLabel}'),
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  Muted('يُتحقَّق من: ${i.checks.join(' · ')}', size: 12),
+                  Muted(tr('يُتحقَّق من: ${i.checks.join(' · ')}', 'To be checked: ${i.checks.join(' · ')}'), size: 12),
                   TextButton(
                     onPressed: () => openOnSite(context, '/invest/inspections/${i.id}'),
-                    child: const Text('التفاصيل والردّ (على الموقع)'),
+                    child: Text(tr('التفاصيل والردّ (على الموقع)', 'Details and reply (on the website)')),
                   ),
                 ],
                 for (final r in l.requests) ...[
                   const Divider(height: 20),
                   Text(
-                    '${r.accepted ? 'شريكٌ قبلتَه: ' : 'طلب شراكة من '}${r.investorName ?? 'مستثمر'} — ${r.modelLabel}',
+                    tr('${r.accepted ? 'شريكٌ قبلتَه: ' : 'طلب شراكة من '}${r.investorName ?? 'مستثمر'} — ${r.modelLabel}', '${r.accepted ? 'A partner you accepted: ' : 'Partnership request from '}${r.investorName ?? 'an investor'} — ${r.modelLabel}'),
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   if (r.record != null) Muted(r.record!, size: 12),
@@ -441,20 +442,20 @@ class _InvestScreenState extends State<InvestScreen> {
                           onPressed: () async {
                             if (!await confirmStep(
                               context,
-                              title: 'قبول الطلب',
+                              title: tr('قبول الطلب', 'Accepting the request'),
                               body:
-                                  'بقبولك يرى المستثمر اسمك وهاتفك وموقع الأرض، وترى هاتفه. اتّفقا كتابةً قبل أيّ دفع.',
-                              go: 'أقبل',
+                                  tr('بقبولك يرى المستثمر اسمك وهاتفك وموقع الأرض، وترى هاتفه. اتّفقا كتابةً قبل أيّ دفع.', 'When you accept, the investor sees your name, your phone and the land\'s location, and you see their phone. Agree in writing before any payment.'),
+                              go: tr('أقبل', 'Accept'),
                             )) {
                               return;
                             }
                             if (!context.mounted) return;
                             await runStep(context, () => _api.answerInterest(r.interestId, 'accept'), then: _reload);
                           },
-                          child: const Text('أقبل وأكشف بياناتي له'),
+                          child: Text(tr('أقبل وأكشف بياناتي له', 'Accept and share my details')),
                         ),
                         WarnButton(
-                          label: 'أعتذر',
+                          label: tr('أعتذر', 'Decline'),
                           onPressed: () =>
                               runStep(context, () => _api.answerInterest(r.interestId, 'decline'), then: _reload),
                         ),
@@ -470,7 +471,7 @@ class _InvestScreenState extends State<InvestScreen> {
                     FilledButton.icon(
                       onPressed: () => _openAgreement(r.interestId),
                       icon: const Icon(Icons.draw_outlined),
-                      label: const Text('اكتبا العقد ووقّعاه'),
+                      label: Text(tr('اكتبا العقد ووقّعاه', 'Write the agreement and sign it together')),
                     ),
                   ],
                 ],
@@ -479,7 +480,7 @@ class _InvestScreenState extends State<InvestScreen> {
           OutlinedButton.icon(
             onPressed: () => openOnSite(context, '/lands/new'),
             icon: const Icon(Icons.add_location_alt_outlined),
-            label: const Text('سجّل أرضاً (على الموقع)'),
+            label: Text(tr('سجّل أرضاً (على الموقع)', 'Register land (on the website)')),
           ),
         ],
       );
@@ -491,20 +492,20 @@ class _InvestScreenState extends State<InvestScreen> {
   Widget _companies(BuildContext context, InvestOverview o) => ListView(
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
     children: [
-      const IntroNote(
-        'شركاتٌ رأى المشرف سجلّها التجاري، تنفّذ الخدمات على المزارع: الميكنة، والريّ، والمدخلات، والحصاد، '
-        'والتعبئة، والنقل، والإرشاد. والعقد الملزم لأيّ مزرعة هو عقد الخدمة نفسه: بمراحله، ودفعه بعد الإثبات.',
+      IntroNote(
+        tr('شركاتٌ رأى المشرف سجلّها التجاري، تنفّذ الخدمات على المزارع: الميكنة، والريّ، والمدخلات، والحصاد، '
+        'والتعبئة، والنقل، والإرشاد. والعقد الملزم لأيّ مزرعة هو عقد الخدمة نفسه: بمراحله، ودفعه بعد الإثبات.', 'Companies whose commercial registration the supervisor has seen, providing services on farms: machinery, irrigation, inputs, harvest, packing, transport and extension. The binding contract for any farm is the service contract itself: with its phases, and payment after proof.'),
       ),
       const SizedBox(height: 12),
       if (o.companies.isEmpty)
-        const StateView(icon: Icons.business_outlined, title: 'لا شركة شريكة موثّقة بعد', compact: true),
+        StateView(icon: Icons.business_outlined, title: tr('لا شركة شريكة موثّقة بعد', 'No verified partner company yet'), compact: true),
       for (final c in o.companies)
         DealCard(
           title: c.name,
           children: [
             if (c.kinds.isNotEmpty) Wrap(spacing: 6, runSpacing: 6, children: [for (final k in c.kinds) TagPill(k)]),
             const SizedBox(height: 6),
-            if (c.states.isNotEmpty) Muted('الولايات: ${c.states.join('، ')}', size: 12),
+            if (c.states.isNotEmpty) Muted(tr('الولايات: ${c.states.join('، ')}', 'States: ${c.states.join(', ')}'), size: 12),
             if (c.bio != null) Text(c.bio!, style: const TextStyle(height: 1.6)),
             if (c.phone != null)
               Align(
@@ -560,15 +561,15 @@ class _ProjectTile extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Expanded(child: Muted('${p.feddans} فدان · ${p.statusLabel}', size: 12)),
-                  Muted('${p.fundedPct}% ممول', size: 12),
+                  Expanded(child: Muted(tr('${p.feddans} فدان · ${p.statusLabel}', '${p.feddans} feddans · ${p.statusLabel}'), size: 12)),
+                  Muted(tr('${p.fundedPct}% ممول', '${p.fundedPct}% funded'), size: 12),
                 ],
               ),
               const SizedBox(height: 4),
               LinearProgressIndicator(value: p.fundedPct / 100, minHeight: 6, borderRadius: BorderRadius.circular(4)),
               const SizedBox(height: 4),
               Muted(
-                'الحصة من ${p.sharePrice}${p.expectedReturn != null ? ' · عائد متوقع ${p.expectedReturn}%' : ''}',
+                tr('الحصة من ${p.sharePrice}${p.expectedReturn != null ? ' · عائد متوقع ${p.expectedReturn}%' : ''}', 'Share from ${p.sharePrice}${p.expectedReturn != null ? ' · expected return ${p.expectedReturn}%' : ''}'),
                 size: 12,
               ),
             ],
@@ -621,11 +622,11 @@ class _SignInFirst extends StatelessWidget {
     children: [
       StateView(
         icon: Icons.lock_outline,
-        title: 'ادخل لترى $what',
-        message: 'حسابٌ واحد للاستثمار وللأرض، وهو حسابك في الموقع نفسه.',
+        title: tr('ادخل لترى $what', 'Sign in to see $what'),
+        message: tr('حسابٌ واحد للاستثمار وللأرض، وهو حسابك في الموقع نفسه.', 'One account for investing and for land, and it is your account on the website too.'),
         compact: true,
       ),
-      FilledButton.icon(onPressed: onSignIn, icon: const Icon(Icons.login), label: const Text('ادخل إلى حسابك')),
+      FilledButton.icon(onPressed: onSignIn, icon: const Icon(Icons.login), label: Text(tr('ادخل إلى حسابك', 'Sign in to your account'))),
     ],
   );
 }
@@ -646,7 +647,7 @@ class _Future<T> extends StatelessWidget {
         if (snap.connectionState != ConnectionState.done) return const LoadingView();
         if (snap.hasError) {
           final e = snap.error;
-          return StateView.error(e is ApiException ? e.message : 'تعذّر التحميل.', onRetry: onRetry, scrollable: true);
+          return StateView.error(e is ApiException ? e.message : tr('تعذّر التحميل.', 'Could not load.'), onRetry: onRetry, scrollable: true);
         }
         return builder(context, snap.data as T);
       },

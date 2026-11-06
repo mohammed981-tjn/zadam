@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../journal.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -27,18 +28,18 @@ class JournalHubScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     void go(Widget w) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
     final tiles = <(IconData, String, String, Widget)>[
-      (Icons.edit_note_outlined, 'قيدٌ جديد', 'يدويّاً أو من قيدٍ جاهز، بمستنده', JournalEntryScreen(api: api)),
-      (Icons.fact_check_outlined, 'المراجعة', 'المُعِدّ والمعتمِد، وما ينتظر اعتمادك', BooksReviewScreen(api: api)),
-      (Icons.report_gmailerrorred_outlined, 'الاستثناءات', 'ما يستحقّ نظرةً ثانية قبل الإقفال', BooksAuditScreen(api: api, exceptions: true)),
-      (Icons.history_outlined, 'سجلّ التدقيق', 'كلّ ما جرى في الدفتر، لا يُمحى', BooksAuditScreen(api: api)),
-      (Icons.lock_clock_outlined, 'إقفال الفترة', 'وقيد الإقفال في الأرباح المحتجزة', BooksCloseScreen(api: api)),
+      (Icons.edit_note_outlined, tr('قيدٌ جديد', 'New entry'), tr('يدويّاً أو من قيدٍ جاهز، بمستنده', 'By hand or from a ready entry, with its document'), JournalEntryScreen(api: api)),
+      (Icons.fact_check_outlined, tr('المراجعة', 'Review'), tr('المُعِدّ والمعتمِد، وما ينتظر اعتمادك', 'The preparer and the approver, and what waits for your approval'), BooksReviewScreen(api: api)),
+      (Icons.report_gmailerrorred_outlined, tr('الاستثناءات', 'Exceptions'), tr('ما يستحقّ نظرةً ثانية قبل الإقفال', 'What deserves a second look before the close'), BooksAuditScreen(api: api, exceptions: true)),
+      (Icons.history_outlined, tr('سجلّ التدقيق', 'Audit log'), tr('كلّ ما جرى في الدفتر، لا يُمحى', 'Everything that happened in the book, never erased'), BooksAuditScreen(api: api)),
+      (Icons.lock_clock_outlined, tr('إقفال الفترة', 'Close the period'), tr('وقيد الإقفال في الأرباح المحتجزة', 'and the closing entry into retained earnings'), BooksCloseScreen(api: api)),
     ];
     return Scaffold(
-      appBar: AppBar(title: const Text('القيود والمراجعة')),
+      appBar: AppBar(title: Text(tr('القيود والمراجعة', 'Entries and review'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
-          const IntroNote('كلّ قيدٍ مدينٌ ودائنٌ بالمبلغ نفسه. لا يُعدَّل القيد بعد ترحيله: يُعكس بقيدٍ جديد، وكلّ ذلك في سجلّ التدقيق.'),
+          IntroNote(tr('كلّ قيدٍ مدينٌ ودائنٌ بالمبلغ نفسه. لا يُعدَّل القيد بعد ترحيله: يُعكس بقيدٍ جديد، وكلّ ذلك في سجلّ التدقيق.', 'Every entry has a debit and a credit of the same amount. An entry is not edited after it posts: it is reversed with a new entry, and all of it is in the audit log.')),
           const SizedBox(height: 12),
           for (final (icon, title, subtitle, screen) in tiles)
             Card(
@@ -63,8 +64,8 @@ class BooksReviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('المراجعة')),
-      body: RequireSignIn(what: 'دفترك', builder: (_) => BooksReviewBody(api: api ?? JournalApi())),
+      appBar: AppBar(title: Text(tr('المراجعة', 'Review'))),
+      body: RequireSignIn(what: tr('دفترك', 'your book'), builder: (_) => BooksReviewBody(api: api ?? JournalApi())),
     );
   }
 }
@@ -107,7 +108,7 @@ class _BooksReviewBodyState extends State<BooksReviewBody> {
         if (snap.connectionState != ConnectionState.done) return const LoadingView();
         if (snap.hasError) {
           final e = snap.error;
-          return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل المراجعة.', onRetry: _reload, scrollable: true);
+          return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل المراجعة.', 'Could not load the review.'), onRetry: _reload, scrollable: true);
         }
         final v = snap.data!;
         return RefreshIndicator(
@@ -115,18 +116,18 @@ class _BooksReviewBodyState extends State<BooksReviewBody> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
-              const IntroNote('من تأذن له يُعِدّ قيود دفترك، ولا يُرحَّل شيءٌ ممّا أعدّه حتى تعتمده أنت، أو تردّه بسبب.'),
+              IntroNote(tr('من تأذن له يُعِدّ قيود دفترك، ولا يُرحَّل شيءٌ ممّا أعدّه حتى تعتمده أنت، أو تردّه بسبب.', 'Whoever you allow prepares your book\'s entries, and nothing they prepare posts until you approve it, or turn it back with a reason.')),
               for (final i in v.invitations) ...[
                 const SizedBox(height: 12),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('${i.ownerName} يدعوك لتُعِدّ قيود دفتره.'),
+                      Text(tr('${i.ownerName} يدعوك لتُعِدّ قيود دفتره.', '${i.ownerName} invites you to prepare the entries of their book.')),
                       const SizedBox(height: 8),
                       Wrap(spacing: 8, children: [
-                        FilledButton(onPressed: () => _do('answer', {'id': i.id, 'accept': true}), child: const Text('أقبل')),
-                        OutlinedButton(onPressed: () => _do('answer', {'id': i.id, 'accept': false}), child: const Text('أعتذر')),
+                        FilledButton(onPressed: () => _do('answer', {'id': i.id, 'accept': true}), child: Text(tr('أقبل', 'Accept'))),
+                        OutlinedButton(onPressed: () => _do('answer', {'id': i.id, 'accept': false}), child: Text(tr('أعتذر', 'Decline'))),
                       ]),
                     ]),
                   ),
@@ -139,52 +140,52 @@ class _BooksReviewBodyState extends State<BooksReviewBody> {
                   contentPadding: EdgeInsets.zero,
                   value: b.alwaysReview,
                   onChanged: (on) => _do('review', {'book': b.id, 'always': on}),
-                  title: const Text('راجع كلّ قيد، قيودي أنا أيضاً، قبل ترحيله'),
+                  title: Text(tr('راجع كلّ قيد، قيودي أنا أيضاً، قبل ترحيله', 'Review every entry, mine too, before it posts')),
                 ),
-                Text('ينتظر اعتمادك (${b.pending.length})', style: const TextStyle(fontWeight: FontWeight.w700)),
-                if (b.pending.isEmpty) Text('لا شيء ينتظر.', style: TextStyle(color: mutedOn(context))),
+                Text(tr('ينتظر اعتمادك (${b.pending.length})', 'Waiting for your approval (${b.pending.length})'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                if (b.pending.isEmpty) Text(tr('لا شيء ينتظر.', 'Nothing is waiting.'), style: TextStyle(color: mutedOn(context))),
                 for (final d in b.pending)
                   _DraftCard(d: d, actions: [
-                    FilledButton(onPressed: () => _do('approve', {'id': d.id}), child: const Text('أعتمده فيُرحَّل')),
+                    FilledButton(onPressed: () => _do('approve', {'id': d.id}), child: Text(tr('أعتمده فيُرحَّل', 'Approve and post'))),
                     OutlinedButton(
                       onPressed: () async {
-                        final note = await _ask('سبب الردّ', 'لماذا يُردّ؟');
+                        final note = await _ask(tr('سبب الردّ', 'Why it is turned back'), tr('لماذا يُردّ؟', 'Why is it turned back?'));
                         if (note != null) await _do('reject', {'id': d.id, 'note': note});
                       },
-                      child: const Text('أردّه'),
+                      child: Text(tr('أردّه', 'Turn it back')),
                     ),
                   ]),
                 const SizedBox(height: 12),
-                const Text('من يُعِدّ قيود هذا الدفتر', style: TextStyle(fontWeight: FontWeight.w700)),
-                if (b.preparers.isEmpty) Text('لا أحد غيرك.', style: TextStyle(color: mutedOn(context))),
+                Text(tr('من يُعِدّ قيود هذا الدفتر', 'Who prepares this book\'s entries'), style: TextStyle(fontWeight: FontWeight.w700)),
+                if (b.preparers.isEmpty) Text(tr('لا أحد غيرك.', 'Nobody but you.'), style: TextStyle(color: mutedOn(context))),
                 for (final p in b.preparers)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(p.name),
-                    subtitle: Text(p.open && !p.standing ? '${p.statusLabel} · سقط إذن الوكيل' : p.statusLabel),
-                    trailing: p.open ? TextButton(onPressed: () => _do('end', {'id': p.id}), child: const Text('أنهِ الإذن')) : null,
+                    subtitle: Text(p.open && !p.standing ? tr('${p.statusLabel} · سقط إذن الوكيل', '${p.statusLabel} · the agent\'s permission lapsed') : p.statusLabel),
+                    trailing: p.open ? TextButton(onPressed: () => _do('end', {'id': p.id}), child: Text(tr('أنهِ الإذن', 'End the permission'))) : null,
                   ),
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   OutlinedButton.icon(
                     onPressed: () async {
-                      final contact = await _ask('ادعُ محاسباً', 'جوّاله أو بريده (له حسابٌ في سوداقري)', min: 5);
+                      final contact = await _ask(tr('ادعُ محاسباً', 'Invite an accountant'), tr('جوّاله أو بريده (له حسابٌ في سوداقري)', 'Their phone or email (they have a Sudagri account)'), min: 5);
                       if (contact != null) await _do('invite', {'book': b.id, 'contact': contact});
                     },
                     icon: const Icon(Icons.person_add_alt, size: 18),
-                    label: const Text('ادعُ محاسباً'),
+                    label: Text(tr('ادعُ محاسباً', 'Invite an accountant')),
                   ),
                   if (b.kind == 'farm')
                     for (final a in v.agents)
                       OutlinedButton.icon(
                         onPressed: () => _do('add_agent', {'book': b.id, 'mandate': a.id}),
                         icon: const Icon(Icons.handshake_outlined, size: 18),
-                        label: Text('اجعل «${a.name}» مُعِدّاً'),
+                        label: Text(tr('اجعل «${a.name}» مُعِدّاً', 'Make «${a.name}» a preparer')),
                       ),
                 ]),
               ],
               if (v.preparing.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const SectionTitle('دفاترُ تُعِدّ قيودها'),
+                SectionTitle(tr('دفاترُ تُعِدّ قيودها', 'Books you prepare entries for')),
                 for (final b in v.preparing)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -197,10 +198,10 @@ class _BooksReviewBodyState extends State<BooksReviewBody> {
               ],
               if (v.prepared.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const SectionTitle('ما أعددته لغيرك'),
+                SectionTitle(tr('ما أعددته لغيرك', 'What you prepared for others')),
                 for (final d in v.prepared)
                   _DraftCard(d: d, actions: [
-                    if (d.status == 'pending') OutlinedButton(onPressed: () => _do('withdraw', {'id': d.id}), child: const Text('اسحبه')),
+                    if (d.status == 'pending') OutlinedButton(onPressed: () => _do('withdraw', {'id': d.id}), child: Text(tr('اسحبه', 'Withdraw it'))),
                   ]),
               ],
             ],
@@ -224,15 +225,30 @@ class _DraftCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(d.memo, style: const TextStyle(fontWeight: FontWeight.w700)),
-          Text([d.date, 'أعدّه ${d.by}', d.statusLabel, d.hasDocument ? 'بمستند' : 'بلا مستند'].join(' · '),
+          Text([d.date, tr('أعدّه ${d.by}', 'Prepared by ${d.by}'), d.statusLabel, d.hasDocument ? tr('بمستند', 'with a document') : tr('بلا مستند', 'No document')].join(' · '),
               style: TextStyle(color: mutedOn(context), fontSize: 12)),
-          if (d.note != null) Text('السبب: ${d.note}'),
+          if (d.permissionEnded)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Chip(label: Text(tr('انتهى الإذن', 'Permission ended')), visualDensity: VisualDensity.compact),
+            ),
+          if (d.note != null) Text(tr('السبب: ${d.note}', 'Reason: ${d.note}')),
           const SizedBox(height: 6),
+          // What the approver must see (backlog 209): the worth in the book's currency, the tags and memo, the rate.
           for (final l in d.lines)
-            Row(children: [
-              Expanded(child: Text(l.account, overflow: TextOverflow.ellipsis)),
-              Text(l.side == 'D' ? 'مدين ${l.amount}' : 'دائن ${l.amount}'),
-            ]),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(l.account, overflow: TextOverflow.ellipsis)),
+                  Text(l.side == 'D' ? tr('مدين ${l.amount}', 'Debit ${l.amount}') : tr('دائن ${l.amount}', 'Credit ${l.amount}')),
+                ]),
+                if (l.base != null)
+                  Text(tr('بعملة الدفتر: ${l.base}', 'In the book\'s currency: ${l.base}'), style: TextStyle(color: mutedOn(context), fontSize: 12)),
+                if (l.tags != null) Text(l.tags!, style: TextStyle(color: mutedOn(context), fontSize: 12)),
+              ]),
+            ),
+          if (d.rate != null) Text(tr('سعر الصرف: ${d.rate}', 'Exchange rate: ${d.rate}'), style: const TextStyle(fontSize: 12)),
           if (actions.isNotEmpty) ...[
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: actions),
@@ -275,8 +291,8 @@ class _TextDialogState extends State<_TextDialog> {
         decoration: InputDecoration(labelText: widget.label),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('تراجع')),
-        FilledButton(onPressed: ok ? () => Navigator.pop(context, _text.text.trim()) : null, child: const Text('أرسل')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('تراجع', 'Back'))),
+        FilledButton(onPressed: ok ? () => Navigator.pop(context, _text.text.trim()) : null, child: Text(tr('أرسل', 'Send'))),
       ],
     );
   }

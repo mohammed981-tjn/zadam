@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../library.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -61,7 +62,7 @@ class _PageReaderState extends State<PageReader> with AutomaticKeepAliveClientMi
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             children: [
-              Text('الفهرس (${page.sections.length} قسماً)', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              Text(tr('الفهرس (${page.sections.length} قسماً)', 'Contents (${page.sections.length} sections)'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
               for (final (i, text) in page.sections)
                 ListTile(
                   dense: true,
@@ -90,7 +91,7 @@ class _PageReaderState extends State<PageReader> with AutomaticKeepAliveClientMi
         if (snap.connectionState != ConnectionState.done) return const LoadingView();
         if (snap.hasError) {
           final e = snap.error;
-          return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل الصفحة.', onRetry: _reload);
+          return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل الصفحة.', 'Could not load the page.'), onRetry: _reload);
         }
         final page = snap.data!;
         return RefreshIndicator(
@@ -140,13 +141,13 @@ class _PageReaderState extends State<PageReader> with AutomaticKeepAliveClientMi
                       OutlinedButton.icon(
                         onPressed: () => _contents(page),
                         icon: const Icon(Icons.list_alt, size: 18),
-                        label: const Text('الفهرس'),
+                        label: Text(tr('الفهرس', 'Contents')),
                       ),
                     if (page.pageUrl != null)
                       TextButton.icon(
                         onPressed: () => _web(page.pageUrl),
                         icon: const Icon(Icons.open_in_new, size: 18),
-                        label: const Text('افتحها في الموقع (الخرائط والأفلام)'),
+                        label: Text(tr('افتحها في الموقع (الخرائط والأفلام)', 'Open it on the website (maps and films)')),
                       ),
                   ],
                 ),
@@ -305,15 +306,15 @@ class _CanalFigures extends StatelessWidget {
           runSpacing: 8,
           alignment: WrapAlignment.center,
           children: [
-            fig('${c.lengthKm} كم', 'طول المسار', 'بين طرفيه المسمّيين'),
-            fig('${c.peakM} م', 'أعلى نقطة', 'على الساق الجنوبية'),
-            fig('${c.liftM} م', 'الرفع الساكن', 'من منسوب الخزان ${c.sourceElevationM}'),
-            fig('${c.terminusAboveSourceM} م', 'النهاية فوق المصدر', 'فلا جريان بالجاذبية'),
+            fig(tr('${c.lengthKm} كم', '${c.lengthKm} km'), tr('طول المسار', 'Route length'), tr('بين طرفيه المسمّيين', 'between its two named ends')),
+            fig(tr('${c.peakM} م', '${c.peakM} m'), tr('أعلى نقطة', 'Highest point'), tr('على الساق الجنوبية', 'on the southern leg')),
+            fig(tr('${c.liftM} م', '${c.liftM} m'), tr('الرفع الساكن', 'Static lift'), tr('من منسوب الخزان ${c.sourceElevationM}', 'from the reservoir level ${c.sourceElevationM}')),
+            fig(tr('${c.terminusAboveSourceM} م', '${c.terminusAboveSourceM} m'), tr('النهاية فوق المصدر', 'End above the source'), tr('فلا جريان بالجاذبية', 'so no gravity flow')),
           ],
         ),
         if (c.profile.length > 1) ...[
           const SizedBox(height: 12),
-          Text('مقطع الأرض على المسار (م فوق البحر)', style: TextStyle(fontSize: 12, color: mutedOn(context))),
+          Text(tr('مقطع الأرض على المسار (م فوق البحر)', 'The ground profile along the route (m above sea level)'), style: TextStyle(fontSize: 12, color: mutedOn(context))),
           const SizedBox(height: 6),
           SizedBox(
             height: 140,

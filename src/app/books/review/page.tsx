@@ -7,8 +7,8 @@ import { tr, type Locale } from "@/lib/i18n";
 import ActionNotice from "@/components/ActionNotice";
 import { bookLabel } from "@/components/books/JournalLinks";
 import { formatMoney, isCurrency } from "@/lib/ledger/money";
-import { accountName, type ChartAccount } from "@/lib/ledger/journal";
-import { loadReview, type DraftRow, type PreparerRow } from "@/lib/ledger/journalLoad";
+import { accountName } from "@/lib/ledger/journal";
+import { draftFacts, loadReview, type DraftFacts, type PreparerRow } from "@/lib/ledger/journalLoad";
 import { button, card, field, ghost } from "@/lib/ui";
 import {
   addAgentAction,
@@ -37,29 +37,56 @@ const STATUS: Record<string, { ar: string; en: string }> = {
   ended: { ar: "انتهى", en: "Ended" },
 };
 
-function DraftLines({ d, chart, locale }: { d: DraftRow; chart: ChartAccount[]; locale: Locale }) {
+const money = (minor: number, currency: string) => formatMoney(BigInt(Math.round(minor)), isCurrency(currency) ? currency : "USD");
+
+/**
+ * The lines as the approver must see them (backlog 209, S4): the amount as typed and, beside it, its worth in the book's
+ * currency as the posting function computed it when the draft was checked; the season, land, herd or project a line is
+ * tagged with; the line's own memo; and the rate a pound entry carries and who set it.
+ */
+function DraftLines({ facts, locale }: { facts: DraftFacts; locale: Locale }) {
   const t = (ar: string, en: string) => tr(locale, ar, en);
-  const name = (code?: string) => {
-    const a = chart.find((c) => c.code === code);
-    return a ? `${a.code} — ${accountName(a, locale)}` : (code ?? "");
-  };
+  const foreign = facts.lines.some((l) => l.currency !== l.baseCurrency);
+  const baseCur = facts.lines[0]?.baseCurrency ?? "USD";
   return (
-    <table className="mt-2 w-full text-sm">
-      <tbody>
-        {d.lines.map((l, i) => (
-          <tr key={i} className="border-t border-border">
-            <td className="py-1">{name(l.account)}</td>
-            <td className="py-1 text-end tabular-nums">{l.side === "D" ? formatMoney(BigInt(l.minor), isCurrency(l.currency) ? l.currency : "USD") : ""}</td>
-            <td className="py-1 text-end tabular-nums">{l.side === "C" ? formatMoney(BigInt(l.minor), isCurrency(l.currency) ? l.currency : "USD") : ""}</td>
+    <>
+      <table className="mt-2 w-full text-sm">
+        <tbody>
+          {facts.lines.map((l, i) => (
+            <tr key={i} className="border-t border-border align-top">
+              <td className="py-1">
+                {l.account}
+                {(l.tags.length > 0 || l.memo) && (
+                  <span className="block text-xs text-muted">{[...l.tags, l.memo ? `${t("بيان السطر", "Line memo")}: ${l.memo}` : null].filter(Boolean).join(" · ")}</span>
+                )}
+              </td>
+              <td className="py-1 text-end tabular-nums">{l.side === "D" ? money(l.minor, l.currency) : ""}</td>
+              <td className="py-1 text-end tabular-nums">{l.side === "C" ? money(l.minor, l.currency) : ""}</td>
+              {foreign && (
+                <td className="py-1 text-end tabular-nums text-muted">
+                  {l.base === null ? "—" : money(l.base, l.baseCurrency)}
+                </td>
+              )}
+            </tr>
+          ))}
+          <tr className="text-xs text-muted">
+            <td />
+            <td className="text-end">{t("مدين", "Debit")}</td>
+            <td className="text-end">{t("دائن", "Credit")}</td>
+            {foreign && <td className="text-end">{t(`بعملة الدفتر (${baseCur})`, `In the book's currency (${baseCur})`)}</td>}
           </tr>
-        ))}
-        <tr className="text-xs text-muted">
-          <td />
-          <td className="text-end">{t("مدين", "Debit")}</td>
-          <td className="text-end">{t("دائن", "Credit")}</td>
-        </tr>
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+      {facts.rate && (
+        <p className="mt-1 text-xs">
+          {t("سعر الصرف", "Exchange rate")}: <span className="font-bold tabular-nums">{facts.rate.value}</span>
+          {facts.rate.source ? ` — ${facts.rate.source}` : ""}
+        </p>
+      )}
+      {foreign && facts.lines.some((l) => l.base === null) && (
+        <p className="mt-1 text-xs text-muted">{t("أُعِدّ قبل أن يُحفظ معادله بعملة الدفتر.", "Prepared before its worth in the book's currency was kept.")}</p>
+      )}
+    </>
   );
 }
 
@@ -139,8 +166,12 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
         </section>
       )}
 
-      {data.owned.map(({ book, pending, preparers, chart }) => {
+      {data.owned.map(({ book, pending, preparers, chart, tagNames }) => {
         const byRef = new Map(preparers.map((p) => [p.id, p]));
+        const name = (code?: string, key?: string) => {
+          const a = chart.find((c) => (code ? c.code === code : !!key && c.system_key === key));
+          return a ? `${a.code} — ${accountName(a, locale)}` : (code ?? key ?? "");
+        };
         const open = preparers.filter((p) => p.status === "invited" || p.status === "active");
         return (
           <section key={book.id} className="mt-8">
@@ -160,12 +191,18 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
             </h3>
             {pending.length === 0 && <p className="mt-2 text-sm text-muted">{t("لا شيء ينتظر.", "Nothing is waiting.")}</p>}
             <div className="mt-2 space-y-3">
-              {pending.map((d) => (
+              {pending.map((d) => {
+                const prep = d.preparer_ref ? byRef.get(d.preparer_ref) : undefined;
+                const facts = draftFacts(d, name, tagNames, prep, locale);
+                return (
                 <div key={d.id} className={card}>
                   <p className="text-sm">
-                    <span className="font-bold">{d.memo}</span> · {d.entry_date} · {t("أعدّه", "prepared by")} {preparerName(d.preparer_ref ? byRef.get(d.preparer_ref) : undefined, locale)} · {docLink(d.document_path)}
+                    <span className="font-bold">{d.memo}</span> · {d.entry_date} · {t("أعدّه", "prepared by")} {preparerName(prep, locale)} · {docLink(d.document_path)}
+                    {facts.permissionEnded && (
+                      <span className="ms-2 rounded-full border border-border px-2 py-0.5 text-xs font-bold">{t("انتهى الإذن", "Permission ended")}</span>
+                    )}
                   </p>
-                  <DraftLines d={d} chart={chart} locale={locale} />
+                  <DraftLines facts={facts} locale={locale} />
                   <div className="mt-3 flex flex-wrap items-end gap-2">
                     <form action={approveAction}>
                       <input type="hidden" name="draft" value={d.id} />
@@ -178,7 +215,8 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
                     </form>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <h3 className="mt-6 font-bold">{t("من يُعِدّ قيود هذا الدفتر", "Who prepares this book's entries")}</h3>

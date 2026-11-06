@@ -20,6 +20,7 @@ import 'package:http/http.dart' as http;
 
 import 'account.dart';
 import 'api.dart';
+import 'i18n.dart';
 
 /// A signed-in request: `accountController.call`, or a stand-in in tests.
 typedef AppCall = Future<Map<String, dynamic>> Function(
@@ -416,16 +417,16 @@ class FeasibilityApi {
   static const _timeout = Duration(seconds: 40);
 
   Future<Map<String, dynamic>> _public(String method, String path, [Map<String, dynamic>? body]) async {
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     final uri = Uri.parse('$_site$path');
     late final http.Response res;
     try {
       res = await (method == 'POST'
-              ? _client.post(uri, headers: {'content-type': 'application/json'}, body: jsonEncode(body ?? const {}))
-              : _client.get(uri))
+              ? _client.post(uri, headers: {'content-type': 'application/json', ...langController.header}, body: jsonEncode(body ?? const {}))
+              : _client.get(uri, headers: langController.header))
           .timeout(_timeout);
     } catch (_) {
-      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
     }
     Map<String, dynamic> j;
     try {
@@ -433,7 +434,7 @@ class FeasibilityApi {
     } catch (_) {
       j = const {};
     }
-    if (res.statusCode != 200) throw ApiException(_str(j['error']) ?? 'تعذّر الطلب (${res.statusCode}).');
+    if (res.statusCode != 200) throw ApiException(_str(j['error']) ?? tr('تعذّر الطلب (${res.statusCode}).', 'The request failed (${res.statusCode}).'));
     return j;
   }
 
@@ -461,7 +462,7 @@ class FeasibilityApi {
       'feddans': feddans,
       if (title != null && title.trim().isNotEmpty) 'title': title.trim(),
     });
-    return _str(j['message']) ?? 'أُنشئت القائمة.';
+    return _str(j['message']) ?? tr('أُنشئت القائمة.', 'The list was created.');
   }
 
   /// «تخطيط الاستثمار» (/plan): the answers (1–3 each) and the amount, to a suggested split.

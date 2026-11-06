@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../agent.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../ui.dart';
 import 'account_screen.dart' show openOnSite;
@@ -33,8 +34,8 @@ class _AgentScreenState extends State<AgentScreen> {
       initialIndex: widget.initialTab,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('وضع الوكيل'),
-          bottom: const TabBar(tabs: [Tab(text: 'مزارعيّ'), Tab(text: 'وكلائي')]),
+          title: Text(tr('وضع الوكيل', 'Agent mode')),
+          bottom: TabBar(tabs: [Tab(text: tr('مزارعيّ', 'My farmers')), Tab(text: tr('وكلائي', 'My agents'))]),
         ),
         body: TabBarView(children: [FarmersTab(api: calls), MyAgentsTab(api: calls)]),
       ),
@@ -76,9 +77,9 @@ class _FarmersTabState extends State<FarmersTab> {
   Future<void> _end(AgentFarmer m, {required bool pending}) async {
     final sure = await askSure(
       context,
-      title: pending ? 'اسحب الطلب' : 'أنهِ العمل عنه',
-      message: pending ? 'يُسحب طلبك قبل أن يجيب المزارع.' : 'ينتهي الإذن، وما سُجّل باسم المزارع يبقى له.',
-      action: pending ? 'اسحب' : 'أنهِ',
+      title: pending ? tr('اسحب الطلب', 'Withdraw') : tr('أنهِ العمل عنه', 'Stop acting for them'),
+      message: pending ? tr('يُسحب طلبك قبل أن يجيب المزارع.', 'Your request is withdrawn before the farmer answers.') : tr('ينتهي الإذن، وما سُجّل باسم المزارع يبقى له.', 'The permission ends, and what was recorded in the farmer\'s name stays theirs.'),
+      action: pending ? tr('اسحب', 'Withdraw') : tr('أنهِ', 'End'),
     );
     if (!sure || !mounted) return;
     if (await runStep(context, () => widget.api.end(m.id)) && mounted) _reload();
@@ -87,7 +88,7 @@ class _FarmersTabState extends State<FarmersTab> {
   @override
   Widget build(BuildContext context) {
     return SignedInGate(
-      why: 'وضع الوكيل لشركةٍ أو جمعيّةٍ تعاونيّة موثّقة تعمل عن مزارعين أذنوا لها. ادخل بحساب جهتك.',
+      why: tr('وضع الوكيل لشركةٍ أو جمعيّةٍ تعاونيّة موثّقة تعمل عن مزارعين أذنوا لها. ادخل بحساب جهتك.', 'Agent mode is for a verified company or cooperative acting for farmers who have allowed it. Sign in with your organisation\'s account.'),
       builder: (context) {
         _board ??= widget.api.board();
         return FutureBuilder<AgentBoard>(
@@ -101,9 +102,9 @@ class _FarmersTabState extends State<FarmersTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                 children: [
-                  const IntroNote(
-                    'تعمل جهتك عن المزارع الذي لا يحسن التطبيق أو لا يصل إليه: تسجّل أرضه وترفع أوراقها، وتتابع مواسمه وقطيعه. '
-                    'لا يبدأ شيءٌ قبل أن يقبل المزارع من حسابه هو، وينهيه متى شاء، ويرى كلّ ما كتبتَه باسمه.',
+                  IntroNote(
+                    tr('تعمل جهتك عن المزارع الذي لا يحسن التطبيق أو لا يصل إليه: تسجّل أرضه وترفع أوراقها، وتتابع مواسمه وقطيعه. '
+                    'لا يبدأ شيءٌ قبل أن يقبل المزارع من حسابه هو، وينهيه متى شاء، ويرى كلّ ما كتبتَه باسمه.', 'Your organisation acts for a farmer who is not at ease with the app or cannot reach it: it registers their land and uploads its papers, and follows their seasons and herds. Nothing starts before the farmer accepts from their own account; they end it whenever they like and see everything you wrote in their name.'),
                     icon: Icons.groups_2_outlined,
                   ),
                   const SizedBox(height: 12),
@@ -122,12 +123,12 @@ class _FarmersTabState extends State<FarmersTab> {
     if (c == null) {
       return [
         InfoCard(children: [
-          const Text(
-            'وضع الوكيل لشركةٍ أو جمعيّةٍ تعاونيّة موثّقة. سجّل جهتك أوّلاً، وحين تعتمدها الإدارة تعود إلى هنا.',
+          Text(
+            tr('وضع الوكيل لشركةٍ أو جمعيّةٍ تعاونيّة موثّقة. سجّل جهتك أوّلاً، وحين تعتمدها الإدارة تعود إلى هنا.', 'Agent mode is for a verified company or cooperative. Register your organisation first; once the administrators approve it, come back here.'),
             style: TextStyle(height: 1.8),
           ),
           const SizedBox(height: 8),
-          FilledButton(onPressed: () => openOnSite(context, '/partners/mine'), child: const Text('سجّل جهتك (في الموقع)')),
+          FilledButton(onPressed: () => openOnSite(context, '/partners/mine'), child: Text(tr('سجّل جهتك (في الموقع)', 'Register your organisation (on the website)'))),
         ]),
       ];
     }
@@ -135,7 +136,7 @@ class _FarmersTabState extends State<FarmersTab> {
       return [
         InfoCard(children: [
           Text(
-            c.active ? '«${c.name}» تنتظر توثيق الإدارة. يُفتح وضع الوكيل حين تُوثَّق.' : '«${c.name}» معطّلة، فلا تعمل عن أحد.',
+            c.active ? tr('«${c.name}» تنتظر توثيق الإدارة. يُفتح وضع الوكيل حين تُوثَّق.', '«${c.name}» is waiting for the administrators to verify it. Agent mode opens once it is verified.') : tr('«${c.name}» معطّلة، فلا تعمل عن أحد.', '«${c.name}» is suspended, so it does not act for anyone.'),
             style: const TextStyle(height: 1.8),
           ),
         ]),
@@ -143,19 +144,19 @@ class _FarmersTabState extends State<FarmersTab> {
     }
     return [
       InfoCard(children: [
-        const Text('اطلب إذناً من مزارع', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-        const Muted(
-          'يجب أن يكون للمزارع حسابٌ برقمه. يصله طلبك وسببه، ولا ترى اسمه حتى يقبل. ثلاثون طلباً في اليوم حدُّ الجهة.',
+        Text(tr('اطلب إذناً من مزارع', 'Ask a farmer for permission'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        Muted(
+          tr('يجب أن يكون للمزارع حسابٌ برقمه. يصله طلبك وسببه، ولا ترى اسمه حتى يقبل. ثلاثون طلباً في اليوم حدُّ الجهة.', 'The farmer needs an account under their number. They receive your request and its reason, and you do not see their name until they accept. Thirty requests a day is the limit.'),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: _phone,
           keyboardType: TextInputType.phone,
           textDirection: TextDirection.ltr,
-          decoration: const InputDecoration(labelText: 'رقم جوّال المزارع', hintText: '09xxxxxxxx'),
+          decoration: InputDecoration(labelText: tr('رقم جوّال المزارع', 'The farmer\'s phone number'), hintText: '09xxxxxxxx'),
         ),
         const SizedBox(height: 8),
-        const Text('ما تطلب الإذن فيه', style: TextStyle(fontWeight: FontWeight.w700)),
+        Text(tr('ما تطلب الإذن فيه', 'What you ask permission for'), style: TextStyle(fontWeight: FontWeight.w700)),
         for (final e in agentScopeLong.entries)
           CheckboxListTile(
             value: _scopes.contains(e.key),
@@ -169,30 +170,30 @@ class _FarmersTabState extends State<FarmersTab> {
           controller: _note,
           maxLength: 300,
           maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'لماذا تطلب؟ يقرؤه المزارع قبل أن يقبل',
-            hintText: 'مثلاً: نحن جمعيّة مزارعي القرية، نسجّل أرضك ونرفع أوراقها كما اتّفقنا في الاجتماع.',
+          decoration: InputDecoration(
+            labelText: tr('لماذا تطلب؟ يقرؤه المزارع قبل أن يقبل', 'Why are you asking? The farmer reads this before accepting'),
+            hintText: tr('مثلاً: نحن جمعيّة مزارعي القرية، نسجّل أرضك ونرفع أوراقها كما اتّفقنا في الاجتماع.', 'For example: we are the village farmers\' cooperative; we will register your land and upload its papers as agreed at the meeting.'),
           ),
         ),
-        FilledButton(onPressed: _busy ? null : _request, child: const Text('أرسل الطلب')),
+        FilledButton(onPressed: _busy ? null : _request, child: Text(tr('أرسل الطلب', 'Send request'))),
       ]),
       const SizedBox(height: 10),
       InfoCard(children: [
-        const Text('سجّل مزارعاً بلا جوّال', style: TextStyle(fontWeight: FontWeight.w800)),
-        const Muted(
-          'لمن لا يملك جوّالاً: تقرأ عليه ورقة الموافقة بلغته، ويوقّعها أو يبصم عليها، ثمّ تصوّرها وتصوّره، وتراجعها الإدارة '
-          'قبل أن تعمل عنه. يُفتح له حسابٌ من الموقع وحده، فهذه الخطوة في الموقع.',
+        Text(tr('سجّل مزارعاً بلا جوّال', 'Register a farmer who has no phone'), style: TextStyle(fontWeight: FontWeight.w800)),
+        Muted(
+          tr('لمن لا يملك جوّالاً: تقرأ عليه ورقة الموافقة بلغته، ويوقّعها أو يبصم عليها، ثمّ تصوّرها وتصوّره، وتراجعها الإدارة '
+          'قبل أن تعمل عنه. يُفتح له حسابٌ من الموقع وحده، فهذه الخطوة في الموقع.', 'For someone with no phone: you read them the consent form in their language, they sign it or put their thumbprint on it, then you photograph it and them, and the administrators review it before you act for them. An account is opened for them on the website only, so this step is on the website.'),
         ),
         const SizedBox(height: 6),
         OutlinedButton.icon(
           onPressed: () => openOnSite(context, '/agent'),
           icon: const Icon(Icons.open_in_new_rounded, size: 18),
-          label: const Text('افتحها في الموقع'),
+          label: Text(tr('افتحها في الموقع', 'Open it on the website')),
         ),
       ]),
       const SizedBox(height: 16),
-      const SectionTitle('من أذن لك'),
-      if (b.active.isEmpty) const Muted('لم يقبل أحدٌ بعد.'),
+      SectionTitle(tr('من أذن لك', 'Who has authorised you')),
+      if (b.active.isEmpty) Muted(tr('لم يقبل أحدٌ بعد.', 'No one has accepted yet.')),
       for (final m in b.active)
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
@@ -208,37 +209,37 @@ class _FarmersTabState extends State<FarmersTab> {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(m.fullName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textGreenOn(context))),
-                    Muted('${m.phone ?? ''} · ${m.scopesLabel} · منذ ${m.since}'),
+                    Muted(tr('${m.phone ?? ''} · ${m.scopesLabel} · منذ ${m.since}', '${m.phone ?? ''} · ${m.scopesLabel} · since ${m.since}')),
                   ]),
                 ),
                 const Icon(Icons.chevron_left_rounded),
               ]),
               Align(
                 alignment: AlignmentDirectional.centerEnd,
-                child: TextButton(onPressed: () => _end(m, pending: false), child: const Text('أنهِ العمل عنه')),
+                child: TextButton(onPressed: () => _end(m, pending: false), child: Text(tr('أنهِ العمل عنه', 'Stop acting for them'))),
               ),
             ],
           ),
         ),
       if (b.pending.isNotEmpty) ...[
         const SizedBox(height: 8),
-        const SectionTitle('طلباتٌ تنتظر'),
+        SectionTitle(tr('طلباتٌ تنتظر', 'Requests waiting')),
         for (final m in b.pending)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: InfoCard(children: [
-              Text(m.managed ? 'مزارعٌ بلا جوّال، ينتظر اعتماد الإدارة' : '…${m.phoneTail}', textDirection: m.managed ? null : TextDirection.ltr),
+              Text(m.managed ? tr('مزارعٌ بلا جوّال، ينتظر اعتماد الإدارة', 'A farmer without a phone, awaiting the administrators') : '…${m.phoneTail}', textDirection: m.managed ? null : TextDirection.ltr),
               Muted('${m.scopesLabel} · ${m.requested}'),
               Align(
                 alignment: AlignmentDirectional.centerEnd,
-                child: TextButton(onPressed: () => _end(m, pending: true), child: const Text('اسحب الطلب')),
+                child: TextButton(onPressed: () => _end(m, pending: true), child: Text(tr('اسحب الطلب', 'Withdraw'))),
               ),
             ]),
           ),
       ],
       if (b.past.isNotEmpty) ...[
         const SizedBox(height: 8),
-        const SectionTitle('ما مضى'),
+        SectionTitle(tr('ما مضى', 'Past')),
         for (final m in b.past) Muted('…${m.phoneTail} · ${m.scopesLabel} · ${m.statusLabel} · ${m.endedOn}'),
       ],
     ];
@@ -267,10 +268,10 @@ class _MyAgentsTabState extends State<MyAgentsTab> {
   Future<void> _object(AgentWrite w) async {
     final reason = await askText(
       context,
-      title: 'اعتراض',
-      label: 'لماذا؟ يقرؤه الوكيل',
+      title: tr('اعتراض', 'Object'),
+      label: tr('لماذا؟ يقرؤه الوكيل', 'Why? The agent reads it'),
       help: objectionNote(stage: w.isStage),
-      action: 'أعترض',
+      action: tr('أعترض', 'Object'),
       minLength: 3,
       maxLength: 500,
       lines: 3,
@@ -281,7 +282,7 @@ class _MyAgentsTabState extends State<MyAgentsTab> {
   @override
   Widget build(BuildContext context) {
     return SignedInGate(
-      why: 'ادخل لترى من يطلب أن يعمل عنك، ومن يعمل عنك، وما كتبه باسمك.',
+      why: tr('ادخل لترى من يطلب أن يعمل عنك، ومن يعمل عنك، وما كتبه باسمك.', 'Sign in to see who asks to act for you, who acts for you, and what they wrote in your name.'),
       builder: (context) {
         _view ??= widget.api.myAgents();
         return FutureBuilder<MyAgentsView>(
@@ -295,46 +296,46 @@ class _MyAgentsTabState extends State<MyAgentsTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                 children: [
-                  const IntroNote(
-                    'جمعيّةٌ أو شركةٌ موثّقة تستطيع أن تسجّل أرضك وترفع أوراقها وتتابع مواسمك وقطيعك عنك، إن أذنت لها. لا تعمل '
-                    'إلا في ما أذنت فيه، وتُنهيه متى شئت، وما كتبته باسمك تراه هنا ويبقى لك.',
+                  IntroNote(
+                    tr('جمعيّةٌ أو شركةٌ موثّقة تستطيع أن تسجّل أرضك وترفع أوراقها وتتابع مواسمك وقطيعك عنك، إن أذنت لها. لا تعمل '
+                    'إلا في ما أذنت فيه، وتُنهيه متى شئت، وما كتبته باسمك تراه هنا ويبقى لك.', 'A verified cooperative or company can register your land, upload its papers and follow your seasons and herds for you, if you allow it. It acts only in what you allowed, you end it whenever you like, and what it wrote in your name you see here and it stays yours.'),
                     icon: Icons.handshake_outlined,
                   ),
                   if (v.pending.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    const SectionTitle('يطلبون إذنك'),
+                    SectionTitle(tr('يطلبون إذنك', 'Asking for your permission')),
                     for (final m in v.pending) _pendingCard(m),
                   ],
                   const SizedBox(height: 16),
-                  const SectionTitle('يعملون عنك الآن'),
-                  if (v.active.isEmpty) const Muted('لا أحد.'),
+                  SectionTitle(tr('يعملون عنك الآن', 'Acting for you now')),
+                  if (v.active.isEmpty) Muted(tr('لا أحد.', 'No one.')),
                   for (final m in v.active)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: InfoCard(children: [
                         Text(m.companyName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-                        Muted('${m.companyPhone} · ${m.scopesLabel} · منذ ${m.since}'),
+                        Muted(tr('${m.companyPhone} · ${m.scopesLabel} · منذ ${m.since}', '${m.companyPhone} · ${m.scopesLabel} · since ${m.since}')),
                         Align(
                           alignment: AlignmentDirectional.centerEnd,
                           child: TextButton(
                             onPressed: () async {
                               if (await askSure(context,
-                                  title: 'أنهِ الإذن', message: 'يتوقّف «${m.companyName}» عن العمل عنك. وما سُجّل باسمك يبقى لك.', action: 'أنهِ')) {
+                                  title: tr('أنهِ الإذن', 'End the permission'), message: tr('يتوقّف «${m.companyName}» عن العمل عنك. وما سُجّل باسمك يبقى لك.', '«${m.companyName}» stops acting for you. What was recorded in your name stays yours.'), action: tr('أنهِ', 'End'))) {
                                 await _run(() => widget.api.endMine(m.id));
                               }
                             },
-                            child: const Text('أنهِ الإذن'),
+                            child: Text(tr('أنهِ الإذن', 'End the permission')),
                           ),
                         ),
                       ]),
                     ),
                   const SizedBox(height: 16),
-                  const SectionTitle('ما كتبه الوكلاء باسمك'),
-                  if (v.writes.isEmpty) const Muted('لا شيء.'),
+                  SectionTitle(tr('ما كتبه الوكلاء باسمك', 'What agents wrote in your name')),
+                  if (v.writes.isEmpty) Muted(tr('لا شيء.', 'Nothing.')),
                   for (final w in v.writes) _writeTile(w),
                   if (v.past.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    const SectionTitle('ما مضى'),
+                    SectionTitle(tr('ما مضى', 'Past')),
                     for (final m in v.past) Muted('${m.companyName} · ${m.statusLabel} · ${m.endedOn}'),
                   ],
                 ],
@@ -353,18 +354,18 @@ class _MyAgentsTabState extends State<MyAgentsTab> {
         Text(m.companyName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
         Muted('${m.companyPhone} · ${m.requested}'),
         const SizedBox(height: 6),
-        const Text('يطلب أن يعمل عنك في:', style: TextStyle(fontWeight: FontWeight.w700)),
+        Text(tr('يطلب أن يعمل عنك في:', 'Asks to act for you in:'), style: TextStyle(fontWeight: FontWeight.w700)),
         for (final s in m.scopesLong) Text('• $s', style: const TextStyle(height: 1.7)),
         const SizedBox(height: 6),
-        Text('سببه: ${m.note}', style: const TextStyle(height: 1.7)),
+        Text(tr('سببه: ${m.note}', 'Their reason: ${m.note}'), style: const TextStyle(height: 1.7)),
         const SizedBox(height: 6),
-        const Muted(
-          'لا يحذف شيئاً من مالك، ولا ينقل أرضك إلى غيرك، ولا يعرضها على المستثمرين. اقبل فقط إن كنت تعرف هذه الجهة.',
+        Muted(
+          tr('لا يحذف شيئاً من مالك، ولا ينقل أرضك إلى غيرك، ولا يعرضها على المستثمرين. اقبل فقط إن كنت تعرف هذه الجهة.', 'It cannot delete anything of yours, move your land to anyone else, or offer it to investors. Accept only if you know this organisation.'),
         ),
         const SizedBox(height: 8),
         Wrap(spacing: 8, children: [
-          FilledButton(onPressed: () => _run(() => widget.api.answer(m.id, accept: true)), child: const Text('أقبل')),
-          OutlinedButton(onPressed: () => _run(() => widget.api.answer(m.id, accept: false)), child: const Text('أعتذر')),
+          FilledButton(onPressed: () => _run(() => widget.api.answer(m.id, accept: true)), child: Text(tr('أقبل', 'Accept'))),
+          OutlinedButton(onPressed: () => _run(() => widget.api.answer(m.id, accept: false)), child: Text(tr('أعتذر', 'Decline'))),
         ]),
       ]),
     );
@@ -387,11 +388,11 @@ class _MyAgentsTabState extends State<MyAgentsTab> {
             Text(w.mark, style: const TextStyle(fontSize: 13.5, height: 1.6)),
             if (w.onSeason) Muted(w.label),
             if (w.objectionReason != null)
-              WarnText('اعترضت: ${w.objectionReason}${w.reopened ? ' — وفُتحت المرحلة من جديد.' : ''}'),
+              WarnText(tr('اعترضت: ${w.objectionReason}${w.reopened ? ' — وفُتحت المرحلة من جديد.' : ''}', 'You objected: ${w.objectionReason}${w.reopened ? ' — and the stage opened again.' : ''}')),
             Wrap(spacing: 6, children: [
               if (w.seasonId != null)
-                TextButton(onPressed: () => openOnSite(context, '/seasons/${w.seasonId}'), child: const Text('الموسم')),
-              if (w.canObject) TextButton(onPressed: () => _object(w), child: const Text('اعتراض')),
+                TextButton(onPressed: () => openOnSite(context, '/seasons/${w.seasonId}'), child: Text(tr('الموسم', 'Season'))),
+              if (w.canObject) TextButton(onPressed: () => _object(w), child: Text(tr('اعتراض', 'Object'))),
             ]),
           ],
         ),

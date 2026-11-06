@@ -7,7 +7,7 @@ import { tr } from "@/lib/i18n";
 import ActionNotice from "@/components/ActionNotice";
 import { BookPicker } from "@/components/books/JournalLinks";
 import { ledgerToday } from "@/lib/ledger/today";
-import { dayBefore } from "@/lib/ledger/reportParams";
+import { dayBefore, seasonCloseDefault } from "@/lib/ledger/reportParams";
 import { loadClose, readableBook } from "@/lib/ledger/journalLoad";
 import { button, card, field } from "@/lib/ui";
 import { closeIncomeAction, closeSeasonAction, lockAction, reopenAction } from "../journal/actions";
@@ -32,6 +32,7 @@ export default async function ClosePage({ searchParams }: { searchParams: Promis
   const owner = !!book && book.owner_id === user.id;
   const data = book ? await loadClose(supabase, book.id, user.id) : null;
   const lastPeriod = data?.closings.find((c) => c.scope === "period");
+  const seasonDay = seasonCloseDefault(today, book?.closed_through ?? null, lastPeriod?.period_to ?? null);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -105,8 +106,14 @@ export default async function ClosePage({ searchParams }: { searchParams: Promis
                         </option>
                       ))}
                     </select>
-                    <input type="date" name="date" max={today} defaultValue={today} className={field} />
+                    <input type="date" name="date" min={seasonDay.min ?? undefined} max={today} defaultValue={seasonDay.value} className={field} />
                   </div>
+                  <p className="mt-2 text-xs leading-6 text-muted">
+                    {t(
+                      "يُقيَّد افتراضيّاً بأمس كإقفال الفترة (أو باليوم إن أُقفل أمس)، فيدخل في الفترة التي تُقفل بعده؛ ولا يُقيَّد بيومٍ في فترةٍ أُقفل دخلها.",
+                      "By default it is dated yesterday, like the period's close (or today if yesterday is closed), so it falls in the period closed after it; it cannot be dated in a period whose income is closed.",
+                    )}
+                  </p>
                   <button className={`${button} mt-3`}>{t("أقفل دخل الموسم", "Close the season's income")}</button>
                 </form>
               )}

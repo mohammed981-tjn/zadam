@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { loadAdminQueue } from "@/lib/adminQueue";
 import { clientFromBearer } from "@/lib/supabase/bearer";
+import { tr } from "@/lib/i18n";
+import { appLocale } from "@/lib/appLocale";
 
 /**
  * «حسابي» في التطبيق (البند ١٣٨): من أنت، وإشعاراتك، وأراضيك، وقائمة المراجعة للمدير.
@@ -20,6 +22,7 @@ import { clientFromBearer } from "@/lib/supabase/bearer";
 export async function GET(req: Request) {
   const auth = await clientFromBearer(req);
   if (!auth) return NextResponse.json({ error: "انتهت جلستك. ادخل من جديد." }, { status: 401 });
+  const locale = appLocale(req);
   const { supabase, user } = auth;
 
   const [{ data: profile }, notes, unread, lands] = await Promise.all([
@@ -49,7 +52,7 @@ export async function GET(req: Request) {
       total: null,
       sections: [],
       second_factor: true,
-      message: "قائمة المراجعة تحتاج الرمز الثاني: افتح الإدارة في الموقع وادخل بالرمز من تطبيق المصادقة.",
+      message: tr(locale, "قائمة المراجعة تحتاج الرمز الثاني: افتح الإدارة في الموقع وادخل بالرمز من تطبيق المصادقة.", "The review list needs the second code: open the administration on the website and sign in with the code from the authenticator app."),
     };
   } else if (role === "admin") {
     const sections = await loadAdminQueue(supabase, 5);
@@ -59,8 +62,8 @@ export async function GET(req: Request) {
         .filter((s) => (s.count ?? 0) > 0)
         .map((s) => ({
           key: s.key,
-          title: s.title.ar,
-          what: s.what.ar,
+          title: s.title[locale],
+          what: s.what[locale],
           href: s.href,
           info: Boolean(s.info),
           count: s.count,

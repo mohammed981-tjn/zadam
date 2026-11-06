@@ -24,11 +24,14 @@ library;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'i18n.dart';
+
 /// One light palette. Dark mode is shared by both.
 class Palette {
   const Palette({
     required this.id,
-    required this.name,
+    required this.nameAr,
+    required this.nameEn,
     required this.background,
     required this.foreground,
     required this.card,
@@ -48,7 +51,11 @@ class Palette {
   });
 
   final String id;
-  final String name;
+  final String nameAr;
+  final String nameEn;
+
+  /// The palette's name in the app's language (the website's switch names them the same way).
+  String get name => tr(nameAr, nameEn);
   final Color background;
   final Color foreground;
   final Color card;
@@ -69,7 +76,8 @@ class Palette {
 
 const logoPalette = Palette(
   id: 'logo',
-  name: 'ألوان الشعار',
+  nameAr: 'ألوان الشعار',
+  nameEn: 'Logo colours',
   background: Color(0xFFFAF6EC),
   foreground: Color(0xFF14261A),
   card: Color(0xFFFFFFFF),
@@ -90,7 +98,8 @@ const logoPalette = Palette(
 
 const leafPalette = Palette(
   id: 'leaf',
-  name: 'أخضر الأوراق والذهبيّ',
+  nameAr: 'أخضر الأوراق والذهبيّ',
+  nameEn: 'Leaf green and gold',
   background: Color(0xFFF7F3E6),
   foreground: Color(0xFF1C2A14),
   card: Color(0xFFFFFDF8),

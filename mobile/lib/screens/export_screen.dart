@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../account.dart';
 import '../api.dart';
 import '../export.dart';
+import '../i18n.dart';
 import '../prices.dart' show arDay;
 import '../theme.dart';
 import '../ui.dart';
@@ -51,10 +52,10 @@ class _ExportScreenState extends State<ExportScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('التصدير'),
+        title: Text(tr('التصدير', 'Export')),
         bottom: TabBar(
           controller: _tabs,
-          tabs: const [Tab(text: 'الشروط'), Tab(text: 'عروضي'), Tab(text: 'الدراسة')],
+          tabs: [Tab(text: tr('الشروط', 'Terms')), Tab(text: tr('عروضي', 'My offers')), Tab(text: tr('الدراسة', 'The study'))],
         ),
       ),
       body: FutureBuilder<ExportChoices>(
@@ -63,7 +64,7 @@ class _ExportScreenState extends State<ExportScreen> with SingleTickerProviderSt
           if (snap.connectionState != ConnectionState.done) return const LoadingView();
           if (snap.hasError) {
             final e = snap.error;
-            return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل المنتجات والوجهات.', onRetry: _reloadChoices);
+            return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل المنتجات والوجهات.', 'Could not load the products and destinations.'), onRetry: _reloadChoices);
           }
           final choices = snap.data!;
           return TabBarView(
@@ -168,15 +169,15 @@ class _RulesTabState extends State<_RulesTab> with AutomaticKeepAliveClientMixin
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
-        const BoardHero(
+        BoardHero(
           icon: Icons.local_shipping_outlined,
-          title: 'ممرّ الصادر السوداني',
-          text: 'أبوابُ العالم مفتوحةٌ أمام السودان بلا رسوم. والشحنات تُردّ. الفارقُ ليس السوق ولا الجمارك — بل الإثبات.',
+          title: tr('ممرّ الصادر السوداني', 'Sudan\'s export corridor'),
+          text: tr('أبوابُ العالم مفتوحةٌ أمام السودان بلا رسوم. والشحنات تُردّ. الفارقُ ليس السوق ولا الجمارك — بل الإثبات.', 'The world\'s doors are open to Sudan without tariffs. And shipments are turned back. The difference is not the market or the customs — it is the proof.'),
         ),
         const SizedBox(height: 14),
-        const IntroNote(
-          'اختر المنتج ثمّ الوجهة، فترى ما تطلبه: كلّ مستندٍ بنوعه (إلزاميّ أو مشروط أو مستحسَن) وتاريخ سريانه، ومتى رُوجعت '
-          'قواعد هذا الطريق آخر مرّة وعلى أيّ مصدر.',
+        IntroNote(
+          tr('اختر المنتج ثمّ الوجهة، فترى ما تطلبه: كلّ مستندٍ بنوعه (إلزاميّ أو مشروط أو مستحسَن) وتاريخ سريانه، ومتى رُوجعت '
+          'قواعد هذا الطريق آخر مرّة وعلى أيّ مصدر.', 'Choose the product, then the destination, and you see what it asks for: every document by its type (mandatory, conditional or recommended) and the date it takes effect, and when this route\'s rules were last reviewed and against which source.'),
         ),
         const SizedBox(height: 14),
         PanelCard(
@@ -187,7 +188,7 @@ class _RulesTabState extends State<_RulesTab> with AutomaticKeepAliveClientMixin
                 key: const Key('export-commodity'),
                 initialValue: widget.commodity,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'المنتج'),
+                decoration: InputDecoration(labelText: tr('المنتج', 'Product')),
                 items: [for (final c in ch.commodities) DropdownMenuItem(value: c.id, child: Text(c.label))],
                 onChanged: widget.onCommodity,
               ),
@@ -196,7 +197,7 @@ class _RulesTabState extends State<_RulesTab> with AutomaticKeepAliveClientMixin
                 key: const Key('export-destination'),
                 initialValue: widget.destination,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'الوجهة'),
+                decoration: InputDecoration(labelText: tr('الوجهة', 'Destination')),
                 items: destinationItems(context, ch),
                 onChanged: widget.onDestination,
               ),
@@ -204,13 +205,13 @@ class _RulesTabState extends State<_RulesTab> with AutomaticKeepAliveClientMixin
                 const SizedBox(height: 10),
                 _muted(context, ch.pairNote(widget.commodity!, widget.destination!)),
               ],
-              if (commodity?.hsCode != null) _muted(context, 'البند الجمركي: ${commodity!.hsCode}'),
+              if (commodity?.hsCode != null) _muted(context, tr('البند الجمركي: ${commodity!.hsCode}', 'HS code: ${commodity.hsCode}')),
             ],
           ),
         ),
         const SizedBox(height: 14),
         if (_rules == null)
-          _muted(context, 'الجاهزيّة تُحسب على عرضٍ محفوظ: احفظه مسوّدةً في «عروضي» فترى ما ينقصه بالاسم.')
+          _muted(context, tr('الجاهزيّة تُحسب على عرضٍ محفوظ: احفظه مسوّدةً في «عروضي» فترى ما ينقصه بالاسم.', 'Readiness is worked out on a saved offer: save it as a draft in «My offers» and you see what it lacks, by name.'))
         else
           FutureBuilder<CorridorRules>(
             key: ValueKey(_pair),
@@ -220,7 +221,7 @@ class _RulesTabState extends State<_RulesTab> with AutomaticKeepAliveClientMixin
               if (snap.hasError) {
                 final e = snap.error;
                 return StateView.error(
-                  e is ApiException ? e.message : 'تعذّر تحميل الشروط.',
+                  e is ApiException ? e.message : tr('تعذّر تحميل الشروط.', 'Could not load the terms.'),
                   compact: true,
                   onRetry: () => setState(() => _pair = ''),
                 );
@@ -246,19 +247,19 @@ class CorridorView extends StatelessWidget {
         : FilledButton.icon(
             onPressed: onSave,
             icon: const Icon(Icons.save_outlined, size: 20),
-            label: const Text('احفظ عرضاً على هذا الطريق'),
+            label: Text(tr('احفظ عرضاً على هذا الطريق', 'Save an offer on this route')),
           );
     if (!rules.studied) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const PanelCard(
+          PanelCard(
             key: Key('corridor-unstudied'),
             gold: true,
             child: StateView(
               icon: Icons.help_outline_rounded,
-              title: 'لم تُدرس شروط هذه الوجهة لهذا المنتج بعد',
-              message: 'اسأل المصدّرَ المرخَّص عن مستنداتها. وإن حفظت عرضاً عليها فصفحته تقول ذلك صراحةً، ولا تقول «جاهز».',
+              title: tr('لم تُدرس شروط هذه الوجهة لهذا المنتج بعد', 'This destination\'s terms for this product have not been studied yet'),
+              message: tr('اسأل المصدّرَ المرخَّص عن مستنداتها. وإن حفظت عرضاً عليها فصفحته تقول ذلك صراحةً، ولا تقول «جاهز».', 'Ask a licensed exporter for its documents. And if you save an offer on it, its page says so plainly and does not say «ready».'),
               warn: true,
               compact: true,
             ),
@@ -271,11 +272,11 @@ class CorridorView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SectionTitle('المستندات المطلوبة اليوم'),
+        SectionTitle(tr('المستندات المطلوبة اليوم', 'Documents required today')),
         for (final r in rules.inForce) Padding(padding: const EdgeInsets.only(bottom: 10), child: RequirementTile(r: r)),
         if (rules.upcoming.isNotEmpty) ...[
           const SizedBox(height: 4),
-          const SectionTitle('تسري قريباً', subtitle: 'لائحةٌ أُقرّت ولم يحن موعدها: استعدّ لها من الآن.'),
+          SectionTitle(tr('تسري قريباً', 'Coming into force'), subtitle: tr('لائحةٌ أُقرّت ولم يحن موعدها: استعدّ لها من الآن.', 'A regulation adopted whose date has not come yet: get ready for it now.')),
           for (final r in rules.upcoming) Padding(padding: const EdgeInsets.only(bottom: 10), child: RequirementTile(r: r)),
         ],
         if (rules.rules != null) ...[
@@ -296,10 +297,10 @@ class CorridorView extends StatelessWidget {
                   ),
                 ),
                 if (rules.rules!.lastReviewedAt != null)
-                  _muted(context, 'آخر مراجعة: ${arDay(rules.rules!.lastReviewedAt!.toIso8601String())} · عدد المراجعات: ${rules.rules!.reviewedCount}', size: 12),
+                  _muted(context, tr('آخر مراجعة: ${arDay(rules.rules!.lastReviewedAt!.toIso8601String())} · عدد المراجعات: ${rules.rules!.reviewedCount}', 'Last review: ${arDay(rules.rules!.lastReviewedAt!.toIso8601String())} · number of reviews: ${rules.rules!.reviewedCount}'), size: 12),
                 if (rules.rules!.sourceNote != null) ...[
                   const SizedBox(height: 6),
-                  Text('روجعت على:', style: TextStyle(fontSize: 12, color: mutedOn(context), fontWeight: FontWeight.w700)),
+                  Text(tr('روجعت على:', 'Reviewed against:'), style: TextStyle(fontSize: 12, color: mutedOn(context), fontWeight: FontWeight.w700)),
                   SelectableText(rules.rules!.sourceNote!, style: const TextStyle(fontSize: 12.5, height: 1.75)),
                 ],
               ],
@@ -307,7 +308,7 @@ class CorridorView extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 12),
-        _muted(context, 'الجاهزيّة تُحسب على عرضٍ محفوظ: احفظه مسوّدةً فترى ما ينقصه بالاسم، ثمّ ترفع الأدلّة وترسله.'),
+        _muted(context, tr('الجاهزيّة تُحسب على عرضٍ محفوظ: احفظه مسوّدةً فترى ما ينقصه بالاسم، ثمّ ترفع الأدلّة وترسله.', 'Readiness is worked out on a saved offer: save it as a draft and you see what it lacks, by name, then upload the evidence and send it.')),
         const SizedBox(height: 8),
         save,
       ],
@@ -388,11 +389,11 @@ class _OffersTabState extends State<_OffersTab> with AutomaticKeepAliveClientMix
       valueListenable: accountController,
       builder: (context, session, _) {
         if (session == null) {
-          return const StateView(
+          return StateView(
             key: Key('offers-signed-out'),
             icon: Icons.lock_outline_rounded,
-            title: 'ادخل إلى حسابك لترى عروضك',
-            message: 'العروض لأصحابها: ادخل من «حسابي» ثمّ عُد إلى هنا لتحفظ عرضاً مسوّدةً وترى جاهزيّة مستنداته، وترسله للمراجعة.',
+            title: tr('ادخل إلى حسابك لترى عروضك', 'Sign in to your account to see your offers'),
+            message: tr('العروض لأصحابها: ادخل من «حسابي» ثمّ عُد إلى هنا لتحفظ عرضاً مسوّدةً وترى جاهزيّة مستنداته، وترسله للمراجعة.', 'Offers belong to their owners: sign in from «My account», then come back here to save an offer as a draft, see its documents\' readiness, and send it for review.'),
             scrollable: true,
           );
         }
@@ -415,18 +416,18 @@ class _OffersTabState extends State<_OffersTab> with AutomaticKeepAliveClientMix
               if (snap.connectionState != ConnectionState.done) return const LoadingView();
               if (snap.hasError) {
                 final e = snap.error;
-                return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل عروضك.', onRetry: _reload, scrollable: true);
+                return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل عروضك.', 'Could not load your offers.'), onRetry: _reload, scrollable: true);
               }
               final offers = snap.data!;
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                 children: [
-                  const BoardHero(
+                  BoardHero(
                     icon: Icons.inventory_2_outlined,
-                    title: 'عروضي للتصدير',
-                    text: 'يُحفظ العرض مسوّدةً أوّلاً. لا يراه أحدٌ حتى ترسله، ولا يُنشر حتى يراجعه موظّفٌ ويتأكّد أنّ أدلّتك تسند '
-                        'ما تقوله. وجاهزيّة مستنداته تُحسب في القاعدة: الإلزاميُّ الناقص يعني «غير جاهز» مهما بلغت النسبة.',
+                    title: tr('عروضي للتصدير', 'My export offers'),
+                    text: tr('يُحفظ العرض مسوّدةً أوّلاً. لا يراه أحدٌ حتى ترسله، ولا يُنشر حتى يراجعه موظّفٌ ويتأكّد أنّ أدلّتك تسند '
+                        'ما تقوله. وجاهزيّة مستنداته تُحسب في القاعدة: الإلزاميُّ الناقص يعني «غير جاهز» مهما بلغت النسبة.', 'An offer is saved as a draft first. Nobody sees it until you send it, and it is not published until a staff member reviews it and checks that your evidence backs what you say. Its documents\' readiness is worked out in the database: a missing mandatory one means «not ready» whatever the percentage.'),
                   ),
                   const SizedBox(height: 14),
                   OfferForm(
@@ -439,8 +440,8 @@ class _OffersTabState extends State<_OffersTab> with AutomaticKeepAliveClientMix
                     onSaved: _reload,
                   ),
                   const SizedBox(height: 18),
-                  const SectionTitle('عروضك'),
-                  if (offers.isEmpty) _muted(context, 'لا عروضَ بعد.'),
+                  SectionTitle(tr('عروضك', 'Your offers')),
+                  if (offers.isEmpty) _muted(context, tr('لا عروضَ بعد.', 'No offers yet.')),
                   for (final o in offers)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -499,14 +500,14 @@ class _OfferCardState extends State<OfferCard> {
           const SizedBox(height: 4),
           if (o.commodity != null || o.destination != null)
             Text('${o.commodity ?? '—'} ← ${o.destination ?? '—'}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-          _muted(context, '${o.quantity} ${o.uom} · ${o.value} دولار'),
+          _muted(context, tr('${o.quantity} ${o.uom} · ${o.value} دولار', '${o.quantity} ${o.uom} · ${o.value} dollars')),
           _muted(context, o.statusHelp, size: 12),
           if (o.rejectionReason != null)
             Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: warnTintOn(context), borderRadius: BorderRadius.circular(12)),
-              child: Text('سببُ الإعادة: ${o.rejectionReason}', style: TextStyle(color: warnOn(context), fontSize: 13, height: 1.6)),
+              child: Text(tr('سببُ الإعادة: ${o.rejectionReason}', 'Reason for return: ${o.rejectionReason}'), style: TextStyle(color: warnOn(context), fontSize: 13, height: 1.6)),
             ),
           const SizedBox(height: 10),
           ReadinessPanel(readiness: r, lines: o.lines, rules: o.rules),
@@ -522,7 +523,7 @@ class _OfferCardState extends State<OfferCard> {
               TextButton.icon(
                 onPressed: () => openSite(context, '/export/offers/${o.id}'),
                 icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                label: const Text('الأدلّة وسلسلة العهدة (في الموقع)'),
+                label: Text(tr('الأدلّة وسلسلة العهدة (في الموقع)', 'Evidence and chain of custody (on the website)')),
               ),
             ],
           ),
@@ -555,8 +556,8 @@ class ReadinessPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            const Expanded(child: Text('جاهزيّةُ المستندات', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
-            if (!r.unstudied) Text('${r.score}٪', style: TextStyle(color: mutedOn(context), fontSize: 13)),
+            Expanded(child: Text(tr('جاهزيّةُ المستندات', 'Document readiness'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
+            if (!r.unstudied) Text(tr('${r.score}٪', '${r.score}%'), style: TextStyle(color: mutedOn(context), fontSize: 13)),
           ]),
           const SizedBox(height: 4),
           Text(
@@ -575,7 +576,7 @@ class ReadinessPanel extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: r.score / 100,
                 minHeight: 7,
-                semanticsLabel: 'اكتمل ${r.score} بالمئة من وزن المستندات',
+                semanticsLabel: tr('اكتمل ${r.score} بالمئة من وزن المستندات', '${r.score} percent of the documents\' weight is complete'),
               ),
             ),
           ],
@@ -591,7 +592,7 @@ class ReadinessPanel extends StatelessWidget {
                       l.satisfied ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
                       size: 18,
                       color: l.satisfied ? textGreenOn(context) : warnOn(context),
-                      semanticLabel: l.satisfied ? 'مرفوع' : 'ناقص',
+                      semanticLabel: l.satisfied ? tr('مرفوع', 'uploaded') : tr('ناقص', 'missing'),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -726,15 +727,15 @@ class _OfferFormState extends State<OfferForm> {
           key: const Key('offer-form'),
           initiallyExpanded: widget.open,
           leading: const IconChip(Icons.add_rounded, size: 36),
-          title: const Text('عرضٌ جديد', style: TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: _muted(context, 'يُحفظ مسوّدة. ثمّ ترى جاهزيّة مستنداته وترسله للمراجعة.', size: 12),
+          title: Text(tr('عرضٌ جديد', 'New offer'), style: TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: _muted(context, tr('يُحفظ مسوّدة. ثمّ ترى جاهزيّة مستنداته وترسله للمراجعة.', 'It is saved as a draft. Then you see its documents\' readiness and send it for review.'), size: 12),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
             DropdownButtonFormField<String>(
               key: const Key('offer-commodity'),
               initialValue: _d.commodityId.isEmpty ? null : _d.commodityId,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'المنتج'),
+              decoration: InputDecoration(labelText: tr('المنتج', 'Product')),
               items: [for (final c in ch.commodities) DropdownMenuItem(value: c.id, child: Text(c.label))],
               onChanged: (v) => setState(() {
                 _d.commodityId = v ?? '';
@@ -746,7 +747,7 @@ class _OfferFormState extends State<OfferForm> {
               key: const Key('offer-destination'),
               initialValue: _d.destinationId.isEmpty ? null : _d.destinationId,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'الوجهة'),
+              decoration: InputDecoration(labelText: tr('الوجهة', 'Destination')),
               items: destinationItems(context, ch),
               onChanged: (v) => setState(() => _d.destinationId = v ?? ''),
             ),
@@ -760,35 +761,35 @@ class _OfferFormState extends State<OfferForm> {
                 key: ValueKey('offer-grade-${_d.commodityId}'),
                 initialValue: _d.gradeId,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'الدرجة (اختياريّ)'),
+                decoration: InputDecoration(labelText: tr('الدرجة (اختياريّ)', 'Grade (optional)')),
                 items: [
-                  const DropdownMenuItem(value: '', child: Text('بلا درجة')),
+                  DropdownMenuItem(value: '', child: Text(tr('بلا درجة', 'No grade'))),
                   for (final g in grades) DropdownMenuItem(value: g.id, child: Text(g.name)),
                 ],
                 onChanged: (v) => setState(() => _d.gradeId = v ?? ''),
               ),
             ],
-            _field(_quantity, 'الكمّية', key: const Key('offer-quantity')),
+            _field(_quantity, tr('الكمّية', 'Quantity'), key: const Key('offer-quantity')),
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               initialValue: _d.uom,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'الوحدة'),
+              decoration: InputDecoration(labelText: tr('الوحدة', 'Unit')),
               items: [
-                const DropdownMenuItem(value: '', child: Text('الافتراضيّة للمنتج')),
+                DropdownMenuItem(value: '', child: Text(tr('الافتراضيّة للمنتج', 'The product\'s default'))),
                 for (final u in ch.uoms) DropdownMenuItem(value: u.code, child: Text(u.name)),
               ],
               onChanged: (v) => setState(() => _d.uom = v ?? ''),
             ),
-            _field(_price, 'سعر الوحدة (دولار)', key: const Key('offer-price')),
+            _field(_price, tr('سعر الوحدة (دولار)', 'Unit price (USD)'), key: const Key('offer-price')),
             const SizedBox(height: 14),
-            Text('المنشأ', style: TextStyle(fontWeight: FontWeight.w800, color: textGreenOn(context))),
-            _muted(context, 'اللائحة الأوروبيّة تطلب إحداثيّة القطعة، ومضلّع حدودها إن زادت على أربعة هكتارات.', size: 12),
-            _field(_plot, 'اسم القطعة أو رقمها', key: const Key('offer-plot'), number: false),
-            _field(_area, 'المساحة (هكتار، اختياريّ)'),
-            _field(_lat, 'خطّ العرض', key: const Key('offer-lat'), hint: '13.183333'),
-            _field(_lon, 'خطّ الطول', key: const Key('offer-lon'), hint: '30.216667'),
-            _field(_boundary, 'حدود القطعة GeoJSON (للأكبر من ٤ هكتارات)', number: false, lines: 2),
+            Text(tr('المنشأ', 'Origin'), style: TextStyle(fontWeight: FontWeight.w800, color: textGreenOn(context))),
+            _muted(context, tr('اللائحة الأوروبيّة تطلب إحداثيّة القطعة، ومضلّع حدودها إن زادت على أربعة هكتارات.', 'The European regulation asks for the plot\'s coordinate, and its boundary polygon if it is larger than four hectares.'), size: 12),
+            _field(_plot, tr('اسم القطعة أو رقمها', 'Plot name or number'), key: const Key('offer-plot'), number: false),
+            _field(_area, tr('المساحة (هكتار، اختياريّ)', 'Area (hectares, optional)')),
+            _field(_lat, tr('خطّ العرض', 'Latitude'), key: const Key('offer-lat'), hint: '13.183333'),
+            _field(_lon, tr('خطّ الطول', 'Longitude'), key: const Key('offer-lon'), hint: '30.216667'),
+            _field(_boundary, tr('حدود القطعة GeoJSON (للأكبر من ٤ هكتارات)', 'Plot boundary GeoJSON (for more than 4 hectares)'), number: false, lines: 2),
             if (_message != null) ...[
               const SizedBox(height: 10),
               Text(
@@ -801,7 +802,7 @@ class _OfferFormState extends State<OfferForm> {
             FilledButton(
               key: const Key('offer-submit'),
               onPressed: _saving ? null : _save,
-              child: Text(_saving ? 'جارٍ الحفظ…' : 'احفظ مسوّدة'),
+              child: Text(_saving ? tr('جارٍ الحفظ…', 'Saving…') : tr('احفظ مسوّدة', 'Save draft')),
             ),
           ],
         ),
@@ -820,13 +821,13 @@ class _OfferFormState extends State<OfferForm> {
 List<Widget> studyView(BuildContext context, ExportStudy s) {
   Widget para(String t) => Text(t, style: TextStyle(fontSize: 13.5, height: 1.85, color: inkOn(context)));
   Widget title(String t) => Text(t, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, height: 1.45));
-  Widget cite(StudySource src) => SourceLink(src.url, label: 'المصدر: ${src.label}');
+  Widget cite(StudySource src) => SourceLink(src.url, label: tr('المصدر: ${src.label}', 'Source: ${src.label}'));
   return [
-    const BoardHero(
+    BoardHero(
       icon: Icons.public_rounded,
-      title: 'ممرّ الصادر السوداني',
-      text: 'أبوابُ العالم مفتوحةٌ أمام السودان بلا رسوم. والشحنات تُردّ. الفارقُ ليس السوق ولا الجمارك — بل الإثبات. '
-          'كلُّ رقمٍ هنا مقروءٌ من غيرنا، ومعه مصدره.',
+      title: tr('ممرّ الصادر السوداني', 'Sudan\'s export corridor'),
+      text: tr('أبوابُ العالم مفتوحةٌ أمام السودان بلا رسوم. والشحنات تُردّ. الفارقُ ليس السوق ولا الجمارك — بل الإثبات. '
+          'كلُّ رقمٍ هنا مقروءٌ من غيرنا، ومعه مصدره.', 'The world\'s doors are open to Sudan without tariffs. And shipments are turned back. The difference is not the market or the customs — it is the proof. Every number here is read from others, with its source.'),
     ),
     for (final f in s.headline)
       PanelCard(
@@ -837,37 +838,37 @@ List<Widget> studyView(BuildContext context, ExportStudy s) {
           cite(f.source),
         ]),
       ),
-    const SectionTitle('المفارقة: بابٌ مفتوح وشحنةٌ ترتدّ'),
+    SectionTitle(tr('المفارقة: بابٌ مفتوح وشحنةٌ ترتدّ', 'The paradox: an open door and shipments turned back')),
     PanelCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        para('يُظنّ أن عائق الصادر السوداني هو الرسوم أو الحظر. ليس كذلك. ترتيب «كل شيء عدا السلاح» يمنح أقلَّ البلدان نمواً — '
+        para(tr('يُظنّ أن عائق الصادر السوداني هو الرسوم أو الحظر. ليس كذلك. ترتيب «كل شيء عدا السلاح» يمنح أقلَّ البلدان نمواً — '
             'والسودان منها — دخولاً بلا رسومٍ وبلا حصص لكل المنتجات عدا الأسلحة. وفي لائحة الأفضليات الجديدة السارية من أول '
-            'يناير 2027، بقي هذا الترتيب وحده بلا تاريخ انتهاء. ومع ذلك تُردّ الشحنات:'),
+            'يناير 2027، بقي هذا الترتيب وحده بلا تاريخ انتهاء. ومع ذلك تُردّ الشحنات:', 'The obstacle to Sudan\'s exports is thought to be tariffs or bans. It is not. The «Everything But Arms» arrangement gives the least developed countries — Sudan among them — duty-free, quota-free access for every product except arms. In the new preferences regulation in force from 1 January 2027, this arrangement alone kept no end date. And still shipments are turned back:')),
         const SizedBox(height: 6),
         for (final p in s.rejectionPoints) para('• $p'),
         cite(s.rejectionSource),
         const SizedBox(height: 6),
-        para('حين تكون الرسوم صفراً ويبقى الرفض قائماً، فالقيدُ ليس تجارياً بل إثباتيّ. والقيد الإثباتي — على خلاف الرسوم '
-            'والحصص — مسألةُ سجلّاتٍ مرتبطةٍ ومُوقَّتةٍ ومحفوظة، لا مسألةَ تفاوضٍ بين دول.'),
+        para(tr('حين تكون الرسوم صفراً ويبقى الرفض قائماً، فالقيدُ ليس تجارياً بل إثباتيّ. والقيد الإثباتي — على خلاف الرسوم '
+            'والحصص — مسألةُ سجلّاتٍ مرتبطةٍ ومُوقَّتةٍ ومحفوظة، لا مسألةَ تفاوضٍ بين دول.', 'When tariffs are zero and rejection stays, the constraint is not commercial but evidential. And an evidential constraint — unlike tariffs and quotas — is a matter of linked, timed and kept records, not of negotiation between states.')),
       ]),
     ),
-    const SectionTitle('ما يبيعه السودان'),
+    SectionTitle(tr('ما يبيعه السودان', 'What Sudan sells')),
     for (final c in s.commodities)
       PanelCard(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [Expanded(child: title(c.name)), if (c.share != null) TagPill(c.share!)]),
-          _muted(context, 'السوق: ${c.markets}'),
-          _muted(context, 'ما يحكم قبولها: ${c.gate}'),
+          _muted(context, tr('السوق: ${c.markets}', 'Market: ${c.markets}')),
+          _muted(context, tr('ما يحكم قبولها: ${c.gate}', 'What governs its acceptance: ${c.gate}')),
         ]),
       ),
     cite(s.commoditiesSource),
     if (s.beyond.isNotEmpty)
-      _muted(context, 'وما وراء هذه: ${s.beyond.join(' · ')}. وكلُّها تمرّ من البوّابات نفسها — فمن يجتازها لسلعةٍ يجتازها لبقيّتها.'),
-    const SectionTitle(
-      'البوّابات الأربع',
-      subtitle: 'كل شحنةٍ مغادرة تمرّ بأربع بوّاباتٍ مستقلّة. وتعطّلُ واحدةٍ يوقف الصفقة كلَّها مهما سلمت البقية — ولذلك '
-          'يُستعدّ لأربعتها معاً لا لأسهلها.',
+      _muted(context, tr('وما وراء هذه: ${s.beyond.join(' · ')}. وكلُّها تمرّ من البوّابات نفسها — فمن يجتازها لسلعةٍ يجتازها لبقيّتها.', 'And beyond these: ${s.beyond.join(' · ')}. All of them pass the same gates — whoever clears them for one commodity clears them for the rest.')),
+    SectionTitle(
+      tr('البوّابات الأربع', 'The four gates'),
+      subtitle: tr('كل شحنةٍ مغادرة تمرّ بأربع بوّاباتٍ مستقلّة. وتعطّلُ واحدةٍ يوقف الصفقة كلَّها مهما سلمت البقية — ولذلك '
+          'يُستعدّ لأربعتها معاً لا لأسهلها.', 'Every departing shipment passes four independent gates. One failing stops the whole deal however sound the rest — so all four are prepared for together, not the easiest.'),
     ),
     for (final g in s.gates)
       PanelCard(
@@ -876,20 +877,20 @@ List<Widget> studyView(BuildContext context, ExportStudy s) {
           title(g.title),
           for (final p in g.body) Padding(padding: const EdgeInsets.only(top: 4), child: para(p)),
           const SizedBox(height: 4),
-          _muted(context, 'من يحملها: ${g.holder}'),
+          _muted(context, tr('من يحملها: ${g.holder}', 'Who holds it: ${g.holder}')),
           cite(g.source),
         ]),
       ),
-    const SectionTitle('العقدة المالية — ولماذا الإثبات يساوي سعراً'),
+    SectionTitle(tr('العقدة المالية — ولماذا الإثبات يساوي سعراً', 'The money knot — and why proof is worth a price')),
     PanelCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         for (final p in s.moneyKnot) Padding(padding: const EdgeInsets.only(bottom: 6), child: para(p)),
         cite(s.moneyKnotSource),
       ]),
     ),
-    const SectionTitle(
-      'نافذةٌ تُغلق: اللوائح القادمة',
-      subtitle: 'ما يجعل هذا التوقيت مختلفاً أن أوروبا تنقل عبء الإثبات من الجمرك إلى المورِّد، بمواعيدَ محدَّدة.',
+    SectionTitle(
+      tr('نافذةٌ تُغلق: اللوائح القادمة', 'A closing window: the coming regulations'),
+      subtitle: tr('ما يجعل هذا التوقيت مختلفاً أن أوروبا تنقل عبء الإثبات من الجمرك إلى المورِّد، بمواعيدَ محدَّدة.', 'What makes this timing different is that Europe is moving the burden of proof from the customs to the supplier, on set dates.'),
     ),
     for (final d in s.deadlines)
       PanelCard(
@@ -901,17 +902,17 @@ List<Widget> studyView(BuildContext context, ExportStudy s) {
             Flexible(child: TagPill(d.when, gold: true, icon: Icons.event_outlined)),
           ]),
           const SizedBox(height: 4),
-          _muted(context, 'ما يطلبه: ${d.asks}'),
-          _muted(context, 'أثره: ${d.effect}'),
+          _muted(context, tr('ما يطلبه: ${d.asks}', 'What it asks: ${d.asks}')),
+          _muted(context, tr('أثره: ${d.effect}', 'Its effect: ${d.effect}')),
           cite(d.source),
         ]),
       ),
-    const SectionTitle('ماذا يعني هذا لمن ينتج'),
+    SectionTitle(tr('ماذا يعني هذا لمن ينتج', 'What this means for producers')),
     PanelCard(
-      child: para('أن ما يُطلب منك ليس بضاعةً أفضل، بل سجلّاً أوضح: من أين جاءت، ومتى، وبأيّ إحداثيّة، ومن شهد عليها، وبأيّ ورقةٍ '
-          'تسافر. وهذه كلُّها أشياء تُسجَّل وقت العمل أو لا تُسجَّل أبداً — فصورةُ مرحلةٍ لم تُلتقط في حينها لا تُصنع بعد الحصاد.'),
+      child: para(tr('أن ما يُطلب منك ليس بضاعةً أفضل، بل سجلّاً أوضح: من أين جاءت، ومتى، وبأيّ إحداثيّة، ومن شهد عليها، وبأيّ ورقةٍ '
+          'تسافر. وهذه كلُّها أشياء تُسجَّل وقت العمل أو لا تُسجَّل أبداً — فصورةُ مرحلةٍ لم تُلتقط في حينها لا تُصنع بعد الحصاد.', 'What is asked of you is not better goods but a clearer record: where it came from, when, at which coordinate, who witnessed it, and on which paper it travels. These are all things recorded at the time of the work or never — a photo of a stage not taken at the time cannot be made after harvest.')),
     ),
-    const SectionTitle('حدود هذه الدراسة'),
+    SectionTitle(tr('حدود هذه الدراسة', 'Limits of this study')),
     for (final l in s.limits)
       PanelCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

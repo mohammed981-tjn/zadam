@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../ui.dart';
 
@@ -43,12 +44,12 @@ class _Message {
 /// distinction matters: an answer quoted from a curated entry carries different
 /// weight from one a language model composed, and hiding that would be the
 /// same overclaiming the platform exists to avoid.
-const _sourceLabels = {
-  'platform': 'من بيانات المنصة',
-  'calculator': 'محسوب بمحرك الري',
-  'knowledge': 'من قاعدة معرفة سوداقري',
-  'cache': 'إجابة محفوظة',
-  'model': 'من المعرفة العامة',
+Map<String, String> get _sourceLabels => {
+  'platform': tr('من بيانات المنصة', 'From the platform\'s data'),
+  'calculator': tr('محسوب بمحرك الري', 'Worked out by the irrigation engine'),
+  'knowledge': tr('من قاعدة معرفة سوداقري', 'From Sudagri\'s knowledge base'),
+  'cache': tr('إجابة محفوظة', 'A saved answer'),
+  'model': tr('من المعرفة العامة', 'From general knowledge'),
 };
 
 class _AssistantScreenState extends State<AssistantScreen> {
@@ -105,7 +106,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('مساعد سوداقري')),
+      appBar: AppBar(title: Text(tr('مساعد سوداقري', 'Sudagri assistant'))),
       body: Column(
         children: [
           Expanded(
@@ -154,7 +155,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                           required maxLength,
                         }) => null,
                         decoration: InputDecoration(
-                          hintText: 'اسأل عن محصول أو ري أو تقنية…',
+                          hintText: tr('اسأل عن محصول أو ري أو تقنية…', 'Ask about a crop, irrigation or a technique…'),
                           fillColor: Theme.of(context).scaffoldBackgroundColor,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(24),
@@ -185,7 +186,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     ),
                     const SizedBox(width: 8),
                     IconButton.filled(
-                      tooltip: 'أرسل',
+                      tooltip: tr('أرسل', 'Send'),
                       style: IconButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Theme.of(context)
@@ -213,10 +214,10 @@ class _EmptyState extends StatelessWidget {
   /// Puts an example into the box.
   final ValueChanged<String> onPick;
 
-  static const _examples = [
-    'كم يحتاج القمح من الماء في الجزيرة؟',
-    'كيف أتعامل مع ملوحة التربة؟',
-    'ما أفضل موعد لزراعة السمسم؟',
+  static List<String> get _examples => [
+    tr('كم يحتاج القمح من الماء في الجزيرة؟', 'How much water does wheat need in Gezira?'),
+    tr('كيف أتعامل مع ملوحة التربة؟', 'How do I deal with soil salinity?'),
+    tr('ما أفضل موعد لزراعة السمسم؟', 'When is the best time to plant sesame?'),
   ];
 
   @override
@@ -231,8 +232,8 @@ class _EmptyState extends StatelessWidget {
             children: [
               const IconChip(Icons.eco, size: 72),
               const SizedBox(height: 16),
-              const Text(
-                'اسألني عن الزراعة في السودان',
+              Text(
+                tr('اسألني عن الزراعة في السودان', 'Ask me about farming in Sudan'),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
