@@ -79,7 +79,7 @@ export default async function ForwardContractsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
+    <div className="mx-auto max-w-3xl px-4 py-10">
       <PageHeader icon="chart" eyebrow={t("السوق", "Market")} title={t("العقود الآجلة", "Forward contracts")}>
         {t(
           "يتّفق المشتري والمزارع قبل الحصاد على محصولٍ ودرجةٍ وكميّةٍ وسعرٍ وموعدِ تسليم: يعرف المزارع سعره قبل أن يحصد، ويعرف المشتري من أين تأتيه بضاعته. يقترحه أحدهما ويوقّعه الآخر، ولا تتغيّر شروطه بعد ذلك، ولا يُلغى إلا باتّفاقهما.",

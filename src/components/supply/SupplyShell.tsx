@@ -28,7 +28,7 @@ export default async function SupplyShell({
 }) {
   const locale = await getLocale();
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 lg:max-w-6xl xl:max-w-7xl">
+    <div className="mx-auto max-w-4xl px-4 py-8">
       <SectionTabs
         label={tr(locale, "أقسام المدخلات", "Inputs sections")}
         moreLabel={tr(locale, "المزيد", "More")}

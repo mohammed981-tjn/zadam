@@ -37,7 +37,7 @@ export default async function DashboardPage({
   const totals = portfolioTotals(rows);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
+    <div className="mx-auto max-w-4xl px-4 py-10">
       <h1 className="text-2xl font-bold">{t("محفظتي الاستثمارية", "My investment portfolio")}</h1>
 
       {/* البند ١٥١: الجانب الآخر من الحساب نفسه. */}
@@ -61,7 +61,7 @@ export default async function DashboardPage({
         </p>
       )}
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted">{t("إجمالي الاستثمار", "Total invested")}</p>
           <p className="mt-1 text-xl font-bold">{formatUsd(totals.invested, locale)}</p>
@@ -93,7 +93,7 @@ export default async function DashboardPage({
           </Link>
         </p>
       ) : (
-        <ul className="grid gap-3 lg:grid-cols-2 lg:items-start">
+        <ul className="flex flex-col gap-3">
           {rows.map((row) => (
             <li
               key={row.id}

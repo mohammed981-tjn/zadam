@@ -29,7 +29,7 @@ export default function PageHeader({
       <h1 className="title-bar font-black leading-tight" style={{ fontSize: "var(--text-title)" }}>
         {title}
       </h1>
-      {children && <div className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">{children}</div>}
+      {children && <div className="mt-3 text-sm leading-relaxed text-muted">{children}</div>}
     </header>
   );
 }

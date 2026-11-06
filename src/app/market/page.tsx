@@ -275,7 +275,7 @@ export default async function MarketPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 lg:max-w-6xl xl:max-w-7xl">
+    <div className="mx-auto max-w-3xl px-4 py-6">
       {/* الأبوابُ الثلاثة التي كانت هنا أزراراً («عروض البيع والشراء ←»…)
           صارت تبويباتِ السوق فوق كلّ صفحاته (البند ١٢١). */}
       <MarketTabs active="/market" locale={locale} />
@@ -355,7 +355,7 @@ export default async function MarketPage() {
           {t("تعذّرت قراءة الأسعار الآن.", "The prices could not be read just now.")}
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <div className="grid gap-4">
           {crops.map((crop) => {
             const series = byCrop.get(crop)!;
             const shareText = en

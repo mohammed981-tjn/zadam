@@ -123,9 +123,9 @@ export default async function NewsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
+    <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="text-2xl font-bold">{t("جديد سوداقري", "What's new on Sudagri")}</h1>
-      <p className="mt-2 max-w-3xl text-sm leading-7 text-muted">
+      <p className="mt-2 text-sm leading-7 text-muted">
         {t(
           "ما استجدّ في المنصّة: بياناتٌ أُضيفت، ودراساتٌ نُشرت، وأدواتٌ صارت متاحة. والأقدمُ يبقى — فالصفحةُ سجلٌّ لا واجهةُ عرض.",
           "What's new on the platform: data added, studies published, tools made available. Older items stay — this page is a record, not a shop window. News items are published in Arabic.",
@@ -133,11 +133,8 @@ export default async function NewsPage() {
       </p>
       <ShareWhatsApp path="/news" text={t("جديد سوداقري:", "What's new on Sudagri:")} className="my-3" locale={locale} />
 
-      {/* On a computer (the owner, 6 November 2026: «عرض الكمبيوتر وليس الجوال») the news runs at reading width in
-          the wider column, with the knowledge base's new entries beside it; on a phone, one under the other. */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start lg:gap-8">
       {byDay.length > 0 && (
-        <section aria-labelledby="fresh-knowledge" className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-5 lg:order-last lg:mt-8">
+        <section aria-labelledby="fresh-knowledge" className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-5">
           <h2 id="fresh-knowledge" className="text-lg font-black">{t("جديد قاعدة المعرفة", "New in the knowledge base")}</h2>
           <p className="mt-1 text-xs leading-6 text-muted">
             {t("ما يُضاف كلَّ يوم، وكلُّ مدخلٍ بمصدره. يبقى بعد ذلك في", "What is added each day, every entry with its source. It stays afterwards in the")}{" "}
@@ -252,7 +249,6 @@ export default async function NewsPage() {
           ))}
         </ol>
       )}
-      </div>
     </div>
   );
 }

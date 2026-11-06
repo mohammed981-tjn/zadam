@@ -21,7 +21,7 @@ export default async function WaterToolPage() {
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 lg:max-w-6xl">
+    <div className="mx-auto max-w-4xl px-4 py-10">
       <h1 className="text-2xl font-bold">{t("حاسبة الاحتياج المائي", "Water requirement calculator")}</h1>
       <p className="mb-2 mt-2 text-sm text-muted">
         {locale === "en" ? (

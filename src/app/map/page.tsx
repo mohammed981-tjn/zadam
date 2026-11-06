@@ -38,7 +38,7 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
   const themes = mapThemes(grid, grid ? availableLayers(grid) : [], locale, mapWeekDates(grid, locale));
 
   return (
-    <div className="mx-auto max-w-6xl px-2 pb-10 pt-2 sm:px-4 xl:max-w-7xl">
+    <div className="mx-auto max-w-6xl px-2 pb-10 pt-2 sm:px-4">
       <h1 className="sr-only">{t("الخرائط", "Maps")}</h1>
       <MapScreen themes={themes} initial={layer ?? "rain"} initialOver={over ? over.split(",") : []} />
 

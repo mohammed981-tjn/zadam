@@ -118,7 +118,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   const usesPeriod = ["income", "cash", "seasons", "journal", "account"].includes(shown);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
+    <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t("دفتر الحسابات", "Books")}</h1>
