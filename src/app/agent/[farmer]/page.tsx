@@ -3,10 +3,19 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
-import { cropName } from "@/lib/farmLabelsEn";
+import { cropName, stageName } from "@/lib/farmLabelsEn";
 import LandDocuments from "@/components/LandDocuments";
 import { button, card } from "@/lib/ui";
-import { AGENT_SCOPE_SHORT, type AgentFarmerRow } from "@/lib/agent";
+import {
+  AGENT_SCOPE_SHORT,
+  agentActionLabel,
+  type AgentActionSubject,
+  type AgentActionVerb,
+  type AgentFarmerRow,
+  type AgentStageRow,
+} from "@/lib/agent";
+import AgentStageEvidence from "./AgentStageEvidence";
+import { agentCompleteStage } from "./actions";
 import type { Land } from "@/types/database";
 
 export async function generateMetadata() {
@@ -25,14 +34,16 @@ type SeasonRow = {
   stages_total: number;
 };
 type HerdRow = { id: string; name: string; head_count: number; start_date: string; status: string; stages_done: number; stages_total: number };
-type ActionRow = { id: number; subject: "land" | "land_document"; subject_id: string; action: "insert" | "update"; at: string };
+type ActionRow = { id: number; subject: AgentActionSubject; subject_id: string; action: AgentActionVerb; at: string };
 
 /**
  * صفحة مزارعٍ يعمل عنه الوكيل (البند ١٦٩): أراضيه بأوراقها وتسجيل أرضٍ جديدة باسمه، ومواسمه وقطيعه إن أُذن فيها،
  * وما كتبه الوكيل عنه. لا تُفتح إلا بإذنٍ قائم؛ والقاعدة نفسها لا تُرجع شيئاً بغيره.
+ * وفي مواسمه الجارية يعتمد الوكيل المراحل ويرفع أدلّتها (قرار المالك 6 نوفمبر)، معلَّمةً باسمه، والمزارع يعترض.
  */
-export default async function AgentFarmerPage({ params }: PageProps<"/agent/[farmer]">) {
+export default async function AgentFarmerPage({ params, searchParams }: PageProps<"/agent/[farmer]">) {
   const { farmer } = await params;
+  const sp = await searchParams;
   const locale = await getLocale();
   const t = (ar: string, en: string) => tr(locale, ar, en);
   const supabase = await createClient();
@@ -67,6 +78,15 @@ export default async function AgentFarmerPage({ params }: PageProps<"/agent/[far
   const documents = (docRows ?? []) as { id: string; land_id: string; kind: string; caption: string | null }[];
   const seasons = (seasonRows ?? []) as SeasonRow[];
   const herds = (herdRows ?? []) as HerdRow[];
+  // مراحل المواسم الجارية وحدها: ما أُقفل لا يُكتب فيه.
+  const activeSeasons = seasons.filter((s) => s.status === "active");
+  const stageLists = await Promise.all(
+    activeSeasons.map(async (s) => {
+      const { data } = await supabase.rpc("agent_farmer_stages", { p_season: s.id });
+      return [s.id, (data ?? []) as AgentStageRow[]] as const;
+    }),
+  );
+  const stagesOf = new Map(stageLists);
   const actions = (actionRows ?? []) as ActionRow[];
   const date = (d: string) => new Date(d).toLocaleDateString(locale === "en" ? "en-GB" : "ar-EG", { dateStyle: "medium" });
   const verification: Record<string, [string, string]> = {
@@ -85,6 +105,8 @@ export default async function AgentFarmerPage({ params }: PageProps<"/agent/[far
       <h1 className="mt-4 font-black" style={{ fontSize: "var(--text-title)" }}>
         {m.full_name || t("مزارع", "A farmer")}
       </h1>
+      {typeof sp.ok === "string" && <p className="mt-4 rounded-xl bg-primary/10 p-3 text-sm">{sp.ok}</p>}
+      {typeof sp.error === "string" && <p className="mt-4 rounded-xl bg-danger/10 p-3 text-sm text-danger">{sp.error}</p>}
       <p className="mt-1 text-sm text-muted">
         {m.phone && <span dir="ltr">{m.phone}</span>} · {t("أذن لك في: ", "Authorised you for: ")}
         {m.scopes.map((s) => tr(locale, ...AGENT_SCOPE_SHORT[s])).join(t(" و", ", "))}
@@ -125,6 +147,12 @@ export default async function AgentFarmerPage({ params }: PageProps<"/agent/[far
       {can("seasons") && (
         <section className="mt-8">
           <h2 className="text-lg font-bold">{t("مواسمه", "Their seasons")}</h2>
+          <p className="mt-1 text-sm text-muted">
+            {t(
+              "في موسمه الجاري ترفع دليل المرحلة ثمّ تعتمدها باسمه. كلّ ذلك معلَّمٌ أنّه منك، ويُخبَر به، ويعترض عليه فتُفتح المرحلة من جديد.",
+              "In their active season you upload a stage's evidence, then sign it off in their name. All of it is marked as yours, they are told, and if they object the stage reopens.",
+            )}
+          </p>
           {seasons.length === 0 ? (
             <p className="mt-2 text-sm text-muted">{t("لا موسم له بعد.", "No season yet.")}</p>
           ) : (
@@ -135,6 +163,48 @@ export default async function AgentFarmerPage({ params }: PageProps<"/agent/[far
                   {t("فدان", "feddans")} · {t("زُرع ", "planted ")}
                   {date(s.planting_date)} · {t("المراحل: ", "Stages: ")}
                   {s.stages_done}/{s.stages_total}
+                  {(stagesOf.get(s.id) ?? []).length > 0 && (
+                    <ol className="mt-3 grid gap-2">
+                      {(stagesOf.get(s.id) ?? []).map((g, i, all) => {
+                        // A stage is signed off after every one before it, as the database requires.
+                        const next = !g.completed && all.slice(0, i).every((p) => p.completed);
+                        return (
+                          <li key={g.id} className="rounded-xl border border-border bg-background p-3">
+                            <p className="font-medium">
+                              {g.completed ? "✅ " : ""}
+                              {stageName(g.stage_key, locale)}
+                              <span className="text-xs text-muted">
+                                {" "}
+                                · {g.planned_start} {locale === "en" ? "→" : "←"} {g.planned_end} ·{" "}
+                                {t(`${g.evidence_count} دليل`, `${g.evidence_count} evidence`)}
+                                {g.completed && g.by_agent && t(" · اعتمدتها أنت", " · signed off by you")}
+                              </span>
+                            </p>
+                            {g.objected && !g.completed && (
+                              <p className="mt-1 text-xs text-danger">
+                                {t(
+                                  "اعترض المزارع على اعتمادك لها، فيعتمدها هو بنفسه.",
+                                  "The farmer objected to your sign-off, so they sign it off themselves.",
+                                )}
+                              </p>
+                            )}
+                            {!g.completed && (
+                              <div className="mt-2 flex flex-wrap items-end gap-3">
+                                <AgentStageEvidence farmer={farmer} stageId={g.id} />
+                                {next && !g.objected && g.evidence_count > 0 && (
+                                  <form action={agentCompleteStage}>
+                                    <input type="hidden" name="farmer" value={farmer} />
+                                    <input type="hidden" name="stage_id" value={g.id} />
+                                    <button className={button}>{t("اعتمد المرحلة باسمه", "Sign off the stage in their name")}</button>
+                                  </form>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  )}
                 </li>
               ))}
             </ul>
@@ -172,12 +242,7 @@ export default async function AgentFarmerPage({ params }: PageProps<"/agent/[far
           <ul className="mt-3 grid gap-1 text-sm">
             {actions.map((a) => (
               <li key={a.id}>
-                {date(a.at)} ·{" "}
-                {a.subject === "land"
-                  ? a.action === "insert"
-                    ? t("سجّلت أرضاً", "Registered a land")
-                    : t("عدّلت أرضاً", "Edited a land")
-                  : t("رفعت مستنداً", "Uploaded a document")}
+                {date(a.at)} · {tr(locale, ...agentActionLabel(a.subject, a.action, "agent"))}
                 {a.subject === "land" && landName.get(a.subject_id) && ` «${landName.get(a.subject_id)}»`}
               </li>
             ))}

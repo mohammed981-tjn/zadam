@@ -5,7 +5,10 @@ export type MandateStatus = "pending" | "active" | "declined" | "withdrawn" | "r
 
 export const AGENT_SCOPE_LABEL: Record<AgentScope, [string, string]> = {
   lands: ["الأراضي: يراها ويسجّل أرضاً ويعدّلها ويرفع مستنداتها", "Land: sees it, registers and edits a land, uploads its papers"],
-  seasons: ["المواسم: يراها ويتابع مراحلها", "Seasons: sees them and follows their stages"],
+  seasons: [
+    "المواسم: يراها ويعتمد مراحلها ويرفع أدلّتها، معلَّمةً باسمه، وتعترض على ما كتبه",
+    "Seasons: sees them, signs off their stages and uploads their evidence, marked as theirs, and you can object to what they wrote",
+  ],
   herds: ["القطيع: يراه ويتابع مراحله", "Herds: sees them and follows their stages"],
 };
 
@@ -49,4 +52,43 @@ export interface MyAgentRow {
   requested_at: string;
   answered_at: string | null;
   ended_at: string | null;
+}
+
+/** A line of `agent_actions`: what an agent wrote in a farmer's name. */
+export type AgentActionSubject = "land" | "land_document" | "season_stage" | "stage_evidence";
+export type AgentActionVerb = "insert" | "update" | "complete";
+
+/**
+ * What the line says, as [ar, en]: to the farmer the agent is «it» (registered a land), to the agent it is «you»
+ * (you registered a land).
+ */
+export function agentActionLabel(subject: AgentActionSubject, action: AgentActionVerb, reader: "farmer" | "agent"): [string, string] {
+  const you = reader === "agent";
+  switch (subject) {
+    case "land":
+      return action === "insert"
+        ? [you ? "سجّلت أرضاً" : "سجّل أرضاً", you ? "Registered a land" : "registered a land"]
+        : [you ? "عدّلت أرضاً" : "عدّل أرضاً", you ? "Edited a land" : "edited a land"];
+    case "land_document":
+      return [you ? "رفعت مستنداً لأرض" : "رفع مستنداً لأرض", you ? "Uploaded a land document" : "uploaded a land document"];
+    case "season_stage":
+      return [you ? "اعتمدت مرحلةً من موسم" : "اعتمد مرحلةً من موسم", you ? "Signed off a season stage" : "signed off a season stage"];
+    case "stage_evidence":
+      return [you ? "رفعت دليلاً على مرحلة" : "رفع دليلاً على مرحلة", you ? "Uploaded evidence for a stage" : "uploaded evidence for a stage"];
+  }
+}
+
+/** A row of `agent_farmer_stages(season)`: a stage of a farmer's season, as the agent sees it. */
+export interface AgentStageRow {
+  id: string;
+  stage_key: string;
+  stage_order: number;
+  planned_start: string;
+  planned_end: string;
+  completed: boolean;
+  completed_at: string | null;
+  by_agent: boolean;
+  evidence_count: number;
+  /** The farmer objected to an agent's sign-off of this stage: only the farmer signs it off now. */
+  objected: boolean;
 }
