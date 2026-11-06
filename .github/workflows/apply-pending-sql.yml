@@ -1,0 +1,50 @@
+# تطبيق هجرتَي «إشعارات الجوّال» (090000) و«إصلاحات المراجعة» (100000) على الإنتاج بمعاملةٍ واحدة (المالك، 6 نوفمبر
+# 2026: «أصلحها وطبّق وانشر» و«طبّق وانشر مع الإصلاحات»). جداول جديدة وأعمدة تُضاف فارغة ودوالّ تُستبدل بتواقيعها —
+# لا حذف لبيانات. تُحذف قبل الدمج.
+name: Apply pending SQL bundle
+
+on:
+  push:
+    branches: [claude/project-review-analysis-dt7lsy]
+    paths: [".github/workflows/apply-pending-sql.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apply-pending-sql
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: 080000 طُبِّقت، و090000 و100000 لم تُطبَّقا
+        run: |
+          docker run --rm postgres:17 psql "$SUPABASE_DB_URL" -tAc \
+            "select (select count(*) from supabase_migrations.schema_migrations where version = '20261106080000')::text || ',' || (select count(*) from supabase_migrations.schema_migrations where version in ('20261106090000','20261106100000'))::text || ',' || (select count(*) from information_schema.tables where table_schema = 'public' and table_name in ('push_devices','push_prefs','push_hook','ledger_preparer_invites'))::text" | tee state.txt
+          test "$(tr -d '[:space:]' < state.txt)" = "1,0,0"
+      - name: الأعداد قبل
+        run: |
+          docker run --rm postgres:17 psql "$SUPABASE_DB_URL" -tAc \
+            "select (select count(*) from public.ledger_entries)::text || ',' || (select count(*) from public.journal_entries)::text || ',' || (select count(*) from public.journal_lines)::text || ',' || (select count(*) from public.notifications)::text || ',' || (select count(*) from public.ledger_drafts)::text || ',' || (select count(*) from public.ledger_preparers)::text" | tee before.txt
+      - name: تطبيق 090000 و100000 (معاملةٌ واحدة)
+        run: |
+          { echo "begin;"; cat supabase/migrations/20261106090000_push_devices.sql; \
+            echo "insert into supabase_migrations.schema_migrations (version, name) values ('20261106090000', 'push_devices') on conflict do nothing;"; \
+            cat supabase/migrations/20261106100000_ledger_review_fixes.sql; \
+            echo "insert into supabase_migrations.schema_migrations (version, name) values ('20261106100000', 'ledger_review_fixes') on conflict do nothing;"; \
+            echo "commit;"; } > apply.sql
+          docker run --rm -v "$PWD:/w:ro" postgres:17 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -q -f /w/apply.sql
+      - name: التحقّق
+        run: |
+          docker run --rm postgres:17 psql "$SUPABASE_DB_URL" -tAc \
+            "select (select count(*) from supabase_migrations.schema_migrations where version in ('20261106090000','20261106100000'))::text || ',' || (select count(*) from information_schema.tables where table_schema = 'public' and table_name in ('push_devices','push_prefs','push_hook','ledger_preparer_invites'))::text || ',' || (select count(*) from information_schema.columns where table_schema = 'public' and ((table_name = 'notifications' and column_name = 'pushed_at') or (table_name = 'ledger_drafts' and column_name = 'checked')))::text || ',' || (select count(*) from pg_proc where proname in ('farm_open_credit_by_season','_ledger_period_closing_lines','push_claim'))::text || ',' || (select count(*) from pg_trigger where tgname in ('notifications_push_bell','notifications_pushed_at_guard','closed_accounts_forget_push'))::text" | tee n.txt
+          test "$(tr -d '[:space:]' < n.txt)" = "2,4,2,3,3"
+          docker run --rm postgres:17 psql "$SUPABASE_DB_URL" -tAc \
+            "select (select count(*) from public.ledger_entries)::text || ',' || (select count(*) from public.journal_entries)::text || ',' || (select count(*) from public.journal_lines)::text || ',' || (select count(*) from public.notifications)::text || ',' || (select count(*) from public.ledger_drafts)::text || ',' || (select count(*) from public.ledger_preparers)::text" | tee after.txt
+          test "$(tr -d '[:space:]' < before.txt)" = "$(tr -d '[:space:]' < after.txt)"
+          docker run --rm postgres:17 psql "$SUPABASE_DB_URL" -tAc "select count(*) from pg_extension where extname = 'pg_net'" | sed 's/^/pg_net: /'
