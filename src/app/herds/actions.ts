@@ -1,19 +1,23 @@
 "use server";
-import { dbText } from "@/lib/dbText";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginHrefHere } from "@/lib/loginHere";
-import { planHerd, apportionBudget } from "@/lib/livestock";
-import { parseHealthChoice } from "@/lib/herdHealth";
+import {
+  addHerdHealthRecord,
+  addHerdTagRange,
+  completeHerdStageStep,
+  createHerdWithPlan,
+  setHerdBudgetStep,
+} from "@/lib/herdSteps";
+import { dbText } from "@/lib/dbText";
 import { getLocale } from "@/lib/locale";
-import { tr } from "@/lib/i18n";
 
-async function translator() {
-  const locale = await getLocale();
-  return (ar: string, en: string) => tr(locale, ar, en);
-}
+/*
+ * Every step here is shared with the phone app's herds screen (backlog 203): the work is in src/lib/herdSteps.ts,
+ * and these actions carry the form there and turn the answer into the page to show.
+ */
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k));
@@ -39,94 +43,24 @@ export async function createHerd(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(await loginHrefHere());
-  const t = await translator();
 
-  const name = str(formData, "name");
-  if (!name) {
-    return { ok: false, message: t("اسم الدورة مطلوب.", "The cycle name is required.") };
-  }
-
-  const plan = planHerd(
-    str(formData, "species"),
-    str(formData, "purpose"),
-    num(formData, "head_count"),
-    str(formData, "start_date"),
-    num(formData, "budget_per_head"),
+  const result = await createHerdWithPlan(
+    supabase,
+    user.id,
+    {
+      name: str(formData, "name"),
+      species: str(formData, "species"),
+      purpose: str(formData, "purpose"),
+      headCount: num(formData, "head_count"),
+      startDate: str(formData, "start_date"),
+      budgetPerHead: num(formData, "budget_per_head"),
+      breed: str(formData, "breed"),
+      projectId: str(formData, "project_id"),
+    },
+    await getLocale(),
   );
-
-  if (!plan) {
-    return {
-      ok: false,
-      message: t(
-        "تعذّر توليد خطة الدورة — راجع النوع والغرض والعدد وتاريخ البدء.",
-        "Could not generate the cycle plan — check the species, purpose, number of head and start date.",
-      ),
-    };
-  }
-
-  const { data: herd, error: herdError } = await supabase
-    .from("herds")
-    .insert({
-      owner_id: user.id,
-      project_id: str(formData, "project_id") || null,
-      name,
-      species: plan.species.key,
-      breed: str(formData, "breed") || null,
-      head_count: plan.headCount,
-      purpose: plan.purpose,
-      start_date: plan.startDate,
-      end_date: plan.endDate,
-    })
-    .select("id")
-    .single();
-
-  if (herdError || !herd) {
-    return {
-      ok: false,
-      message: t(
-        `تعذّر إنشاء الدورة: ${await dbText(herdError?.message)}`,
-        `Could not create the cycle: ${await dbText(herdError?.message)}`,
-      ),
-    };
-  }
-
-  const herdId = (herd as { id: string }).id;
-
-  const { error: stagesError } = await supabase.from("herd_stages").insert(
-    plan.stages.map((s) => ({
-      herd_id: herdId,
-      stage_key: s.key,
-      stage_order: s.order,
-      planned_start: s.startDate,
-      planned_end: s.endDate,
-      planned_feed_kg: s.feedKg,
-      budget: s.budget,
-    })),
-  );
-
-  if (stagesError) {
-    await supabase
-      .from("herds")
-      .delete()
-      .eq("id", herdId)
-      .then(({ error: rollbackError }) => {
-        if (rollbackError) {
-          console.error("herd rollback failed — orphan left behind", {
-            herdId,
-            rollbackError,
-          });
-        }
-      });
-    return {
-      ok: false,
-      message: t(
-        `تعذّر حفظ مراحل الدورة: ${await dbText(stagesError.message)}`,
-        `Could not save the cycle stages: ${await dbText(stagesError.message)}`,
-      ),
-    };
-  }
-
-  redirect(`/herds/${herdId}`);
+  if (!result.ok) return { ok: false, message: result.message };
+  redirect(`/herds/${result.id}`);
 }
 
 /**
@@ -137,18 +71,12 @@ export async function completeHerdStage(formData: FormData) {
   const supabase = await createClient();
   const herdId = str(formData, "herd_id");
 
-  const { error } = await supabase
-    .from("herd_stages")
-    .update({
-      completed: true,
-      actual_end: new Date().toISOString().slice(0, 10),
-    })
-    .eq("id", str(formData, "stage_id"));
+  const error = await completeHerdStageStep(supabase, str(formData, "stage_id"), await getLocale());
 
   revalidatePath(`/herds/${herdId}`);
 
   if (error) {
-    redirect(`/herds/${herdId}?error=${encodeURIComponent(await dbText(error.message))}`);
+    redirect(`/herds/${herdId}?error=${encodeURIComponent(error)}`);
   }
 }
 
@@ -184,69 +112,10 @@ export async function completeHerdStage(formData: FormData) {
 export async function setHerdBudget(formData: FormData) {
   const supabase = await createClient();
   const herdId = str(formData, "herd_id");
-  const perHead = num(formData, "budget_per_head");
-  const t = await translator();
-
   if (!herdId) return;
-  if (!Number.isFinite(perHead) || perHead < 0) {
-    redirect(
-      `/herds/${herdId}?error=${encodeURIComponent(t("الميزانية للرأس رقمٌ موجب.", "The budget per head must be a positive number."))}`,
-    );
-  }
 
-  const { data: herdRow } = await supabase
-    .from("herds")
-    .select("head_count")
-    .eq("id", herdId)
-    .single();
-
-  if (!herdRow) {
-    redirect(
-      `/herds/${herdId}?error=${encodeURIComponent(t("الدورة غير موجودة أو ليست لك.", "The cycle does not exist or is not yours."))}`,
-    );
-  }
-
-  const { data: stageRows } = await supabase
-    .from("herd_stages")
-    .select("id, planned_feed_kg, stage_order")
-    .eq("herd_id", herdId)
-    .order("stage_order");
-
-  const stages = (stageRows ?? []) as {
-    id: string;
-    planned_feed_kg: number | null;
-    stage_order: number;
-  }[];
-
-  if (stages.length === 0) {
-    redirect(
-      `/herds/${herdId}?error=${encodeURIComponent(t("لا مراحلَ لهذه الدورة.", "This cycle has no stages."))}`,
-    );
-  }
-
-  const headCount = Number((herdRow as { head_count: number }).head_count);
-  const budgets = apportionBudget(
-    stages.map((s) => Number(s.planned_feed_kg ?? 0)),
-    perHead * headCount,
-  );
-
-  for (let i = 0; i < stages.length; i++) {
-    const { data, error } = await supabase
-      .from("herd_stages")
-      .update({ budget: budgets[i] })
-      .eq("id", stages[i].id)
-      .select("id");
-
-    if (error) {
-      redirect(`/herds/${herdId}?error=${encodeURIComponent(await dbText(error.message))}`);
-    }
-    // ورفضُ سياسة الصفوف لا يرفع خطأً ولا يمسّ صفّاً، فيُقرأ نجاحاً.
-    if ((data ?? []).length === 0) {
-      redirect(
-        `/herds/${herdId}?error=${encodeURIComponent(t("لم تتغيّر الميزانية — الدورة ليست لك.", "The budget did not change — the cycle is not yours."))}`,
-      );
-    }
-  }
+  const error = await setHerdBudgetStep(supabase, herdId, num(formData, "budget_per_head"), await getLocale());
+  if (error) redirect(`/herds/${herdId}?error=${encodeURIComponent(error)}`);
 
   revalidatePath(`/herds/${herdId}`);
   redirect(`/herds/${herdId}`);
@@ -261,32 +130,29 @@ export async function setHerdBudget(formData: FormData) {
  * status. The page anchors back to the readiness section so the farmer sees
  * what changed.
  */
-const READY = (herdId: string, error?: string) =>
+const READY = (herdId: string, error?: string | null) =>
   `/herds/${herdId}${error ? `?rerror=${encodeURIComponent(error)}` : ""}#readiness`;
 
 export async function addHealthRecord(formData: FormData) {
   const supabase = await createClient();
   const herdId = str(formData, "herd_id");
-  const choice = parseHealthChoice(str(formData, "choice"));
-  if (!choice) {
-    const t = await translator();
-    redirect(READY(herdId, t("اختر التطعيم أو الفحص أو العلاج من القائمة.", "Choose the vaccination, test or treatment from the list.")));
-  }
-  const { kind, key } = choice;
-  const { error } = await supabase.rpc("herd_health_add", {
-    p_herd: herdId,
-    p_kind: kind,
-    p_item: key,
-    p_done_on: str(formData, "done_on") || null,
-    p_heads: Math.round(num(formData, "heads")),
-    p_result: kind === "test" ? str(formData, "result") || null : null,
-    p_product: str(formData, "product"),
-    p_batch: str(formData, "batch"),
-    p_vet: str(formData, "vet_name"),
-    p_note: str(formData, "note"),
-  });
+  const error = await addHerdHealthRecord(
+    supabase,
+    {
+      herdId,
+      choice: str(formData, "choice"),
+      doneOn: str(formData, "done_on"),
+      heads: num(formData, "heads"),
+      result: str(formData, "result"),
+      product: str(formData, "product"),
+      batch: str(formData, "batch"),
+      vet: str(formData, "vet_name"),
+      note: str(formData, "note"),
+    },
+    await getLocale(),
+  );
   revalidatePath(`/herds/${herdId}`);
-  redirect(READY(herdId, error ? await dbText(error.message) : undefined));
+  redirect(READY(herdId, error));
 }
 
 export async function withdrawHealthRecord(formData: FormData) {
@@ -303,16 +169,18 @@ export async function withdrawHealthRecord(formData: FormData) {
 export async function addTagRange(formData: FormData) {
   const supabase = await createClient();
   const herdId = str(formData, "herd_id");
-  const from = Math.round(num(formData, "from"));
-  const to = formData.get("to") ? Math.round(num(formData, "to")) : from;
-  const { error } = await supabase.rpc("herd_tags_add_range", {
-    p_herd: herdId,
-    p_prefix: str(formData, "prefix"),
-    p_from: from,
-    p_to: to,
-  });
+  const error = await addHerdTagRange(
+    supabase,
+    {
+      herdId,
+      prefix: str(formData, "prefix"),
+      from: num(formData, "from"),
+      to: formData.get("to") ? num(formData, "to") : null,
+    },
+    await getLocale(),
+  );
   revalidatePath(`/herds/${herdId}`);
-  redirect(READY(herdId, error ? await dbText(error.message) : undefined));
+  redirect(READY(herdId, error));
 }
 
 export async function setTagStatus(formData: FormData) {

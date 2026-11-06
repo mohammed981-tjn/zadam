@@ -6,7 +6,7 @@ import { SUDAN_STATES } from "@/lib/nafir";
 import { normalizePhone } from "@/lib/supplyChain";
 import { explain, signedIn, str, translator } from "@/lib/supplyActions";
 import { SERVICE_BY_KEY } from "@/lib/services";
-import { recordSoilEstimate } from "@/lib/landSoil";
+import { decideLandPartnerInterest, setLandPartnerConsent } from "@/lib/landOwnerSteps";
 import {
   AREA_BANDS,
   PARTNER_CROP_KEYS,
@@ -171,54 +171,29 @@ export async function withdrawInterest(fd: FormData) {
  */
 export async function setLandConsent(fd: FormData) {
   const { supabase, user } = await signedIn();
-  const { locale, t } = await translator();
-  const landId = str(fd, "land_id");
-  const open = str(fd, "open") === "true";
-  const { data: land } = await supabase
-    .from("lands")
-    .select("latitude, longitude, crop_keys, soil_class")
-    .eq("id", landId)
-    .eq("owner_id", user.id)
-    .maybeSingle();
-  if (!land) back("/lands", "error", t("ليست لك هذه الأرض.", "This land is not yours."));
-  // The soil at the land's own point, not the 160 km map cell's (backlog 180). A failed read keeps what is stored.
-  const estimate = open ? await recordSoilEstimate(user.id, landId, land.longitude, land.latitude) : null;
-  const soil = estimate?.wrb ?? (land.soil_class as string | null) ?? null;
-  // Closing to companies keeps the crops: investors read the same list on
-  // /invest, and the close form sends none (backlog 129).
-  const { error } = await supabase.rpc("land_set_partner_consent", {
-    p_land: landId,
-    p_open: open,
-    p_soil_class: soil,
-    p_crop_keys: open ? pick(fd, "crop_keys", PARTNER_CROP_KEYS).slice(0, 8) : ((land.crop_keys as string[] | null) ?? []),
-  });
-  if (error) back("/lands", "error", explain(locale, error));
-  back(
-    "/lands",
-    "ok",
-    open
-      ? t(
-          "فُتحت الأرض للشركات الشريكة. ترى الشركةُ المطابقة ولايتها ومحليّتها ومساحتها ومجموعتها فقط، ولا ترى اسمك ولا موقعها حتى تقبل طلبها.",
-          "Your land is open to partner companies. A matching company sees only its state, locality, area and group — not your name or its location until you accept its request.",
-        )
-      : t("أُغلقت الأرض أمام الشركات الشريكة.", "Your land is closed to partner companies."),
+  const { locale } = await translator();
+  // The step is shared with the phone app's land card (backlog 203): src/lib/landOwnerSteps.ts. Closing to companies
+  // keeps the crops there: investors read the same list on /invest, and the close form sends none (backlog 129).
+  const result = await setLandPartnerConsent(
+    supabase,
+    user.id,
+    {
+      landId: str(fd, "land_id"),
+      open: str(fd, "open") === "true",
+      cropKeys: pick(fd, "crop_keys", PARTNER_CROP_KEYS),
+    },
+    locale,
   );
+  back("/lands", result.ok ? "ok" : "error", result.message);
 }
 
 export async function decideInterest(fd: FormData) {
   const { supabase } = await signedIn();
-  const { locale, t } = await translator();
-  const accept = str(fd, "accept") === "true";
-  const { error } = await supabase.rpc("land_interest_decide", {
-    p_interest: str(fd, "interest_id"),
-    p_accept: accept,
-  });
-  if (error) back("/lands", "error", explain(locale, error));
-  back(
-    "/lands",
-    "ok",
-    accept
-      ? t("قبلت الطلب. ترى الشركة الآن اسمك وهاتفك وموقع الأرض، وستتواصل معك.", "Accepted. The company now sees your name, phone and the land’s location, and will contact you.")
-      : t("اعتذرت عن الطلب.", "Request declined."),
+  const { locale } = await translator();
+  const result = await decideLandPartnerInterest(
+    supabase,
+    { interestId: str(fd, "interest_id"), accept: str(fd, "accept") === "true" },
+    locale,
   );
+  back("/lands", result.ok ? "ok" : "error", result.message);
 }

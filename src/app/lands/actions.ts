@@ -9,7 +9,7 @@ import { type WaterSource } from "@/lib/risk";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { locationMessage, locationProblem, parseCoordinates } from "@/lib/landLocation";
-import { testProblem } from "@/lib/landTests";
+import { addLandTestStep, deleteLandTestStep } from "@/lib/landOwnerSteps";
 import { landInputProblem } from "@/lib/landInput";
 import { recordSoilEstimate } from "@/lib/landSoil";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
@@ -294,48 +294,25 @@ export async function addLandTest(
   if (!user) redirect(await loginHrefHere());
 
   const locale = await getLocale();
-  const t = (ar: string, en: string) => tr(locale, ar, en);
-
   const landId = str(formData, "land_id");
-  const input = {
-    kind: str(formData, "kind"),
-    testedOn: str(formData, "tested_on"),
-    ec: optNum(formData, "ec_dsm"),
-    ph: optNum(formData, "ph"),
-    sar: optNum(formData, "sar"),
-    organic: optNum(formData, "organic_matter_pct"),
-  };
-  const problem = testProblem(input);
-  if (problem) {
-    const text: Record<string, [string, string]> = {
-      kind: ["اختر ماءً أو تربة.", "Choose water or soil."],
-      date: ["تاريخ الفحص غير صالح: لا قبل عام ٢٠٠٠ ولا في المستقبل.", "The test date is not valid: not before 2000 and not in the future."],
-      empty: ["اكتب قيمةً واحدةً على الأقلّ (الملوحة أو الحموضة أو غيرهما).", "Enter at least one value (salinity, pH, or another)."],
-      range: ["قيمةٌ خارج المدى الممكن (الحموضة بين ٠ و١٤، والملوحة والصوديوم بين ٠ و١٠٠).", "A value is outside the possible range (pH 0–14; salinity and sodium 0–100)."],
-      organic_water: ["المادّة العضويّة تخصّ التربة لا الماء.", "Organic matter belongs to soil, not water."],
-    };
-    const [ar, en] = text[problem];
-    return { ok: false, message: t(ar, en) };
-  }
-
-  const lab = str(formData, "lab");
-  const note = str(formData, "note");
-  const { error } = await supabase.from("land_tests").insert({
-    land_id: landId,
-    kind: input.kind,
-    tested_on: input.testedOn,
-    lab: lab ? lab.slice(0, 120) : null,
-    ec_dsm: input.ec,
-    ph: input.ph,
-    sar: input.sar,
-    organic_matter_pct: input.organic,
-    note: note ? note.slice(0, 500) : null,
-  });
-  if (error) {
-    return { ok: false, message: t(`تعذّر حفظ الفحص: ${await dbText(error.message)}`, `Could not save the test: ${await dbText(error.message)}`) };
-  }
-  revalidatePath(`/lands/${landId}`);
-  return { ok: true, message: t("حُفظ الفحص.", "The test is saved.") };
+  // The step is shared with the phone app's field card (backlog 203): src/lib/landOwnerSteps.ts.
+  const result = await addLandTestStep(
+    supabase,
+    {
+      landId,
+      kind: str(formData, "kind"),
+      testedOn: str(formData, "tested_on"),
+      ec: optNum(formData, "ec_dsm"),
+      ph: optNum(formData, "ph"),
+      sar: optNum(formData, "sar"),
+      organic: optNum(formData, "organic_matter_pct"),
+      lab: str(formData, "lab"),
+      note: str(formData, "note"),
+    },
+    locale,
+  );
+  if (result.ok) revalidatePath(`/lands/${landId}`);
+  return result;
 }
 
 /** حذف فحصٍ كُتب خطأً: لصاحبه خلال ساعة من كتابته (والمدير متى شاء)، والقاعدة تقرّر. */
@@ -346,6 +323,6 @@ export async function deleteLandTest(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect(await loginHrefHere());
   const landId = str(formData, "land_id");
-  await supabase.from("land_tests").delete().eq("id", str(formData, "test_id"));
+  await deleteLandTestStep(supabase, str(formData, "test_id"));
   revalidatePath(`/lands/${landId}`);
 }

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { explain, signedIn, str, translator } from "@/lib/supplyActions";
-import { recordSoilEstimate } from "@/lib/landSoil";
+import { decideLandInvestorInterest, setLandInvestorConsent } from "@/lib/landOwnerSteps";
 import { INVESTOR_MODELS } from "@/lib/investors";
 
 /**
@@ -92,64 +92,29 @@ export async function withdrawInvestorInterest(fd: FormData) {
  */
 export async function setInvestorConsent(fd: FormData) {
   const { supabase, user } = await signedIn();
-  const { locale, t } = await translator();
+  const { locale } = await translator();
   // Sent from the project page built on this land: back there. Nowhere else.
   const from = str(fd, "return_to");
   const origin = /^\/projects\/[A-Za-z0-9_-]{1,80}$/.test(from) ? from : "/lands";
-  const landId = str(fd, "land_id");
-  const open = str(fd, "open") === "true";
-  const chosen = models(fd);
-  if (open && chosen.length === 0) {
-    back(origin, "error", t("اختر نموذجاً واحداً على الأقلّ من نماذج الشراكة.", "Choose at least one partnership model."));
-  }
-  const { data: land } = await supabase
-    .from("lands")
-    .select("latitude, longitude, soil_class")
-    .eq("id", landId)
-    .eq("owner_id", user.id)
-    .maybeSingle();
-  if (!land) back(origin, "error", t("ليست لك هذه الأرض.", "This land is not yours."));
-  // The soil at the land's own point, not the 160 km map cell's (backlog 180). A failed read keeps what is stored.
-  const estimate = open ? await recordSoilEstimate(user.id, landId, land.longitude, land.latitude) : null;
-  const note = str(fd, "note").slice(0, 500);
-  const { error } = await supabase.rpc("land_set_investor_consent", {
-    p_land: landId,
-    p_open: open,
-    p_models: chosen,
-    p_note: note.length >= 10 ? note : null,
-    p_soil_class: estimate?.wrb ?? land.soil_class ?? null,
-  });
-  if (error) back(origin, "error", explain(locale, error));
-  if (origin !== "/lands") revalidatePath(origin);
-  back(
-    origin,
-    "ok",
-    open
-      ? t(
-          "عُرضت أرضك في صفحة فرص الاستثمار. يرى المستثمر الولاية، وفئة المساحة (لا عدد الفدادين)، والتربة، ومصدر الماء. ولا يرى اسمك ولا المحلّيّة ولا المساحة الدقيقة ولا موقعها حتى تقبل طلبه.",
-          "Your land is now on the investment opportunities page. Investors see its state, its area band (not the number of feddans), its soil and its water source. They do not see your name, the locality, the exact area or its location until you accept their request.",
-        )
-      : t("أُغلقت الأرض أمام المستثمرين.", "Your land is closed to investors."),
+  // The step is shared with the phone app's land card (backlog 203): src/lib/landOwnerSteps.ts.
+  const result = await setLandInvestorConsent(
+    supabase,
+    user.id,
+    { landId: str(fd, "land_id"), open: str(fd, "open") === "true", models: models(fd), note: str(fd, "note") },
+    locale,
   );
+  if (!result.ok) back(origin, "error", result.message);
+  if (origin !== "/lands") revalidatePath(origin);
+  back(origin, "ok", result.message);
 }
 
 export async function decideInvestorInterest(fd: FormData) {
   const { supabase } = await signedIn();
-  const { locale, t } = await translator();
-  const accept = str(fd, "accept") === "true";
-  const { error } = await supabase.rpc("land_investor_decide", {
-    p_interest: str(fd, "interest_id"),
-    p_accept: accept,
-  });
-  if (error) back("/lands", "error", explain(locale, error));
-  back(
-    "/lands",
-    "ok",
-    accept
-      ? t(
-          "قبلتَ الطلب. يرى المستثمر الآن اسمك وهاتفك وموقع الأرض، وترى هاتفه هنا. اتّفقا كتابةً قبل أيّ دفع.",
-          "You accepted. The investor now sees your name, phone and the land's location, and you see their phone here. Agree in writing before any payment.",
-        )
-      : t("اعتذرتَ عن الطلب، ووصل المستثمرَ الجواب.", "You declined, and the investor has been told."),
+  const { locale } = await translator();
+  const result = await decideLandInvestorInterest(
+    supabase,
+    { interestId: str(fd, "interest_id"), accept: str(fd, "accept") === "true" },
+    locale,
   );
+  back("/lands", result.ok ? "ok" : "error", result.message);
 }
