@@ -4,32 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
-import { RESEARCH_KIND_LABEL, type ResearchKind } from "@/lib/research";
+import { RESEARCH_KIND_LABEL } from "@/lib/research";
+import { loadPublishedResearch, researchCitation, type PublishedResearch } from "@/lib/researchLibrary";
 
-type Item = {
-  id: string;
-  kind: ResearchKind;
-  title: string;
-  authors: string;
-  institution: string | null;
-  year: number | null;
-  language: "ar" | "en" | "other";
-  crop: string | null;
-  state: string | null;
-  abstract: string;
-  file_path: string | null;
-  link_url: string | null;
-  published_at: string;
-};
-
-const COLUMNS = "id, kind, title, authors, institution, year, language, crop, state, abstract, file_path, link_url, published_at";
-
-async function load(id: string): Promise<Item | null> {
-  if (!/^[0-9a-f-]{36}$/.test(id)) return null;
-  const supabase = await createClient();
-  // The table answers only a published work, whoever asks.
-  const { data } = await supabase.from("research_items").select(COLUMNS).eq("id", id).eq("status", "published").maybeSingle();
-  return (data as Item | null) ?? null;
+/** The same read as the phone app's /api/app/library/[id] (lib/researchLibrary.ts). */
+async function load(id: string): Promise<PublishedResearch | null> {
+  return loadPublishedResearch(await createClient(), id);
 }
 
 export async function generateMetadata({ params }: PageProps<"/library/[id]">) {
@@ -60,7 +40,7 @@ export default async function LibraryItemPage({ params }: PageProps<"/library/[i
     month: "long",
     day: "numeric",
   });
-  const cite = `${item.authors}${item.year ? ` (${item.year})` : ""}. ${item.title}.${item.institution ? ` ${item.institution}.` : ""} ${t("مكتبة سوداقري", "Sudagri library")}.`;
+  const cite = researchCitation(item, locale);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">

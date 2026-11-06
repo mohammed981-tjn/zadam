@@ -1,7 +1,6 @@
 "use server";
 
-import { CROP_INPUTS } from "@/lib/cropInputs";
-import { itemsFromStudy } from "@/lib/inputPlans";
+import { createPlanFromStudyCore } from "@/lib/studyProject";
 import { back, explain, numOrNull, signedIn, str, translator } from "@/lib/supplyActions";
 
 /**
@@ -17,21 +16,14 @@ const isoDay = (s: string) => (/^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null);
 /** From the feasibility study: the list is built here from the crop's sources, not taken from the browser. */
 export async function createPlanFromStudy(fd: FormData) {
   const { supabase } = await signedIn();
-  const { locale, t } = await translator();
-  const crop = str(fd, "crop");
-  const feddans = numOrNull(fd, "feddans");
-  if (!CROP_INPUTS[crop]) back(PATH, "error", t("لا قائمة مدخلات منشورة لهذا المحصول بعد.", "No published input list for this crop yet."));
-  if (feddans === null || feddans <= 0) back(PATH, "error", t("اكتب المساحة بالفدان في الدراسة أوّلاً.", "Enter the area in feddans in the study first."));
-  const title = str(fd, "title") || t("مشروع الموسم", "This season's project");
-  const { error } = await supabase.rpc("input_plan_create", {
-    p_title: title.slice(0, 80),
-    p_crop: crop,
-    p_feddans: feddans,
-    p_land: str(fd, "land_id") || null,
-    p_items: itemsFromStudy(crop, feddans),
-  });
-  if (error) back(PATH, "error", explain(locale, error));
-  back(PATH, "ok", t("أُنشئت القائمة من دراسة الجدوى. اكتب أسعار الموردين ثمّ وافق عليها.", "The list was made from the feasibility study. Write the suppliers' prices, then approve it."));
+  const { locale } = await translator();
+  // The checks and the database step live in lib/studyProject.ts, shared with the phone app's route.
+  const done = await createPlanFromStudyCore(
+    supabase,
+    { crop: str(fd, "crop"), feddans: numOrNull(fd, "feddans"), title: str(fd, "title"), landId: str(fd, "land_id") || null },
+    locale,
+  );
+  back(PATH, done.ok ? "ok" : "error", done.message);
 }
 
 export async function addPlanItem(fd: FormData) {

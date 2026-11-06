@@ -263,7 +263,7 @@ class _SignaturePadState extends State<SignaturePad> {
                           child: CustomPaint(painter: _StrokesPainter(d.strokesIn(_box), SudagriColors.foreground)),
                         ),
                         if (d.isEmpty)
-                          const Center(
+                          Center(
                             child: Text(
                               'ارسم توقيعك هنا بإصبعك',
                               style: TextStyle(color: SudagriColors.muted, fontWeight: FontWeight.w700),
