@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../ui.dart';
 
@@ -40,7 +41,7 @@ class _MiningScreenState extends State<MiningScreen> {
     final muted = mutedOn(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('⛏️ التعدين')),
+      appBar: AppBar(title: Text(tr('⛏️ التعدين', '⛏️ Mining'))),
       body: FutureBuilder<List<KnowledgeEntry>>(
         future: _future,
         builder: (context, snapshot) {
@@ -61,16 +62,16 @@ class _MiningScreenState extends State<MiningScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
             children: [
-              const IntroNote(
-                'قسم منفصل: السلامة في الحفر، والاستخلاص بلا زئبق، وجيولوجيا '
-                'الذهب في السودان.',
+              IntroNote(
+                tr('قسم منفصل: السلامة في الحفر، والاستخلاص بلا زئبق، وجيولوجيا '
+                'الذهب في السودان.', 'A separate section: safety in digging, extraction without mercury, and the geology of gold in Sudan.'),
                 icon: Icons.construction_outlined,
               ),
               const SizedBox(height: 20),
               if (entries.isEmpty)
-                const StateView(
+                StateView(
                   icon: Icons.construction_outlined,
-                  title: 'لا توجد مواد في هذا القسم بعد.',
+                  title: tr('لا توجد مواد في هذا القسم بعد.', 'There is nothing in this section yet.'),
                   compact: true,
                 )
               else

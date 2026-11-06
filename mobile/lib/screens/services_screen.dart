@@ -14,6 +14,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
 import '../services_catalogue.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -44,14 +45,14 @@ class _ServicesScreenState extends State<ServicesScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('الخدمات التعاقدية')),
+      appBar: AppBar(title: Text(tr('الخدمات التعاقدية', 'Contract services'))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const IntroNote(
-            'خدمات يقدّمها مكاتب هندسة زراعية ومزوّدون موثّقون، تُتعاقد '
+          IntroNote(
+            tr('خدمات يقدّمها مكاتب هندسة زراعية ومزوّدون موثّقون، تُتعاقد '
             'بالمراحل: لكل مرحلة جدول ومبلغ ودفعة لا تُفرَج إلا بإثبات تنفيذ. '
-            'الكمية في كل بند تُشتق من موسمك أو قطيعك ولا تُكتب يدوياً.',
+            'الكمية في كل بند تُشتق من موسمك أو قطيعك ولا تُكتب يدوياً.', 'Services provided by agricultural engineering offices and verified providers, contracted in phases: each phase has a schedule, an amount and a payment released only on proof of work. The quantity in each item is derived from your season or herd and is not typed by hand.'),
             icon: Icons.handshake_outlined,
           ),
           const SizedBox(height: 14),
@@ -59,17 +60,17 @@ class _ServicesScreenState extends State<ServicesScreen> {
             spacing: 8,
             children: [
               _Chip(
-                label: 'الكل',
+                label: tr('الكل', 'All'),
                 selected: _filter == null,
                 onTap: () => setState(() => _filter = null),
               ),
               _Chip(
-                label: 'نباتي',
+                label: tr('نباتي', 'Crops'),
                 selected: _filter == ProductionKind.plant,
                 onTap: () => setState(() => _filter = ProductionKind.plant),
               ),
               _Chip(
-                label: 'حيواني',
+                label: tr('حيواني', 'Livestock'),
                 selected: _filter == ProductionKind.livestock,
                 onTap: () => setState(() => _filter = ProductionKind.livestock),
               ),
@@ -111,7 +112,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              'شرط مسبق',
+                              tr('شرط مسبق', 'Precondition'),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: inkOn(context),
@@ -129,7 +130,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                         style: TextStyle(fontSize: 13, height: 1.7)),
                     const SizedBox(height: 8),
                     Text(
-                      'الوحدة: ${s.unitLabel} — ${basisLabel[s.basis]}',
+                      tr('الوحدة: ${s.unitLabel} — ${basisLabel[s.basis]}', 'Unit: ${s.unitLabel} — ${basisLabel[s.basis]}'),
                       style: TextStyle(fontSize: 12, color: muted),
                     ),
                   ],
@@ -140,8 +141,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
           ],
           const SizedBox(height: 8),
           Text(
-            'الأسعار غير معروضة هنا لأنها تخصّ كل مزوّد وتتغيّر. اطلب عرضاً '
-            'من الموقع لترى سعر مزوّد موثّق وخطة عقد محسوبة على موسمك.',
+            tr('الأسعار غير معروضة هنا لأنها تخصّ كل مزوّد وتتغيّر. اطلب عرضاً '
+            'من الموقع لترى سعر مزوّد موثّق وخطة عقد محسوبة على موسمك.', 'Prices are not shown here because they belong to each provider and change. Ask for a quote on the website to see a verified provider\'s price and a contract plan worked out on your season.'),
             style: TextStyle(fontSize: 12, color: muted, height: 1.7),
           ),
         ],

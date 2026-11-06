@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../account.dart';
 import '../api.dart';
+import '../i18n.dart';
 import '../library.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -30,15 +31,15 @@ class LibraryScreen extends StatelessWidget {
       length: 4,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('المكتبة والدراسات'),
-          bottom: const TabBar(
+          title: Text(tr('المكتبة والدراسات', 'Library and studies')),
+          bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             tabs: [
-              Tab(text: 'المكتبة'),
-              Tab(text: 'الدراسات'),
-              Tab(text: 'دليل الاستخدام'),
-              Tab(text: 'ما أرسلتُه'),
+              Tab(text: tr('المكتبة', 'Library')),
+              Tab(text: tr('الدراسات', 'Studies')),
+              Tab(text: tr('دليل الاستخدام', 'User guide')),
+              Tab(text: tr('ما أرسلتُه', 'What I sent')),
             ],
           ),
         ),
@@ -106,16 +107,16 @@ class _LibraryTabState extends State<_LibraryTab> with AutomaticKeepAliveClientM
         future: _list,
         builder: (context, snap) {
           final header = <Widget>[
-            const IntroNote(
-              'دراسات جدوى وبحوثٌ ورسائل جامعيّة وتقارير عن الزراعة في السودان، يرسلها الباحثون والمزارعون والزوّار، '
-              'وتراجعها سوداقري قبل نشرها. كلُّ عملٍ هنا يبني على ما قبله.',
+            IntroNote(
+              tr('دراسات جدوى وبحوثٌ ورسائل جامعيّة وتقارير عن الزراعة في السودان، يرسلها الباحثون والمزارعون والزوّار، '
+              'وتراجعها سوداقري قبل نشرها. كلُّ عملٍ هنا يبني على ما قبله.', 'Feasibility studies, research, theses and reports on farming in Sudan, sent in by researchers, farmers and visitors and reviewed by Sudagri before publication. Every work here builds on what came before.'),
               icon: Icons.local_library_outlined,
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: _share,
               icon: const Icon(Icons.upload_file),
-              label: const Text('شارك دراستك أو بحثك'),
+              label: Text(tr('شارك دراستك أو بحثك', 'Share your study or research')),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -123,9 +124,9 @@ class _LibraryTabState extends State<_LibraryTab> with AutomaticKeepAliveClientM
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _search(),
               decoration: InputDecoration(
-                hintText: 'ابحث: السمسم، الريّ، القضارف…',
+                hintText: tr('ابحث: السمسم، الريّ، القضارف…', 'Search: sesame, irrigation, Gedaref…'),
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(icon: const Icon(Icons.arrow_back), tooltip: 'ابحث', onPressed: _search),
+                suffixIcon: IconButton(icon: const Icon(Icons.arrow_back), tooltip: tr('ابحث', 'Search'), onPressed: _search),
               ),
             ),
             const SizedBox(height: 8),
@@ -135,7 +136,7 @@ class _LibraryTabState extends State<_LibraryTab> with AutomaticKeepAliveClientM
                 Padding(
                   padding: const EdgeInsetsDirectional.only(end: 6),
                   child: ChoiceChip(
-                    label: const Text('كلّ الأنواع'),
+                    label: Text(tr('كلّ الأنواع', 'Every kind')),
                     selected: _kind == null,
                     onSelected: (_) {
                       _kind = null;
@@ -164,7 +165,7 @@ class _LibraryTabState extends State<_LibraryTab> with AutomaticKeepAliveClientM
             body = [const LoadingView(compact: true)];
           } else if (snap.hasError) {
             final e = snap.error;
-            body = [StateView.error(e is ApiException ? e.message : 'تعذّر تحميل المكتبة.', onRetry: _search, compact: true)];
+            body = [StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل المكتبة.', 'Could not load the library.'), onRetry: _search, compact: true)];
           } else {
             final list = snap.data!;
             _last = list;
@@ -173,9 +174,9 @@ class _LibraryTabState extends State<_LibraryTab> with AutomaticKeepAliveClientM
                     StateView(
                       icon: Icons.menu_book_outlined,
                       compact: true,
-                      title: _q.text.trim().isNotEmpty || _kind != null ? 'لا عمل يطابق بحثك بعد.' : 'المكتبة تنتظر أوّل عمل.',
-                      message: 'عندك دراسة جدوى أو بحثٌ أو رسالةٌ جامعيّة عن الزراعة في السودان؟ أرسلها، فتراجعها '
-                          'الإدارة وتنشرها باسمك.',
+                      title: _q.text.trim().isNotEmpty || _kind != null ? tr('لا عمل يطابق بحثك بعد.', 'Nothing matches your search yet.') : tr('المكتبة تنتظر أوّل عمل.', 'The library is waiting for its first work.'),
+                      message: tr('عندك دراسة جدوى أو بحثٌ أو رسالةٌ جامعيّة عن الزراعة في السودان؟ أرسلها، فتراجعها '
+                          'الإدارة وتنشرها باسمك.', 'Do you have a feasibility study, research or a thesis on farming in Sudan? Send it, and the administrators review it and publish it under your name.'),
                     ),
                   ]
                 : [
@@ -270,15 +271,15 @@ class _StudiesTabState extends State<_StudiesTab> with AutomaticKeepAliveClientM
         if (snap.connectionState != ConnectionState.done) return const LoadingView();
         if (snap.hasError) {
           final e = snap.error;
-          return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل الدراسات.', onRetry: _reload);
+          return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل الدراسات.', 'Could not load the studies.'), onRetry: _reload);
         }
         final studies = snap.data!;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
           children: [
-            const IntroNote(
-              'دراساتٌ في الزراعة والماء والصادر والاقتصاد السوداني — وعلى كلٍّ منها ما هي: قياسٌ على المنصّة، أو '
-              'دراسةٌ مُرسَلة تُنشر كما كُتبت.',
+            IntroNote(
+              tr('دراساتٌ في الزراعة والماء والصادر والاقتصاد السوداني — وعلى كلٍّ منها ما هي: قياسٌ على المنصّة، أو '
+              'دراسةٌ مُرسَلة تُنشر كما كُتبت.', 'Studies of Sudan\'s farming, water, exports and economy — each marked for what it is: a measurement on the platform, or a submitted study published as written.'),
               icon: Icons.science_outlined,
             ),
             const SizedBox(height: 12),
@@ -317,7 +318,7 @@ class _StudiesTabState extends State<_StudiesTab> with AutomaticKeepAliveClientM
                               if (studies[i].read == null && !studies[i].library)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 6),
-                                  child: Text('تُفتح في الموقع',
+                                  child: Text(tr('تُفتح في الموقع', 'Opens on the website'),
                                       style: TextStyle(fontSize: 12, color: textGreenOn(context))),
                                 ),
                             ],
@@ -359,10 +360,10 @@ class _MineTabState extends State<_MineTab> {
   @override
   Widget build(BuildContext context) {
     if (_mine == null) {
-      return const StateView(
+      return StateView(
         icon: Icons.person_outline,
-        title: 'ادخل إلى حسابك',
-        message: 'ما يرسله الزائر بلا حساب لا يُتابَع من هنا؛ ادخل من «حسابي» لترى ما أرسلته بحسابك.',
+        title: tr('ادخل إلى حسابك', 'Sign in to your account'),
+        message: tr('ما يرسله الزائر بلا حساب لا يُتابَع من هنا؛ ادخل من «حسابي» لترى ما أرسلته بحسابك.', 'What a visitor sends without an account is not followed from here; sign in from «My account» to see what you sent with your account.'),
       );
     }
     return RefreshIndicator(
@@ -373,14 +374,14 @@ class _MineTabState extends State<_MineTab> {
           if (snap.connectionState != ConnectionState.done) return const LoadingView();
           if (snap.hasError) {
             final e = snap.error;
-            return StateView.error(e is ApiException ? e.message : 'تعذّر التحميل.', onRetry: _reload, scrollable: true);
+            return StateView.error(e is ApiException ? e.message : tr('تعذّر التحميل.', 'Could not load.'), onRetry: _reload, scrollable: true);
           }
           final mine = snap.data!;
           if (mine.isEmpty) {
-            return const StateView(
+            return StateView(
               icon: Icons.inbox_outlined,
-              title: 'لم ترسل شيئاً بعد.',
-              message: 'شارك دراستك من تبويب «المكتبة».',
+              title: tr('لم ترسل شيئاً بعد.', 'You have not sent anything yet.'),
+              message: tr('شارك دراستك من تبويب «المكتبة».', 'Share your study from the «Library» tab.'),
               scrollable: true,
             );
           }
@@ -397,7 +398,7 @@ class _MineTabState extends State<_MineTab> {
                       children: [
                         Text('${m.kindLabel} · ${m.statusLabel}'),
                         if (m.status == 'rejected' && m.reviewNote != null)
-                          Text('السبب: ${m.reviewNote}', style: TextStyle(color: warnOn(context))),
+                          Text(tr('السبب: ${m.reviewNote}', 'Reason: ${m.reviewNote}'), style: TextStyle(color: warnOn(context))),
                       ],
                     ),
                     trailing: m.status == 'published' ? const Icon(Icons.chevron_left) : null,

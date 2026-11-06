@@ -27,6 +27,7 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' show Theme, ThemeReader, SpriteIndexReader;
 
 import '../api.dart';
+import '../i18n.dart';
 import '../maps.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -264,13 +265,13 @@ class _MapsScreenState extends State<MapsScreen> {
     setState(() => _locating = true);
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        say('شغّل الموقع (GPS) في الجوّال ثمّ أعد المحاولة.');
+        say(tr('شغّل الموقع (GPS) في الجوّال ثمّ أعد المحاولة.', 'Turn on location (GPS) on the phone, then try again.'));
         return;
       }
       var p = await Geolocator.checkPermission();
       if (p == LocationPermission.denied) p = await Geolocator.requestPermission();
       if (p == LocationPermission.denied || p == LocationPermission.deniedForever) {
-        say('لم يُؤذن للتطبيق بموقعك.');
+        say(tr('لم يُؤذن للتطبيق بموقعك.', 'The app was not given permission for your location.'));
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
@@ -281,7 +282,7 @@ class _MapsScreenState extends State<MapsScreen> {
       setState(() => _me = at);
       _map.move(at, math.max(_map.camera.zoom, 13));
     } catch (_) {
-      say('تعذّر تحديد موقعك الآن.');
+      say(tr('تعذّر تحديد موقعك الآن.', 'Could not find your location right now.'));
     } finally {
       if (mounted) setState(() => _locating = false);
     }
@@ -296,10 +297,10 @@ class _MapsScreenState extends State<MapsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الخرائط'),
+        title: Text(tr('الخرائط', 'Maps')),
         actions: [
           IconButton(
-            tooltip: 'عن هذه الخريطة',
+            tooltip: tr('عن هذه الخريطة', 'About this map'),
             icon: const Icon(Icons.info_outline_rounded),
             onPressed: _data == null ? null : () => _about(_data!),
           ),
@@ -311,7 +312,7 @@ class _MapsScreenState extends State<MapsScreen> {
           final data = _data;
           if (data == null) {
             if (snapshot.hasError) return StateView.error(snapshot.error, onRetry: _retry);
-            return const LoadingView(label: 'تُحمَّل الخريطة…');
+            return LoadingView(label: tr('تُحمَّل الخريطة…', 'Loading the map…'));
           }
           return _mapView(context, data);
         },
@@ -455,21 +456,21 @@ class _MapsScreenState extends State<MapsScreen> {
               left: 12,
               right: 80,
               child: Directionality(
-                textDirection: TextDirection.rtl,
+                textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (!data.week)
                       _notice(
                         context,
-                        'تعذّر جلبُ توقّع الأسبوع الآن، فالطبقات الثابتة وحدها معروضة. أعد المحاولة بعد قليل.',
-                        action: ('أعد المحاولة', _retry),
+                        tr('تعذّر جلبُ توقّع الأسبوع الآن، فالطبقات الثابتة وحدها معروضة. أعد المحاولة بعد قليل.', 'The week\'s forecast could not be fetched just now, so only the fixed layers are shown. Try again shortly.'),
+                        action: (tr('أعد المحاولة', 'Try again'), _retry),
                       ),
                     if (_groundFailed && !sat)
                       _notice(
                         context,
-                        'تعذّر تحميل الخريطة الآن. تحقّق من الاتّصال وأعد المحاولة.',
-                        action: ('أعد المحاولة', () => _loadGround(data.styleUrl)),
+                        tr('تعذّر تحميل الخريطة الآن. تحقّق من الاتّصال وأعد المحاولة.', 'Could not load the map right now. Check the connection and try again.'),
+                        action: (tr('أعد المحاولة', 'Try again'), () => _loadGround(data.styleUrl)),
                       ),
                   ],
                 ),
@@ -562,7 +563,7 @@ class _MapsScreenState extends State<MapsScreen> {
                       TextSpan(text: p.text),
                     ],
                   ),
-                  textDirection: TextDirection.rtl,
+                  textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: ink),
@@ -628,7 +629,7 @@ class _MapsScreenState extends State<MapsScreen> {
     final grids = data.grids;
     final overs = data.overs;
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.all(10),
@@ -706,7 +707,7 @@ class _MapsScreenState extends State<MapsScreen> {
           child: Semantics(
             button: true,
             toggled: sat,
-            label: sat ? 'خريطة' : 'قمر صناعي',
+            label: sat ? tr('خريطة', 'Map') : tr('قمر صناعي', 'Satellite'),
             child: GestureDetector(
               key: const Key('maps-ground'),
               onTap: () => setState(() {
@@ -740,9 +741,9 @@ class _MapsScreenState extends State<MapsScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   color: sat ? primary.withValues(alpha: 0.85) : const Color(0x73000000),
                   child: Text(
-                    sat ? 'خريطة' : 'قمر صناعي',
+                    sat ? tr('خريطة', 'Map') : tr('قمر صناعي', 'Satellite'),
                     textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
+                    textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
                     style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w900),
                   ),
                 ),
@@ -752,7 +753,7 @@ class _MapsScreenState extends State<MapsScreen> {
         ),
         round(
           key: const Key('maps-locate'),
-          label: 'موقعي',
+          label: tr('موقعي', 'My location'),
           onTap: _locating ? null : _locate,
           child: _locating
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -760,13 +761,13 @@ class _MapsScreenState extends State<MapsScreen> {
         ),
         round(
           key: const Key('maps-zoom-in'),
-          label: 'تكبير',
+          label: tr('تكبير', 'Zoom in'),
           onTap: () => _map.move(_map.camera.center, math.min(_map.camera.zoom + 1, 18)),
           child: const Icon(Icons.add_rounded, size: 26),
         ),
         round(
           key: const Key('maps-zoom-out'),
-          label: 'تصغير',
+          label: tr('تصغير', 'Zoom out'),
           onTap: () => _map.move(_map.camera.center, math.max(_map.camera.zoom - 1, 2)),
           child: const Icon(Icons.remove_rounded, size: 26),
         ),
@@ -798,7 +799,7 @@ class _MapsScreenState extends State<MapsScreen> {
 
   Widget _emptyCard(BuildContext context, MapEmpty empty) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 300),
         child: Material(
@@ -831,7 +832,7 @@ class _MapsScreenState extends State<MapsScreen> {
     final muted = mutedOn(context);
     final titles = [?grid?.title, ...shown.map((o) => o.title)].join(' · ');
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
       child: Material(
         key: const Key('maps-key'),
         color: card.withValues(alpha: 0.96),
@@ -885,7 +886,7 @@ class _MapsScreenState extends State<MapsScreen> {
                         ],
                       ],
                       const SizedBox(height: 8),
-                      Text('المس أيّ لونٍ أو علامةٍ لتعرف ما هي.', style: TextStyle(fontSize: 11, color: muted)),
+                      Text(tr('المس أيّ لونٍ أو علامةٍ لتعرف ما هي.', 'Tap any colour or mark to see what it is.'), style: TextStyle(fontSize: 11, color: muted)),
                     ],
                   ),
                 ),
@@ -931,7 +932,7 @@ class _MapsScreenState extends State<MapsScreen> {
                       child: Text(
                         b.label,
                         textAlign: TextAlign.center,
-                        textDirection: TextDirection.rtl,
+                        textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
                         style: TextStyle(fontSize: 10, height: 1.2, color: muted),
                       ),
                     ),
@@ -943,7 +944,7 @@ class _MapsScreenState extends State<MapsScreen> {
                   child: Text(
                     grid.unit!,
                     textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
+                    textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
                     style: TextStyle(fontSize: 11, color: muted),
                   ),
                 ),
@@ -969,7 +970,7 @@ class _MapsScreenState extends State<MapsScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'الرقم عدد الأراضي الموثّقة في المربّع (نحو ١٦٧ كم)',
+                tr('الرقم عدد الأراضي الموثّقة في المربّع (نحو ١٦٧ كم)', 'The number is the count of verified lands in the square (about 167 km)'),
                 style: TextStyle(fontSize: 11, color: muted),
               ),
             ),
@@ -1031,7 +1032,7 @@ class _MapsScreenState extends State<MapsScreen> {
 
   Widget _pickedCard(BuildContext context, MapInfo info, Color card) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isEn ? TextDirection.ltr : TextDirection.rtl,
       child: Material(
         key: const Key('maps-picked'),
         color: card,
@@ -1055,7 +1056,7 @@ class _MapsScreenState extends State<MapsScreen> {
                 ),
               ),
               IconButton(
-                tooltip: 'أغلق',
+                tooltip: tr('أغلق', 'Close'),
                 onPressed: () => setState(() => _picked = null),
                 icon: const Icon(Icons.close_rounded),
               ),
@@ -1079,17 +1080,17 @@ class _MapsScreenState extends State<MapsScreen> {
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             children: [
-              const SectionTitle('عن هذه الخريطة'),
+              SectionTitle(tr('عن هذه الخريطة', 'About this map')),
               const SizedBox(height: 8),
               Text(
-                'خريطة العالم كلّه، تتنقّل فيها كما في خرائط قوقل وتطبيقات التوصيل، و«موقعي» يضعك عليها بنقطةٍ زرقاء. '
+                tr('خريطة العالم كلّه، تتنقّل فيها كما في خرائط قوقل وتطبيقات التوصيل، و«موقعي» يضعك عليها بنقطةٍ زرقاء. '
                 'وزرّ الأرضيّة على اليمين يبدّل بين الخريطة وصورة القمر الصناعيّ. والطبقات في الأعلى للسودان، لأنّ '
                 'بياناتها عنه: طبقات الأسبوع تحلّ واحدتُها محلّ الأخرى، والقناة والمعادن والطرق تُضاف فوقها. المس أيّ '
-                'لونٍ أو علامة لتقرأ ما هي.',
+                'لونٍ أو علامة لتقرأ ما هي.', 'A map of the whole world that you move around in as in Google Maps and delivery apps, and «My location» puts you on it with a blue dot. The ground button on the right switches between the map and the satellite image. The layers at the top are for Sudan, because their data is about it: the week\'s layers replace one another, and the canal, minerals and roads are added on top. Tap any colour or mark to read what it is.'),
                 style: TextStyle(height: 1.8, color: mutedOn(context)),
               ),
               const SizedBox(height: 12),
-              Text('ولكلّ طبقةٍ صفحتُها بالتفصيل:', style: TextStyle(color: mutedOn(context))),
+              Text(tr('ولكلّ طبقةٍ صفحتُها بالتفصيل:', 'Each layer has its own page with the detail:'), style: TextStyle(color: mutedOn(context))),
               Wrap(
                 spacing: 4,
                 children: [
@@ -1097,15 +1098,15 @@ class _MapsScreenState extends State<MapsScreen> {
                     onPressed: () => Navigator.of(context)
                       ..pop()
                       ..push(MaterialPageRoute<void>(builder: (_) => const RainScreen())),
-                    child: const Text('الأمطار والتربة'),
+                    child: Text(tr('الأمطار والتربة', 'Rain and soil')),
                   ),
                   if (_site.isNotEmpty)
-                    TextButton(onPressed: () => _openSite('/arc-canal'), child: const Text('قناة الأرك')),
+                    TextButton(onPressed: () => _openSite('/arc-canal'), child: Text(tr('قناة الأرك', 'The arc canal'))),
                   TextButton(
                     onPressed: () => Navigator.of(context)
                       ..pop()
                       ..push(MaterialPageRoute<void>(builder: (_) => const MiningScreen())),
-                    child: const Text('التعدين'),
+                    child: Text(tr('التعدين', 'Mining')),
                   ),
                 ],
               ),

@@ -10,6 +10,7 @@ library;
 
 import 'account.dart';
 import 'api.dart';
+import 'i18n.dart';
 
 List<Map<String, dynamic>> _maps(Object? v) => [for (final x in (v as List? ?? const [])) (x as Map).cast<String, dynamic>()];
 Map<String, dynamic> _map(Object? v) => (v as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
@@ -60,12 +61,12 @@ class StatementLine {
 }
 
 const bucketKeys = ['0_30', '31_60', '61_90', '90_plus', 'advance'];
-const bucketLabels = {
-  '0_30': 'حتى ٣٠ يوماً',
-  '31_60': '٣١–٦٠',
-  '61_90': '٦١–٩٠',
-  '90_plus': 'أكثر من ٩٠',
-  'advance': 'مدفوعٌ مقدّماً',
+Map<String, String> get bucketLabels => {
+  '0_30': tr('حتى ٣٠ يوماً', '0–30 days'),
+  '31_60': tr('٣١–٦٠', '31–60'),
+  '61_90': tr('٦١–٩٠', '61–90'),
+  '90_plus': tr('أكثر من ٩٠', 'Over 90'),
+  'advance': tr('مدفوعٌ مقدّماً', 'Paid ahead'),
 };
 
 class AgeingAccount {
@@ -294,9 +295,9 @@ class StatementsView {
       totalEquity: Figure.fromJson(balance['totalEquity']),
       balanced: balance['balanced'] == true,
       cashSections: [
-        ('تشغيليّة', StatementLine.list(cash['operating']), Figure.fromJson(cash['totalOperating'])),
-        ('استثماريّة', StatementLine.list(cash['investing']), Figure.fromJson(cash['totalInvesting'])),
-        ('تمويليّة', StatementLine.list(cash['financing']), Figure.fromJson(cash['totalFinancing'])),
+        (tr('تشغيليّة', 'Operating'), StatementLine.list(cash['operating']), Figure.fromJson(cash['totalOperating'])),
+        (tr('استثماريّة', 'Investing'), StatementLine.list(cash['investing']), Figure.fromJson(cash['totalInvesting'])),
+        (tr('تمويليّة', 'Financing'), StatementLine.list(cash['financing']), Figure.fromJson(cash['totalFinancing'])),
       ],
       cashOpening: Figure.fromJson(cash['opening']),
       cashClosing: Figure.fromJson(cash['closing']),
@@ -355,7 +356,7 @@ class StatementsApi {
     final disposition = r.headers['content-disposition'] ?? '';
     final name = RegExp(r'filename="([^"]+)"').firstMatch(disposition)?.group(1) ?? 'sudagri-statements.pdf';
     final out = StatementsPdf(r.bytes, name, r.headers['x-statements-fingerprint']);
-    if (!out.looksLikePdf) throw ApiException('لم يصل ملفّ PDF. أعد المحاولة بعد قليل.');
+    if (!out.looksLikePdf) throw ApiException(tr('لم يصل ملفّ PDF. أعد المحاولة بعد قليل.', 'The PDF did not arrive. Try again in a little while.'));
     return out;
   }
 }

@@ -20,6 +20,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'i18n.dart';
+
 enum IrrigationMethod { flood, sprinkler, pivot, drip }
 
 /// Application efficiency — the share of delivered water the crop actually gets.
@@ -30,17 +32,17 @@ const Map<IrrigationMethod, double> irrigationEfficiency = {
   IrrigationMethod.drip: 0.9,
 };
 
-const Map<IrrigationMethod, String> irrigationLabel = {
-  IrrigationMethod.flood: 'ري بالغمر',
-  IrrigationMethod.sprinkler: 'ري بالرش',
-  IrrigationMethod.pivot: 'محاور ارتكازية',
-  IrrigationMethod.drip: 'ري بالتنقيط',
+Map<IrrigationMethod, String> get irrigationLabel => {
+  IrrigationMethod.flood: tr('ري بالغمر', 'Flood irrigation'),
+  IrrigationMethod.sprinkler: tr('ري بالرش', 'Sprinkler irrigation'),
+  IrrigationMethod.pivot: tr('محاور ارتكازية', 'Centre pivots'),
+  IrrigationMethod.drip: tr('ري بالتنقيط', 'Drip irrigation'),
 };
 
 class CropCoefficients {
   const CropCoefficients({
     required this.key,
-    required this.name,
+    required this.nameAr,
     required this.stages,
     required this.kcInitial,
     required this.kcMid,
@@ -48,7 +50,10 @@ class CropCoefficients {
   });
 
   final String key;
-  final String name;
+  final String nameAr;
+
+  /// The website's English name (CROP_EN in src/lib/enNames.ts), by key; the Arabic when it has none.
+  String get name => tr(nameAr, cropNameEn[key] ?? nameAr);
 
   /// Stage lengths in days: initial, development, mid-season, late-season.
   final List<int> stages;
@@ -60,10 +65,28 @@ class CropCoefficients {
 }
 
 /// FAO-56 Table 12 values, stage lengths adjusted to Sudanese growing seasons.
+/// Crops by key, as src/lib/enNames.ts CROP_EN names them.
+const Map<String, String> cropNameEn = {
+  'wheat': 'Wheat', 'sorghum': 'Sorghum', 'maize': 'Maize', 'cotton': 'Cotton', 'groundnut': 'Groundnut',
+  'sesame': 'Sesame', 'alfalfa': 'Alfalfa', 'onion': 'Onion', 'tomato': 'Tomato', 'sugarcane': 'Sugarcane',
+  'millet': 'Pearl millet', 'dates': 'Date palm', 'faba_bean': 'Faba bean', 'potato': 'Potato',
+  'sunflower': 'Sunflower', 'safflower': 'Safflower', 'barley': 'Barley', 'rice': 'Rice', 'cowpea': 'Cowpea',
+  'watermelon': 'Watermelon', 'sweet_melon': 'Sweet melon', 'cucumber': 'Cucumber', 'eggplant': 'Eggplant',
+  'sweet_pepper': 'Sweet pepper', 'cabbage': 'Cabbage', 'carrot': 'Carrot', 'zucchini': 'Zucchini',
+  'sweet_potato': 'Sweet potato', 'citrus': 'Citrus (grapefruit)', 'soybean': 'Soybean', 'grapes': 'Grapes',
+  'olive': 'Olive',
+};
+
+/// Climate stations by key, as src/lib/enNames.ts STATION_EN names them.
+const Map<String, String> stationNameEn = {
+  'khartoum': 'Khartoum', 'gezira': 'Gezira (Wad Madani)', 'rivernile': 'River Nile (Atbara)',
+  'northern': 'Northern (Dongola)', 'kordofan': 'North Kordofan (El Obeid)', 'kassala': 'Kassala',
+};
+
 const List<CropCoefficients> crops = [
   CropCoefficients(
     key: 'wheat',
-    name: 'قمح',
+    nameAr: 'قمح',
     stages: [20, 25, 40, 25],
     kcInitial: 0.3,
     kcMid: 1.15,
@@ -71,7 +94,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'sorghum',
-    name: 'ذرة رفيعة',
+    nameAr: 'ذرة رفيعة',
     stages: [20, 35, 40, 30],
     kcInitial: 0.3,
     kcMid: 1.05,
@@ -79,7 +102,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'maize',
-    name: 'ذرة شامية',
+    nameAr: 'ذرة شامية',
     stages: [20, 35, 40, 30],
     kcInitial: 0.3,
     kcMid: 1.2,
@@ -87,7 +110,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'cotton',
-    name: 'قطن',
+    nameAr: 'قطن',
     stages: [30, 50, 60, 55],
     kcInitial: 0.35,
     kcMid: 1.18,
@@ -95,7 +118,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'groundnut',
-    name: 'فول سوداني',
+    nameAr: 'فول سوداني',
     stages: [25, 35, 45, 25],
     kcInitial: 0.4,
     kcMid: 1.15,
@@ -103,7 +126,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'sesame',
-    name: 'سمسم',
+    nameAr: 'سمسم',
     stages: [20, 30, 40, 20],
     kcInitial: 0.35,
     kcMid: 1.1,
@@ -111,7 +134,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'alfalfa',
-    name: 'برسيم',
+    nameAr: 'برسيم',
     stages: [10, 20, 20, 10],
     kcInitial: 0.4,
     kcMid: 1.2,
@@ -119,7 +142,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'onion',
-    name: 'بصل',
+    nameAr: 'بصل',
     stages: [20, 35, 110, 45],
     kcInitial: 0.7,
     kcMid: 1.05,
@@ -127,7 +150,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'tomato',
-    name: 'طماطم',
+    nameAr: 'طماطم',
     stages: [30, 40, 45, 30],
     kcInitial: 0.6,
     kcMid: 1.15,
@@ -135,7 +158,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'sugarcane',
-    name: 'قصب سكر',
+    nameAr: 'قصب سكر',
     stages: [50, 70, 220, 40],
     kcInitial: 0.4,
     kcMid: 1.25,
@@ -146,7 +169,7 @@ const List<CropCoefficients> crops = [
   // وتطابق الجدولين تفحصه `scripts/verify-mobile-parity.ts` رقماً برقم، فلا تُعدَّل هنا ما لم تُعدَّل هناك.
   CropCoefficients(
     key: 'millet',
-    name: 'دخن',
+    nameAr: 'دخن',
     stages: [15, 25, 40, 25],
     kcInitial: 0.3,
     kcMid: 1.0,
@@ -154,7 +177,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'dates',
-    name: 'نخيل (تمور)',
+    nameAr: 'نخيل (تمور)',
     stages: [90, 60, 120, 95],
     kcInitial: 0.9,
     kcMid: 0.95,
@@ -162,7 +185,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'faba_bean',
-    name: 'فول مصري',
+    nameAr: 'فول مصري',
     stages: [20, 30, 35, 15],
     kcInitial: 0.5,
     kcMid: 1.15,
@@ -170,7 +193,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'potato',
-    name: 'بطاطس',
+    nameAr: 'بطاطس',
     stages: [25, 30, 45, 30],
     kcInitial: 0.5,
     kcMid: 1.15,
@@ -178,7 +201,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'sunflower',
-    name: 'عبّاد الشمس',
+    nameAr: 'عبّاد الشمس',
     stages: [25, 35, 45, 25],
     kcInitial: 0.35,
     kcMid: 1.15,
@@ -186,7 +209,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'safflower',
-    name: 'قُرطم',
+    nameAr: 'قُرطم',
     stages: [35, 55, 60, 40],
     kcInitial: 0.35,
     kcMid: 1.15,
@@ -194,7 +217,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'barley',
-    name: 'شعير',
+    nameAr: 'شعير',
     stages: [15, 25, 50, 30],
     kcInitial: 0.3,
     kcMid: 1.15,
@@ -202,7 +225,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'rice',
-    name: 'أرز',
+    nameAr: 'أرز',
     stages: [30, 30, 80, 40],
     kcInitial: 1.05,
     kcMid: 1.2,
@@ -210,7 +233,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'cowpea',
-    name: 'لوبيا',
+    nameAr: 'لوبيا',
     stages: [20, 30, 30, 20],
     kcInitial: 0.4,
     kcMid: 1.05,
@@ -218,7 +241,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'watermelon',
-    name: 'بطيخ',
+    nameAr: 'بطيخ',
     stages: [10, 20, 20, 30],
     kcInitial: 0.4,
     kcMid: 1.0,
@@ -226,7 +249,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'sweet_melon',
-    name: 'شمّام',
+    nameAr: 'شمّام',
     stages: [30, 45, 65, 20],
     kcInitial: 0.5,
     kcMid: 1.05,
@@ -234,7 +257,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'cucumber',
-    name: 'خيار',
+    nameAr: 'خيار',
     stages: [25, 35, 50, 20],
     kcInitial: 0.6,
     kcMid: 1.0,
@@ -242,7 +265,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'eggplant',
-    name: 'باذنجان',
+    nameAr: 'باذنجان',
     stages: [30, 40, 40, 20],
     kcInitial: 0.6,
     kcMid: 1.05,
@@ -250,7 +273,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'sweet_pepper',
-    name: 'فلفل حلو',
+    nameAr: 'فلفل حلو',
     stages: [30, 40, 110, 30],
     kcInitial: 0.6,
     kcMid: 1.05,
@@ -258,7 +281,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'cabbage',
-    name: 'كرمب (ملفوف)',
+    nameAr: 'كرمب (ملفوف)',
     stages: [40, 60, 50, 15],
     kcInitial: 0.7,
     kcMid: 1.05,
@@ -266,7 +289,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'carrot',
-    name: 'جزر',
+    nameAr: 'جزر',
     stages: [20, 30, 30, 20],
     kcInitial: 0.7,
     kcMid: 1.05,
@@ -274,7 +297,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'zucchini',
-    name: 'كوسة',
+    nameAr: 'كوسة',
     stages: [25, 35, 25, 15],
     kcInitial: 0.5,
     kcMid: 0.95,
@@ -282,7 +305,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'sweet_potato',
-    name: 'بطاطا (بامبي)',
+    nameAr: 'بطاطا (بامبي)',
     stages: [15, 30, 50, 30],
     kcInitial: 0.5,
     kcMid: 1.15,
@@ -290,7 +313,7 @@ const List<CropCoefficients> crops = [
   ),
   CropCoefficients(
     key: 'citrus',
-    name: 'موالح (قريب فروت)',
+    nameAr: 'موالح (قريب فروت)',
     stages: [60, 90, 120, 95],
     kcInitial: 0.7,
     kcMid: 0.65,
@@ -304,7 +327,7 @@ const List<CropCoefficients> crops = [
 const List<CropCoefficients> newCrops = [
   CropCoefficients(
     key: 'soybean',
-    name: 'فول الصويا',
+    nameAr: 'فول الصويا',
     stages: [15, 15, 40, 15],
     kcInitial: 0.4,
     kcMid: 1.15,
@@ -312,7 +335,7 @@ const List<CropCoefficients> newCrops = [
   ),
   CropCoefficients(
     key: 'grapes',
-    name: 'العنب',
+    nameAr: 'العنب',
     stages: [20, 40, 120, 60],
     kcInitial: 0.3,
     kcMid: 0.85,
@@ -320,7 +343,7 @@ const List<CropCoefficients> newCrops = [
   ),
   CropCoefficients(
     key: 'olive',
-    name: 'الزيتون',
+    nameAr: 'الزيتون',
     stages: [30, 90, 60, 90],
     kcInitial: 0.65,
     kcMid: 0.7,
@@ -336,7 +359,7 @@ bool isNewCrop(String key) => newCrops.any((c) => c.key == key);
 class StationClimate {
   const StationClimate({
     required this.key,
-    required this.name,
+    required this.nameAr,
     required this.latitude,
     required this.tmax,
     required this.tmin,
@@ -344,8 +367,11 @@ class StationClimate {
   });
 
   final String key;
-  final String name;
+  final String nameAr;
   final double latitude;
+
+  /// The website's English name (STATION_EN in src/lib/enNames.ts), by key.
+  String get name => tr(nameAr, stationNameEn[key] ?? nameAr);
 
   /// Monthly means, January first.
   final List<double> tmax;
@@ -360,7 +386,7 @@ class StationClimate {
 const List<StationClimate> stations = [
   StationClimate(
     key: 'khartoum',
-    name: 'الخرطوم',
+    nameAr: 'الخرطوم',
     latitude: 15.6,
     tmax: [31, 33, 37, 40, 41, 41, 38, 37, 38, 39, 35, 32],
     tmin: [15, 16, 20, 23, 26, 27, 26, 25, 25, 25, 21, 17],
@@ -368,7 +394,7 @@ const List<StationClimate> stations = [
   ),
   StationClimate(
     key: 'gezira',
-    name: 'الجزيرة (ود مدني)',
+    nameAr: 'الجزيرة (ود مدني)',
     latitude: 14.4,
     tmax: [33, 35, 38, 41, 41, 39, 35, 33, 35, 38, 36, 34],
     tmin: [15, 16, 19, 23, 25, 25, 24, 23, 23, 23, 19, 16],
@@ -376,7 +402,7 @@ const List<StationClimate> stations = [
   ),
   StationClimate(
     key: 'rivernile',
-    name: 'نهر النيل (عطبرة)',
+    nameAr: 'نهر النيل (عطبرة)',
     latitude: 17.7,
     tmax: [30, 32, 36, 40, 43, 43, 41, 40, 41, 40, 35, 31],
     tmin: [13, 14, 18, 22, 26, 28, 27, 26, 26, 24, 18, 14],
@@ -384,7 +410,7 @@ const List<StationClimate> stations = [
   ),
   StationClimate(
     key: 'northern',
-    name: 'الشمالية (دنقلا)',
+    nameAr: 'الشمالية (دنقلا)',
     latitude: 19.2,
     tmax: [26, 29, 33, 38, 42, 43, 42, 42, 41, 38, 32, 27],
     tmin: [8, 10, 14, 19, 23, 26, 26, 26, 24, 20, 14, 10],
@@ -392,7 +418,7 @@ const List<StationClimate> stations = [
   ),
   StationClimate(
     key: 'kordofan',
-    name: 'شمال كردفان (الأبيض)',
+    nameAr: 'شمال كردفان (الأبيض)',
     latitude: 13.2,
     tmax: [33, 35, 38, 40, 39, 36, 32, 31, 33, 36, 35, 33],
     tmin: [14, 16, 19, 23, 24, 23, 22, 21, 21, 21, 18, 15],
@@ -400,7 +426,7 @@ const List<StationClimate> stations = [
   ),
   StationClimate(
     key: 'kassala',
-    name: 'كسلا',
+    nameAr: 'كسلا',
     latitude: 15.5,
     tmax: [33, 35, 38, 41, 41, 40, 36, 34, 36, 38, 36, 34],
     tmin: [16, 17, 20, 24, 26, 27, 25, 24, 24, 23, 20, 17],
@@ -418,7 +444,7 @@ const List<int> _midMonthDoy = [
 /// One feddan is 4,200 m², so 1 mm of depth over a feddan is 4.2 m³.
 const double m3PerMmPerFeddan = 4.2;
 
-const List<String> monthNames = [
+const List<String> _monthNamesAr = [
   'يناير',
   'فبراير',
   'مارس',
@@ -432,6 +458,14 @@ const List<String> monthNames = [
   'نوفمبر',
   'ديسمبر',
 ];
+
+const List<String> monthNamesEn = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/// The months in the app's language.
+List<String> get monthNames => isEn ? monthNamesEn : _monthNamesAr;
 
 /// Extraterrestrial radiation Ra in mm/day equivalent (FAO-56 eq. 21, converted
 /// from MJ/m²/day by the 0.408 factor). Pure astronomy — latitude and date only.

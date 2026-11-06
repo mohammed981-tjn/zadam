@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
 import '../contracts.dart';
+import '../i18n.dart';
 import '../secure_screen.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -33,7 +34,7 @@ class _Loaded<T> extends StatelessWidget {
         if (snap.hasError) {
           final e = snap.error;
           return StateView.error(
-            e is ApiException ? e.message : 'تعذّر فتح العقد.',
+            e is ApiException ? e.message : tr('تعذّر فتح العقد.', 'Could not open the contract.'),
             onRetry: onRetry,
             scrollable: true,
           );
@@ -65,22 +66,22 @@ class _ServiceContractScreenState extends State<ServiceContractScreen> {
 
   Future<void> _move(ServiceContract c, ContractMove mv) async {
     final binding = mv.status == 'active'
-        ? 'بقبولك يسري العقد ويصير ملزماً للطرفين بمراحله وأسعاره، وتبدأ المراحل في التحرّك.'
+        ? tr('بقبولك يسري العقد ويصير ملزماً للطرفين بمراحله وأسعاره، وتبدأ المراحل في التحرّك.', 'By accepting, the contract takes effect and binds both parties to its phases and prices, and the phases start to move.')
         : mv.status == 'proposed'
-        ? 'يصل العرض إلى مقدّم الخدمة، وتتجمّد الشروط: لا يُغيَّر سعر ولا كمية حتى يُسحب العرض.'
-        : 'ستُنفَّذ هذه الخطوة على العقد «${c.title}».';
+        ? tr('يصل العرض إلى مقدّم الخدمة، وتتجمّد الشروط: لا يُغيَّر سعر ولا كمية حتى يُسحب العرض.', 'The offer reaches the service provider and the terms freeze: no price or quantity changes until the offer is withdrawn.')
+        : tr('ستُنفَّذ هذه الخطوة على العقد «${c.title}».', 'This step will be taken on the contract «${c.title}».');
     if (!await confirmStep(context, title: mv.label, body: binding, go: mv.label)) return;
     if (!mounted) return;
     await runStep(context, () async {
       await _api.moveService(c.id, mv.status);
-      return 'تمّ: ${mv.label}.';
+      return tr('تمّ: ${mv.label}.', 'Done: ${mv.label}.');
     }, then: _reload);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('عقد خدمات')),
+      appBar: AppBar(title: Text(tr('عقد خدمات', 'Service contract'))),
       body: _Loaded<ServiceContract>(
         future: _data,
         onRetry: _reload,
@@ -88,15 +89,15 @@ class _ServiceContractScreenState extends State<ServiceContractScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
             Text(c.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            Muted('مع ${c.providerName ?? 'مقدّم خدمة'} — ${c.milestones.length} مراحل'),
+            Muted(tr('مع ${c.providerName ?? 'مقدّم خدمة'} — ${c.milestones.length} مراحل', 'With ${c.providerName ?? 'a service provider'} — ${c.milestones.length} phases')),
             const SizedBox(height: 12),
             DealCard(
               children: [
                 Row(
                   children: [
-                    Expanded(child: InfoLine('إجمالي العقد', '${money(c.total)} ${c.currency}')),
-                    Expanded(child: InfoLine('المدفوع', money(c.paid))),
-                    Expanded(child: InfoLine('المتبقّي', money(c.total - c.paid))),
+                    Expanded(child: InfoLine(tr('إجمالي العقد', 'Contract total'), '${money(c.total)} ${c.currency}')),
+                    Expanded(child: InfoLine(tr('المدفوع', 'Paid'), money(c.paid))),
+                    Expanded(child: InfoLine(tr('المتبقّي', 'Remaining'), money(c.total - c.paid))),
                   ],
                 ),
               ],
@@ -109,7 +110,7 @@ class _ServiceContractScreenState extends State<ServiceContractScreen> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     TagPill(c.statusLabel, gold: c.status == 'cancelled' || c.status == 'disputed'),
-                    if (c.signedAt != null) Muted('وُقّع ${day(c.signedAt)}', size: 12),
+                    if (c.signedAt != null) Muted(tr('وُقّع ${day(c.signedAt)}', 'Signed ${day(c.signedAt)}'), size: 12),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -118,8 +119,8 @@ class _ServiceContractScreenState extends State<ServiceContractScreen> {
                 if (c.moves.isEmpty)
                   Muted(
                     c.status == 'proposed'
-                        ? 'بانتظار الطرف الآخر — لا خطوة لك الآن.'
-                        : 'لا خطوة متاحة لك على هذا العقد الآن.',
+                        ? tr('بانتظار الطرف الآخر — لا خطوة لك الآن.', 'Waiting for the other party — there is nothing for you to do now.')
+                        : tr('لا خطوة متاحة لك على هذا العقد الآن.', 'There is no step available to you on this contract right now.'),
                   )
                 else
                   Wrap(
@@ -134,9 +135,9 @@ class _ServiceContractScreenState extends State<ServiceContractScreen> {
                   ),
               ],
             ),
-            const IntroNote(
-              'الدفع يتبع الإثبات: لا تُعتمد مرحلة قبل رفع صورة أو تقرير من الموقع، ولا تُعتمد قبل اعتماد المرحلة التي '
-              'تسبقها، ولا يُسجَّل دفع قبل الاعتماد. هذه قواعد في قاعدة البيانات نفسها — لا يمكن تجاوزها من أي شاشة.',
+            IntroNote(
+              tr('الدفع يتبع الإثبات: لا تُعتمد مرحلة قبل رفع صورة أو تقرير من الموقع، ولا تُعتمد قبل اعتماد المرحلة التي '
+              'تسبقها، ولا يُسجَّل دفع قبل الاعتماد. هذه قواعد في قاعدة البيانات نفسها — لا يمكن تجاوزها من أي شاشة.', 'Payment follows proof: no phase is approved before a photo or a report is uploaded on the website, nor before the phase before it is approved, and no payment is recorded before approval. These are rules in the database itself — no screen can get around them.'),
               icon: Icons.verified_user_outlined,
             ),
             const SizedBox(height: 14),
@@ -145,7 +146,7 @@ class _ServiceContractScreenState extends State<ServiceContractScreen> {
               TextButton.icon(
                 onPressed: () => openOnSite(context, '/seasons/${c.seasonId}'),
                 icon: const Icon(Icons.open_in_new, size: 18),
-                label: const Text('الموسم الذي بُني عليه هذا العقد'),
+                label: Text(tr('الموسم الذي بُني عليه هذا العقد', 'The season this contract was built on')),
               ),
           ],
         ),
@@ -176,12 +177,12 @@ class _MilestoneCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Muted(
-          '${money(m.quantity)} ${m.unit} × ${money(m.unitPrice)} = ${money(m.amount)}'
-          '${m.plannedStart != null ? ' — من ${m.plannedStart}${m.plannedEnd != null ? ' إلى ${m.plannedEnd}' : ''}' : ''}',
+          tr('${money(m.quantity)} ${m.unit} × ${money(m.unitPrice)} = ${money(m.amount)}'
+          '${m.plannedStart != null ? ' — من ${m.plannedStart}${m.plannedEnd != null ? ' إلى ${m.plannedEnd}' : ''}' : ''}', '${money(m.quantity)} ${m.unit} × ${money(m.unitPrice)} = ${money(m.amount)}${m.plannedStart != null ? ' — from ${m.plannedStart}${m.plannedEnd != null ? ' to ${m.plannedEnd}' : ''}' : ''}'),
         ),
         const SizedBox(height: 6),
         if (m.evidence.isEmpty)
-          Muted(m.requiresEvidence ? 'لا يوجد إثبات بعد' : 'لا يتطلب إثباتاً', size: 12)
+          Muted(m.requiresEvidence ? tr('لا يوجد إثبات بعد', 'No proof yet') : tr('لا يتطلب إثباتاً', 'No proof required'), size: 12)
         else
           for (final e in m.evidence)
             Container(
@@ -200,10 +201,10 @@ class _MilestoneCard extends StatelessWidget {
                   ),
                   Muted(
                     [
-                      e.capturedAt != null ? 'التُقط ${day(e.capturedAt)}' : 'بلا تاريخ التقاط',
+                      e.capturedAt != null ? tr('التُقط ${day(e.capturedAt)}', 'Taken ${day(e.capturedAt)}') : tr('بلا تاريخ التقاط', 'No capture date'),
                       e.latitude != null && e.longitude != null
                           ? '${e.latitude!.toStringAsFixed(4)}, ${e.longitude!.toStringAsFixed(4)}'
-                          : 'بلا إحداثيات',
+                          : tr('بلا إحداثيات', 'No coordinates'),
                     ].join(' · '),
                     size: 12,
                   ),
@@ -214,7 +215,7 @@ class _MilestoneCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'ارفع إثبات تنفيذ واحداً على الأقل قبل الاعتماد.',
+              tr('ارفع إثبات تنفيذ واحداً على الأقل قبل الاعتماد.', 'Upload at least one proof of delivery before approval.'),
               style: TextStyle(color: warnOn(context), fontSize: 12),
             ),
           ),
@@ -225,7 +226,7 @@ class _MilestoneCard extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => openOnSite(context, '/contracts/${contract.id}'),
             icon: const Icon(Icons.open_in_new, size: 18),
-            label: Text('${next.label} (على الموقع)'),
+            label: Text(tr('${next.label} (على الموقع)', '${next.label} (on the website)')),
           ),
         ],
       ],
@@ -259,23 +260,23 @@ class _ForwardContractScreenState extends State<ForwardContractScreen> {
       reason = await askReason(
         context,
         title: a.prompt ?? a.label,
-        hint: a.step == 'dispute' ? 'ما الخلاف؟' : 'السبب: يقرؤه الطرف الآخر',
+        hint: a.step == 'dispute' ? tr('ما الخلاف؟', 'What is the disagreement?') : tr('السبب: يقرؤه الطرف الآخر', 'The reason: the other side reads it'),
         go: a.label,
       );
       if (reason == null) return;
     } else if (a.step == 'sign') {
       final ok = await confirmStep(
         context,
-        title: 'توقيع العقد الآجل',
+        title: tr('توقيع العقد الآجل', 'Signing the forward contract'),
         body:
-            'بتوقيعك يصير العقد ملزماً لكما بشروطه: ${c.row.crop}، ${amount(c.row.quantity)} ${c.row.unit}، '
+            tr('بتوقيعك يصير العقد ملزماً لكما بشروطه: ${c.row.crop}، ${amount(c.row.quantity)} ${c.row.unit}، '
             'بسعر ${amount(c.row.price)} ${c.row.currency} للوحدة، يُسلَّم بين ${day(c.row.deliveryFrom)} و${day(c.row.deliveryTo)}. '
-            'وقّع إن كنت تعرف الطرف الآخر واتّفقتما على هذا.',
-        go: 'أوقّع العقد',
+            'وقّع إن كنت تعرف الطرف الآخر واتّفقتما على هذا.', 'By signing, the contract binds you both by its terms: ${c.row.crop}, ${amount(c.row.quantity)} ${c.row.unit}, at ${amount(c.row.price)} ${c.row.currency} per unit, delivered between ${day(c.row.deliveryFrom)} and ${day(c.row.deliveryTo)}. Sign if you know the other side and agreed this.'),
+        go: tr('أوقّع العقد', 'I sign the contract'),
       );
       if (!ok) return;
     } else if (a.step == 'decline' || a.step == 'withdraw' || a.step == 'cancel_yes') {
-      if (!await confirmStep(context, title: a.label, body: 'لا رجعة في هذه الخطوة.', go: a.label)) return;
+      if (!await confirmStep(context, title: a.label, body: tr('لا رجعة في هذه الخطوة.', 'There is no going back on this step.'), go: a.label)) return;
     }
     if (!mounted) return;
     await runStep(context, () => _api.forwardStep(c.row.id, a.step, reason: reason), then: _reload);
@@ -284,7 +285,7 @@ class _ForwardContractScreenState extends State<ForwardContractScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('عقدٌ آجل')),
+      appBar: AppBar(title: Text(tr('عقدٌ آجل', 'Forward contract'))),
       body: _Loaded<ForwardContract>(
         future: _data,
         onRetry: _reload,
@@ -303,30 +304,30 @@ class _ForwardContractScreenState extends State<ForwardContractScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
               Muted('${r.ref} · ${r.statusLabel}', size: 12),
-              Text('عقد بيعٍ آجل: ${r.crop}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              Text(tr('عقد بيعٍ آجل: ${r.crop}', 'Forward sale contract: ${r.crop}'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
               DealCard(
                 children: [
                   Text(
-                    'اتّفق ${c.farmerName}${c.farmerPhone != null ? ' (${c.farmerPhone})' : ''} (المزارع، البائع) و'
-                    '${c.buyerName}${c.buyerPhone != null ? ' (${c.buyerPhone})' : ''} (المشتري) على ما يلي:',
+                    tr('اتّفق ${c.farmerName}${c.farmerPhone != null ? ' (${c.farmerPhone})' : ''} (المزارع، البائع) و'
+                    '${c.buyerName}${c.buyerPhone != null ? ' (${c.buyerPhone})' : ''} (المشتري) على ما يلي:', '${c.farmerName}${c.farmerPhone != null ? ' (${c.farmerPhone})' : ''} (the farmer, the seller) and ${c.buyerName}${c.buyerPhone != null ? ' (${c.buyerPhone})' : ''} (the buyer) agreed on the following:'),
                     style: const TextStyle(height: 1.8),
                   ),
                   const SizedBox(height: 6),
                   for (final (i, line) in [
-                    'يبيع المزارع ويشتري المشتري ${amount(r.quantity)} ${r.unit} من ${r.crop}، بزيادةٍ أو نقصٍ حتى ${c.tolerance}٪ لا يُعدّ إخلالاً.',
-                    'بالدرجة: ${c.grade}',
-                    'بسعر ${amount(r.price)} ${r.currency} لل${r.unit}، فقيمة العقد ${amount(c.value)} ${r.currency}.',
-                    'يُسلَّم بين ${day(r.deliveryFrom)} و${day(r.deliveryTo)} في ${r.place}.',
-                    'الدفع: ${c.paymentTerms}${c.advancePercent != null && c.advancePercent! > 0 ? '، ومقدَّمٌ ${c.advancePercent}٪ عند التوقيع.' : ''}',
+                    tr('يبيع المزارع ويشتري المشتري ${amount(r.quantity)} ${r.unit} من ${r.crop}، بزيادةٍ أو نقصٍ حتى ${c.tolerance}٪ لا يُعدّ إخلالاً.', 'The farmer sells and the buyer buys ${amount(r.quantity)} ${r.unit} of ${r.crop}; more or less by up to ${c.tolerance}% is not a breach.'),
+                    tr('بالدرجة: ${c.grade}', 'Grade: ${c.grade}'),
+                    tr('بسعر ${amount(r.price)} ${r.currency} لل${r.unit}، فقيمة العقد ${amount(c.value)} ${r.currency}.', 'At ${amount(r.price)} ${r.currency} per ${r.unit}, so the contract\'s value is ${amount(c.value)} ${r.currency}.'),
+                    tr('يُسلَّم بين ${day(r.deliveryFrom)} و${day(r.deliveryTo)} في ${r.place}.', 'Delivered between ${day(r.deliveryFrom)} and ${day(r.deliveryTo)} at ${r.place}.'),
+                    tr('الدفع: ${c.paymentTerms}${c.advancePercent != null && c.advancePercent! > 0 ? '، ومقدَّمٌ ${c.advancePercent}٪ عند التوقيع.' : ''}', 'Payment: ${c.paymentTerms}${c.advancePercent != null && c.advancePercent! > 0 ? ', with an advance of ${c.advancePercent}% on signing.' : ''}'),
                     if (c.consigneeName != null)
-                      'يستلم عن المشتري: ${c.consigneeName} (${c.consigneePhone ?? ''})، ويسجّل المشتري الاستلام حين يخبره.',
-                    'الشرط الجزائيّ: على من يتأخّر في التسليم ${c.latePctWeek}٪ من قيمة العقد عن كلّ أسبوعٍ بعد آخر موعد، حتى '
+                      tr('يستلم عن المشتري: ${c.consigneeName} (${c.consigneePhone ?? ''})، ويسجّل المشتري الاستلام حين يخبره.', 'Receiving for the buyer: ${c.consigneeName} (${c.consigneePhone ?? ''}), and the buyer records the receipt when told.'),
+                    tr('الشرط الجزائيّ: على من يتأخّر في التسليم ${c.latePctWeek}٪ من قيمة العقد عن كلّ أسبوعٍ بعد آخر موعد، حتى '
                         '${c.lateCapPct}٪؛ وعلى من يمتنع عن التسليم أو الاستلام ${c.breachPct}٪ من قيمة العقد للطرف الآخر.'
-                        '${c.forceMajeure ? ' وتُعفى القوّة القاهرة: حربٌ، أو سيلٌ، أو جراد، أو إغلاقُ طريق.' : ''}',
+                        '${c.forceMajeure ? ' وتُعفى القوّة القاهرة: حربٌ، أو سيلٌ، أو جراد، أو إغلاقُ طريق.' : ''}', 'Penalty: whoever is late delivering owes ${c.latePctWeek}% of the contract\'s value for every week after the last date, up to ${c.lateCapPct}%; whoever refuses to deliver or to receive owes ${c.breachPct}% of the contract\'s value to the other side.${c.forceMajeure ? ' Force majeure is excused: war, flood, locusts, or a closed road.' : ''}'),
                     if (c.notes != null) c.notes!,
-                    'يدفع المشتري للمزارع مباشرةً؛ سوداقري لا تحمل المال ولا تضمن التسليم ولا السداد. لا تتغيّر هذه الشروط '
-                        'بعد التوقيع، ولا يُلغى العقد إلا باتّفاق الطرفين أو بفصل الإدارة في نزاع.',
+                    tr('يدفع المشتري للمزارع مباشرةً؛ سوداقري لا تحمل المال ولا تضمن التسليم ولا السداد. لا تتغيّر هذه الشروط '
+                        'بعد التوقيع، ولا يُلغى العقد إلا باتّفاق الطرفين أو بفصل الإدارة في نزاع.', 'The buyer pays the farmer directly; Sudagri holds no money and guarantees neither delivery nor payment. These terms do not change after signing, and the contract is cancelled only by agreement of both parties or by the administrators\' decision in a dispute.'),
                   ].indexed)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4),
@@ -334,8 +335,8 @@ class _ForwardContractScreenState extends State<ForwardContractScreen> {
                     ),
                   const SizedBox(height: 4),
                   Muted(
-                    'اقتُرح ووقّعه مقترحه في ${day(c.proposedAt)}'
-                    '${c.signedAt != null ? '، ووقّعه الطرف الآخر في ${day(c.signedAt)}' : ''}.',
+                    tr('اقتُرح ووقّعه مقترحه في ${day(c.proposedAt)}'
+                    '${c.signedAt != null ? '، ووقّعه الطرف الآخر في ${day(c.signedAt)}' : ''}.', 'Proposed, and signed by its proposer, on ${day(c.proposedAt)}${c.signedAt != null ? ', and signed by the other side on ${day(c.signedAt)}' : ''}.'),
                     size: 12,
                   ),
                 ],
@@ -344,18 +345,18 @@ class _ForwardContractScreenState extends State<ForwardContractScreen> {
                 DealCard(
                   children: [
                     Text(
-                      'حكمت الإدارة بغرامة ${amount(c.penaltyAwarded!)} ${r.currency} '
-                      '${c.penaltyPayer == 'farmer' ? 'يدفعها المزارع للمشتري مباشرةً.' : 'يدفعها المشتري للمزارع مباشرةً.'}',
+                      tr('حكمت الإدارة بغرامة ${amount(c.penaltyAwarded!)} ${r.currency} '
+                      '${c.penaltyPayer == 'farmer' ? 'يدفعها المزارع للمشتري مباشرةً.' : 'يدفعها المشتري للمزارع مباشرةً.'}', 'The administrators awarded a penalty of ${amount(c.penaltyAwarded!)} ${r.currency} ${c.penaltyPayer == 'farmer' ? 'paid by the farmer to the buyer directly.' : 'paid by the buyer to the farmer directly.'}'),
                     ),
                   ],
                 ),
               if (c.deliveredOn != null)
                 DealCard(
-                  title: 'التسليم كما سجّله المشتري',
+                  title: tr('التسليم كما سجّله المشتري', 'The delivery as the buyer recorded it'),
                   children: [
                     Text(
-                      '${amount(c.deliveredQuantity ?? 0)} ${r.unit} · ${day(c.deliveredOn)} · '
-                      '${c.gradeMet == true ? 'مطابقٌ للدرجة' : 'خالف الدرجة'}',
+                      tr('${amount(c.deliveredQuantity ?? 0)} ${r.unit} · ${day(c.deliveredOn)} · '
+                      '${c.gradeMet == true ? 'مطابقٌ للدرجة' : 'خالف الدرجة'}', '${amount(c.deliveredQuantity ?? 0)} ${r.unit} · ${day(c.deliveredOn)} · ${c.gradeMet == true ? 'meets the grade' : 'did not meet the grade'}'),
                     ),
                     if (c.deliveryNote != null) Muted(c.deliveryNote!),
                   ],
@@ -377,7 +378,7 @@ class _ForwardContractScreenState extends State<ForwardContractScreen> {
                               ? OutlinedButton.icon(
                                   onPressed: () => _take(c, a),
                                   icon: const Icon(Icons.open_in_new, size: 18),
-                                  label: Text('${a.label} (على الموقع)'),
+                                  label: Text(tr('${a.label} (على الموقع)', '${a.label} (on the website)')),
                                 )
                               : a.secondary
                               ? WarnButton(label: a.label, onPressed: () => _take(c, a))
@@ -386,7 +387,7 @@ class _ForwardContractScreenState extends State<ForwardContractScreen> {
                     ),
                   ],
                 ),
-              const SectionTitle('ما جرى على العقد'),
+              SectionTitle(tr('ما جرى على العقد', 'What happened to the contract')),
               for (final e in c.events)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -455,7 +456,7 @@ class _AgreementScreenState extends State<AgreementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('عقد الشراكة')),
+      appBar: AppBar(title: Text(tr('عقد الشراكة', 'Partnership agreement'))),
       body: _Loaded<Agreement>(
         future: _data,
         onRetry: _reload,
@@ -466,15 +467,15 @@ class _AgreementScreenState extends State<AgreementScreen> {
               alignment: AlignmentDirectional.centerStart,
               child: TagPill(
                 a.signed
-                    ? (a.managed ? 'موقَّعٌ من الأطراف الثلاثة ومقفل' : 'موقَّعٌ من الطرفين ومقفل')
-                    : 'مسوّدة — النسخة ${a.version}',
+                    ? (a.managed ? tr('موقَّعٌ من الأطراف الثلاثة ومقفل', 'Signed by all three parties and sealed') : tr('موقَّعٌ من الطرفين ومقفل', 'Signed by both parties and sealed'))
+                    : tr('مسوّدة — النسخة ${a.version}', 'Draft — version ${a.version}'),
               ),
             ),
             const SizedBox(height: 8),
             Text(a.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, height: 1.4)),
             if (a.signed && a.ref != null)
               Text(
-                'رقم العقد: ${a.ref}',
+                tr('رقم العقد: ${a.ref}', 'Agreement no.: ${a.ref}'),
                 style: TextStyle(color: textGreenOn(context), fontWeight: FontWeight.w800),
               ),
             const SizedBox(height: 12),
@@ -502,23 +503,23 @@ class _AgreementScreenState extends State<AgreementScreen> {
                     child: Column(
                       children: [
                         Text(
-                          'شهدت سوداقري',
+                          tr('شهدت سوداقري', 'Witnessed by Sudagri'),
                           style: TextStyle(fontWeight: FontWeight.w900, color: textGreenOn(context)),
                         ),
                         Muted(
                           a.managed
-                              ? 'وقّع الأطراف الثلاثة النسخة ${a.version} من هذا العقد بحساباتهم، وأُقفل في ${day(a.signedAt)}.'
-                              : 'وقّع الطرفان النسخة ${a.version} من هذا العقد بحسابيهما، وأُقفل في ${day(a.signedAt)}.',
+                              ? tr('وقّع الأطراف الثلاثة النسخة ${a.version} من هذا العقد بحساباتهم، وأُقفل في ${day(a.signedAt)}.', 'All three parties signed version ${a.version} of this agreement with their accounts, and it was sealed on ${day(a.signedAt)}.')
+                              : tr('وقّع الطرفان النسخة ${a.version} من هذا العقد بحسابيهما، وأُقفل في ${day(a.signedAt)}.', 'Both parties signed version ${a.version} of this agreement with their accounts, and it was sealed on ${day(a.signedAt)}.'),
                           size: 12,
                         ),
-                        Muted('بصمة العقد: ${a.shortHash}', size: 11),
+                        Muted(tr('بصمة العقد: ${a.shortHash}', 'The agreement\'s fingerprint: ${a.shortHash}'), size: 11),
                       ],
                     ),
                   )
                 else
                   Muted(
-                    'بصمة هذه النسخة: ${a.shortHash}'
-                    '${a.earlierSignatures > 0 ? ' — عُدِّلت البنود بعد توقيعٍ سابق، فيلزم التوقيع من جديد.' : ''}',
+                    tr('بصمة هذه النسخة: ${a.shortHash}'
+                    '${a.earlierSignatures > 0 ? ' — عُدِّلت البنود بعد توقيعٍ سابق، فيلزم التوقيع من جديد.' : ''}', 'This version\'s fingerprint: ${a.shortHash}${a.earlierSignatures > 0 ? ' — the terms were changed after an earlier signature, so it must be signed again.' : ''}'),
                     size: 11,
                   ),
               ],
@@ -526,13 +527,13 @@ class _AgreementScreenState extends State<AgreementScreen> {
             _SplitCard(agreement: a, api: _api),
             if (a.signed && (a.me == 'owner' || a.me == 'investor'))
               DealCard(
-                title: 'الموسم',
+                title: tr('الموسم', 'Season'),
                 children: [
                   if (a.seasons.isEmpty)
                     Muted(
                       a.me == 'owner'
-                          ? 'ابدأ الموسم على أرض العقد: تُولَّد مراحله بتواريخها، وتسجّل فيها الصور والمصروفات، فيقرؤها شريكك.'
-                          : 'حين يبدأ صاحب الأرض الموسم يظهر هنا، فتقرأ مراحله وصوره ودفتره.',
+                          ? tr('ابدأ الموسم على أرض العقد: تُولَّد مراحله بتواريخها، وتسجّل فيها الصور والمصروفات، فيقرؤها شريكك.', 'Start the season on the agreement\'s land: its stages are generated with their dates, you record photos and spending in them, and your partner reads them.')
+                          : tr('حين يبدأ صاحب الأرض الموسم يظهر هنا، فتقرأ مراحله وصوره ودفتره.', 'Once the landowner starts the season it appears here, and you read its stages, photos and ledger.'),
                     )
                   else
                     for (final s in a.seasons)
@@ -547,14 +548,14 @@ class _AgreementScreenState extends State<AgreementScreen> {
                     OutlinedButton(
                       onPressed: () => openOnSite(context, '/seasons/new?agreement=${a.id}'),
                       child: Text(
-                        a.seasons.isEmpty ? 'ابدأ الموسم (على الموقع)' : 'ابدأ موسماً آخر من العقد (على الموقع)',
+                        a.seasons.isEmpty ? tr('ابدأ الموسم (على الموقع)', 'Start the season (on the website)') : tr('ابدأ موسماً آخر من العقد (على الموقع)', 'Start another season from the agreement (on the website)'),
                       ),
                     ),
                 ],
               ),
             if (a.hasStatement)
               DealCard(
-                title: 'الحساب بينكما',
+                title: tr('الحساب بينكما', 'The account between you'),
                 children: [
                   for (final r in a.statementRows)
                     Padding(
@@ -578,11 +579,11 @@ class _AgreementScreenState extends State<AgreementScreen> {
                           TextSpan(
                             children: [
                               TextSpan(
-                                text: '✓ وقّعتَ هذه النسخة. ',
+                                text: tr('✓ وقّعتَ هذه النسخة. ', '✓ You have signed this version.'),
                                 style: TextStyle(fontWeight: FontWeight.w800, color: textGreenOn(context)),
                               ),
                               if (a.waitingLabels.isNotEmpty)
-                                TextSpan(text: 'بقي توقيع: ${a.waitingLabels.join('، ')} — ووصله إشعار.'),
+                                TextSpan(text: tr('بقي توقيع: ${a.waitingLabels.join('، ')} — ووصله إشعار.', 'Still to sign: ${a.waitingLabels.join(', ')} — and they were notified.')),
                             ],
                           ),
                         ),
@@ -592,7 +593,7 @@ class _AgreementScreenState extends State<AgreementScreen> {
               TextButton.icon(
                 onPressed: () => openOnSite(context, '/invest/agreements/${a.id}'),
                 icon: const Icon(Icons.edit_note),
-                label: Text(a.version == 1 ? 'اكتبا بنود العقد (على الموقع)' : 'عدّل البنود (على الموقع)'),
+                label: Text(a.version == 1 ? tr('اكتبا بنود العقد (على الموقع)', 'Write the agreement\'s terms together (on the website)') : tr('عدّل البنود (على الموقع)', 'Change the terms (on the website)')),
               ),
           ],
         ),
@@ -621,7 +622,7 @@ class _SignatureBox extends StatelessWidget {
         children: [
           Muted(label, size: 12),
           if (s == null)
-            const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text('لم يوقّع بعد'))
+            Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text(tr('لم يوقّع بعد', 'Not signed yet')))
           else ...[
             SizedBox(height: 70, child: SignatureView(s.signature)),
             Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w800)),
@@ -671,14 +672,14 @@ class _SignFormState extends State<_SignForm> {
   @override
   Widget build(BuildContext context) {
     return DealCard(
-      title: 'وقّع العقد',
+      title: tr('وقّع العقد', 'Sign the agreement'),
       highlight: true,
       children: [
         TextField(
           key: const Key('sign-name'),
           controller: _name,
           maxLength: 120,
-          decoration: const InputDecoration(labelText: 'اسمك الكامل كما في إثبات هويّتك'),
+          decoration: InputDecoration(labelText: tr('اسمك الكامل كما في إثبات هويّتك', 'Your full name, as on your ID')),
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 6),
@@ -689,8 +690,8 @@ class _SignFormState extends State<_SignForm> {
           controlAffinity: ListTileControlAffinity.leading,
           value: _agree,
           onChanged: (v) => setState(() => _agree = v ?? false),
-          title: const Text(
-            'قرأتُ العقد كاملاً وأوافق على بنوده، وأعلم أنّ سوداقري تحفظه وتشهد عليه ولا تمسك مالاً ولا تضمن ربحاً.',
+          title: Text(
+            tr('قرأتُ العقد كاملاً وأوافق على بنوده، وأعلم أنّ سوداقري تحفظه وتشهد عليه ولا تمسك مالاً ولا تضمن ربحاً.', 'I have read the whole agreement and accept its terms; I understand Sudagri keeps and witnesses it, holds no money and guarantees no profit.'),
             style: TextStyle(fontSize: 13, height: 1.6),
           ),
         ),
@@ -700,7 +701,7 @@ class _SignFormState extends State<_SignForm> {
             key: const Key('sign-button'),
             onPressed: _complete && !_busy ? _sign : null,
             icon: const Icon(Icons.draw_outlined),
-            label: const Text('أوقّع'),
+            label: Text(tr('أوقّع', 'Sign')),
           ),
         ),
       ],
@@ -751,46 +752,46 @@ class _SplitCardState extends State<_SplitCard> {
   Widget build(BuildContext context) {
     final a = widget.agreement;
     final parties = [
-      ('cost_owner', 'صاحب الأرض'),
-      ('cost_investor', 'المستثمر'),
-      if (a.managed) ('cost_manager', 'الشركة المديرة'),
+      ('cost_owner', tr('صاحب الأرض', 'Landowner')),
+      ('cost_investor', tr('المستثمر', 'Investor')),
+      if (a.managed) ('cost_manager', tr('الشركة المديرة', 'Managing company')),
     ];
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
         shape: const Border(),
-        title: const Text('كيف يُقسم الحصاد؟ (حاسبة)', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(tr('كيف يُقسم الحصاد؟ (حاسبة)', 'How will the harvest be split? (calculator)'), style: TextStyle(fontWeight: FontWeight.w800)),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final s in a.shares) Text('${s.$1}: ${s.$2}٪'),
-          if (a.rent != null) Text('الأجرة في العقد: ${a.rent}'),
+          for (final s in a.shares) Text(tr('${s.$1}: ${s.$2}٪', '${s.$1}: ${s.$2}%')),
+          if (a.rent != null) Text(tr('الأجرة في العقد: ${a.rent}', 'The rent in the agreement: ${a.rent}')),
           const SizedBox(height: 6),
-          const Muted(
-            'اكتب ما تتوقّعه أو ما حدث بالدولار؛ تظهر القسمة بحسب نصّ هذا العقد. حاسبةٌ للتقدير، ولا تضمن المنصّة عائداً.',
+          Muted(
+            tr('اكتب ما تتوقّعه أو ما حدث بالدولار؛ تظهر القسمة بحسب نصّ هذا العقد. حاسبةٌ للتقدير، ولا تضمن المنصّة عائداً.', 'Enter what you expect, or what happened, in US dollars; the split follows this agreement\'s text. An estimate only — the platform guarantees no return.'),
             size: 12,
           ),
           TextField(
             controller: _f('revenue'),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: a.model == 'musaqah' ? 'قيمة الثمر المباع (\$)' : 'ثمن المحصول المباع (\$)',
+              labelText: a.model == 'musaqah' ? tr('قيمة الثمر المباع (\$)', 'Value of the fruit sold (\$)') : tr('ثمن المحصول المباع (\$)', 'Price of the crop sold (\$)'),
             ),
           ),
           if (a.model == 'lease')
             TextField(
               controller: _f('rent'),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'الأجرة بالدولار (\$)'),
+              decoration: InputDecoration(labelText: tr('الأجرة بالدولار (\$)', 'The rent in dollars (\$)')),
             ),
           for (final p in parties)
             TextField(
               controller: _f(p.$1),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText: 'تكلفة دفعها ${p.$2} (\$)'),
+              decoration: InputDecoration(labelText: tr('تكلفة دفعها ${p.$2} (\$)', 'A cost paid by ${p.$2} (\$)')),
             ),
           const SizedBox(height: 10),
-          OutlinedButton(onPressed: _work, child: const Text('احسب القسمة')),
+          OutlinedButton(onPressed: _work, child: Text(tr('احسب القسمة', 'Work out the split'))),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -801,7 +802,7 @@ class _SplitCardState extends State<_SplitCard> {
             for (final p in _result!.parties)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text('${p.$1}: يستلم ${p.$2} · دفع ${p.$3} · الصافي ${p.$4}'),
+                child: Text(tr('${p.$1}: يستلم ${p.$2} · دفع ${p.$3} · الصافي ${p.$4}', '${p.$1}: receives ${p.$2} · paid ${p.$3} · net ${p.$4}')),
               ),
             Text('${_result!.profitLabel}: ${_result!.profit}', style: const TextStyle(fontWeight: FontWeight.w800)),
             for (final n in _result!.notes) Muted('• $n', size: 12),
@@ -816,6 +817,6 @@ class _SplitCardState extends State<_SplitCard> {
 Future<void> openLink(BuildContext context, String url) async {
   final messenger = ScaffoldMessenger.of(context);
   if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
-    messenger.showSnackBar(const SnackBar(content: Text('تعذّر فتح الرابط.')));
+    messenger.showSnackBar(SnackBar(content: Text(tr('تعذّر فتح الرابط.', 'Could not open the link.'))));
   }
 }

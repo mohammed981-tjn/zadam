@@ -20,6 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'account.dart';
+import 'i18n.dart';
 import 'ledger_autosend.dart';
 import 'screens/account_screen.dart';
 import 'screens/assistant_screen.dart';
@@ -37,6 +38,8 @@ void main() {
   ledgerAutoSender.start();
   // The chosen palette (owner, 6 November 2026): «ألوان الشعار» unless «أخضر الأوراق» was picked in «حسابي».
   paletteController.load();
+  // The language (owner, 6 November 2026, backlog 208): Arabic unless English was chosen in the menu or «حسابي».
+  langController.load();
   // Back from Google's sign-in in the browser (backlog 173): `sudagri://auth?h=…`, while open or as the app starts.
   AppLinks().uriLinkStream.listen(
     accountController.handleLink,
@@ -45,22 +48,46 @@ void main() {
   runApp(const SudagriApp());
 }
 
-class SudagriApp extends StatelessWidget {
+class SudagriApp extends StatefulWidget {
   const SudagriApp({super.key});
+
+  @override
+  State<SudagriApp> createState() => _SudagriAppState();
+}
+
+class _SudagriAppState extends State<SudagriApp> {
+  @override
+  void initState() {
+    super.initState();
+    langController.addListener(_languageChanged);
+  }
+
+  @override
+  void dispose() {
+    langController.removeListener(_languageChanged);
+    super.dispose();
+  }
+
+  /// A new language reaches every string, the ones a model or a list hands a widget too ([tr] reads the language
+  /// when the widget builds), so the whole tree is built again — once, on the switch.
+  void _languageChanged() {
+    setState(() {});
+    rebuildAllElements();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Palette>(
       valueListenable: paletteController,
       builder: (context, palette, _) => MaterialApp(
-        title: 'سوداقري',
+        title: tr('سوداقري', 'Sudagri'),
         debugShowCheckedModeBanner: false,
         theme: sudagriLight,
         darkTheme: sudagriDark,
-        // Arabic throughout, so the whole tree lays out right-to-left without
-        // every screen having to wrap itself in a Directionality.
-        locale: const Locale('ar'),
-        supportedLocales: const [Locale('ar')],
+        // The chosen language for the whole tree: Arabic lays it out right-to-left and English left-to-right
+        // (GlobalWidgetsLocalizations gives the Directionality), without every screen wrapping itself in one.
+        locale: langController.locale,
+        supportedLocales: const [Locale('ar'), Locale('en')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
@@ -114,12 +141,12 @@ class _Dest {
   final String label;
 }
 
-const _destinations = [
-  _Dest(Icons.home_outlined, Icons.home_rounded, 'الرئيسية'),
-  _Dest(Icons.water_drop_outlined, Icons.water_drop, 'الري'),
-  _Dest(Icons.chat_bubble_outline, Icons.chat_bubble, 'المساعد'),
-  _Dest(Icons.menu_book_outlined, Icons.menu_book, 'المعرفة'),
-  _Dest(Icons.person_outline, Icons.person, 'حسابي'),
+List<_Dest> get _destinations => [
+  _Dest(Icons.home_outlined, Icons.home_rounded, tr('الرئيسية', 'Home')),
+  _Dest(Icons.water_drop_outlined, Icons.water_drop, tr('الري', 'Irrigation')),
+  _Dest(Icons.chat_bubble_outline, Icons.chat_bubble, tr('المساعد', 'Assistant')),
+  _Dest(Icons.menu_book_outlined, Icons.menu_book, tr('المعرفة', 'Knowledge')),
+  _Dest(Icons.person_outline, Icons.person, tr('حسابي', 'My account')),
 ];
 
 /// The bottom bar: five equal slots; the selected one is a light-olive pill

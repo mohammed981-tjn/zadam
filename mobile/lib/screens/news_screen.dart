@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../ui.dart';
 
@@ -37,7 +38,7 @@ class _NewsScreenState extends State<NewsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('جديد سوداقري')),
+      appBar: AppBar(title: Text(tr('جديد سوداقري', 'What\'s new on Sudagri'))),
       body: RefreshIndicator(
         onRefresh: () async => setState(() => _future = _api.news()),
         child: FutureBuilder<List<NewsItem>>(
@@ -55,9 +56,9 @@ class _NewsScreenState extends State<NewsScreen> {
             }
             final items = snapshot.data!;
             if (items.isEmpty) {
-              return const StateView(
+              return StateView(
                 icon: Icons.newspaper_rounded,
-                title: 'لا أخبار منشورة بعد.',
+                title: tr('لا أخبار منشورة بعد.', 'No news published yet.'),
                 scrollable: true,
               );
             }
@@ -79,9 +80,9 @@ class _NewsScreenState extends State<NewsScreen> {
 
 /// The date the website prints, in Arabic: «٢٥ سبتمبر ٢٠٢٦».
 String newsDate(DateTime d) {
-  const months = [
-    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+  final months = [
+    tr('يناير', 'January'), tr('فبراير', 'February'), tr('مارس', 'March'), tr('أبريل', 'April'), tr('مايو', 'May'), tr('يونيو', 'June'),
+    tr('يوليو', 'July'), tr('أغسطس', 'August'), tr('سبتمبر', 'September'), tr('أكتوبر', 'October'), tr('نوفمبر', 'November'), tr('ديسمبر', 'December'),
   ];
   final local = d.toUtc().add(const Duration(hours: 2)); // Khartoum, UTC+2
   return '${local.day} ${months[local.month - 1]} ${local.year}';
@@ -133,7 +134,7 @@ class _NewsCard extends StatelessWidget {
           if (item.linkPath != null) ...[
             const SizedBox(height: 10),
             Text(
-              'التفاصيل على الموقع: ${item.linkLabel ?? item.linkPath}',
+              tr('التفاصيل على الموقع: ${item.linkLabel ?? item.linkPath}', 'Details on the website: ${item.linkLabel ?? item.linkPath}'),
               style: TextStyle(fontSize: 12, color: mutedOn(context)),
             ),
           ],

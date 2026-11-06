@@ -14,50 +14,51 @@ import 'package:http/http.dart' as http;
 
 import 'account.dart';
 import 'api.dart';
+import 'i18n.dart';
 
 // ── Labels, as src/lib/supplyChain.ts ──────────────────────────────────────
 
-const supplyCategories = <String, String>{
-  'fertilizer': 'أسمدة',
-  'seed': 'بذور وتقاوي',
-  'pesticide': 'مبيدات',
-  'other': 'أخرى',
+Map<String, String> get supplyCategories => <String, String>{
+  'fertilizer': tr('أسمدة', 'Fertiliser'),
+  'seed': tr('بذور وتقاوي', 'Seed'),
+  'pesticide': tr('مبيدات', 'Pesticides'),
+  'other': tr('أخرى', 'Other'),
 };
 
 /// The input keys a product can carry (so the feasibility study finds it), with their category.
-const inputLabels = <String, (String, String)>{
-  'urea': ('يوريا', 'fertilizer'),
-  'DAP': ('داب', 'fertilizer'),
-  'TSP': ('سوبر فوسفات ثلاثي', 'fertilizer'),
-  'NPK': ('سماد مركّب NPK', 'fertilizer'),
-  'seed': ('تقاوي', 'seed'),
-  'insecticide': ('مبيد حشري', 'pesticide'),
-  'herbicide': ('مبيد حشائش', 'pesticide'),
-  'fungicide': ('مبيد فطري', 'pesticide'),
+Map<String, (String, String)> get inputLabels => <String, (String, String)>{
+  'urea': (tr('يوريا', 'Urea'), 'fertilizer'),
+  'DAP': (tr('داب', 'DAP'), 'fertilizer'),
+  'TSP': (tr('سوبر فوسفات ثلاثي', 'TSP'), 'fertilizer'),
+  'NPK': (tr('سماد مركّب NPK', 'NPK'), 'fertilizer'),
+  'seed': (tr('تقاوي', 'Seed'), 'seed'),
+  'insecticide': (tr('مبيد حشري', 'Insecticide'), 'pesticide'),
+  'herbicide': (tr('مبيد حشائش', 'Herbicide'), 'pesticide'),
+  'fungicide': (tr('مبيد فطري', 'Fungicide'), 'pesticide'),
 };
 
-const packUnits = <String, String>{'kg': 'كجم', 'g': 'جم', 'l': 'لتر', 'ml': 'مل', 'unit': 'وحدة'};
+Map<String, String> get packUnits => <String, String>{'kg': tr('كجم', 'kg'), 'g': tr('جم', 'g'), 'l': tr('لتر', 'L'), 'ml': tr('مل', 'mL'), 'unit': tr('وحدة', 'unit')};
 
-const orderStatusLabels = <String, String>{
-  'open': 'مفتوح للانضمام',
-  'closed': 'أُغلق الانضمام',
-  'delivered': 'سُلّم',
-  'cancelled': 'أُلغي',
+Map<String, String> get orderStatusLabels => <String, String>{
+  'open': tr('مفتوح للانضمام', 'Open to join'),
+  'closed': tr('أُغلق الانضمام', 'Joining closed'),
+  'delivered': tr('سُلّم', 'Delivered'),
+  'cancelled': tr('أُلغي', 'Cancelled'),
 };
 
-const pledgeStatusLabels = <String, String>{
-  'pledged': 'متعهّد — بانتظار المقدّم',
-  'deposit_received': 'استُلم المقدّم',
-  'collected': 'استلم بضاعته',
-  'withdrawn': 'انسحب',
-  'defaulted': 'متعثّر — خارج الحمولة',
+Map<String, String> get pledgeStatusLabels => <String, String>{
+  'pledged': tr('متعهّد — بانتظار المقدّم', 'Pledged — awaiting deposit'),
+  'deposit_received': tr('استُلم المقدّم', 'Deposit received'),
+  'collected': tr('استلم بضاعته', 'Collected'),
+  'withdrawn': tr('انسحب', 'Withdrawn'),
+  'defaulted': tr('متعثّر — خارج الحمولة', 'Defaulted — out of the load'),
 };
 
-const deliveryStatusLabels = <String, String>{
-  'assigned': 'بانتظار التسليم',
-  'confirmed': 'سُلّم بالرمز — مستحقّ الدفع للناقل',
-  'paid': 'دُفع للناقل',
-  'cancelled': 'أُلغي',
+Map<String, String> get deliveryStatusLabels => <String, String>{
+  'assigned': tr('بانتظار التسليم', 'Awaiting handover'),
+  'confirmed': tr('سُلّم بالرمز — مستحقّ الدفع للناقل', 'Delivered with the code — carrier payable'),
+  'paid': tr('دُفع للناقل', 'Carrier paid'),
+  'cancelled': tr('أُلغي', 'Cancelled'),
 };
 
 /// The organiser's moves on an order, as the website's panel offers them.
@@ -65,18 +66,18 @@ const orderMoves = <String, List<String>>{
   'open': ['closed', 'cancelled'],
   'closed': ['open', 'delivered', 'cancelled'],
 };
-const orderMoveLabels = <String, String>{
-  'closed': 'أغلق الانضمام',
-  'open': 'أعد فتح الانضمام',
-  'delivered': 'سُلّمت الحمولة',
-  'cancelled': 'ألغِ الطلب',
+Map<String, String> get orderMoveLabels => <String, String>{
+  'closed': tr('أغلق الانضمام', 'Close joining'),
+  'open': tr('أعد فتح الانضمام', 'Reopen joining'),
+  'delivered': tr('سُلّمت الحمولة', 'Load delivered'),
+  'cancelled': tr('ألغِ الطلب', 'Cancel the request'),
 };
 
 /// Sudan's eighteen states, as stored (src/lib/nafir.ts).
 const sudanStates = [
-  'الخرطوم', 'الجزيرة', 'سنار', 'النيل الأزرق', 'النيل الأبيض', 'القضارف', 'كسلا',
-  'البحر الأحمر', 'نهر النيل', 'الشمالية', 'شمال كردفان', 'جنوب كردفان', 'غرب كردفان',
-  'شمال دارفور', 'جنوب دارفور', 'شرق دارفور', 'غرب دارفور', 'وسط دارفور',
+  'الخرطوم', 'الجزيرة', 'سنار', 'النيل الأزرق', 'النيل الأبيض', 'القضارف', 'كسلا', // ar-only
+  'البحر الأحمر', 'نهر النيل', 'الشمالية', 'شمال كردفان', 'جنوب كردفان', 'غرب كردفان', // ar-only
+  'شمال دارفور', 'جنوب دارفور', 'شرق دارفور', 'غرب دارفور', 'وسط دارفور', // ar-only
 ];
 
 // ── Numbers, money and dates ───────────────────────────────────────────────
@@ -91,11 +92,11 @@ String figure(num n, [int digits = 2]) {
 }
 
 String usd(num n) => '\$${figure(n)}';
-String sdg(num n) => '${n.round()} جنيه';
+String sdg(num n) => tr('${n.round()} جنيه', 'SDG ${n.round()}');
 
-const _months = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+List<String> get _months => [
+  tr('يناير', 'January'), tr('فبراير', 'February'), tr('مارس', 'March'), tr('أبريل', 'April'), tr('مايو', 'May'), tr('يونيو', 'June'),
+  tr('يوليو', 'July'), tr('أغسطس', 'August'), tr('سبتمبر', 'September'), tr('أكتوبر', 'October'), tr('نوفمبر', 'November'), tr('ديسمبر', 'December'),
 ];
 
 /// «12 أكتوبر 2026» from a date or a timestamp; the text as it came when it is neither.
@@ -367,7 +368,7 @@ class Delivery {
   double? get gpsLng => toDoubleOrNull(j['gps_lng']);
   String? get confirmedAt => j['confirmed_at'] as String?;
   String? get paidRef => j['paid_ref'] as String?;
-  String get heading => '${kind == 'to_farm' ? 'إلى الأرض' : 'إلى نقطة الاستلام'}: $destination';
+  String get heading => tr('${kind == 'to_farm' ? 'إلى الأرض' : 'إلى نقطة الاستلام'}: $destination', '${kind == 'to_farm' ? 'To the farm' : 'To the collection point'}: $destination');
 }
 
 /// Opening an order: the current ones, the suppliers to choose from, and the chosen one's offers.
@@ -512,12 +513,12 @@ class SuppliersApi {
 
   /// The public reads, without a session — what the website shows a visitor.
   Future<Map<String, dynamic>> _public(String path) async {
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     late final http.Response res;
     try {
-      res = await _client.get(Uri.parse('$_site$path')).timeout(const Duration(seconds: 30));
+      res = await _client.get(Uri.parse('$_site$path'), headers: langController.header).timeout(const Duration(seconds: 30));
     } catch (_) {
-      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
     }
     Map<String, dynamic> body;
     try {
@@ -525,7 +526,7 @@ class SuppliersApi {
     } catch (_) {
       body = const {};
     }
-    if (res.statusCode != 200) throw ApiException(body['error'] as String? ?? 'تعذّر التحميل (${res.statusCode}).');
+    if (res.statusCode != 200) throw ApiException(body['error'] as String? ?? tr('تعذّر التحميل (${res.statusCode}).', 'Could not load (${res.statusCode}).'));
     return body;
   }
 
@@ -534,7 +535,7 @@ class SuppliersApi {
   Future<({Supplier supplier, List<Product> products, double? rate, bool comingSoon})> supplier(String id) async {
     final j = await _public('/api/app/suppliers/$id');
     if (j['coming_soon'] == true || j['supplier'] == null) {
-      throw ApiException('دليل الموردين يُفعَّل قريباً.');
+      throw ApiException(tr('دليل الموردين يُفعَّل قريباً.', 'The supplier directory is coming soon.'));
     }
     return (
       supplier: Supplier.fromJson(j['supplier'] as Map<String, dynamic>),

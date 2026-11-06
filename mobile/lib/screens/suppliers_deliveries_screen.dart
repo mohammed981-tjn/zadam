@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../suppliers.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -43,21 +44,21 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('رمز الاستلام'),
+          title: Text(tr('رمز الاستلام', 'Handover code')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('أعطه للسائق وحده عند وصول البضاعة.', textAlign: TextAlign.center),
+              Text(tr('أعطه للسائق وحده عند وصول البضاعة.', 'Give it to the driver alone, when the goods arrive.'), textAlign: TextAlign.center),
               const SizedBox(height: 12),
               Directionality(
                 textDirection: TextDirection.ltr,
                 child: SelectableText(a.code ?? '', style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 8)),
               ),
               const SizedBox(height: 8),
-              const Muted('إن ضغطت «أصدر رمزاً» مرّةً أخرى توقّف هذا الرمز وصدر غيره.'),
+              Muted(tr('إن ضغطت «أصدر رمزاً» مرّةً أخرى توقّف هذا الرمز وصدر غيره.', 'If you press «Issue a code» again, this code stops and another is issued.')),
             ],
           ),
-          actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('حسناً'))],
+          actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('حسناً', 'OK')))],
         ),
       );
     } on ApiException catch (e) {
@@ -68,7 +69,7 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
   @override
   Widget build(BuildContext context) {
     return SignedInGate(
-      why: 'ادخل لترى توصيلاتك أو لتسجّل ناقلاً.',
+      why: tr('ادخل لترى توصيلاتك أو لتسجّل ناقلاً.', 'Sign in to see your deliveries or to register as a carrier.'),
       builder: (context) {
         _view ??= widget.api.deliveries();
         return FutureBuilder<DeliveriesView>(
@@ -78,36 +79,36 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
             if (snap.hasError) return StateView.error(snap.error, onRetry: _reload, scrollable: true);
             final v = snap.data!;
             if (v.comingSoon) {
-              return const StateView(icon: Icons.hourglass_empty_rounded, title: 'يُفعَّل قريباً', scrollable: true);
+              return StateView(icon: Icons.hourglass_empty_rounded, title: tr('يُفعَّل قريباً', 'Coming soon'), scrollable: true);
             }
             return RefreshIndicator(
               onRefresh: () async => _reload(),
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                 children: [
-                  const IntroNote(
-                    'المنصّة لا تملك شاحنات. التوصيل بناقلين محلّيين يوثّقهم المشرف، والتسليم لا يُثبت إلا بثلاثة أشياء معاً: '
+                  IntroNote(
+                    tr('المنصّة لا تملك شاحنات. التوصيل بناقلين محلّيين يوثّقهم المشرف، والتسليم لا يُثبت إلا بثلاثة أشياء معاً: '
                     'صورةٌ يلتقطها السائق للبضاعة في مكان التسليم، وموقعُ هاتفه لحظتها، ورمزُ المزارع — ستّة أرقامٍ يراها المستلم '
                     'وحده ويعطيها للسائق بعد أن يرى بضاعته، ويُقفل بعد خمس محاولاتٍ خاطئة. حين يطابق الرمز يصير التوصيل «مستحقّ '
-                    'الدفع» للناقل، ومن أسنده يدفع له خارج المنصّة.',
+                    'الدفع» للناقل، ومن أسنده يدفع له خارج المنصّة.', 'The platform owns no trucks. Delivery is by local carriers the supervisor verifies, and a handover is proven only by three things together: a photo the driver takes of the goods at the handover place, the phone\'s location at that moment, and the farmer\'s code — six digits only the recipient sees and gives to the driver after seeing the goods, locked after five wrong tries. When the code matches, the delivery becomes «payment due» to the carrier, and whoever assigned it pays them outside the platform.'),
                     icon: Icons.local_shipping_outlined,
                   ),
                   const SizedBox(height: 16),
-                  const SectionTitle('توصيلاتٌ إليك'),
+                  SectionTitle(tr('توصيلاتٌ إليك', 'Deliveries to you')),
                   if (v.toMe.isEmpty)
-                    const Muted('لا توصيل إليك الآن. حين يُسند منظّم طلبك توصيلاً إلى أرضك يظهر هنا مع زرّ رمز الاستلام.'),
+                    Muted(tr('لا توصيل إليك الآن. حين يُسند منظّم طلبك توصيلاً إلى أرضك يظهر هنا مع زرّ رمز الاستلام.', 'No delivery to you now. When your order’s organiser assigns one to your farm it appears here with the handover-code button.')),
                   for (final d in v.toMe)
                     _DeliveryCard(d: d, api: widget.api, actions: [
                       if (d.status == 'assigned')
                         FilledButton.icon(
                           onPressed: () => _issueCode(d),
                           icon: const Icon(Icons.pin_outlined, size: 18),
-                          label: const Text('أصدر رمز الاستلام'),
+                          label: Text(tr('أصدر رمز الاستلام', 'Issue the handover code')),
                         ),
                     ]),
                   if (v.toCarry.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    const SectionTitle('توصيلاتٌ أُسندت إليك ناقلاً'),
+                    SectionTitle(tr('توصيلاتٌ أُسندت إليك ناقلاً', 'Deliveries assigned to you as carrier')),
                     for (final d in v.toCarry)
                       _DeliveryCard(d: d, api: widget.api, actions: [
                         if (d.status == 'assigned')
@@ -119,32 +120,32 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
                               if (done == true && mounted) _reload();
                             },
                             icon: const Icon(Icons.task_alt_rounded, size: 18),
-                            label: const Text('أكّد التسليم'),
+                            label: Text(tr('أكّد التسليم', 'Confirm handover')),
                           ),
                       ]),
                   ],
                   if (v.assigned.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    const SectionTitle('توصيلاتٌ أسندتَها'),
+                    SectionTitle(tr('توصيلاتٌ أسندتَها', 'Deliveries you assigned')),
                     for (final d in v.assigned)
                       _DeliveryCard(d: d, api: widget.api, actions: [
                         if (d.status == 'confirmed')
                           FilledButton(
                             onPressed: () async {
                               final ref = await askText(context,
-                                  title: 'دفعتُ للناقل', label: 'رقم تحويل الأجرة', minLength: 4, maxLength: 60, direction: TextDirection.ltr);
+                                  title: tr('دفعتُ للناقل', 'I paid the carrier'), label: tr('رقم تحويل الأجرة', 'Fee transfer ref.'), minLength: 4, maxLength: 60, direction: TextDirection.ltr);
                               if (ref != null) await _step('paid', {'delivery_id': d.id, 'reference': ref});
                             },
-                            child: const Text('دفعتُ للناقل'),
+                            child: Text(tr('دفعتُ للناقل', 'I paid the carrier')),
                           ),
                         if (d.status == 'assigned')
                           TextButton(
                             onPressed: () async {
-                              if (await askSure(context, title: 'إلغاء التوصيل', message: 'يُلغى هذا التوصيل، ولا يُسلَّم بالرمز بعده.', action: 'ألغِ التوصيل')) {
+                              if (await askSure(context, title: tr('إلغاء التوصيل', 'Cancel the delivery'), message: tr('يُلغى هذا التوصيل، ولا يُسلَّم بالرمز بعده.', 'This delivery is cancelled, and cannot be handed over with the code after this.'), action: tr('ألغِ التوصيل', 'Cancel the delivery'))) {
                                 await _step('cancel', {'delivery_id': d.id});
                               }
                             },
-                            child: const Text('ألغِ هذا التوصيل'),
+                            child: Text(tr('ألغِ هذا التوصيل', 'Cancel this delivery')),
                           ),
                       ]),
                   ],
@@ -161,13 +162,13 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
 
   Widget _carrierCard(Carrier? c) {
     return InfoCard(highlight: true, children: [
-      Text(c == null ? 'أنا ناقل — سجّلني' : 'بياناتك ناقلاً', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+      Text(c == null ? tr('أنا ناقل — سجّلني', 'I am a carrier — register me') : tr('بياناتك ناقلاً', 'Your carrier details'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
       if (c != null) ...[
         c.verifiedAt != null
-            ? Text('✓ موثّق منذ ${dateAr(c.verifiedAt)}', style: TextStyle(color: textGreenOn(context), fontWeight: FontWeight.w700))
-            : const WarnText('بانتظار مراجعة المشرف'),
-        Muted('${c.name} · ${c.vehicle} · ${figure(c.capacityTonnes, 1)} طن · ${c.states.join('، ')}'),
-        if (c.reviewNote != null && c.reviewNote!.isNotEmpty) Muted('ملاحظة المشرف: ${c.reviewNote}'),
+            ? Text(tr('✓ موثّق منذ ${dateAr(c.verifiedAt)}', '✓ Verified since ${dateAr(c.verifiedAt)}'), style: TextStyle(color: textGreenOn(context), fontWeight: FontWeight.w700))
+            : WarnText(tr('بانتظار مراجعة المشرف', 'Awaiting administrator review')),
+        Muted(tr('${c.name} · ${c.vehicle} · ${figure(c.capacityTonnes, 1)} طن · ${c.states.join('، ')}', '${c.name} · ${c.vehicle} · ${figure(c.capacityTonnes, 1)} t · ${c.states.join(', ')}')),
+        if (c.reviewNote != null && c.reviewNote!.isNotEmpty) Muted(tr('ملاحظة المشرف: ${c.reviewNote}', 'Supervisor\'s note: ${c.reviewNote}')),
       ],
       const SizedBox(height: 8),
       OutlinedButton(
@@ -175,7 +176,7 @@ class _DeliveriesTabState extends State<DeliveriesTab> {
           final saved = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => CarrierScreen(carrier: c, api: widget.api)));
           if (saved == true && mounted) _reload();
         },
-        child: Text(c == null ? 'سجّلني ناقلاً' : 'عدّل بياناتي'),
+        child: Text(c == null ? tr('سجّلني ناقلاً', 'Register me as a carrier') : tr('عدّل بياناتي', 'Edit my details')),
       ),
     ]);
   }
@@ -197,14 +198,14 @@ class _DeliveryCard extends StatelessWidget {
           Flexible(child: TagPill(d.statusLabel, gold: d.status == 'assigned')),
         ]),
         Muted([
-          if (d.feeUsd != null) 'الأجرة ${usd(d.feeUsd!)}',
-          if (d.confirmedAt != null) 'سُلّم ${dateAr(d.confirmedAt)}',
-          if (d.paidRef != null) 'دُفع: ${d.paidRef}',
+          if (d.feeUsd != null) tr('الأجرة ${usd(d.feeUsd!)}', 'Fee ${usd(d.feeUsd!)}'),
+          if (d.confirmedAt != null) tr('سُلّم ${dateAr(d.confirmedAt)}', 'Handed over ${dateAr(d.confirmedAt)}'),
+          if (d.paidRef != null) tr('دُفع: ${d.paidRef}', 'Paid: ${d.paidRef}'),
         ].join(' · ')),
         Wrap(spacing: 6, runSpacing: 6, children: [
           TextButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => OrderScreen(id: d.orderId, api: api))),
-            child: const Text('الطلب'),
+            child: Text(tr('الطلب', 'The order')),
           ),
           if (d.gpsLat != null && d.gpsLng != null)
             TextButton(
@@ -238,17 +239,17 @@ class _HandoverScreenState extends State<HandoverScreen> {
   void _say(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
   Future<void> _locate() async {
-    if (!await Geolocator.isLocationServiceEnabled()) return _say('شغّل الموقع (GPS) في الجوّال ثمّ أعد المحاولة.');
+    if (!await Geolocator.isLocationServiceEnabled()) return _say(tr('شغّل الموقع (GPS) في الجوّال ثمّ أعد المحاولة.', 'Turn on location (GPS) on the phone, then try again.'));
     var p = await Geolocator.checkPermission();
     if (p == LocationPermission.denied) p = await Geolocator.requestPermission();
     if (p == LocationPermission.denied || p == LocationPermission.deniedForever) {
-      return _say('لم يُؤذن للتطبيق بموقعك، والتسليم لا يُؤكَّد بغيره.');
+      return _say(tr('لم يُؤذن للتطبيق بموقعك، والتسليم لا يُؤكَّد بغيره.', 'The app was not given permission for your location, and a handover cannot be confirmed without it.'));
     }
     try {
       final pos = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.best));
       if (mounted) setState(() => _at = pos);
     } catch (_) {
-      _say('تعذّرت قراءة الموقع. جرّب في مكانٍ مكشوف.');
+      _say(tr('تعذّرت قراءة الموقع. جرّب في مكانٍ مكشوف.', 'Could not read the location. Try in an open place.'));
     }
   }
 
@@ -274,14 +275,14 @@ class _HandoverScreenState extends State<HandoverScreen> {
   Widget build(BuildContext context) {
     final ready = _photo != null && _at != null && _code.text.replaceAll(RegExp(r'\D'), '').length == 6;
     return Scaffold(
-      appBar: AppBar(title: const Text('أكّد التسليم')),
+      appBar: AppBar(title: Text(tr('أكّد التسليم', 'Confirm handover'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
           Text(widget.delivery.heading, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 12),
           InfoCard(children: [
-            const Text('١. صوّر البضاعة في مكان التسليم', style: TextStyle(fontWeight: FontWeight.w800)),
+            Text(tr('١. صوّر البضاعة في مكان التسليم', '1. Photograph the goods at the handover place'), style: TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             OutlinedButton.icon(
               onPressed: () async {
@@ -289,22 +290,22 @@ class _HandoverScreenState extends State<HandoverScreen> {
                 if (b != null && mounted) setState(() => _photo = b);
               },
               icon: Icon(_photo == null ? Icons.photo_camera_outlined : Icons.check_circle_outline),
-              label: Text(_photo == null ? 'صوّر' : 'صُوّرت ✓ — أعد التصوير'),
+              label: Text(_photo == null ? tr('صوّر', 'Photograph') : tr('صُوّرت ✓ — أعد التصوير', 'Photographed ✓ — take it again')),
             ),
           ]),
           const SizedBox(height: 10),
           InfoCard(children: [
-            const Text('٢. موقع التسليم', style: TextStyle(fontWeight: FontWeight.w800)),
+            Text(tr('٢. موقع التسليم', '2. Handover location'), style: TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             OutlinedButton.icon(
               onPressed: _locate,
               icon: const Icon(Icons.my_location_rounded),
-              label: Text(_at == null ? 'حدّد موقعي الآن' : '${_at!.latitude.toStringAsFixed(5)}, ${_at!.longitude.toStringAsFixed(5)} (±${_at!.accuracy.round()} م)'),
+              label: Text(_at == null ? tr('حدّد موقعي الآن', 'Use my location now') : tr('${_at!.latitude.toStringAsFixed(5)}, ${_at!.longitude.toStringAsFixed(5)} (±${_at!.accuracy.round()} م)', '${_at!.latitude.toStringAsFixed(5)}, ${_at!.longitude.toStringAsFixed(5)} (±${_at!.accuracy.round()} m)')),
             ),
           ]),
           const SizedBox(height: 10),
           InfoCard(children: [
-            const Text('٣. رمز المستلم (٦ أرقام)', style: TextStyle(fontWeight: FontWeight.w800)),
+            Text(tr('٣. رمز المستلم (٦ أرقام)', '3. The recipient\'s code (6 digits)'), style: TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             TextField(
               controller: _code,
@@ -315,10 +316,10 @@ class _HandoverScreenState extends State<HandoverScreen> {
               style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.w800),
               onChanged: (_) => setState(() {}),
             ),
-            const Muted('يعطيك إيّاه المستلم بعد أن يرى بضاعته. يُقفل بعد خمس محاولاتٍ خاطئة.'),
+            Muted(tr('يعطيك إيّاه المستلم بعد أن يرى بضاعته. يُقفل بعد خمس محاولاتٍ خاطئة.', 'The recipient gives it to you after seeing the goods. It locks after five wrong tries.')),
           ]),
           const SizedBox(height: 16),
-          FilledButton(onPressed: ready && !_busy ? _confirm : null, child: Text(_busy ? 'جارٍ التأكيد…' : 'أكّد التسليم')),
+          FilledButton(onPressed: ready && !_busy ? _confirm : null, child: Text(_busy ? tr('جارٍ التأكيد…', 'Confirming…') : tr('أكّد التسليم', 'Confirm handover'))),
         ],
       ),
     );
@@ -361,26 +362,26 @@ class _CarrierScreenState extends State<CarrierScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.carrier == null ? 'سجّلني ناقلاً' : 'بياناتي ناقلاً')),
+      appBar: AppBar(title: Text(widget.carrier == null ? tr('سجّلني ناقلاً', 'Register me as a carrier') : tr('بياناتي ناقلاً', 'My carrier details'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
-          TextField(controller: _name, maxLength: 80, decoration: const InputDecoration(labelText: 'اسمك أو اسم شركة الترحيل')),
-          TextField(controller: _phone, keyboardType: TextInputType.phone, textDirection: TextDirection.ltr, decoration: const InputDecoration(labelText: 'الهاتف')),
+          TextField(controller: _name, maxLength: 80, decoration: InputDecoration(labelText: tr('اسمك أو اسم شركة الترحيل', 'Your name or the transport company’s'))),
+          TextField(controller: _phone, keyboardType: TextInputType.phone, textDirection: TextDirection.ltr, decoration: InputDecoration(labelText: tr('الهاتف', 'Phone'))),
           const SizedBox(height: 10),
-          TextField(controller: _vehicle, maxLength: 80, decoration: const InputDecoration(labelText: 'المركبة: دفّار ٧ طن، لوري، بوكس')),
+          TextField(controller: _vehicle, maxLength: 80, decoration: InputDecoration(labelText: tr('المركبة: دفّار ٧ طن، لوري، بوكس', 'Vehicle: 7 t truck, lorry, pickup'))),
           TextField(
             controller: _capacity,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'الحمولة بالطن'),
+            decoration: InputDecoration(labelText: tr('الحمولة بالطن', 'Capacity in tonnes')),
           ),
           const SizedBox(height: 16),
-          const SectionTitle('الولايات التي تعمل فيها'),
+          SectionTitle(tr('الولايات التي تعمل فيها', 'States you work in')),
           StatesPicker(selected: _states, onChanged: (s) => setState(() => _states = s)),
           const SizedBox(height: 10),
-          const Muted('تغيير الاسم أو المركبة بعد التوثيق يعيدك إلى المراجعة.'),
+          Muted(tr('تغيير الاسم أو المركبة بعد التوثيق يعيدك إلى المراجعة.', 'Changing the name or vehicle after verification sends you back for review.')),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _busy ? null : _save, child: const Text('احفظ')),
+          FilledButton(onPressed: _busy ? null : _save, child: Text(tr('احفظ', 'Save'))),
         ],
       ),
     );

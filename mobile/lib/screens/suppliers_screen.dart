@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
 import '../suppliers.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -33,15 +34,15 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
       initialIndex: widget.initialTab,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('الموردون'),
-          bottom: const TabBar(
+          title: Text(tr('الموردون', 'Suppliers')),
+          bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             tabs: [
-              Tab(text: 'من أين أشتري؟'),
-              Tab(text: 'الطلبات الجماعية'),
-              Tab(text: 'التوصيل'),
-              Tab(text: 'صفحتي كمورد'),
+              Tab(text: tr('من أين أشتري؟', 'Where do I buy?')),
+              Tab(text: tr('الطلبات الجماعية', 'Group orders')),
+              Tab(text: tr('التوصيل', 'Deliveries')),
+              Tab(text: tr('صفحتي كمورد', 'My supplier page')),
             ],
           ),
         ),
@@ -88,9 +89,9 @@ class _DirectoryTabState extends State<DirectoryTab> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
-              const IntroNote(
-                'واردات السماد هبطت من نحو ٤٥٠ ألف طن في السنة إلى نحو ٥٠ ألفاً في 2024، وتضاعفت الأسعار، وانتشرت '
-                'المبيدات المغشوشة. هنا موردون رأينا رخصهم بأعيننا، وكلُّ منتجٍ برقم تسجيله، وسعره بالدولار وبالجنيه اليوم.',
+              IntroNote(
+                tr('واردات السماد هبطت من نحو ٤٥٠ ألف طن في السنة إلى نحو ٥٠ ألفاً في 2024، وتضاعفت الأسعار، وانتشرت '
+                'المبيدات المغشوشة. هنا موردون رأينا رخصهم بأعيننا، وكلُّ منتجٍ برقم تسجيله، وسعره بالدولار وبالجنيه اليوم.', 'Fertiliser imports fell from about 450 thousand tonnes a year to about 50 thousand in 2024, prices doubled, and counterfeit pesticides spread. Here are suppliers whose licences we saw with our own eyes, every product with its registration number, and its price in dollars and in pounds today.'),
                 icon: Icons.storefront_outlined,
               ),
               const SizedBox(height: 12),
@@ -98,18 +99,18 @@ class _DirectoryTabState extends State<DirectoryTab> {
               if (d.rateNote != null) ...[const SizedBox(height: 8), Muted(d.rateNote!)],
               const SizedBox(height: 12),
               if (d.comingSoon)
-                const StateView(
+                StateView(
                   icon: Icons.hourglass_empty_rounded,
-                  title: 'يُفعَّل قريباً',
-                  message: 'دليل الموردين بُني وينتظر تفعيل قاعدة بياناته. يستطيع الموردون التسجيل فور تفعيلها.',
+                  title: tr('يُفعَّل قريباً', 'Coming soon'),
+                  message: tr('دليل الموردين بُني وينتظر تفعيل قاعدة بياناته. يستطيع الموردون التسجيل فور تفعيلها.', 'The supplier directory is built and waiting for its database to be switched on. Suppliers can register as soon as it is.'),
                   compact: true,
                 )
               else if (shown.isEmpty)
                 StateView(
                   icon: Icons.storefront_outlined,
-                  title: _item != null || _state != null ? 'لا مورد موثّقاً بهذا بعد.' : 'لا مورد موثّقاً بعد.',
-                  message: 'إن كنت تعرف تاجراً مرخّصاً في منطقتك فدُلّه على «صفحتي كمورد». '
-                      'ويمكن لجمعيتك أن تجمع طلبات الأعضاء في طلبٍ جماعيٍّ واحد.',
+                  title: _item != null || _state != null ? tr('لا مورد موثّقاً بهذا بعد.', 'No verified supplier for this yet.') : tr('لا مورد موثّقاً بعد.', 'No verified supplier yet.'),
+                  message: tr('إن كنت تعرف تاجراً مرخّصاً في منطقتك فدُلّه على «صفحتي كمورد». '
+                      'ويمكن لجمعيتك أن تجمع طلبات الأعضاء في طلبٍ جماعيٍّ واحد.', 'If you know a licensed trader in your area, point them to «My supplier page». And your association can gather its members\' orders into one group order.'),
                   compact: true,
                 )
               else
@@ -118,9 +119,9 @@ class _DirectoryTabState extends State<DirectoryTab> {
                   const SizedBox(height: 10),
                 ],
               const SizedBox(height: 8),
-              const IntroNote(
-                'الأسعار هنا عروضٌ يكتبها المورد بنفسه حتى تاريخٍ يحدّده، لا أسعار سوقٍ مرجعيّة. '
-                'وإن شككت في منتج فتحقّق من رقم تسجيله لدى المجلس القومي للمبيدات قبل أن تشتري.',
+              IntroNote(
+                tr('الأسعار هنا عروضٌ يكتبها المورد بنفسه حتى تاريخٍ يحدّده، لا أسعار سوقٍ مرجعيّة. '
+                'وإن شككت في منتج فتحقّق من رقم تسجيله لدى المجلس القومي للمبيدات قبل أن تشتري.', 'The prices here are offers the supplier writes themselves, valid until a date they set, not reference market prices. If you doubt a product, check its registration number with the National Pesticides Council before you buy.'),
               ),
             ],
           ),
@@ -136,9 +137,9 @@ class _DirectoryTabState extends State<DirectoryTab> {
           child: DropdownButtonFormField<String?>(
             initialValue: _item,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'ماذا تريد؟'),
+            decoration: InputDecoration(labelText: tr('ماذا تريد؟', 'What do you need?')),
             items: [
-              const DropdownMenuItem<String?>(value: null, child: Text('كلّ المدخلات')),
+              DropdownMenuItem<String?>(value: null, child: Text(tr('كلّ المدخلات', 'All inputs'))),
               for (final e in supplyCategories.entries) DropdownMenuItem<String?>(value: e.key, child: Text(e.value)),
               for (final e in inputLabels.entries) DropdownMenuItem<String?>(value: e.key, child: Text(e.value.$1)),
             ],
@@ -150,10 +151,10 @@ class _DirectoryTabState extends State<DirectoryTab> {
           child: DropdownButtonFormField<String?>(
             initialValue: _state,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'ولايتك'),
+            decoration: InputDecoration(labelText: tr('ولايتك', 'Your state')),
             items: [
-              const DropdownMenuItem<String?>(value: null, child: Text('كلّ الولايات')),
-              for (final s in sudanStates) DropdownMenuItem<String?>(value: s, child: Text(s)),
+              DropdownMenuItem<String?>(value: null, child: Text(tr('كلّ الولايات', 'All states'))),
+              for (final s in sudanStates) DropdownMenuItem<String?>(value: s, child: Text(placeName(s))),
             ],
             onChanged: (v) => setState(() => _state = v),
           ),
@@ -179,22 +180,22 @@ class _SupplierCard extends StatelessWidget {
         Row(
           children: [
             Expanded(child: Text(s.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
-            if (s.verified) const TagPill('موثّق', icon: Icons.verified_outlined),
+            if (s.verified) TagPill(tr('موثّق', 'Verified'), icon: Icons.verified_outlined),
           ],
         ),
-        Muted('${s.state} — ${s.locality}${s.deliveryStates.isNotEmpty ? ' · يوصل إلى: ${s.deliveryStates.join('، ')}' : ''}'),
+        Muted(tr('${s.state} — ${s.locality}${s.deliveryStates.isNotEmpty ? ' · يوصل إلى: ${s.deliveryStates.join('، ')}' : ''}', '${s.state} — ${s.locality}${s.deliveryStates.isNotEmpty ? ' · delivers to: ${s.deliveryStates.join(', ')}' : ''}')),
         if ([s.pesticideLicenceNo, s.seedRegistrationNo, s.commercialRegistrationNo].any((x) => x != null && x.isNotEmpty))
           Muted([
-            if (s.pesticideLicenceNo?.isNotEmpty == true) 'رخصة المجلس القومي للمبيدات: ${s.pesticideLicenceNo}',
-            if (s.seedRegistrationNo?.isNotEmpty == true) 'تسجيل التقاوي: ${s.seedRegistrationNo}',
-            if (s.commercialRegistrationNo?.isNotEmpty == true) 'السجلّ التجاري: ${s.commercialRegistrationNo}',
+            if (s.pesticideLicenceNo?.isNotEmpty == true) tr('رخصة المجلس القومي للمبيدات: ${s.pesticideLicenceNo}', 'National Pesticides Council licence: ${s.pesticideLicenceNo}'),
+            if (s.seedRegistrationNo?.isNotEmpty == true) tr('تسجيل التقاوي: ${s.seedRegistrationNo}', 'Seed registration: ${s.seedRegistrationNo}'),
+            if (s.commercialRegistrationNo?.isNotEmpty == true) tr('السجلّ التجاري: ${s.commercialRegistrationNo}', 'Commercial registration: ${s.commercialRegistrationNo}'),
           ].join(' · '), size: 11.5),
         for (final p in products.take(4)) ProductTile(p, rate: rate),
         const SizedBox(height: 6),
         Row(
           children: [
             Expanded(child: ContactButtons(supplier: s)),
-            Text(products.length > 4 ? 'كلّ منتجاته (${products.length}) ←' : 'صفحة المورد ←',
+            Text(products.length > 4 ? tr('كلّ منتجاته (${products.length}) ←', 'All their products (${products.length}) →') : tr('صفحة المورد ←', 'Supplier page →'),
                 style: TextStyle(color: textGreenOn(context), fontWeight: FontWeight.w700, fontSize: 13)),
           ],
         ),
@@ -217,12 +218,12 @@ class ContactButtons extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: () => openLink(context, 'tel:${supplier.phone}'),
           icon: const Icon(Icons.call_outlined, size: 18),
-          label: const Text('اتّصل'),
+          label: Text(tr('اتّصل', 'Call')),
         ),
         OutlinedButton.icon(
           onPressed: () => openLink(context, whatsappLink(wa)),
           icon: const Icon(Icons.chat_outlined, size: 18),
-          label: const Text('واتساب'),
+          label: Text(tr('واتساب', 'WhatsApp')),
         ),
       ],
     );
@@ -245,7 +246,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('مورد')),
+      appBar: AppBar(title: Text(tr('مورد', 'Supplier'))),
       body: FutureBuilder(
         future: _page,
         builder: (context, snap) {
@@ -265,9 +266,9 @@ class _SupplierScreenState extends State<SupplierScreen> {
                   children: [
                     Text(s.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
-                    s.verified ? const TagPill('موثّق', icon: Icons.verified_outlined) : const TagPill('بانتظار التوثيق', gold: true),
+                    s.verified ? TagPill(tr('موثّق', 'Verified'), icon: Icons.verified_outlined) : TagPill(tr('بانتظار التوثيق', 'Awaiting verification'), gold: true),
                     const SizedBox(height: 6),
-                    Text('${s.state} — ${s.locality}${s.verified ? ' · وُثّق في ${dateAr(s.verifiedAt)}' : ''}'),
+                    Text(tr('${s.state} — ${s.locality}${s.verified ? ' · وُثّق في ${dateAr(s.verifiedAt)}' : ''}', '${s.state} — ${s.locality}${s.verified ? ' · verified on ${dateAr(s.verifiedAt)}' : ''}')),
                     if (s.bio != null && s.bio!.isNotEmpty) ...[const SizedBox(height: 8), Text(s.bio!, style: const TextStyle(height: 1.8))],
                     const SizedBox(height: 10),
                     ContactButtons(supplier: s),
@@ -276,16 +277,16 @@ class _SupplierScreenState extends State<SupplierScreen> {
               ),
               const SizedBox(height: 12),
               InfoCard(children: [
-                LabelValue('يوصل إلى', s.deliveryStates.isEmpty ? 'لا توصيل — الاستلام من المحلّ' : s.deliveryStates.join('، ')),
-                LabelValue('يبيع', s.categories.map((c) => supplyCategories[c] ?? c).join('، ')),
-                LabelValue('رخصة المجلس القومي للمبيدات', s.pesticideLicenceNo ?? '—'),
-                LabelValue('التسجيل لدى الإدارة القومية للتقاوي', s.seedRegistrationNo ?? '—'),
-                LabelValue('السجلّ التجاري', s.commercialRegistrationNo ?? '—'),
+                LabelValue(tr('يوصل إلى', 'Delivers to'), s.deliveryStates.isEmpty ? tr('لا توصيل — الاستلام من المحلّ', 'No delivery — collect from the shop') : s.deliveryStates.join(tr('، ', ', '))),
+                LabelValue(tr('يبيع', 'Sells'), s.categories.map((c) => supplyCategories[c] ?? c).join(tr('، ', ', '))),
+                LabelValue(tr('رخصة المجلس القومي للمبيدات', 'National Pesticides Council licence'), s.pesticideLicenceNo ?? '—'),
+                LabelValue(tr('التسجيل لدى الإدارة القومية للتقاوي', 'Registration with the National Seed Administration'), s.seedRegistrationNo ?? '—'),
+                LabelValue(tr('السجلّ التجاري', 'Commercial registration'), s.commercialRegistrationNo ?? '—'),
               ]),
               const SizedBox(height: 16),
-              const SectionTitle('المنتجات والعروض'),
+              SectionTitle(tr('المنتجات والعروض', 'Products and offers')),
               if (products.isEmpty)
-                const Muted('لم يُدرج منتجاتٍ بعد. اتّصل به وسَله.')
+                Muted(tr('لم يُدرج منتجاتٍ بعد. اتّصل به وسَله.', 'No products listed yet. Call and ask.'))
               else
                 for (final c in supplyCategories.keys)
                   if (products.any((p) => p.category == c)) ...[
@@ -301,7 +302,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
                   MaterialPageRoute(builder: (_) => NewOrderScreen(api: widget.api, supplierId: s.id)),
                 ),
                 icon: const Icon(Icons.groups_outlined),
-                label: const Text('اجمع جيرانك في طلبٍ جماعيٍّ من هذا المورد'),
+                label: Text(tr('اجمع جيرانك في طلبٍ جماعيٍّ من هذا المورد', 'Gather your neighbours into a group order from this supplier')),
               ),
             ],
           );

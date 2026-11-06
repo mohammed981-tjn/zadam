@@ -27,6 +27,7 @@ import 'package:http/http.dart' as http;
 import 'account.dart';
 import 'api.dart';
 import 'feasibility.dart' show AppCall;
+import 'i18n.dart';
 
 Map<String, dynamic> _map(Object? v) => (v as Map?)?.cast<String, dynamic>() ?? const {};
 List<Map<String, dynamic>> _maps(Object? v) => [for (final x in (v as List? ?? const [])) _map(x)];
@@ -35,12 +36,12 @@ String? _str(Object? v) => v is String && v.isNotEmpty ? v : null;
 /// The website's limit: twenty megabytes, PDF only (lib/research.ts, RESEARCH_MAX_BYTES).
 const researchMaxBytes = 20 * 1024 * 1024;
 
-const researchKindLabels = {
-  'feasibility': 'دراسة جدوى',
-  'research': 'بحثٌ علميّ',
-  'thesis': 'رسالة جامعيّة',
-  'report': 'تقرير',
-  'other': 'غير ذلك',
+Map<String, String> get researchKindLabels => {
+  'feasibility': tr('دراسة جدوى', 'Feasibility study'),
+  'research': tr('بحثٌ علميّ', 'Research paper'),
+  'thesis': tr('رسالة جامعيّة', 'Thesis'),
+  'report': tr('تقرير', 'Report'),
+  'other': tr('غير ذلك', 'Other'),
 };
 
 class ResearchItem {
@@ -288,13 +289,13 @@ class ResearchDraft {
   String? problem({int maxBytes = researchMaxBytes}) {
     final pdf = fileBytes;
     if (pdf != null && (pdf.length > maxBytes || !(fileName ?? '').toLowerCase().endsWith('.pdf'))) {
-      return 'الملفّ PDF حتى ٢٠ ميجابايت.';
+      return tr('الملفّ PDF حتى ٢٠ ميجابايت.', 'The file is a PDF of up to 20 MB.');
     }
-    if (pdf == null && linkUrl.trim().isEmpty) return 'أرفق ملفّ PDF أو ضع رابط العمل.';
-    if (title.trim().length < 5) return 'العنوان من ٥ أحرفٍ إلى ٢٠٠.';
-    if (authors.trim().length < 2) return 'اكتب اسم المؤلّف أو المؤلّفين.';
-    if (abstract.trim().length < 40) return 'الملخّص من ٤٠ حرفاً إلى ٣٠٠٠: ما الذي درسته، وكيف، وماذا وجدت.';
-    if (!consent) return 'أكّد أنّ لك حقّ مشاركة هذا العمل، أو أنّه منشورٌ للعموم.';
+    if (pdf == null && linkUrl.trim().isEmpty) return tr('أرفق ملفّ PDF أو ضع رابط العمل.', 'Attach a PDF or give a link to the work.');
+    if (title.trim().length < 5) return tr('العنوان من ٥ أحرفٍ إلى ٢٠٠.', 'The title is from 5 to 200 characters.');
+    if (authors.trim().length < 2) return tr('اكتب اسم المؤلّف أو المؤلّفين.', 'Write the name of the author or authors.');
+    if (abstract.trim().length < 40) return tr('الملخّص من ٤٠ حرفاً إلى ٣٠٠٠: ما الذي درسته، وكيف، وماذا وجدت.', 'The abstract is from 40 to 3,000 characters: what you studied, how, and what you found.');
+    if (!consent) return tr('أكّد أنّ لك حقّ مشاركة هذا العمل، أو أنّه منشورٌ للعموم.', 'Confirm that you have the right to share this work, or that it is published openly.');
     return null;
   }
 
@@ -342,17 +343,17 @@ class LibraryApi {
   static const _timeout = Duration(seconds: 40);
 
   Future<Map<String, dynamic>> _get(String path, [Map<String, String>? query]) async {
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     final uri = Uri.parse('$_site$path').replace(queryParameters: query == null || query.isEmpty ? null : query);
     late final http.Response res;
     try {
-      res = await _client.get(uri).timeout(_timeout);
+      res = await _client.get(uri, headers: langController.header).timeout(_timeout);
     } catch (_) {
-      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
     }
     final j = _decode(res);
     if (res.statusCode != 200) {
-      throw ApiException(_str(j['error']) ?? _str(j['message']) ?? 'تعذّر التحميل (${res.statusCode}).');
+      throw ApiException(_str(j['error']) ?? _str(j['message']) ?? tr('تعذّر التحميل (${res.statusCode}).', 'Could not load (${res.statusCode}).'));
     }
     return j;
   }
@@ -409,18 +410,18 @@ class LibraryApi {
           )
           .timeout(_timeout);
     } catch (_) {
-      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
     }
     final j = _decode(res);
     if (res.statusCode != 200 || j['ok'] != true) {
-      throw ApiException(_str(j['message']) ?? 'تعذّر الإرسال الآن، حاول بعد قليل.');
+      throw ApiException(_str(j['message']) ?? tr('تعذّر الإرسال الآن، حاول بعد قليل.', 'Sending failed just now; try again shortly.'));
     }
     return j;
   }
 
   /// «شارك دراستك أو بحثك»: the website form's two steps. Nothing is published by being sent.
   Future<void> submit(ResearchDraft d, {int maxBytes = researchMaxBytes}) async {
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     final problem = d.problem(maxBytes: maxBytes);
     if (problem != null) throw ApiException(problem);
     final token = await _token();
@@ -432,7 +433,7 @@ class LibraryApi {
       final path = _str(slot['path']);
       final uploadToken = _str(slot['token']);
       if (path == null || uploadToken == null || _supabase.isEmpty) {
-        throw ApiException('تعذّر تجهيز رفع الملفّ. حاول بعد قليل.');
+        throw ApiException(tr('تعذّر تجهيز رفع الملفّ. حاول بعد قليل.', 'Could not prepare the upload. Try again shortly.'));
       }
       // As the browser's uploadToSignedUrl: the file itself, to the one path the server made, with its token.
       final uri = Uri.parse('$_supabase/storage/v1/object/upload/sign/research/$path')
@@ -451,9 +452,9 @@ class LibraryApi {
                 body: pdf)
             .timeout(const Duration(minutes: 3));
       } catch (_) {
-        throw ApiException('تعذّر رفع الملفّ. تحقّق من الاتّصال وأعد المحاولة.');
+        throw ApiException(tr('تعذّر رفع الملفّ. تحقّق من الاتّصال وأعد المحاولة.', 'The upload failed. Check the connection and try again.'));
       }
-      if (up.statusCode != 200) throw ApiException('تعذّر رفع الملفّ. تحقّق من الاتّصال وأعد المحاولة.');
+      if (up.statusCode != 200) throw ApiException(tr('تعذّر رفع الملفّ. تحقّق من الاتّصال وأعد المحاولة.', 'The upload failed. Check the connection and try again.'));
       filePath = path;
     }
     await _research(d.fields(filePath), token);

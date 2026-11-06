@@ -18,6 +18,7 @@ import 'dart:ui' show Color;
 
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'i18n.dart';
 
 /// The website's heat ramp (HEAT in src/lib/mapLayers.ts), low to high: beige into green, with no
 /// red and no orange — the owner made no exception for data maps. scripts/verify-app-maps.ts fails
@@ -410,24 +411,24 @@ class MapsException implements Exception {
 
 /// The map's layers from the website. Public, as /map is: no session is sent.
 Future<MapsData> fetchMaps(http.Client client, String siteUrl) async {
-  if (siteUrl.isEmpty) throw MapsException('الخرائط غير مضبوطة في هذه النسخة من التطبيق.');
+  if (siteUrl.isEmpty) throw MapsException(tr('الخرائط غير مضبوطة في هذه النسخة من التطبيق.', 'Maps are not set up in this version of the app.'));
   late final http.Response res;
   try {
     res = await client.get(Uri.parse('$siteUrl/api/app/map')).timeout(const Duration(seconds: 30));
   } catch (_) {
-    throw MapsException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+    throw MapsException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
   }
   // A proxy or an error page can answer with HTML: that is a failed load, not a crash.
   try {
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     if (res.statusCode != 200) {
-      throw MapsException(body['error'] as String? ?? 'تعذّر تحميل الخرائط (${res.statusCode}).');
+      throw MapsException(body['error'] as String? ?? tr('تعذّر تحميل الخرائط (${res.statusCode}).', 'Could not load the maps (${res.statusCode}).'));
     }
     return MapsData.fromJson(body);
   } on MapsException {
     rethrow;
   } catch (_) {
-    throw MapsException('تعذّر تحميل الخرائط (${res.statusCode}).');
+    throw MapsException(tr('تعذّر تحميل الخرائط (${res.statusCode}).', 'Could not load the maps (${res.statusCode}).'));
   }
 }
 
@@ -466,14 +467,14 @@ List<StyleLayer> withArabicLabels(List<StyleLayer> layers) => [
 /// The names OpenFreeMap's tiles give the dashed line that cuts the Halaib triangle from Sudan
 /// (read from a tile on 24 October, src/lib/mapStyle.ts), in the spellings it has been seen in.
 const halaibNames = <String>[
-  'السودان-مثلثحلايب',
-  'السودان-مثلث حلايب',
-  'مثلثحلايب',
-  'مثلث حلايب',
-  'حلايب',
-  'السودان-مثلثحلائب',
-  'مثلث حلائب',
-  'حلائب',
+  'السودان-مثلثحلايب', // ar-only
+  'السودان-مثلث حلايب', // ar-only
+  'مثلثحلايب', // ar-only
+  'مثلث حلايب', // ar-only
+  'حلايب', // ar-only
+  'السودان-مثلثحلائب', // ar-only
+  'مثلث حلائب', // ar-only
+  'حلائب', // ar-only
   'Halaib Triangle',
   "Hala'ib Triangle",
 ];
@@ -606,7 +607,7 @@ class GroundStyle {
 Future<GroundStyle> loadGroundStyle(http.Client client, String styleUrl) async {
   Future<Map<String, dynamic>> getJson(String url) async {
     final res = await client.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
-    if (res.statusCode != 200) throw MapsException('تعذّر تحميل الخريطة (${res.statusCode}).');
+    if (res.statusCode != 200) throw MapsException(tr('تعذّر تحميل الخريطة (${res.statusCode}).', 'Could not load the map (${res.statusCode}).'));
     return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
   }
 
@@ -630,6 +631,6 @@ Future<GroundStyle> loadGroundStyle(http.Client client, String styleUrl) async {
       // One source that will not answer (the shaded relief, say) leaves the rest of the map.
     }
   }
-  if (!sources.values.any((s) => s.type == 'vector')) throw MapsException('تعذّر تحميل الخريطة الآن.');
+  if (!sources.values.any((s) => s.type == 'vector')) throw MapsException(tr('تعذّر تحميل الخريطة الآن.', 'Could not load the map right now.'));
   return GroundStyle.read(style, sources);
 }

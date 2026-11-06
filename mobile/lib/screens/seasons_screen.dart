@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../account.dart';
 import '../api.dart';
+import '../i18n.dart';
 import '../ledger_autosend.dart';
 import '../seasons.dart';
 import '../theme.dart';
@@ -34,15 +35,15 @@ class RequireSignIn extends StatelessWidget {
             children: [
               StateView(
                 icon: Icons.lock_person_rounded,
-                title: 'ادخل إلى حسابك',
-                message: 'ترى $what بعد أن تدخل بحسابك في سوداقري — الرقم وكلمة المرور نفسهما في الموقع والتطبيق.',
+                title: tr('ادخل إلى حسابك', 'Sign in to your account'),
+                message: tr('ترى $what بعد أن تدخل بحسابك في سوداقري — الرقم وكلمة المرور نفسهما في الموقع والتطبيق.', 'You see $what after you sign in with your Sudagri account — the same number and password on the website and in the app.'),
                 compact: true,
               ),
               Center(
                 child: FilledButton.icon(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
                   icon: const Icon(Icons.login),
-                  label: const Text('ادخل أو أنشئ حساباً'),
+                  label: Text(tr('ادخل أو أنشئ حساباً', 'Sign in or create an account')),
                 ),
               ),
             ],
@@ -63,8 +64,8 @@ class SeasonsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('مواسمي')),
-      body: RequireSignIn(what: 'مواسمك', builder: (_) => _SeasonsBody(api: api ?? SeasonsApi())),
+      appBar: AppBar(title: Text(tr('مواسمي', 'My seasons'))),
+      body: RequireSignIn(what: tr('مواسمك', 'your seasons'), builder: (_) => _SeasonsBody(api: api ?? SeasonsApi())),
     );
   }
 }
@@ -103,7 +104,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
     final report = ledgerAutoSender.reports.value;
     if (report == null || !mounted) return;
     if (report.refused.isNotEmpty) setState(() => _refused = report.refused);
-    if (report.sent > 0) _say('أُرسل ${report.sent} من القيود المحفوظة على هاتفك.');
+    if (report.sent > 0) _say(tr('أُرسل ${report.sent} من القيود المحفوظة على هاتفك.', '${report.sent} of the entries kept on your phone were sent.'));
     _readBox();
   }
 
@@ -120,7 +121,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
       final report = await widget.api.sendPending();
       if (mounted && (report.sent > 0 || report.refused.isNotEmpty)) {
         setState(() => _refused = report.refused);
-        if (report.sent > 0) _say('أُرسل ${report.sent} من القيود المحفوظة على هاتفك.');
+        if (report.sent > 0) _say(tr('أُرسل ${report.sent} من القيود المحفوظة على هاتفك.', '${report.sent} of the entries kept on your phone were sent.'));
       }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e);
@@ -139,13 +140,13 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
   Future<void> _blankEntry() async {
     await showLedgerEntrySheet(
       context,
-      title: 'قيدٌ بلا إنترنت',
-      note: 'نموذجٌ فارغ يعمل بلا شبكة: يُحفظ ما تكتبه على هاتفك، وحين تتّصل تختار موسمه هنا فيُرسَل.',
+      title: tr('قيدٌ بلا إنترنت', 'An entry with no internet'),
+      note: tr('نموذجٌ فارغ يعمل بلا شبكة: يُحفظ ما تكتبه على هاتفك، وحين تتّصل تختار موسمه هنا فيُرسَل.', 'A blank form that works with no network: what you write is kept on your phone, and when you are online you choose its season here and it is sent.'),
       stages: const [],
       onSubmit: (fields) async {
         final r = await widget.api.keepUnassigned(fields);
         if (!keptOk(r)) return keptMessage(r);
-        if (mounted) _say('حُفظ على هاتفك. حين تتّصل افتح «مواسمي» واختر موسمه ليُرسَل.');
+        if (mounted) _say(tr('حُفظ على هاتفك. حين تتّصل افتح «مواسمي» واختر موسمه ليُرسَل.', 'Kept on your phone. When you are online, open «My seasons» and choose its season to send it.'));
         return null;
       },
     );
@@ -158,9 +159,9 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
     if (report.refused.isNotEmpty) {
       setState(() => _refused = report.refused);
     } else if (report.sent > 0) {
-      _say('أُرسل القيد إلى موسمه.');
+      _say(tr('أُرسل القيد إلى موسمه.', 'The entry was sent to its season.'));
     } else {
-      _say('لا اتّصال الآن؛ بقي القيد على هاتفك.');
+      _say(tr('لا اتّصال الآن؛ بقي القيد على هاتفك.', 'No connection now; the entry stayed on your phone.'));
     }
     await _readBox();
   }
@@ -175,7 +176,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
-          const FadeIn(
+          FadeIn(
             child: HeroBand(
               child: Row(
                 children: [
@@ -183,7 +184,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
                   SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'كل موسم يُسجَّل هنا يبني سجلك كمنفّذ — وهو ما يقرأه محرّك التقييم.',
+                      tr('كل موسم يُسجَّل هنا يبني سجلك كمنفّذ — وهو ما يقرأه محرّك التقييم.', 'Every season recorded here builds your track record as an operator — and that is what the scoring engine reads.'),
                       style: TextStyle(height: 1.7, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -199,12 +200,12 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
               OutlinedButton.icon(
                 onPressed: _blankEntry,
                 icon: const Icon(Icons.cloud_off_rounded),
-                label: const Text('قيدٌ بلا إنترنت'),
+                label: Text(tr('قيدٌ بلا إنترنت', 'An entry with no internet')),
               ),
               FilledButton.icon(
                 onPressed: () => openOnSite(context, '/seasons/new'),
                 icon: const Icon(Icons.add),
-                label: const Text('موسم جديد'),
+                label: Text(tr('موسم جديد', 'A new season')),
               ),
             ],
           ),
@@ -221,7 +222,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SectionTitle('قيودٌ على هاتفك بلا موسم', subtitle: 'اختر موسم كلّ قيدٍ ثمّ أرسله، وأنت متّصل.'),
+                    SectionTitle(tr('قيودٌ على هاتفك بلا موسم', 'Entries on your phone with no season'), subtitle: tr('اختر موسم كلّ قيدٍ ثمّ أرسله، وأنت متّصل.', 'Choose each entry\'s season, then send it, while online.')),
                     for (final item in _unassigned)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
@@ -232,7 +233,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
                             const SizedBox(height: 6),
                             if (active.isEmpty)
                               Text(
-                                list == null ? 'تُعرض مواسمك حين تتّصل.' : 'لا موسم جارياً لك يُرسل إليه.',
+                                list == null ? tr('تُعرض مواسمك حين تتّصل.', 'Your seasons are shown when you are online.') : tr('لا موسم جارياً لك يُرسل إليه.', 'You have no running season to send it to.'),
                                 style: TextStyle(color: mutedOn(context), fontSize: 12),
                               )
                             else
@@ -242,7 +243,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
                                     child: DropdownButtonFormField<String>(
                                       initialValue: _choice[item.id] ?? active.first.id,
                                       isExpanded: true,
-                                      decoration: const InputDecoration(labelText: 'الموسم'),
+                                      decoration: InputDecoration(labelText: tr('الموسم', 'Season')),
                                       items: [
                                         for (final s in active) DropdownMenuItem(value: s.id, child: Text(s.name)),
                                       ],
@@ -252,7 +253,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
                                   const SizedBox(width: 8),
                                   FilledButton(
                                     onPressed: () => _sendUnassigned(item, _choice[item.id] ?? active.first.id),
-                                    child: const Text('أرسل'),
+                                    child: Text(tr('أرسل', 'Send')),
                                   ),
                                 ],
                               ),
@@ -263,7 +264,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
                                   await widget.api.outbox.drop(item.id);
                                   await _readBox();
                                 },
-                                child: const Text('احذفه من هاتفي'),
+                                child: Text(tr('احذفه من هاتفي', 'Delete it from my phone')),
                               ),
                             ),
                           ],
@@ -275,21 +276,21 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
             ),
           if (list != null && list.partner.isNotEmpty) ...[
             const SizedBox(height: 8),
-            const SectionTitle(
-              'مواسم شراكتك',
-              subtitle: 'مواسم يزرعها شركاؤك بعقدٍ وقّعتموه: تقرأ مراحلها وصورها ودفترها، ولا تكتب فيها.',
+            SectionTitle(
+              tr('مواسم شراكتك', 'Your partnership seasons'),
+              subtitle: tr('مواسم يزرعها شركاؤك بعقدٍ وقّعتموه: تقرأ مراحلها وصورها ودفترها، ولا تكتب فيها.', 'Seasons your partners grow under an agreement you signed: you read their stages, photos and ledger, and write none of them.'),
             ),
             for (final s in list.partner) _SeasonCard(season: s, api: widget.api, onBack: _load),
           ],
           if (list != null) ...[
             const SizedBox(height: 8),
-            const SectionTitle('مواسمي'),
+            SectionTitle(tr('مواسمي', 'My seasons')),
             if (list.mine.isEmpty)
-              const StateView(
+              StateView(
                 icon: Icons.eco_outlined,
-                title: 'لا مواسم بعد',
+                title: tr('لا مواسم بعد', 'No seasons yet'),
                 message:
-                    'لم تسجّل موسماً بعد. ابدأ بموسم واحد — حتى لو كان قد بدأ فعلاً — وسجّل مراحله ومصروفاته لتعرف ربح الفدان الحقيقي في نهايته.',
+                    tr('لم تسجّل موسماً بعد. ابدأ بموسم واحد — حتى لو كان قد بدأ فعلاً — وسجّل مراحله ومصروفاته لتعرف ربح الفدان الحقيقي في نهايته.', 'You have not recorded a season yet. Start with one — even if it has already begun — and record its stages and spending so that at the end you know the real profit per feddan.'),
                 compact: true,
               ),
             for (final (i, s) in list.mine.indexed)
@@ -304,7 +305,7 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
 /// A kept entry in a line: its item, its figure and the day it was written.
 String pendingLine(OutboxItem item) {
   final f = item.fields;
-  final currency = f['currency'] == 'SDG' ? 'ج.س' : '\$';
+  final currency = f['currency'] == 'SDG' ? tr('ج.س', 'SDG') : '\$';
   final amount = f['amount'] ?? '';
   return [
     categoryLabel(f['category'] ?? ''),
@@ -334,7 +335,7 @@ class _RefusedCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('رفض الموقع قيوداً كانت على هاتفك، فلم تُحفظ:', style: TextStyle(fontWeight: FontWeight.w800)),
+                  Text(tr('رفض الموقع قيوداً كانت على هاتفك، فلم تُحفظ:', 'The website refused entries that were on your phone, so they were not saved:'), style: TextStyle(fontWeight: FontWeight.w800)),
                   for (final (item, why) in items)
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -343,7 +344,7 @@ class _RefusedCard extends StatelessWidget {
                 ],
               ),
             ),
-            IconButton(onPressed: onClose, icon: const Icon(Icons.close), tooltip: 'إغلاق'),
+            IconButton(onPressed: onClose, icon: const Icon(Icons.close), tooltip: tr('إغلاق', 'Close')),
           ],
         ),
       ),
@@ -365,7 +366,7 @@ class _SeasonCard extends StatelessWidget {
         contentPadding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
         title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800)),
         subtitle: Text(
-          [s.crop, '${amount2(s.feddans)} فدان', if (s.location != null && s.location!.isNotEmpty) s.location!, s.plantingDate]
+          [s.crop, tr('${amount2(s.feddans)} فدان', '${amount2(s.feddans)} feddans'), if (s.location != null && s.location!.isNotEmpty) s.location!, s.plantingDate]
               .join(' · '),
         ),
         trailing: TagPill(seasonStatusLabel(s.status), gold: !s.active && s.status != 'completed'),
@@ -454,7 +455,7 @@ class _LedgerEntryFormState extends State<LedgerEntryForm> {
 
   Future<void> _submit() async {
     if (_amount.text.trim().isEmpty) {
-      setState(() => _error = 'اكتب المبلغ.');
+      setState(() => _error = tr('اكتب المبلغ.', 'Enter the amount.'));
       return;
     }
     setState(() {
@@ -484,7 +485,7 @@ class _LedgerEntryFormState extends State<LedgerEntryForm> {
 
   @override
   Widget build(BuildContext context) {
-    final decimal = [FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩.,٬]'))];
+    final decimal = [FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩.,٬]'))]; // ar-only
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: Column(
@@ -494,7 +495,7 @@ class _LedgerEntryFormState extends State<LedgerEntryForm> {
           if (widget.note != null) ...[IntroNote(widget.note!), const SizedBox(height: 12)],
           DropdownButtonFormField<String>(
             initialValue: _category,
-            decoration: const InputDecoration(labelText: 'البند'),
+            decoration: InputDecoration(labelText: tr('البند', 'Item')),
             items: [for (final (k, l) in ledgerCategories) DropdownMenuItem(value: k, child: Text(l))],
             onChanged: (v) => setState(() => _category = v ?? 'seeds'),
           ),
@@ -503,9 +504,9 @@ class _LedgerEntryFormState extends State<LedgerEntryForm> {
             DropdownButtonFormField<String>(
               initialValue: _stage,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'المرحلة (للمصروف)'),
+              decoration: InputDecoration(labelText: tr('المرحلة (للمصروف)', 'Stage (for a cost)')),
               items: [
-                const DropdownMenuItem(value: '', child: Text('بلا مرحلة')),
+                DropdownMenuItem(value: '', child: Text(tr('بلا مرحلة', 'No stage'))),
                 for (final s in widget.stages) DropdownMenuItem(value: s.id, child: Text(s.name)),
               ],
               onChanged: (v) => setState(() => _stage = v ?? ''),
@@ -516,12 +517,12 @@ class _LedgerEntryFormState extends State<LedgerEntryForm> {
             controller: _amount,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: decimal,
-            decoration: const InputDecoration(labelText: 'المبلغ'),
+            decoration: InputDecoration(labelText: tr('المبلغ', 'Amount')),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _currency,
-            decoration: const InputDecoration(labelText: 'العملة'),
+            decoration: InputDecoration(labelText: tr('العملة', 'Currency')),
             items: [for (final (k, l) in currencyChoices) DropdownMenuItem(value: k, child: Text(l))],
             onChanged: (v) => setState(() => _currency = v ?? 'USD'),
           ),
@@ -529,7 +530,7 @@ class _LedgerEntryFormState extends State<LedgerEntryForm> {
           DropdownButtonFormField<String>(
             initialValue: _paidFrom,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'دُفع أو قُبض'),
+            decoration: InputDecoration(labelText: tr('دُفع أو قُبض', 'Paid or received')),
             items: [for (final (k, l) in paidFromChoices) DropdownMenuItem(value: k, child: Text(l))],
             onChanged: (v) => setState(() => _paidFrom = v ?? 'cash'),
           ),
@@ -540,8 +541,8 @@ class _LedgerEntryFormState extends State<LedgerEntryForm> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: decimal,
               decoration: InputDecoration(
-                labelText: 'سعر الصرف (للجنيه فقط)',
-                hintText: widget.suggestedRate != null ? amount2(widget.suggestedRate!) : 'جنيه لكل دولار',
+                labelText: tr('سعر الصرف (للجنيه فقط)', 'Exchange rate (pounds only)'),
+                hintText: widget.suggestedRate != null ? amount2(widget.suggestedRate!) : tr('جنيه لكل دولار', 'pounds per dollar'),
               ),
             ),
           ],
@@ -549,7 +550,7 @@ class _LedgerEntryFormState extends State<LedgerEntryForm> {
           TextField(
             controller: _description,
             maxLength: 500,
-            decoration: const InputDecoration(labelText: 'الوصف'),
+            decoration: InputDecoration(labelText: tr('الوصف', 'Caption')),
           ),
           if (widget.rateHint != null)
             Text(widget.rateHint!, style: TextStyle(color: mutedOn(context), fontSize: 12, height: 1.6)),
@@ -563,7 +564,7 @@ class _LedgerEntryFormState extends State<LedgerEntryForm> {
             icon: _busy
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.add),
-            label: const Text('أضف قيداً'),
+            label: Text(tr('أضف قيداً', 'Add entry')),
           ),
         ],
       ),

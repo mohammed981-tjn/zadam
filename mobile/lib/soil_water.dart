@@ -21,6 +21,7 @@
 library;
 
 import 'agronomy.dart';
+import 'i18n.dart';
 
 /// Total available water, mm per metre of root zone — FAO-56 Table 19
 /// midpoints.
@@ -39,15 +40,15 @@ const Map<String, double> tawMmPerM = {
   'clay': 200,
 };
 
-const Map<String, String> soilLabel = {
-  'sand': 'رملية',
-  'loamy sand': 'رملية طميية',
-  'sandy loam': 'طميية رملية',
-  'loam': 'طميية',
-  'silt loam': 'طميية غرينية',
-  'sandy clay loam': 'طميية طينية رملية',
-  'clay loam': 'طميية طينية',
-  'clay': 'طينية',
+Map<String, String> get soilLabel => {
+  'sand': tr('رملية', 'Sand'),
+  'loamy sand': tr('رملية طميية', 'Loamy sand'),
+  'sandy loam': tr('طميية رملية', 'Sandy loam'),
+  'loam': tr('طميية', 'Loam'),
+  'silt loam': tr('طميية غرينية', 'Silt loam'),
+  'sandy clay loam': tr('طميية طينية رملية', 'Sandy clay loam'),
+  'clay loam': tr('طميية طينية', 'Clay loam'),
+  'clay': tr('طينية', 'Clay'),
 };
 
 /// The order a picker should show them in: lightest first, because that is the

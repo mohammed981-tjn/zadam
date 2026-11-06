@@ -28,28 +28,29 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
+import 'i18n.dart';
 import 'land_shape.dart';
 
 /// The country codes the website's phone field offers, in its order
 /// (src/lib/phone.ts, COUNTRIES). scripts/verify-app-account.ts holds the two
 /// lists to each other.
-const dialCodes = <(String, String)>[
-  ('249', 'السودان'),
-  ('20', 'مصر'),
-  ('966', 'السعودية'),
-  ('971', 'الإمارات'),
-  ('974', 'قطر'),
-  ('965', 'الكويت'),
-  ('90', 'تركيا'),
-  ('44', 'بريطانيا'),
-  ('1', 'أمريكا وكندا'),
+List<(String, String)> get dialCodes => <(String, String)>[
+  ('249', tr('السودان', 'Sudan')),
+  ('20', tr('مصر', 'Egypt')),
+  ('966', tr('السعودية', 'Saudi Arabia')),
+  ('971', tr('الإمارات', 'UAE')),
+  ('974', tr('قطر', 'Qatar')),
+  ('965', tr('الكويت', 'Kuwait')),
+  ('90', tr('تركيا', 'Turkey')),
+  ('44', tr('بريطانيا', 'United Kingdom')),
+  ('1', tr('أمريكا وكندا', 'USA and Canada')),
 ];
 
 /// The account's kind as the website's menu names it (src/components/Navbar.tsx).
 String roleLabel(String? role) => switch (role) {
-      'admin' => 'مدير',
-      'investor' => 'مستثمر',
-      'farmer' => 'مزارع وصاحب أرض',
+      'admin' => tr('مدير', 'Administrator'),
+      'investor' => tr('مستثمر', 'Investor'),
+      'farmer' => tr('مزارع وصاحب أرض', 'Farmer and landowner'),
       _ => '',
     };
 
@@ -144,10 +145,10 @@ class MyLand {
 
   /// The website's labels for the same states (src/app/lands/page.tsx).
   String get statusLabel => switch (verification) {
-        'verified' => 'محقّقة',
-        'submitted' => 'قيد المراجعة',
-        'rejected' => 'مرفوضة',
-        _ => 'غير محقّقة',
+        'verified' => tr('محقّقة', 'Verified'),
+        'submitted' => tr('قيد المراجعة', 'Under review'),
+        'rejected' => tr('مرفوضة', 'Rejected'),
+        _ => tr('غير محقّقة', 'Unverified'),
       };
 
   factory MyLand.fromJson(Map<String, dynamic> j) => MyLand(
@@ -333,22 +334,22 @@ class ConversationRow {
 }
 
 /// Who wrote a message, by the part they play — never their name, as on the website.
-const senderLabels = <String, String>{
-  'investor': 'المستثمر',
-  'owner': 'صاحب الأرض',
-  'manager': 'الشركة المديرة',
-  'member': 'العضو',
-  'buyer': 'المشتري',
-  'seller': 'البائع',
-  'platform': 'سوداقري',
+Map<String, String> get senderLabels => <String, String>{
+  'investor': tr('المستثمر', 'Investor'),
+  'owner': tr('صاحب الأرض', 'Landowner'),
+  'manager': tr('الشركة المديرة', 'Managing company'),
+  'member': tr('العضو', 'Member'),
+  'buyer': tr('المشتري', 'Buyer'),
+  'seller': tr('البائع', 'Seller'),
+  'platform': tr('سوداقري', 'Sudagri'),
 };
 
-const _offerUnits = <String, String>{
-  'qintar': 'قنطار',
-  'ardeb': 'أردب',
-  'sack': 'جوال',
-  'ton': 'طن',
-  'kg': 'كيلوغرام',
+Map<String, String> get _offerUnits => <String, String>{
+  'qintar': tr('قنطار', 'qintar'),
+  'ardeb': tr('أردب', 'ardeb'),
+  'sack': tr('جوال', 'bags'),
+  'ton': tr('طن', 't'),
+  'kg': tr('كيلوغرام', 'kg'),
 };
 
 /// The market offer a market thread is about, in one line, as the board shows it.
@@ -356,8 +357,8 @@ String? offerLine(Map? o) {
   if (o == null) return null;
   final q = o['quantity'];
   final qty = q is num ? (q == q.roundToDouble() ? q.toInt().toString() : q.toString()) : '$q';
-  return '${o['kind'] == 'sell' ? 'عرض بيع' : 'طلب شراء'}: ${o['crop']} · $qty ${_offerUnits[o['unit']] ?? o['unit']}'
-      ' — ${o['state']}، ${o['locality']}';
+  return tr('${o['kind'] == 'sell' ? 'عرض بيع' : 'طلب شراء'}: ${o['crop']} · $qty ${_offerUnits[o['unit']] ?? o['unit']}'
+      ' — ${o['state']}، ${o['locality']}', '${o['kind'] == 'sell' ? 'Offer to sell' : 'Request to buy'}: ${o['crop']} · $qty ${_offerUnits[o['unit']] ?? o['unit']} — ${o['state']}, ${o['locality']}');
 }
 
 class ConversationMessage {
@@ -495,14 +496,14 @@ class AccountController extends ValueNotifier<Session?> {
   }
 
   Future<http.Response> _post(String path, Map<String, dynamic> body) async {
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     try {
       return await _client
           .post(Uri.parse('$_site$path'),
-              headers: {'content-type': 'application/json'}, body: jsonEncode(body))
+              headers: {'content-type': 'application/json', ...langController.header}, body: jsonEncode(body))
           .timeout(_timeout);
     } catch (_) {
-      throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+      throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
     }
   }
 
@@ -531,7 +532,7 @@ class AccountController extends ValueNotifier<Session?> {
     });
     final body = _json(res);
     if (res.statusCode != 200) {
-      throw ApiException(body['error'] as String? ?? 'تعذّر الدخول (${res.statusCode}).');
+      throw ApiException(body['error'] as String? ?? tr('تعذّر الدخول (${res.statusCode}).', 'Could not sign in (${res.statusCode}).'));
     }
     await _keep(Session.fromJson(body));
   }
@@ -547,7 +548,7 @@ class AccountController extends ValueNotifier<Session?> {
   /// fingerprint leaves with the request. The site sends the session back sealed, openable only with that secret
   /// (src/lib/appHandoff.ts), so another app that catches the link gets nothing.
   Future<Uri> providerSignInUrl(String provider, {String side = 'farmer'}) async {
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     final random = Random.secure();
     final verifier = base64Url.encode([for (var i = 0; i < 32; i++) random.nextInt(256)]).replaceAll('=', '');
     final challenge = base64Url.encode(sha256.convert(utf8.encode(verifier)).bytes).replaceAll('=', '');
@@ -565,14 +566,14 @@ class AccountController extends ValueNotifier<Session?> {
     final prefs = await SharedPreferences.getInstance();
     final verifier = prefs.getString(_verifierKey);
     if (sealed == null || verifier == null) {
-      providerError.value = 'لم يكتمل الدخول بهذا الحساب. اضغط الزرّ مرّةً أخرى.';
+      providerError.value = tr('لم يكتمل الدخول بهذا الحساب. اضغط الزرّ مرّةً أخرى.', 'Signing in with this account did not finish. Press the button again.');
       return;
     }
     try {
       final res = await _post('/api/app/oauth/finish', {'handoff': sealed, 'verifier': verifier});
       final body = _json(res);
       if (res.statusCode != 200) {
-        providerError.value = body['error'] as String? ?? 'لم يكتمل الدخول بهذا الحساب.';
+        providerError.value = body['error'] as String? ?? tr('لم يكتمل الدخول بهذا الحساب.', 'Signing in with this account did not finish.');
         return;
       }
       await prefs.remove(_verifierKey);
@@ -602,7 +603,7 @@ class AccountController extends ValueNotifier<Session?> {
     });
     final body = _json(res);
     if (res.statusCode != 201) {
-      throw ApiException(body['error'] as String? ?? 'تعذّر إنشاء الحساب (${res.statusCode}).');
+      throw ApiException(body['error'] as String? ?? tr('تعذّر إنشاء الحساب (${res.statusCode}).', 'Could not create the account (${res.statusCode}).'));
     }
     await _keep(Session.fromJson(body));
   }
@@ -643,11 +644,13 @@ class AccountController extends ValueNotifier<Session?> {
   Future<http.Response> _authed(String method, String path, {Map<String, dynamic>? body}) async {
     for (var attempt = 0; attempt < 2; attempt++) {
       final s = await fresh(force: attempt > 0);
-      if (s == null) throw ApiException('ادخل إلى حسابك.');
+      if (s == null) throw ApiException(tr('ادخل إلى حسابك.', 'Sign in to your account.'));
       final uri = Uri.parse('$_site$path');
       final headers = {
         'authorization': 'Bearer ${s.accessToken}',
         if (body != null) 'content-type': 'application/json',
+        // The route's refusals in the reader's language (src/lib/appLocale.ts); none in Arabic.
+        ...langController.header,
       };
       late final http.Response res;
       try {
@@ -656,12 +659,12 @@ class AccountController extends ValueNotifier<Session?> {
                 : _client.get(uri, headers: headers))
             .timeout(_timeout);
       } catch (_) {
-        throw ApiException('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.');
+        throw ApiException(tr('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'Could not connect. Check the network and try again.'));
       }
       if (res.statusCode != 401) return res;
     }
     await _keep(null);
-    throw ApiException('انتهت جلستك. ادخل من جديد.');
+    throw ApiException(tr('انتهت جلستك. ادخل من جديد.', 'Your session has ended. Sign in again.'));
   }
 
   /// One signed-in request to a route under /api/app, for the sections the app shows natively (item 203): seasons,
@@ -669,11 +672,11 @@ class AccountController extends ValueNotifier<Session?> {
   /// returned on 200; any other status throws [ApiException] with the route's own `error` message, so every section
   /// shows the website's wording for a refusal rather than a status code.
   Future<Map<String, dynamic>> call(String method, String path, {Map<String, dynamic>? body}) async {
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     final res = await _authed(method, path, body: body);
     final json = _json(res);
     if (res.statusCode != 200) {
-      throw ApiException(json['error'] as String? ?? 'تعذّر الطلب (${res.statusCode}).');
+      throw ApiException(json['error'] as String? ?? tr('تعذّر الطلب (${res.statusCode}).', 'The request failed (${res.statusCode}).'));
     }
     return json;
   }
@@ -682,20 +685,20 @@ class AccountController extends ValueNotifier<Session?> {
   /// browser would not carry the session, so the app fetches the bytes itself with the same token and refresh as
   /// [call]. Any status but 200 throws [ApiException] with the route's own `error` message.
   Future<({List<int> bytes, Map<String, String> headers})> download(String path) async {
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     final res = await _authed('GET', path);
     if (res.statusCode != 200) {
-      throw ApiException(_json(res)['error'] as String? ?? 'تعذّر التنزيل (${res.statusCode}).');
+      throw ApiException(_json(res)['error'] as String? ?? tr('تعذّر التنزيل (${res.statusCode}).', 'Could not download (${res.statusCode}).'));
     }
     return (bytes: res.bodyBytes, headers: res.headers);
   }
 
   Future<Account> me() async {
-    if (_site.isEmpty) throw ApiException('التطبيق غير مضبوط للاتصال بالموقع.');
+    if (_site.isEmpty) throw ApiException(tr('التطبيق غير مضبوط للاتصال بالموقع.', 'The app is not set up to connect to the website.'));
     final res = await _authed('GET', '/api/app/me');
     final body = _json(res);
     if (res.statusCode != 200) {
-      throw ApiException(body['error'] as String? ?? 'تعذّر تحميل حسابك (${res.statusCode}).');
+      throw ApiException(body['error'] as String? ?? tr('تعذّر تحميل حسابك (${res.statusCode}).', 'Could not load your account (${res.statusCode}).'));
     }
     return Account.fromJson(body);
   }
@@ -703,7 +706,7 @@ class AccountController extends ValueNotifier<Session?> {
   Future<void> markAllRead() async {
     final res = await _authed('POST', '/api/app/notifications/read');
     if (res.statusCode != 200) {
-      throw ApiException(_json(res)['error'] as String? ?? 'تعذّر تعليمها مقروءة.');
+      throw ApiException(_json(res)['error'] as String? ?? tr('تعذّر تعليمها مقروءة.', 'Could not mark them read.'));
     }
   }
 
@@ -711,7 +714,7 @@ class AccountController extends ValueNotifier<Session?> {
   Future<void> switchSide(String side) async {
     final res = await _authed('POST', '/api/app/side', body: {'side': side});
     if (res.statusCode != 200) {
-      throw ApiException(_json(res)['error'] as String? ?? 'تعذّر تغيير الجانب (${res.statusCode}).');
+      throw ApiException(_json(res)['error'] as String? ?? tr('تعذّر تغيير الجانب (${res.statusCode}).', 'Could not change the side (${res.statusCode}).'));
     }
   }
 
@@ -737,7 +740,7 @@ class AccountController extends ValueNotifier<Session?> {
     });
     final body = _json(res);
     if (res.statusCode != 200) {
-      throw ApiException(body['error'] as String? ?? 'تعذّر تسجيل الأرض (${res.statusCode}).');
+      throw ApiException(body['error'] as String? ?? tr('تعذّر تسجيل الأرض (${res.statusCode}).', 'Could not register the land (${res.statusCode}).'));
     }
     return LandSaved.fromJson(body);
   }
@@ -748,7 +751,7 @@ class AccountController extends ValueNotifier<Session?> {
     final res = await _authed('GET', '/api/app/messages');
     final body = _json(res);
     if (res.statusCode != 200) {
-      throw ApiException(body['error'] as String? ?? 'تعذّر تحميل الرسائل (${res.statusCode}).');
+      throw ApiException(body['error'] as String? ?? tr('تعذّر تحميل الرسائل (${res.statusCode}).', 'Could not load the messages (${res.statusCode}).'));
     }
     return [
       for (final r in (body['conversations'] as List? ?? const []))
@@ -761,7 +764,7 @@ class AccountController extends ValueNotifier<Session?> {
     final res = await _authed('POST', '/api/app/messages', body: const {});
     final body = _json(res);
     if (res.statusCode != 200 || body['id'] == null) {
-      throw ApiException(body['error'] as String? ?? 'تعذّر فتح المحادثة.');
+      throw ApiException(body['error'] as String? ?? tr('تعذّر فتح المحادثة.', 'Could not open the conversation.'));
     }
     return body['id'] as String;
   }
@@ -770,7 +773,7 @@ class AccountController extends ValueNotifier<Session?> {
     final res = await _authed('GET', '/api/app/messages/$id');
     final body = _json(res);
     if (res.statusCode != 200) {
-      throw ApiException(body['error'] as String? ?? 'تعذّر فتح المحادثة.');
+      throw ApiException(body['error'] as String? ?? tr('تعذّر فتح المحادثة.', 'Could not open the conversation.'));
     }
     return ConversationView.fromJson(body);
   }
@@ -778,7 +781,7 @@ class AccountController extends ValueNotifier<Session?> {
   Future<void> sendMessage(String id, String text) async {
     final res = await _authed('POST', '/api/app/messages/$id', body: {'body': text});
     if (res.statusCode != 200) {
-      throw ApiException(_json(res)['error'] as String? ?? 'لم تُرسل الرسالة. أعد المحاولة.');
+      throw ApiException(_json(res)['error'] as String? ?? tr('لم تُرسل الرسالة. أعد المحاولة.', 'The message was not sent. Try again.'));
     }
   }
 

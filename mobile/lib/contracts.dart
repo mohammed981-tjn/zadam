@@ -15,6 +15,7 @@ library;
 import 'dart:ui';
 
 import 'account.dart';
+import 'i18n.dart';
 
 /// A signed-in request to a route under /api/app — [AccountController.call], or a stand-in in tests.
 typedef AppCall = Future<Map<String, dynamic>> Function(String method, String path, {Map<String, dynamic>? body});
@@ -55,40 +56,40 @@ String day(String? iso) {
 // ── عقود الخدمة ──────────────────────────────────────────────────────────────
 
 /// The contract's own state, in the words of /contracts and /contracts/[id].
-const serviceStatusLabel = <String, String>{
-  'draft': 'مسودة',
-  'proposed': 'معروض',
-  'active': 'سارٍ',
-  'completed': 'منجز',
-  'cancelled': 'ملغى',
-  'disputed': 'متنازع عليه',
+Map<String, String> get serviceStatusLabel => <String, String>{
+  'draft': tr('مسودة', 'Draft'),
+  'proposed': tr('معروض', 'Offered'),
+  'active': tr('سارٍ', 'Active'),
+  'completed': tr('منجز', 'Completed'),
+  'cancelled': tr('ملغى', 'Cancelled'),
+  'disputed': tr('متنازع عليه', 'Disputed'),
 };
 
 /// What each state means for the reader, as the contract page says it.
-const serviceStatusSays = <String, String>{
-  'draft': 'لم يُعرض بعد على مقدّم الخدمة. عدّل ما شئت — المراحل والأسعار ما تزال قابلة للتغيير، ولا عمل يبدأ.',
-  'proposed': 'بانتظار قبول مقدّم الخدمة. والشروط تجمّدت لحظة العرض: لا يُغيَّر سعر ولا كمية ولا تُضاف مرحلة أو تُحذف، حتى يُسحب العرض.',
-  'active': 'وقّع الطرفان. المراحل تتحرّك الآن، والدفع يتبع الإثبات.',
-  'completed': 'أُقفل بعد اعتماد كل مراحله.',
-  'cancelled': 'أُلغي قبل أن يسري.',
-  'disputed': 'أُعلن عليه نزاع. ولا يتحرّك بعدها إلا بقرار من الإدارة.',
+Map<String, String> get serviceStatusSays => <String, String>{
+  'draft': tr('لم يُعرض بعد على مقدّم الخدمة. عدّل ما شئت — المراحل والأسعار ما تزال قابلة للتغيير، ولا عمل يبدأ.', 'Not yet offered to the service provider. Change what you like — the phases and prices can still change, and no work starts.'),
+  'proposed': tr('بانتظار قبول مقدّم الخدمة. والشروط تجمّدت لحظة العرض: لا يُغيَّر سعر ولا كمية ولا تُضاف مرحلة أو تُحذف، حتى يُسحب العرض.', 'Waiting for the service provider to accept. The terms froze the moment it was offered: no price or quantity changes and no phase is added or removed until the offer is withdrawn.'),
+  'active': tr('وقّع الطرفان. المراحل تتحرّك الآن، والدفع يتبع الإثبات.', 'Both parties signed. The phases move now, and payment follows proof.'),
+  'completed': tr('أُقفل بعد اعتماد كل مراحله.', 'Closed after all its phases were approved.'),
+  'cancelled': tr('أُلغي قبل أن يسري.', 'Cancelled before it took effect.'),
+  'disputed': tr('أُعلن عليه نزاع. ولا يتحرّك بعدها إلا بقرار من الإدارة.', 'A dispute was declared on it. After that it moves only by a decision of the administrators.'),
 };
 
-const milestoneStatusLabel = <String, String>{
-  'pending': 'لم تبدأ',
-  'in_progress': 'جارية',
-  'submitted': 'سُلّمت — بانتظار الاعتماد',
-  'approved': 'معتمدة',
-  'paid': 'مدفوعة',
-  'rejected': 'مرفوضة',
+Map<String, String> get milestoneStatusLabel => <String, String>{
+  'pending': tr('لم تبدأ', 'Not started'),
+  'in_progress': tr('جارية', 'In progress'),
+  'submitted': tr('سُلّمت — بانتظار الاعتماد', 'Delivered — awaiting approval'),
+  'approved': tr('معتمدة', 'Approved'),
+  'paid': tr('مدفوعة', 'Paid'),
+  'rejected': tr('مرفوضة', 'Rejected'),
 };
 
-const evidenceKindLabel = <String, String>{
-  'photo': 'صورة',
-  'invoice': 'فاتورة',
-  'inspection': 'معاينة',
-  'report': 'تقرير',
-  'note': 'ملاحظة',
+Map<String, String> get evidenceKindLabel => <String, String>{
+  'photo': tr('صورة', 'Photo'),
+  'invoice': tr('فاتورة', 'Invoice'),
+  'inspection': tr('معاينة', 'Inspection'),
+  'report': tr('تقرير', 'Report'),
+  'note': tr('ملاحظة', 'Note'),
 };
 
 class ContractMove {
@@ -110,23 +111,23 @@ List<ContractMove> contractMoves(
 }) {
   final moves = <ContractMove>[];
   if (status == 'draft') {
-    if (isClient) moves.add(const ContractMove('proposed', 'اعرضه على مقدّم الخدمة'));
-    if (isClient) moves.add(const ContractMove('cancelled', 'ألغِ المسودة', danger: true));
+    if (isClient) moves.add(ContractMove('proposed', tr('اعرضه على مقدّم الخدمة', 'Propose it to the service provider')));
+    if (isClient) moves.add(ContractMove('cancelled', tr('ألغِ المسودة', 'Cancel the draft'), danger: true));
   } else if (status == 'proposed') {
     // Accepting is the provider's signature: the contract becomes binding on both.
-    if (isProvider) moves.add(const ContractMove('active', 'أقبل العقد'));
-    if (isClient) moves.add(const ContractMove('draft', 'اسحب العرض للتعديل'));
-    if (isClient || isProvider) moves.add(const ContractMove('cancelled', 'ألغِ العقد', danger: true));
+    if (isProvider) moves.add(ContractMove('active', tr('أقبل العقد', 'Accept the contract')));
+    if (isClient) moves.add(ContractMove('draft', tr('اسحب العرض للتعديل', 'Withdraw the proposal to edit it')));
+    if (isClient || isProvider) moves.add(ContractMove('cancelled', tr('ألغِ العقد', 'Cancel the contract'), danger: true));
   } else if (status == 'active') {
-    if (isClient) moves.add(const ContractMove('completed', 'أقفل العقد'));
+    if (isClient) moves.add(ContractMove('completed', tr('أقفل العقد', 'Close the contract')));
   } else if (status == 'disputed' && isAdmin) {
-    moves.add(const ContractMove('active', 'أعِده سارياً'));
-    moves.add(const ContractMove('completed', 'أقفله منجزاً'));
-    moves.add(const ContractMove('cancelled', 'أقفله ملغى', danger: true));
+    moves.add(ContractMove('active', tr('أعِده سارياً', 'Make it active again')));
+    moves.add(ContractMove('completed', tr('أقفله منجزاً', 'Close it as completed')));
+    moves.add(ContractMove('cancelled', tr('أقفله ملغى', 'Close it as cancelled'), danger: true));
   }
   // والنزاعُ بابٌ لا يُغلق: من «سارٍ» ومن «منجز» ومن «ملغى» سواء، ولأيّ الطرفين.
   if (const ['active', 'completed', 'cancelled'].contains(status) && (isClient || isProvider)) {
-    moves.add(const ContractMove('disputed', 'أعلن نزاعاً', danger: true));
+    moves.add(ContractMove('disputed', tr('أعلن نزاعاً', 'Declare a dispute'), danger: true));
   }
   return moves;
 }
@@ -142,14 +143,14 @@ class MilestoneNext {
   final String actor;
 }
 
-const milestoneNext = <String, MilestoneNext>{
-  'pending': MilestoneNext('in_progress', 'ابدأ التنفيذ', 'provider'),
-  'in_progress': MilestoneNext('submitted', 'سلّم المرحلة', 'provider'),
-  'submitted': MilestoneNext('approved', 'اعتمد المرحلة', 'client'),
-  'approved': MilestoneNext('paid', 'سجّل الدفع', 'client'),
+Map<String, MilestoneNext> get milestoneNext => <String, MilestoneNext>{
+  'pending': MilestoneNext('in_progress', tr('ابدأ التنفيذ', 'Start the work'), 'provider'),
+  'in_progress': MilestoneNext('submitted', tr('سلّم المرحلة', 'Hand over the phase'), 'provider'),
+  'submitted': MilestoneNext('approved', tr('اعتمد المرحلة', 'Approve the phase'), 'client'),
+  'approved': MilestoneNext('paid', tr('سجّل الدفع', 'Record payment'), 'client'),
 };
 
-const _waitingOn = <String, String>{'provider': 'بانتظار مقدّم الخدمة', 'client': 'بانتظار العميل'};
+Map<String, String> get _waitingOn => <String, String>{'provider': tr('بانتظار مقدّم الخدمة', 'Waiting for the service provider'), 'client': tr('بانتظار العميل', 'Waiting for the client')};
 
 class Evidence {
   const Evidence({required this.kind, this.caption, this.capturedAt, this.latitude, this.longitude});
@@ -269,7 +270,7 @@ class ServiceContract {
     if (next == null || isMine(m)) return null;
     return running
         ? '${_waitingOn[next.actor]}: ${next.label}.'
-        : 'المراحل لا تتحرّك ما دام العقد «$statusLabel» — لا عمل قبل الاتفاق.';
+        : tr('المراحل لا تتحرّك ما دام العقد «$statusLabel» — لا عمل قبل الاتفاق.', 'The phases do not move while the contract is «$statusLabel» — no work before agreement.');
   }
 
   factory ServiceContract.fromJson(Map<String, dynamic> j) => ServiceContract(
@@ -362,10 +363,10 @@ class ForwardRow {
   bool get open => forwardOpen.contains(status);
 
   String side(String me) => buyerId == me
-      ? 'أنت المشتري'
+      ? tr('أنت المشتري', 'You are the buyer')
       : farmerId == me
-      ? 'أنت المزارع'
-      : 'نزاعٌ ينتظر الإدارة';
+      ? tr('أنت المزارع', 'You are the farmer')
+      : tr('نزاعٌ ينتظر الإدارة', 'A dispute awaiting the administration');
 
   /// «ينتظرك», as the list on the website marks it.
   bool waitingFor(String me) =>
@@ -498,49 +499,49 @@ class ForwardContract {
     final s = row.status;
     final out = <ForwardAction>[];
     if (s == 'proposed' && party && row.proposedBy != me) {
-      const prompt = 'بتوقيعك يصير العقد ملزماً لكما بشروطه أعلاه. وقّع إن كنت تعرف الطرف الآخر واتّفقتما على هذا.';
-      out.add(const ForwardAction('sign', 'أوقّع العقد', prompt: prompt));
-      out.add(const ForwardAction('decline', 'أعتذر', secondary: true));
+      final prompt = tr('بتوقيعك يصير العقد ملزماً لكما بشروطه أعلاه. وقّع إن كنت تعرف الطرف الآخر واتّفقتما على هذا.', 'Signing makes the contract bind you both by the terms above. Sign if you know the other side and agreed this.');
+      out.add(ForwardAction('sign', tr('أوقّع العقد', 'I sign the contract'), prompt: prompt));
+      out.add(ForwardAction('decline', tr('أعتذر', 'Decline'), secondary: true));
     }
     if (s == 'proposed' && row.proposedBy == me) {
-      out.add(const ForwardAction('withdraw', 'اسحب الاقتراح', prompt: 'ينتظر توقيع الطرف الآخر.', secondary: true));
+      out.add(ForwardAction('withdraw', tr('اسحب الاقتراح', 'Withdraw the proposal'), prompt: tr('ينتظر توقيع الطرف الآخر.', 'Awaiting the other side\'s signature.'), secondary: true));
     }
     if (s == 'signed' && isBuyer) {
-      out.add(const ForwardAction('deliver', 'سجّل التسليم', prompt: 'سجّل ما استلمت', onSite: true));
+      out.add(ForwardAction('deliver', tr('سجّل التسليم', 'Record the delivery'), prompt: tr('سجّل ما استلمت', 'Record what you received'), onSite: true));
     }
     if (s == 'delivered' && isFarmer) {
       out.add(
-        const ForwardAction('confirm', 'أؤكّد التسليم', prompt: 'إن كان ما سجّله المشتري صحيحاً فأكّده، فيُقفل العقد.'),
+        ForwardAction('confirm', tr('أؤكّد التسليم', 'I confirm the delivery'), prompt: tr('إن كان ما سجّله المشتري صحيحاً فأكّده، فيُقفل العقد.', 'If what the buyer recorded is right, confirm it and the contract closes.')),
       );
     }
     if (s == 'cancel_requested' && party && row.cancelRequestedBy != me) {
       out.add(
-        const ForwardAction(
+        ForwardAction(
           'cancel_yes',
-          'أقبل الإلغاء',
-          prompt: 'يطلب الطرف الآخر إلغاء العقد. لا يُلغى إلا إن قبلت.',
+          tr('أقبل الإلغاء', 'Accept cancellation'),
+          prompt: tr('يطلب الطرف الآخر إلغاء العقد. لا يُلغى إلا إن قبلت.', 'The other side asks to cancel the contract. It is cancelled only if you accept.'),
         ),
       );
-      out.add(const ForwardAction('cancel_no', 'أرفض، والعقد قائم', secondary: true));
+      out.add(ForwardAction('cancel_no', tr('أرفض، والعقد قائم', 'Refuse: the contract stands'), secondary: true));
     }
     if ((s == 'signed' || s == 'delivered') && party) {
       out.add(
-        const ForwardAction('cancel', 'أرسل طلب الإلغاء', prompt: 'اطلب الإلغاء', needsReason: true, secondary: true),
+        ForwardAction('cancel', tr('أرسل طلب الإلغاء', 'Send the request'), prompt: tr('اطلب الإلغاء', 'Ask to cancel'), needsReason: true, secondary: true),
       );
     }
     if ((s == 'signed' || s == 'delivered' || s == 'cancel_requested') && party) {
       out.add(
-        const ForwardAction(
+        ForwardAction(
           'dispute',
-          'ارفع النزاع',
-          prompt: 'حين لا تتّفقان: تسمع الإدارة الطرفين وتكتب ما فصلت به.',
+          tr('ارفع النزاع', 'Raise the dispute'),
+          prompt: tr('حين لا تتّفقان: تسمع الإدارة الطرفين وتكتب ما فصلت به.', 'When you cannot agree: the administration hears both sides and writes down its decision.'),
           needsReason: true,
           secondary: true,
         ),
       );
     }
     if (s == 'disputed' && isAdmin) {
-      out.add(const ForwardAction('resolve', 'الفصل في النزاع', onSite: true));
+      out.add(ForwardAction('resolve', tr('الفصل في النزاع', 'Decide the dispute'), onSite: true));
     }
     return out;
   }
@@ -611,7 +612,7 @@ class AgreementRow {
   /// The current version waits for the reader's own signature.
   bool get waitingForMe => !signed && !signedByMe;
 
-  String get statusLabel => signed ? 'موقَّعٌ ومقفل' : 'مسوّدة — النسخة $version';
+  String get statusLabel => signed ? tr('موقَّعٌ ومقفل', 'Signed and locked') : tr('مسوّدة — النسخة $version', 'Draft — version $version');
 
   factory AgreementRow.fromJson(Map<String, dynamic> j) => AgreementRow(
     id: _s(j['id']),
@@ -626,7 +627,7 @@ class AgreementRow {
   );
 }
 
-const partyRoleLabel = <String, String>{'owner': 'صاحب الأرض', 'investor': 'المستثمر', 'manager': 'الشركة المديرة'};
+Map<String, String> get partyRoleLabel => <String, String>{'owner': tr('صاحب الأرض', 'Landowner'), 'investor': tr('المستثمر', 'Investor'), 'manager': tr('الشركة المديرة', 'Managing company')};
 
 class Clause {
   const Clause(this.title, this.body);

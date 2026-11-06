@@ -12,6 +12,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import 'i18n.dart';
 import 'theme.dart';
 
 /// The hero band (owner, 6 November: «أخضر يميل للبيج، لكن البيج ظاهر —
@@ -235,7 +236,7 @@ class StateView extends StatelessWidget {
   }) => StateView(
     key: key,
     icon: Icons.cloud_off_rounded,
-    title: 'تعذّر الوصول الآن',
+    title: tr('تعذّر الوصول الآن', 'Can\'t reach it right now'),
     message: '$error',
     onRetry: onRetry,
     warn: true,
@@ -294,7 +295,7 @@ class StateView extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded, size: 20),
-              label: const Text('إعادة المحاولة'),
+              label: Text(tr('إعادة المحاولة', 'Try again')),
             ),
           ],
         ],
@@ -330,11 +331,12 @@ class StateView extends StatelessWidget {
 class LoadingView extends StatelessWidget {
   const LoadingView({
     super.key,
-    this.label = 'جارٍ التحميل…',
+    this.label,
     this.compact = false,
   });
 
-  final String label;
+  /// The word under the spinner; «جارٍ التحميل…» when none is given.
+  final String? label;
   final bool compact;
 
   @override
@@ -350,7 +352,7 @@ class LoadingView extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 3),
           ),
           const SizedBox(height: 12),
-          Text(label, style: TextStyle(color: mutedOn(context), fontSize: 13)),
+          Text(label ?? tr('جارٍ التحميل…', 'Loading…'), style: TextStyle(color: mutedOn(context), fontSize: 13)),
         ],
       ),
     );
@@ -482,7 +484,7 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
               border: Border.all(color: gold, width: 2),
             ),
             child: ClipOval(
-              child: Image.asset('assets/brand/logo.png', fit: BoxFit.cover, semanticLabel: 'شعار سوداقري'),
+              child: Image.asset('assets/brand/logo.png', fit: BoxFit.cover, semanticLabel: tr('شعار سوداقري', 'Sudagri logo')),
             ),
           ),
           const SizedBox(width: 10),
@@ -491,9 +493,9 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('سوداقري',
+                Text(tr('سوداقري', 'Sudagri'),
                     style: TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w900, height: 1.2)),
-                Text('منصّة سودانيّة للزراعة والتجارة',
+                Text(tr('منصّة سودانيّة للزراعة والتجارة', 'A Sudanese platform for farming and trade'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: sub, fontSize: 11.5, fontWeight: FontWeight.w600, height: 1.3)),
@@ -682,6 +684,35 @@ class PalettePicker extends StatelessWidget {
             if (p != palettes.last) const SizedBox(width: 10),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// «اللغة / Language» (owner, 6 November 2026, backlog 208): Arabic or English for the whole app, beside the palette
+/// picker. Each choice is written in its own language, as the website's ع / EN switch, so a reader who has neither
+/// finds theirs. The choice is kept on the phone and the app follows it at once, English left to right.
+class LanguagePicker extends StatelessWidget {
+  const LanguagePicker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<AppLang>(
+      valueListenable: langController,
+      builder: (context, current, _) => SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<AppLang>(
+          segments: [
+            for (final l in AppLang.values)
+              ButtonSegment(
+                value: l,
+                // Each name in its own direction, whatever the app's is now.
+                label: Text(l.label, textDirection: l == AppLang.en ? TextDirection.ltr : TextDirection.rtl),
+              ),
+          ],
+          selected: {current},
+          onSelectionChanged: (s) => langController.choose(s.first),
+        ),
       ),
     );
   }

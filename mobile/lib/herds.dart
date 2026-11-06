@@ -8,6 +8,7 @@
 library;
 
 import 'account.dart';
+import 'i18n.dart';
 
 num _num(Object? v) => v is num ? v : num.tryParse('$v') ?? 0;
 num? _numOrNull(Object? v) => v == null ? null : (v is num ? v : num.tryParse('$v'));
@@ -391,7 +392,7 @@ class HerdsApi {
 
   Future<String> _step(String id, Map<String, dynamic> body) async {
     final j = await _account.call('POST', '/api/app/herds/$id', body: body);
-    return j['message'] as String? ?? 'تمّ.';
+    return j['message'] as String? ?? tr('تمّ.', 'Done.');
   }
 
   Future<String> completeStage(String id, String stageId) => _step(id, {'action': 'complete_stage', 'stage_id': stageId});

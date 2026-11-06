@@ -30,8 +30,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Arabic date, number and Material string localisation, so the whole app
-  # lays out right-to-left without every screen wrapping itself.
+  # Arabic and English date, number and Material string localisation, so the
+  # whole app lays out right-to-left in Arabic and left-to-right in English
+  # (lib/i18n.dart, backlog 208) without every screen wrapping itself.
   flutter_localizations:
     sdk: flutter
   # Plain HTTP is enough: the app reads world-readable rows over PostgREST and

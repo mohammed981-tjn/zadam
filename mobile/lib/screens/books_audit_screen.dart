@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../journal.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -24,9 +25,9 @@ class BooksAuditScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(exceptions ? 'تقرير الاستثناءات' : 'سجلّ التدقيق')),
+      appBar: AppBar(title: Text(exceptions ? tr('تقرير الاستثناءات', 'Exceptions report') : tr('سجلّ التدقيق', 'Audit log'))),
       body: RequireSignIn(
-        what: 'دفترك',
+        what: tr('دفترك', 'your book'),
         builder: (_) => exceptions ? _ExceptionsBody(api: api ?? JournalApi()) : _AuditBody(api: api ?? JournalApi()),
       ),
     );
@@ -95,11 +96,11 @@ class _AuditBodyState extends State<_AuditBody> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
-          const IntroNote('يُكتب وحده مع كلّ قيدٍ واعتمادٍ وردٍّ وإقفال، ولا يُعدَّل ولا يُحذف — ولا تملك الإدارة ذلك أيضاً.'),
+          IntroNote(tr('يُكتب وحده مع كلّ قيدٍ واعتمادٍ وردٍّ وإقفال، ولا يُعدَّل ولا يُحذف — ولا تملك الإدارة ذلك أيضاً.', 'It writes itself with every entry, approval, reversal and close, and it is never edited or deleted — the administrators cannot do that either.')),
           if (_rows.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 16),
-              child: StateView(icon: Icons.history_outlined, title: 'لا شيء في السجلّ بعد'),
+              child: StateView(icon: Icons.history_outlined, title: tr('لا شيء في السجلّ بعد', 'Nothing in the log yet')),
             ),
           for (final r in _rows)
             Card(
@@ -113,7 +114,7 @@ class _AuditBodyState extends State<_AuditBody> {
           if (_more)
             Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: OutlinedButton(onPressed: _loading ? null : () => _page(), child: const Text('ما قبلها')),
+              child: OutlinedButton(onPressed: _loading ? null : () => _page(), child: Text(tr('ما قبلها', 'Earlier'))),
             ),
         ],
       ),
@@ -140,7 +141,7 @@ class _ExceptionsBodyState extends State<_ExceptionsBody> {
         if (snap.connectionState != ConnectionState.done) return const LoadingView();
         if (snap.hasError) {
           final e = snap.error;
-          return StateView.error(e is ApiException ? e.message : 'تعذّر تحميل التقرير.',
+          return StateView.error(e is ApiException ? e.message : tr('تعذّر تحميل التقرير.', 'Could not load the report.'),
               onRetry: () => setState(() {
         _future = widget.api.exceptions();
       }), scrollable: true);
@@ -154,11 +155,11 @@ class _ExceptionsBodyState extends State<_ExceptionsBody> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
-              const IntroNote('ليس كلّ ما هنا خطأً: هو ما لا يشبه عادة دفترك، فانظر فيه قبل أن تقفل الفترة.'),
+              IntroNote(tr('ليس كلّ ما هنا خطأً: هو ما لا يشبه عادة دفترك، فانظر فيه قبل أن تقفل الفترة.', 'Not everything here is a mistake: it is what does not look like your book\'s habit, so look at it before you close the period.')),
               if (rows.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 16),
-                  child: StateView(icon: Icons.verified_outlined, title: 'لا استثناء في دفترك'),
+                  child: StateView(icon: Icons.verified_outlined, title: tr('لا استثناء في دفترك', 'No exceptions in your book')),
                 ),
               for (final k in kinds) ...[
                 const SizedBox(height: 14),

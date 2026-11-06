@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../lands.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -55,12 +56,12 @@ class _LandsScreenState extends State<LandsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('أراضيّ')),
+      appBar: AppBar(title: Text(tr('أراضيّ', 'My lands'))),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('add-land'),
         onPressed: _add,
         icon: const Icon(Icons.add_location_alt),
-        label: const Text('حدّد أرضاً جديدة'),
+        label: Text(tr('حدّد أرضاً جديدة', 'Mark a new land')),
       ),
       body: FutureBuilder<List<LandSummary>>(
         future: _lands,
@@ -73,18 +74,18 @@ class _LandsScreenState extends State<LandsScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               children: [
-                const IntroNote(
-                  'أرضك المسجّلة هي أساس كل موسم وكل فرصة تعرضها لاحقاً. لا تظهر لأحد حتى تعتمدها الإدارة، '
-                  'وموقعها الدقيق لك وللإدارة وحدكما.',
+                IntroNote(
+                  tr('أرضك المسجّلة هي أساس كل موسم وكل فرصة تعرضها لاحقاً. لا تظهر لأحد حتى تعتمدها الإدارة، '
+                  'وموقعها الدقيق لك وللإدارة وحدكما.', 'Your registered land is the base of every season and every opportunity you offer later. Nobody sees it until the administrators approve it, and its exact location is for you and the administrators alone.'),
                   icon: Icons.landscape_outlined,
                 ),
                 const SizedBox(height: 14),
                 if (lands.isEmpty)
-                  const StateView(
+                  StateView(
                     icon: Icons.landscape_outlined,
-                    title: 'لم تسجّل أرضاً بعد',
-                    message: 'ابدأ بأرض واحدة — التسجيل مجاني ولا يظهر لأحد حتى تعتمده الإدارة. '
-                        'حدّدها بالمشي حولها أو بالنقر على الخريطة.',
+                    title: tr('لم تسجّل أرضاً بعد', 'You have not registered a land yet'),
+                    message: tr('ابدأ بأرض واحدة — التسجيل مجاني ولا يظهر لأحد حتى تعتمده الإدارة. '
+                        'حدّدها بالمشي حولها أو بالنقر على الخريطة.', 'Start with one land — registration is free and nobody sees it until the administrators approve it. Mark it by walking around it or by tapping on the map.'),
                     compact: true,
                   )
                 else
@@ -130,7 +131,7 @@ class _LandTile extends StatelessWidget {
                     Text(
                       [
                         [l.state, ?l.locality].join(' · '),
-                        '${l.feddans} فدان',
+                        tr('${l.feddans} فدان', '${l.feddans} feddans'),
                         ?l.station,
                       ].join(' · '),
                       style: TextStyle(color: mutedOn(context), fontSize: 12.5, height: 1.6),
@@ -142,9 +143,9 @@ class _LandTile extends StatelessWidget {
                       children: [
                         TagPill(l.verificationLabel, gold: !l.verified),
                         TagPill(l.documentsLine, icon: Icons.description_outlined),
-                        if (l.listed) const TagPill('معروضة', icon: Icons.storefront_outlined),
-                        if (l.openToInvestors == true) const TagPill('مفتوحة للمستثمرين', icon: Icons.handshake_outlined),
-                        if (l.openToPartners == true) const TagPill('مفتوحة للشركات', icon: Icons.agriculture),
+                        if (l.listed) TagPill(tr('معروضة', 'Listed'), icon: Icons.storefront_outlined),
+                        if (l.openToInvestors == true) TagPill(tr('مفتوحة للمستثمرين', 'Open to investors'), icon: Icons.handshake_outlined),
+                        if (l.openToPartners == true) TagPill(tr('مفتوحة للشركات', 'Open to companies'), icon: Icons.agriculture),
                       ],
                     ),
                   ],
@@ -214,11 +215,11 @@ class _LandCardScreenState extends State<LandCardScreen> {
     if (kinds.isEmpty) return;
     final message = await showEvidenceSheet(
       context,
-      title: 'ارفع المستند',
+      title: tr('ارفع المستند', 'Upload document'),
       subtitle: c.name,
       kinds: kinds,
       pick: widget.pick,
-      note: 'إثبات الحيازة أو العقد أو التصريح صورةً أو PDF حتى ١٠ ميجابايت. وصورة الأرض الملتقطة فيها يُحفظ وقتها ومكانها، ولا يبقيان في الملفّ نفسه.',
+      note: tr('إثبات الحيازة أو العقد أو التصريح صورةً أو PDF حتى ١٠ ميجابايت. وصورة الأرض الملتقطة فيها يُحفظ وقتها ومكانها، ولا يبقيان في الملفّ نفسه.', 'Proof of tenure, the contract or the permit, as a photo or a PDF up to 10 MB. A photo of the land taken there keeps its time and place, not left in the file itself.'),
       send: (kind, caption, file) => _api.addDocument(
         widget.id,
         kind: kind,
@@ -235,7 +236,7 @@ class _LandCardScreenState extends State<LandCardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.name.isEmpty ? 'بطاقة الأرض' : widget.name)),
+      appBar: AppBar(title: Text(widget.name.isEmpty ? tr('بطاقة الأرض', 'Land card') : widget.name)),
       body: FutureBuilder<LandCard>(
         future: _card,
         builder: (context, snap) {
@@ -345,11 +346,11 @@ class _Header extends StatelessWidget {
             children: [
               TagPill(c.verificationLabel, gold: !c.verified, icon: c.verified ? Icons.verified : Icons.hourglass_top),
               TagPill(c.documentsLine, icon: Icons.description_outlined),
-              TagPill(c.listed ? 'معروضة' : 'غير معروضة', gold: !c.listed),
+              TagPill(c.listed ? tr('معروضة', 'Listed') : tr('غير معروضة', 'Not listed'), gold: !c.listed),
               if (c.openToInvestors != null)
-                TagPill(c.openToInvestors! ? 'مفتوحة للمستثمرين' : 'غير معروضة على المستثمرين', gold: !c.openToInvestors!),
+                TagPill(c.openToInvestors! ? tr('مفتوحة للمستثمرين', 'Open to investors') : tr('غير معروضة على المستثمرين', 'Not offered to investors'), gold: !c.openToInvestors!),
               if (c.openToPartners != null)
-                TagPill(c.openToPartners! ? 'مفتوحة للشركات الشريكة' : 'مغلقة أمام الشركات', gold: !c.openToPartners!),
+                TagPill(c.openToPartners! ? tr('مفتوحة للشركات الشريكة', 'Open to partner companies') : tr('مغلقة أمام الشركات', 'Closed to companies'), gold: !c.openToPartners!),
             ],
           ),
           if (c.verificationNote != null) ...[
@@ -359,7 +360,7 @@ class _Header extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: warnTintOn(context), borderRadius: BorderRadius.circular(12)),
-              child: Text('ملاحظة المراجعة: ${c.verificationNote}', style: const TextStyle(height: 1.7)),
+              child: Text(tr('ملاحظة المراجعة: ${c.verificationNote}', 'Review note: ${c.verificationNote}'), style: const TextStyle(height: 1.7)),
             ),
           ],
         ],
@@ -376,22 +377,22 @@ class _Facts extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = card;
     final facts = <(String, String)>[
-      ('المساحة', '${c.feddans} فدان'),
-      ('أقرب محطّة مناخ', c.station ?? '—'),
-      ('مصدر المياه', c.waterSourceLabel ?? '—'),
-      ('المياه للفدان', c.waterPerFeddan == null ? '—' : '${fmt0(c.waterPerFeddan!)} م³'),
-      ('التربة', c.soilNote ?? '—'),
+      (tr('المساحة', 'Area'), tr('${c.feddans} فدان', '${c.feddans} feddans')),
+      (tr('أقرب محطّة مناخ', 'Nearest climate station'), c.station ?? '—'),
+      (tr('مصدر المياه', 'Water source'), c.waterSourceLabel ?? '—'),
+      (tr('المياه للفدان', 'Water per feddan'), c.waterPerFeddan == null ? '—' : tr('${fmt0(c.waterPerFeddan!)} م³', '${fmt0(c.waterPerFeddan!)} m³')),
+      (tr('التربة', 'Soil'), c.soilNote ?? '—'),
       (
-        'التربة من الأقمار',
+        tr('التربة من الأقمار', 'Soil from satellites'),
         c.soil == null
-            ? 'تُقرأ حين يُعرف موقع الأرض'
-            : '${c.soil!.name}${c.soil!.probability != null ? ' (احتمال ${c.soil!.probability}٪)' : ''}',
+            ? tr('تُقرأ حين يُعرف موقع الأرض', 'Read once the land\'s location is known')
+            : tr('${c.soil!.name}${c.soil!.probability != null ? ' (احتمال ${c.soil!.probability}٪)' : ''}', '${c.soil!.name}${c.soil!.probability != null ? ' (probability ${c.soil!.probability}%)' : ''}'),
       ),
-      ('زُرع سابقاً', c.previousCrops ?? '—'),
-      ('الحيازة', c.tenure ?? '—'),
+      (tr('زُرع سابقاً', 'Previously grown'), c.previousCrops ?? '—'),
+      (tr('الحيازة', 'Tenure'), c.tenure ?? '—'),
     ];
     return _Box(
-      title: 'الأرض',
+      title: tr('الأرض', 'Land'),
       icon: Icons.info_outline,
       children: [
         LayoutBuilder(
@@ -418,7 +419,7 @@ class _Facts extends StatelessWidget {
         ),
         if (c.soil != null) ...[
           const SizedBox(height: 8),
-          const _Muted('التربة من الأقمار تقديرٌ لا فحص، ويبقى فحص الماء والتربة عندك هو الأصل.'),
+          _Muted(tr('التربة من الأقمار تقديرٌ لا فحص، ويبقى فحص الماء والتربة عندك هو الأصل.', 'The soil from satellites is an estimate, not a test; your own water and soil test remains the reference.')),
         ],
       ],
     );
@@ -436,11 +437,11 @@ class _BoundaryMap extends StatelessWidget {
     final centre = c.hasLocation ? LatLng(c.latitude!.toDouble(), c.longitude!.toDouble()) : null;
     final primary = Theme.of(context).colorScheme.primary;
     return _Box(
-      title: 'الحدود على الخريطة',
+      title: tr('الحدود على الخريطة', 'The boundary on the map'),
       icon: Icons.map_outlined,
       subtitle: points.length >= 3
-          ? 'كما رُسمت في التطبيق (${points.length} ركناً)${c.drawnFeddans != null ? ' تحيط بـ ${c.drawnFeddans!.toStringAsFixed(2)} فدان' : ''}.'
-          : 'لم تُرسم حدودها بعد؛ النقطة موقعها المسجّل.',
+          ? tr('كما رُسمت في التطبيق (${points.length} ركناً)${c.drawnFeddans != null ? ' تحيط بـ ${c.drawnFeddans!.toStringAsFixed(2)} فدان' : ''}.', 'As drawn in the app (${points.length} corners)${c.drawnFeddans != null ? ' around ${c.drawnFeddans!.toStringAsFixed(2)} feddans' : ''}.')
+          : tr('لم تُرسم حدودها بعد؛ النقطة موقعها المسجّل.', 'Its boundary is not drawn yet; the dot is its registered location.'),
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
@@ -489,7 +490,7 @@ class _BoundaryMap extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        const _Muted('موقع الأرض وحدودها لك وللإدارة وحدكما.'),
+        _Muted(tr('موقع الأرض وحدودها لك وللإدارة وحدكما.', 'The land\'s location and boundary are for you and the administrators alone.')),
       ],
     );
   }
@@ -503,14 +504,14 @@ class _WaterBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Box(
-      title: 'ماء أرضك من الأقمار الصناعيّة — الفاو',
+      title: tr('ماء أرضك من الأقمار الصناعيّة — الفاو', 'Your land\'s water from satellites — FAO'),
       icon: Icons.water_drop_outlined,
       children: [
         FutureBuilder<LandWater>(
           future: water,
           builder: (context, snap) {
             if (snap.connectionState != ConnectionState.done) {
-              return const LoadingView(label: 'يُقرأ ماء أرضك من أقمار الفاو…', compact: true);
+              return LoadingView(label: tr('يُقرأ ماء أرضك من أقمار الفاو…', 'Reading your land\'s water from FAO\'s satellites…'), compact: true);
             }
             if (snap.hasError) return StateView.error(snap.error, onRetry: onRetry, compact: true);
             final w = snap.data!;
@@ -519,26 +520,26 @@ class _WaterBox extends StatelessWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _Muted(
-                  'ما خرج من الأرض فعلاً كلّ عشرة أيّام: نتح المحصول وتبخّر التربة معاً، كما قاسته أقمار الفاو. '
-                  'حين يرتفع والمحصول قائم فهو يشرب؛ وحين يقترب من الصفر فالأرض بور أو عطشى.',
+                _Muted(
+                  tr('ما خرج من الأرض فعلاً كلّ عشرة أيّام: نتح المحصول وتبخّر التربة معاً، كما قاسته أقمار الفاو. '
+                  'حين يرتفع والمحصول قائم فهو يشرب؛ وحين يقترب من الصفر فالأرض بور أو عطشى.', 'What actually left the land every ten days: the crop\'s transpiration and the soil\'s evaporation together, as FAO\'s satellites measured it. When it rises while the crop stands, it is drinking; when it nears zero, the land is fallow or thirsty.'),
                 ),
                 const SizedBox(height: 8),
                 Table(
                   columnWidths: const {0: FlexColumnWidth(2.2)},
                   children: [
                     TableRow(children: [
-                      Text('الفترة', style: head),
-                      Text('مم/يوم', style: head),
-                      Text('م³ للفدان', style: head),
-                      Text('للأرض كلّها', style: head),
+                      Text(tr('الفترة', 'Period'), style: head),
+                      Text(tr('مم/يوم', 'mm/day'), style: head),
+                      Text(tr('م³ للفدان', 'm³ per feddan'), style: head),
+                      Text(tr('للأرض كلّها', 'For the whole land'), style: head),
                     ]),
                     for (final r in w.rows)
                       TableRow(children: [
                         Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text(r.period)),
                         Text(r.mmPerDay.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.w700)),
                         Text(fmt0(r.m3PerFeddan)),
-                        Text('${fmt0(r.m3Land)} م³'),
+                        Text(tr('${fmt0(r.m3Land)} م³', '${fmt0(r.m3Land)} m³')),
                       ]),
                   ],
                 ),
@@ -570,7 +571,7 @@ class _DocumentsBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = card;
     return _Box(
-      title: 'مستندات الأرض',
+      title: tr('مستندات الأرض', 'Land documents'),
       icon: Icons.description_outlined,
       subtitle: c.documentsLine,
       children: [
@@ -590,13 +591,13 @@ class _DocumentsBox extends StatelessWidget {
             ),
         ],
         const SizedBox(height: 8),
-        const _Muted('يُعدّ الموقع المستندات من الملفّات المرفوعة نفسها، فيظهر هنا ما يظهر هناك.'),
+        _Muted(tr('يُعدّ الموقع المستندات من الملفّات المرفوعة نفسها، فيظهر هنا ما يظهر هناك.', 'The website lists the documents from the same uploaded files, so what shows there shows here.')),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: OutlinedButton.icon(
             onPressed: onUpload,
             icon: const Icon(Icons.upload_file, size: 18),
-            label: const Text('ارفع المستند'),
+            label: Text(tr('ارفع المستند', 'Upload document')),
           ),
         ),
       ],
@@ -610,21 +611,21 @@ class _OfferBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Box(
-      title: 'اعرض أرضك',
+      title: tr('اعرض أرضك', 'Offer your land'),
       icon: Icons.storefront_outlined,
       children: [
-        const _Muted(
-          '١. للمستثمرين — من قسم «المستثمرون» أدناه: تظهر في المشاريع وفرص الاستثمار بلا اسمك ولا موقعها حتى توافق.\n'
+        _Muted(
+          tr('١. للمستثمرين — من قسم «المستثمرون» أدناه: تظهر في المشاريع وفرص الاستثمار بلا اسمك ولا موقعها حتى توافق.\n'
           '٢. للشركات الشريكة — من قسمها أدناه: تعرض عليك الشركة المطابقة حرثاً أو ريّاً أو حصاداً أو إشرافاً.\n'
-          '٣. مشروعٌ بالمحصول والحصص باسمك — تُفتح استمارته في الموقع مملوءةً من أرضك.',
+          '٣. مشروعٌ بالمحصول والحصص باسمك — تُفتح استمارته في الموقع مملوءةً من أرضك.', '1. To investors — from the «Investors» section below: it shows in the projects and investment opportunities without your name or its location until you agree.\n2. To partner companies — from their section below: the matching company offers you ploughing, irrigation, harvest or supervision.\n3. A project with a crop and shares in your name — its form opens on the website, filled in from your land.'),
         ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            OutlinedButton(onPressed: () => openOnSite(context, '/opportunities/new'), child: const Text('اكتب مشروعاً على هذه الأرض')),
-            OutlinedButton(onPressed: () => openOnSite(context, '/seasons/new'), child: const Text('ابدأ موسماً')),
+            OutlinedButton(onPressed: () => openOnSite(context, '/opportunities/new'), child: Text(tr('اكتب مشروعاً على هذه الأرض', 'Write a project on this land'))),
+            OutlinedButton(onPressed: () => openOnSite(context, '/seasons/new'), child: Text(tr('ابدأ موسماً', 'Start a season'))),
           ],
         ),
       ],
@@ -664,36 +665,36 @@ class _InvestorsBoxState extends State<_InvestorsBox> {
     final id = c.id;
     final labels = {for (final m in c.investorModels) m.key: m.label};
     return _Box(
-      title: 'المستثمرون',
+      title: tr('المستثمرون', 'Investors'),
       icon: Icons.handshake_outlined,
       children: [
         if (!c.verified)
-          const _Muted('بعد توثيق الأرض تستطيع عرضها على المستثمرين: مشاركة بالمحصول، أو إيجار، أو تمويل مدخلات.')
+          _Muted(tr('بعد توثيق الأرض تستطيع عرضها على المستثمرين: مشاركة بالمحصول، أو إيجار، أو تمويل مدخلات.', 'Once the land is verified you can offer it to investors: crop sharing, lease, or input finance.'))
         else if (c.openToInvestors == true) ...[
           _Muted(
-            'أرضك معروضة في فرص الاستثمار بنماذج: ${c.investorModelsChosen.map((m) => labels[m] ?? m).join(' · ')}. '
-            'لا يرى المستثمر اسمك ولا هاتفك ولا موقعها حتى تقبل طلبه.',
+            tr('أرضك معروضة في فرص الاستثمار بنماذج: ${c.investorModelsChosen.map((m) => labels[m] ?? m).join(' · ')}. '
+            'لا يرى المستثمر اسمك ولا هاتفك ولا موقعها حتى تقبل طلبه.', 'Your land is shown in the investment opportunities with the models: ${c.investorModelsChosen.map((m) => labels[m] ?? m).join(' · ')}. The investor sees neither your name, your phone nor its location until you accept their request.'),
           ),
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: OutlinedButton(
               key: const Key('investors-close'),
               onPressed: () => widget.run(() => widget.api.setInvestors(id, open: false)),
-              child: const Text('أوقف عرضها'),
+              child: Text(tr('أوقف عرضها', 'Stop showing it')),
             ),
           ),
         ] else if (!_form) ...[
-          const _Muted('تبحث عن ممّول؟ اعرض أرضك على المستثمرين — دون اسمك أو موقعها حتى توافق.'),
+          _Muted(tr('تبحث عن ممّول؟ اعرض أرضك على المستثمرين — دون اسمك أو موقعها حتى توافق.', 'Looking for finance? Offer your land to investors — without your name or its location until you agree.')),
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: FilledButton(
               key: const Key('investors-offer'),
               onPressed: () => setState(() => _form = true),
-              child: const Text('اعرضها'),
+              child: Text(tr('اعرضها', 'Offer it')),
             ),
           ),
         ] else ...[
-          const Text('ما الشراكة التي تقبلها؟', style: TextStyle(fontWeight: FontWeight.w800)),
+          Text(tr('ما الشراكة التي تقبلها؟', 'Which partnerships do you accept?'), style: TextStyle(fontWeight: FontWeight.w800)),
           for (final m in c.investorModels)
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
@@ -707,9 +708,9 @@ class _InvestorsBoxState extends State<_InvestorsBox> {
             controller: _note,
             maxLength: 500,
             maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'سطرٌ عن أرضك للمستثمر (اختياري)',
-              helperText: 'لا تكتب اسمك ولا هاتفك هنا — يُكشفان بعد موافقتك.',
+            decoration: InputDecoration(
+              labelText: tr('سطرٌ عن أرضك للمستثمر (اختياري)', 'A line about your land for investors (optional)'),
+              helperText: tr('لا تكتب اسمك ولا هاتفك هنا — يُكشفان بعد موافقتك.', 'Don\'t write your name or phone here — they are shared after you agree.'),
             ),
           ),
           const SizedBox(height: 8),
@@ -720,38 +721,38 @@ class _InvestorsBoxState extends State<_InvestorsBox> {
               onPressed: () => widget.run(
                 () => widget.api.setInvestors(id, open: true, models: _models.toList(), note: _note.text.trim()),
               ),
-              child: const Text('اعرض أرضي على المستثمرين'),
+              child: Text(tr('اعرض أرضي على المستثمرين', 'Offer my land to investors')),
             ),
           ),
         ],
         for (final i in c.inspections) ...[
           const Divider(height: 20),
-          Text('طلب معاينةٍ من ${i.name ?? 'مستثمر'} — ${i.state}', style: const TextStyle(fontWeight: FontWeight.w700)),
-          _Muted('يُتحقَّق من: ${i.checks.join(' · ')}'),
+          Text(tr('طلب معاينةٍ من ${i.name ?? 'مستثمر'} — ${i.state}', 'Inspection request from ${i.name ?? 'an investor'} — ${i.state}'), style: const TextStyle(fontWeight: FontWeight.w700)),
+          _Muted(tr('يُتحقَّق من: ${i.checks.join(' · ')}', 'To be checked: ${i.checks.join(' · ')}')),
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: TextButton(
               onPressed: () => openOnSite(context, '/invest/inspections/${i.id}'),
-              child: Text(i.status == 'requested' ? 'وافق على الزيارة أو اعتذر من الموقع' : 'التفاصيل في الموقع'),
+              child: Text(i.status == 'requested' ? tr('وافق على الزيارة أو اعتذر من الموقع', 'Agree to the visit or decline on the website') : tr('التفاصيل في الموقع', 'The details are on the website')),
             ),
           ),
         ],
         for (final r in c.investorRequests) ...[
           const Divider(height: 20),
           Text(
-            '${r.accepted ? 'شريكٌ قبلتَه: ' : 'طلب شراكة من '}${r.name ?? 'مستثمر'} — ${r.model}',
+            tr('${r.accepted ? 'شريكٌ قبلتَه: ' : 'طلب شراكة من '}${r.name ?? 'مستثمر'} — ${r.model}', '${r.accepted ? 'A partner you accepted: ' : 'Partnership request from '}${r.name ?? 'an investor'} — ${r.model}'),
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           if (r.record != null) _Muted(r.record!),
           Text(r.message, style: const TextStyle(height: 1.7)),
           const SizedBox(height: 6),
           if (r.accepted) ...[
-            _Muted('هاتفه: ${r.phone ?? 'لم يضف هاتفاً بعد'} · اتّفقا كتابةً قبل أيّ دفع.'),
+            _Muted(tr('هاتفه: ${r.phone ?? 'لم يضف هاتفاً بعد'} · اتّفقا كتابةً قبل أيّ دفع.', 'Their phone: ${r.phone ?? 'none on file yet'} · agree in writing before any payment.')),
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: TextButton(
                 onPressed: () => openOnSite(context, '/lands'),
-                child: const Text('اكتبا العقد ووقّعاه في الموقع'),
+                child: Text(tr('اكتبا العقد ووقّعاه في الموقع', 'Write the agreement and sign it together on the website')),
               ),
             ),
           ] else if (r.pending)
@@ -760,11 +761,11 @@ class _InvestorsBoxState extends State<_InvestorsBox> {
               children: [
                 FilledButton(
                   onPressed: () => widget.run(() => widget.api.decideInvestor(id, r.id, accept: true)),
-                  child: const Text('أقبل وأكشف بياناتي له'),
+                  child: Text(tr('أقبل وأكشف بياناتي له', 'Accept and share my details')),
                 ),
                 OutlinedButton(
                   onPressed: () => widget.run(() => widget.api.decideInvestor(id, r.id, accept: false)),
-                  child: const Text('أعتذر'),
+                  child: Text(tr('أعتذر', 'Decline')),
                 ),
               ],
             ),
@@ -792,23 +793,23 @@ class _PartnersBoxState extends State<_PartnersBox> {
     final c = widget.card;
     final id = c.id;
     return _Box(
-      title: 'الشركات الزراعيّة الشريكة',
+      title: tr('الشركات الزراعيّة الشريكة', 'Partner farming companies'),
       icon: Icons.agriculture,
       children: [
         if (c.openToPartners == null)
-          const _Muted(
-            'قريباً تستطيع أن تفتح أرضك للشركات الشريكة، فتعرض عليك الشركة المطابقة خدماتها دون أن ترى اسمك أو موقع أرضك قبل موافقتك.',
+          _Muted(
+            tr('قريباً تستطيع أن تفتح أرضك للشركات الشريكة، فتعرض عليك الشركة المطابقة خدماتها دون أن ترى اسمك أو موقع أرضك قبل موافقتك.', 'Soon you will be able to open your land to partner companies: a matching company offers you its services without seeing your name or your land’s location before you agree.'),
           )
         else if (!c.verified)
-          const _Muted('بعد توثيق الأرض تستطيع فتحها للشركات الشريكة.')
+          _Muted(tr('بعد توثيق الأرض تستطيع فتحها للشركات الشريكة.', 'Once the land is verified you can open it to partner companies.'))
         else ...[
           _Muted(
-            'مجموعة أرضك: ${c.partnerGroup}. '
-            '${c.openToPartners! ? 'أرضك مفتوحة للشركات المطابقة. ترى الشركة الولاية والمحليّة والمساحة والمجموعة فقط، ولا ترى اسمك ولا موقع الأرض حتى تقبل طلبها.' : 'افتحها للشركات الشريكة لتعرض عليك الشركات المطابقة خدماتها. لا ترى الشركة اسمك ولا موقع الأرض حتى تقبل طلبها.'}',
+            tr('مجموعة أرضك: ${c.partnerGroup}. '
+            '${c.openToPartners! ? 'أرضك مفتوحة للشركات المطابقة. ترى الشركة الولاية والمحليّة والمساحة والمجموعة فقط، ولا ترى اسمك ولا موقع الأرض حتى تقبل طلبها.' : 'افتحها للشركات الشريكة لتعرض عليك الشركات المطابقة خدماتها. لا ترى الشركة اسمك ولا موقع الأرض حتى تقبل طلبها.'}', 'Your land\'s group: ${c.partnerGroup}. ${c.openToPartners! ? 'Your land is open to matching companies. A company sees only the state, locality, area and group, and sees neither your name nor the land\'s location until you accept its request.' : 'Open it to partner companies so that matching companies offer you their services. A company sees neither your name nor the land\'s location until you accept its request.'}'),
           ),
           if (!c.openToPartners!) ...[
             const SizedBox(height: 8),
-            Text('المحاصيل التي تريدها في أرضك (اختياري، حتى ٨) — ${_crops.length}',
+            Text(tr('المحاصيل التي تريدها في أرضك (اختياري، حتى ٨) — ${_crops.length}', 'The crops you want on your land (optional, up to 8) — ${_crops.length}'),
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
             const SizedBox(height: 6),
             Wrap(
@@ -837,34 +838,34 @@ class _PartnersBoxState extends State<_PartnersBox> {
                 ? OutlinedButton(
                     key: const Key('partners-close'),
                     onPressed: () => widget.run(() => widget.api.setPartners(id, open: false)),
-                    child: const Text('أغلقها أمام الشركات'),
+                    child: Text(tr('أغلقها أمام الشركات', 'Close it to companies')),
                   )
                 : FilledButton(
                     key: const Key('partners-open'),
                     onPressed: () => widget.run(() => widget.api.setPartners(id, open: true, crops: _crops.toList())),
-                    child: const Text('افتح أرضي للشركات الشريكة'),
+                    child: Text(tr('افتح أرضي للشركات الشريكة', 'Open my land to partner companies')),
                   ),
           ),
         ],
         for (final p in c.partnerRequests) ...[
           const Divider(height: 20),
           Text(
-            'طلب من ${p.company ?? 'شركة شريكة'}${p.kinds.isEmpty ? '' : ' — ${p.kinds.join(' · ')}'}',
+            tr('طلب من ${p.company ?? 'شركة شريكة'}${p.kinds.isEmpty ? '' : ' — ${p.kinds.join(' · ')}'}', 'Request from ${p.company ?? 'a partner company'}${p.kinds.isEmpty ? '' : ' — ${p.kinds.join(' · ')}'}'),
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           Text(p.message, style: const TextStyle(height: 1.7)),
-          if (p.phone != null) _Muted('هاتف الشركة: ${p.phone}'),
+          if (p.phone != null) _Muted(tr('هاتف الشركة: ${p.phone}', 'The company\'s phone: ${p.phone}')),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
             children: [
               FilledButton(
                 onPressed: () => widget.run(() => widget.api.decidePartner(id, p.id, accept: true)),
-                child: const Text('أقبل وأكشف بياناتي لهم'),
+                child: Text(tr('أقبل وأكشف بياناتي لهم', 'Accept and share my details')),
               ),
               OutlinedButton(
                 onPressed: () => widget.run(() => widget.api.decidePartner(id, p.id, accept: false)),
-                child: const Text('أعتذر'),
+                child: Text(tr('أعتذر', 'Decline')),
               ),
             ],
           ),
@@ -902,7 +903,7 @@ class _TestsBoxState extends State<_TestsBox> {
     super.dispose();
   }
 
-  static num? _n(TextEditingController c) => num.tryParse(c.text.trim().replaceAll('٫', '.'));
+  static num? _n(TextEditingController c) => num.tryParse(c.text.trim().replaceAll('٫', '.')); // ar-only
 
   Widget _numField(TextEditingController c, String label) => Expanded(
         child: TextField(
@@ -917,11 +918,11 @@ class _TestsBoxState extends State<_TestsBox> {
   Widget build(BuildContext context) {
     final c = widget.card;
     return _Box(
-      title: 'فحوص الماء والتربة',
+      title: tr('فحوص الماء والتربة', 'Water and soil tests'),
       icon: Icons.science_outlined,
       children: [
         if (c.tests.isEmpty)
-          const _Muted('لم يُسجَّل فحصٌ بعد. الفحص يكشف ملوحة الماء والتربة قبل أن يُزرع ما لا يحتملها.'),
+          _Muted(tr('لم يُسجَّل فحصٌ بعد. الفحص يكشف ملوحة الماء والتربة قبل أن يُزرع ما لا يحتملها.', 'No test has been recorded yet. A test shows the salinity of the water and soil before something that cannot bear it is sown.')),
         for (final t in c.tests) ...[
           Text('${t.kindLabel} · ${t.testedOn}${t.lab != null ? ' · ${t.lab}' : ''}',
               style: const TextStyle(fontWeight: FontWeight.w800)),
@@ -933,46 +934,46 @@ class _TestsBoxState extends State<_TestsBox> {
               alignment: AlignmentDirectional.centerStart,
               child: TextButton(
                 onPressed: () => widget.run(() => widget.api.deleteTest(c.id, t.id)),
-                child: const Text('احذفه (كُتب خطأً)'),
+                child: Text(tr('احذفه (كُتب خطأً)', 'Delete it (entered by mistake)')),
               ),
             ),
           const Divider(height: 16),
         ],
         if (c.soilCrops != null) ...[
-          Text('ملوحة تربتك في آخر فحص (${c.soilCrops!.testedOn}): ${c.soilCrops!.ec} dS/m',
+          Text(tr('ملوحة تربتك في آخر فحص (${c.soilCrops!.testedOn}): ${c.soilCrops!.ec} dS/m', 'Your soil\'s salinity in the last test (${c.soilCrops!.testedOn}): ${c.soilCrops!.ec} dS/m'),
               style: const TextStyle(fontWeight: FontWeight.w700)),
           _Muted(c.soilCrops!.full.isEmpty
-              ? 'لا محصول في قائمتنا يعطي حاصله كاملاً عند هذه الملوحة بحسب الفاو ٢٩.'
-              : 'محاصيل تعطي حاصلها كاملاً عند هذه الملوحة، بحسب الفاو ٢٩: ${c.soilCrops!.full.join('، ')}.'),
+              ? tr('لا محصول في قائمتنا يعطي حاصله كاملاً عند هذه الملوحة بحسب الفاو ٢٩.', 'No crop in our list gives its full yield at this salinity, by FAO-29.')
+              : tr('محاصيل تعطي حاصلها كاملاً عند هذه الملوحة، بحسب الفاو ٢٩: ${c.soilCrops!.full.join('، ')}.', 'Crops that give their full yield at this salinity, by FAO-29: ${c.soilCrops!.full.join(', ')}.')),
           const Divider(height: 16),
         ],
         ExpansionTile(
           key: const Key('add-test'),
           tilePadding: EdgeInsets.zero,
           initiallyExpanded: c.tests.isEmpty,
-          title: const Text('أضف فحصاً', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: Text(tr('أضف فحصاً', 'Add a test'), style: TextStyle(fontWeight: FontWeight.w800)),
           children: [
             DropdownButtonFormField<String>(
               initialValue: _kind,
-              decoration: const InputDecoration(labelText: 'النوع'),
-              items: const [
-                DropdownMenuItem(value: 'water', child: Text('ماء')),
-                DropdownMenuItem(value: 'soil', child: Text('تربة')),
+              decoration: InputDecoration(labelText: tr('النوع', 'Kind')),
+              items: [
+                DropdownMenuItem(value: 'water', child: Text(tr('ماء', 'Water'))),
+                DropdownMenuItem(value: 'soil', child: Text(tr('تربة', 'Soil'))),
               ],
               onChanged: (v) => setState(() => _kind = v ?? _kind),
             ),
             TextField(
               controller: _date,
               textDirection: TextDirection.ltr,
-              decoration: const InputDecoration(labelText: 'تاريخ الفحص (سنة-شهر-يوم)'),
+              decoration: InputDecoration(labelText: tr('تاريخ الفحص (سنة-شهر-يوم)', 'Test date (year-month-day)')),
             ),
-            Row(children: [_numField(_ec, 'الملوحة EC'), const SizedBox(width: 8), _numField(_ph, 'الحموضة pH')]),
+            Row(children: [_numField(_ec, tr('الملوحة EC', 'Salinity EC')), const SizedBox(width: 8), _numField(_ph, tr('الحموضة pH', 'Acidity pH'))]),
             Row(children: [
-              _numField(_sar, 'الصوديوم SAR'),
-              if (_kind == 'soil') ...[const SizedBox(width: 8), _numField(_om, 'المادّة العضويّة ٪')],
+              _numField(_sar, tr('الصوديوم SAR', 'Sodium SAR')),
+              if (_kind == 'soil') ...[const SizedBox(width: 8), _numField(_om, tr('المادّة العضويّة ٪', 'Organic matter %'))],
             ]),
-            TextField(controller: _lab, maxLength: 120, decoration: const InputDecoration(labelText: 'المختبر (اختياري)')),
-            TextField(controller: _note, maxLength: 500, decoration: const InputDecoration(labelText: 'ملاحظة (اختياري)')),
+            TextField(controller: _lab, maxLength: 120, decoration: InputDecoration(labelText: tr('المختبر (اختياري)', 'Laboratory (optional)'))),
+            TextField(controller: _note, maxLength: 500, decoration: InputDecoration(labelText: tr('ملاحظة (اختياري)', 'Note (optional)'))),
             const SizedBox(height: 8),
             Align(
               alignment: AlignmentDirectional.centerStart,
@@ -988,7 +989,7 @@ class _TestsBoxState extends State<_TestsBox> {
                       lab: _lab.text.trim(),
                       note: _note.text.trim(),
                     )),
-                child: const Text('احفظ الفحص'),
+                child: Text(tr('احفظ الفحص', 'Save the test')),
               ),
             ),
             const SizedBox(height: 8),
@@ -1007,10 +1008,10 @@ class _SeasonsBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = card;
     return _Box(
-      title: 'مواسم هذه الأرض',
+      title: tr('مواسم هذه الأرض', 'This land\'s seasons'),
       icon: Icons.event_note_outlined,
       children: [
-        if (c.seasons.isEmpty) const _Muted('لا موسم مسجَّلٌ على هذه الأرض بعد.'),
+        if (c.seasons.isEmpty) _Muted(tr('لا موسم مسجَّلٌ على هذه الأرض بعد.', 'No season is recorded on this land yet.')),
         for (final s in c.seasons)
           ListTile(
             contentPadding: EdgeInsets.zero,

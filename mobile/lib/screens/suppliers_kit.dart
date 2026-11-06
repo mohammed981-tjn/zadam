@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../account.dart';
 import '../api.dart';
+import '../i18n.dart';
 import '../suppliers.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -34,7 +35,7 @@ Future<String?> askText(
   required String label,
   String? hint,
   String? help,
-  String action = 'تمّ',
+  String? action,
   int minLength = 1,
   int maxLength = 200,
   int lines = 1,
@@ -67,10 +68,10 @@ Future<String?> askText(
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('إلغاء', 'Cancel'))),
           FilledButton(
             onPressed: text.text.trim().length < minLength ? null : () => Navigator.pop(ctx, text.text.trim()),
-            child: Text(action),
+            child: Text(action ?? tr('تمّ', 'Done')),
           ),
         ],
       ),
@@ -86,7 +87,7 @@ Future<bool> askSure(BuildContext context, {required String title, required Stri
         title: Text(title),
         content: Text(message, style: const TextStyle(height: 1.7)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('تراجع', 'Back'))),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(action)),
         ],
       ),
@@ -103,12 +104,12 @@ Future<List<int>?> takePhoto(BuildContext context, {ImagePicker? picker}) async 
         children: [
           ListTile(
             leading: const Icon(Icons.photo_camera_outlined),
-            title: const Text('صوّر الآن'),
+            title: Text(tr('صوّر الآن', 'Take a photo now')),
             onTap: () => Navigator.pop(ctx, ImageSource.camera),
           ),
           ListTile(
             leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('اختر من الصور'),
+            title: Text(tr('اختر من الصور', 'Choose from photos')),
             onTap: () => Navigator.pop(ctx, ImageSource.gallery),
           ),
         ],
@@ -122,14 +123,14 @@ Future<List<int>?> takePhoto(BuildContext context, {ImagePicker? picker}) async 
     final bytes = await file.readAsBytes();
     if (bytes.length > 10 * 1024 * 1024) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('الصورة أكبر من ١٠ ميجابايت.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('الصورة أكبر من ١٠ ميجابايت.', 'The photo is larger than 10 MB.'))));
       }
       return null;
     }
     return bytes;
   } catch (_) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذّر فتح الكاميرا أو الصور.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('تعذّر فتح الكاميرا أو الصور.', 'Could not open the camera or the photos.'))));
     }
     return null;
   }
@@ -139,7 +140,7 @@ Future<List<int>?> takePhoto(BuildContext context, {ImagePicker? picker}) async 
 Future<void> openLink(BuildContext context, String url) async {
   final messenger = ScaffoldMessenger.of(context);
   final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-  if (!ok) messenger.showSnackBar(const SnackBar(content: Text('تعذّر الفتح.')));
+  if (!ok) messenger.showSnackBar(SnackBar(content: Text(tr('تعذّر الفتح.', 'Could not open it.'))));
 }
 
 /// The signed-in part of a screen; signed out, what it is for and the way in.
@@ -162,11 +163,11 @@ class SignedInGate extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                StateView(icon: Icons.lock_outline_rounded, title: 'ادخل إلى حسابك', message: why, compact: true),
+                StateView(icon: Icons.lock_outline_rounded, title: tr('ادخل إلى حسابك', 'Sign in to your account'), message: why, compact: true),
                 FilledButton.icon(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
                   icon: const Icon(Icons.login_rounded),
-                  label: const Text('الدخول'),
+                  label: Text(tr('الدخول', 'Sign in')),
                 ),
               ],
             ),
@@ -257,7 +258,7 @@ class StatesPicker extends StatelessWidget {
       children: [
         for (final s in sudanStates)
           FilterChip(
-            label: Text(s),
+            label: Text(placeName(s)),
             selected: selected.contains(s),
             onSelected: (on) => onChanged(on ? {...selected, s} : ({...selected}..remove(s))),
           ),
@@ -268,18 +269,18 @@ class StatesPicker extends StatelessWidget {
 
 /// One of Sudan's states, from a list.
 class StateField extends StatelessWidget {
-  const StateField({super.key, required this.value, required this.onChanged, this.label = 'الولاية'});
+  const StateField({super.key, required this.value, required this.onChanged, this.label});
   final String? value;
   final ValueChanged<String?> onChanged;
-  final String label;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
       initialValue: value,
       isExpanded: true,
-      decoration: InputDecoration(labelText: label),
-      items: [for (final s in sudanStates) DropdownMenuItem(value: s, child: Text(s))],
+      decoration: InputDecoration(labelText: label ?? tr('الولاية', 'State')),
+      items: [for (final s in sudanStates) DropdownMenuItem(value: s, child: Text(placeName(s)))],
       onChanged: onChanged,
     );
   }
@@ -315,11 +316,11 @@ class ProductTile extends StatelessWidget {
                     ].join(' · ')),
                     if (p.registrationNo != null && p.registrationNo!.isNotEmpty)
                       Text(
-                        '${p.category == 'seed' ? 'الصنف المعتمد' : 'رقم التسجيل'}: ${p.registrationNo}'
-                        '${p.certLot != null && p.certLot!.isNotEmpty ? ' · لوط الإكثار: ${p.certLot}' : ''}',
+                        tr('${p.category == 'seed' ? 'الصنف المعتمد' : 'رقم التسجيل'}: ${p.registrationNo}'
+                        '${p.certLot != null && p.certLot!.isNotEmpty ? ' · لوط الإكثار: ${p.certLot}' : ''}', '${p.category == 'seed' ? 'Certified variety' : 'Registration no.'}: ${p.registrationNo}${p.certLot != null && p.certLot!.isNotEmpty ? ' · Multiplication lot: ${p.certLot}' : ''}'),
                         style: const TextStyle(fontSize: 12),
                       ),
-                    if (!p.active) const Muted('موقوف العرض'),
+                    if (!p.active) Muted(tr('موقوف العرض', 'Not on offer')),
                   ],
                 ),
               ),
@@ -334,8 +335,8 @@ class ProductTile extends StatelessWidget {
             ],
           ),
           p.expired
-              ? WarnText('انتهى العرض في ${dateAr(p.validUntil)} — اسأل المورد عن سعره اليوم')
-              : Muted('العرض سارٍ حتى ${dateAr(p.validUntil)}', size: 11.5),
+              ? WarnText(tr('انتهى العرض في ${dateAr(p.validUntil)} — اسأل المورد عن سعره اليوم', 'The offer ended on ${dateAr(p.validUntil)} — ask the supplier for today\'s price'))
+              : Muted(tr('العرض سارٍ حتى ${dateAr(p.validUntil)}', 'The offer stands until ${dateAr(p.validUntil)}'), size: 11.5),
           if (trailing != null) Align(alignment: AlignmentDirectional.centerEnd, child: trailing),
         ],
       ),

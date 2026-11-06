@@ -9,6 +9,7 @@ library;
 import 'dart:math';
 
 import 'account.dart';
+import 'i18n.dart';
 
 List<Map<String, dynamic>> _maps(Object? v) => [for (final x in (v as List? ?? const [])) (x as Map).cast<String, dynamic>()];
 
@@ -204,18 +205,18 @@ List<JournalLine>? fillTemplate(EntryTemplate t, List<AccountOption> accounts, {
 
 /// Why the entry cannot be sent, in the website's words; null when it can.
 String? entryProblem({required String date, required String memo, required List<JournalLine> lines, required List<AccountOption> accounts}) {
-  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) return 'اكتب تاريخ القيد.';
-  if (memo.trim().isEmpty || memo.trim().length > 500) return 'اكتب بيان القيد (حتى ٥٠٠ حرف).';
+  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) return tr('اكتب تاريخ القيد.', 'Enter the entry\'s date.');
+  if (memo.trim().isEmpty || memo.trim().length > 500) return tr('اكتب بيان القيد (حتى ٥٠٠ حرف).', 'Write the entry\'s description (up to 500 characters).');
   final typed = lines.where((l) => l.account.isNotEmpty || l.amount.trim().isNotEmpty).toList();
-  if (typed.length < 2) return 'القيد من سطرين إلى مئتي سطر.';
+  if (typed.length < 2) return tr('القيد من سطرين إلى مئتي سطر.', 'An entry has from two to two hundred lines.');
   final codes = {for (final a in accounts) a.code};
   for (var i = 0; i < typed.length; i++) {
-    if (!codes.contains(typed[i].account)) return 'اختر حساباً يُقيَّد عليه في السطر ${i + 1}.';
+    if (!codes.contains(typed[i].account)) return tr('اختر حساباً يُقيَّد عليه في السطر ${i + 1}.', 'Choose an account to post to on line ${i + 1}.');
     final m = parseMinor(typed[i].amount);
-    if (m == null || m <= 0) return 'اكتب مبلغاً صحيحاً في السطر ${i + 1}.';
+    if (m == null || m <= 0) return tr('اكتب مبلغاً صحيحاً في السطر ${i + 1}.', 'Enter a valid amount on line ${i + 1}.');
   }
   final t = totalsOf(typed);
-  if (t.debit != t.credit) return 'القيد غير متوازن: المدين ${formatMinor(t.debit)} والدائن ${formatMinor(t.credit)}.';
+  if (t.debit != t.credit) return tr('القيد غير متوازن: المدين ${formatMinor(t.debit)} والدائن ${formatMinor(t.credit)}.', 'The entry does not balance: debit ${formatMinor(t.debit)} and credit ${formatMinor(t.credit)}.');
   return null;
 }
 

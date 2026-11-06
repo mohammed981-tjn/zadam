@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../secure_screen.dart';
 import '../ui.dart';
 
@@ -33,17 +34,17 @@ class Film {
 
 /// The homepage's one film first (src/components/HeroVideo.tsx), then the
 /// films the website shows on its other pages, all in one place here.
-const films = <Film>[
-  Film('sudagri', 'سوداقري — من الماء إلى السوق'),
-  Film('canal', 'رؤيةُ سوداقري'),
-  Film('seasons', 'مواسمُ السودان'),
-  Film('know', 'من المعرفة إلى المائدة'),
-  Film('hands', 'أيادٍ تصنع الخير'),
-  Film('nafir', 'النفير… قيمٌ تعمل'),
-  Film('inhand', 'معلومتك في يدك'),
-  Film('farmer', 'مزارعٌ من السودان'),
-  Film('film', 'من السدّ إلى الحقل'),
-  Film('promo', 'من الماء تبدأ الحياة'),
+List<Film> get films => <Film>[
+  Film('sudagri', tr('سوداقري — من الماء إلى السوق', 'Sudagri — from water to market')),
+  Film('canal', tr('رؤيةُ سوداقري', 'Sudagri\'s vision')),
+  Film('seasons', tr('مواسمُ السودان', 'Sudan\'s seasons')),
+  Film('know', tr('من المعرفة إلى المائدة', 'From knowledge to the table')),
+  Film('hands', tr('أيادٍ تصنع الخير', 'Hands that do good')),
+  Film('nafir', tr('النفير… قيمٌ تعمل', 'Nafir… values at work')),
+  Film('inhand', tr('معلومتك في يدك', 'Your information in your hand')),
+  Film('farmer', tr('مزارعٌ من السودان', 'A farmer from Sudan')),
+  Film('film', tr('من السدّ إلى الحقل', 'From the dam to the field')),
+  Film('promo', tr('من الماء تبدأ الحياة', 'Life begins with water')),
 ];
 
 class FilmsScreen extends StatelessWidget {
@@ -52,11 +53,11 @@ class FilmsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('🎬 أفلام سوداقري')),
+      appBar: AppBar(title: Text(tr('🎬 أفلام سوداقري', '🎬 Sudagri films'))),
       body: ApiConfig.siteUrl.isEmpty
-          ? const StateView(
+          ? StateView(
               icon: Icons.movie_outlined,
-              title: 'الأفلام تحتاج عنوان الموقع، وهذه النسخة من التطبيق بُنيت بدونه.',
+              title: tr('الأفلام تحتاج عنوان الموقع، وهذه النسخة من التطبيق بُنيت بدونه.', 'The films need the website\'s address, and this build of the app was made without it.'),
             )
           : GridView.count(
               crossAxisCount: 2,
@@ -170,7 +171,7 @@ class _FilmPlayerScreenState extends State<FilmPlayerScreen> {
       await _controller.play();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'تعذّر تشغيل الفيلم. تأكّد من الاتصال ثم أعد المحاولة.');
+      setState(() => _error = tr('تعذّر تشغيل الفيلم. تأكّد من الاتصال ثم أعد المحاولة.', 'Could not play the film. Check the connection and try again.'));
     }
   }
 
@@ -225,10 +226,10 @@ class _FilmPlayerScreenState extends State<FilmPlayerScreen> {
                 ),
               )
             : _captured
-                ? const Padding(
+                ? Padding(
                     padding: EdgeInsets.all(32),
                     child: Text(
-                      'الفيلم متوقّف أثناء تسجيل الشاشة.\nأفلام سوداقري تُشاهَد على المنصّة.',
+                      tr('الفيلم متوقّف أثناء تسجيل الشاشة.\nأفلام سوداقري تُشاهَد على المنصّة.', 'The film is paused while the screen is being recorded.\nSudagri films are watched on the platform.'),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white70, height: 1.8),
                     ),

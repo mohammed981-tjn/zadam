@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 import '../library.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -35,14 +36,14 @@ class _ResearchItemScreenState extends State<ResearchItemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('مكتبة الدراسات والبحوث')),
+      appBar: AppBar(title: Text(tr('مكتبة الدراسات والبحوث', 'Studies and research library'))),
       body: FutureBuilder<ResearchItem>(
         future: _item,
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) return const LoadingView();
           if (snap.hasError) {
             final e = snap.error;
-            return StateView.error(e is ApiException ? e.message : 'تعذّر فتح العمل.', onRetry: _reload);
+            return StateView.error(e is ApiException ? e.message : tr('تعذّر فتح العمل.', 'Could not open the work.'), onRetry: _reload);
           }
           final r = snap.data!;
           final published = r.publishedAt;
@@ -65,7 +66,7 @@ class _ResearchItemScreenState extends State<ResearchItemScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionTitle('الملخّص'),
+                      SectionTitle(tr('الملخّص', 'Abstract')),
                       Text(r.abstract, style: const TextStyle(height: 1.9, fontSize: 15)),
                     ],
                   ),
@@ -77,35 +78,35 @@ class _ResearchItemScreenState extends State<ResearchItemScreen> {
                   FilledButton.icon(
                     onPressed: () => _open(r.pageUrl),
                     icon: const Icon(Icons.picture_as_pdf_outlined),
-                    label: const Text('افتح الملفّ (PDF)'),
+                    label: Text(tr('افتح الملفّ (PDF)', 'Open the file (PDF)')),
                   ),
                 if (r.linkUrl != null)
                   OutlinedButton.icon(
                     onPressed: () => _open(r.linkUrl),
                     icon: const Icon(Icons.open_in_new),
-                    label: const Text('افتح العمل في موقعه'),
+                    label: Text(tr('افتح العمل في موقعه', 'Open the work where it is published')),
                   ),
               ]),
               if (r.hasFile)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text('يُفتح الملفّ من صفحة العمل في الموقع.', style: TextStyle(fontSize: 12, color: mutedOn(context))),
+                  child: Text(tr('يُفتح الملفّ من صفحة العمل في الموقع.', 'The file opens from the work\'s page on the website.'), style: TextStyle(fontSize: 12, color: mutedOn(context))),
                 ),
               const SizedBox(height: 20),
               if (published != null)
                 Text(
-                  'نُشر في المكتبة: ${published.year}-${published.month.toString().padLeft(2, '0')}-${published.day.toString().padLeft(2, '0')}',
+                  tr('نُشر في المكتبة: ${published.year}-${published.month.toString().padLeft(2, '0')}-${published.day.toString().padLeft(2, '0')}', 'Published in the library: ${published.year}-${published.month.toString().padLeft(2, '0')}-${published.day.toString().padLeft(2, '0')}'),
                   style: TextStyle(color: mutedOn(context)),
                 ),
               if (r.citation != null) ...[
                 const SizedBox(height: 10),
-                Text('استشهد به هكذا:', style: TextStyle(color: mutedOn(context))),
+                Text(tr('استشهد به هكذا:', 'Cite it as:'), style: TextStyle(color: mutedOn(context))),
                 const SizedBox(height: 4),
                 InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onLongPress: () {
                     Clipboard.setData(ClipboardData(text: r.citation!));
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('نُسخ الاستشهاد.')));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('نُسخ الاستشهاد.', 'The citation was copied.'))));
                   },
                   child: Container(
                     padding: const EdgeInsets.all(12),
@@ -116,8 +117,8 @@ class _ResearchItemScreenState extends State<ResearchItemScreen> {
               ],
               const SizedBox(height: 16),
               Text(
-                'ما يُنشر هنا كتبه أصحابه، وراجعت سوداقري أنّه عن الزراعة في السودان وأنّ مرسِله أقرّ بحقّه في '
-                'مشاركته؛ والرأي فيه لأصحابه.',
+                tr('ما يُنشر هنا كتبه أصحابه، وراجعت سوداقري أنّه عن الزراعة في السودان وأنّ مرسِله أقرّ بحقّه في '
+                'مشاركته؛ والرأي فيه لأصحابه.', 'What is published here was written by its authors; Sudagri checked that it is about farming in Sudan and that the sender confirmed their right to share it. The views in it are its authors\'.'),
                 style: TextStyle(fontSize: 12.5, color: mutedOn(context), height: 1.7),
               ),
             ],

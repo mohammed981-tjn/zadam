@@ -9,19 +9,20 @@
 library;
 
 import 'account.dart';
+import 'i18n.dart';
 
 // ── Reports ──────────────────────────────────────────────────────────────────
 
 /// The website's tabs, in its order (src/app/books/page.tsx, TABS).
-const bookReports = <(String, String)>[
-  ('trial', 'ميزان المراجعة'),
-  ('income', 'قائمة الدخل'),
-  ('balance', 'الميزانيّة'),
-  ('cash', 'التدفّقات النقديّة'),
-  ('seasons', 'ربحيّة المواسم'),
-  ('journal', 'اليوميّة'),
-  ('chart', 'شجرة الحسابات'),
-  ('links', 'اقتراحات الشريك'),
+List<(String, String)> get bookReports => <(String, String)>[
+  ('trial', tr('ميزان المراجعة', 'Trial balance')),
+  ('income', tr('قائمة الدخل', 'Income statement')),
+  ('balance', tr('الميزانيّة', 'Balance sheet')),
+  ('cash', tr('التدفّقات النقديّة', 'Cash flow')),
+  ('seasons', tr('ربحيّة المواسم', 'Season profit')),
+  ('journal', tr('اليوميّة', 'Journal')),
+  ('chart', tr('شجرة الحسابات', 'Chart of accounts')),
+  ('links', tr('اقتراحات الشريك', 'Partner proposals')),
 ];
 
 /// Which of a report's dates the page offers: a period, one day, or none.
@@ -34,8 +35,8 @@ ReportDates datesOf(String report) => switch (report) {
     };
 
 String bookKindLabel(String kind) => switch (kind) {
-      'farm' => 'دفتر المزرعة',
-      'investor' => 'دفتر المستثمر',
+      'farm' => tr('دفتر المزرعة', 'Farm book'),
+      'investor' => tr('دفتر المستثمر', 'Investor book'),
       _ => kind,
     };
 
@@ -524,11 +525,11 @@ class FixedAsset {
   String get facts => [
         kind,
         acquiredOn,
-        '$monthsPosted من $lifeMonths شهراً',
-        if (salvage != null) 'خردة $salvage',
+        tr('$monthsPosted من $lifeMonths شهراً', '$monthsPosted of $lifeMonths months'),
+        if (salvage != null) tr('خردة $salvage', 'Salvage $salvage'),
       ].join(' · ');
 
-  String? get disposal => disposedOn == null ? null : (proceeds != null ? 'بِيع في $disposedOn بـ$proceeds' : 'استُبعد في $disposedOn');
+  String? get disposal => disposedOn == null ? null : (proceeds != null ? tr('بِيع في $disposedOn بـ$proceeds', 'Sold on $disposedOn for $proceeds') : tr('استُبعد في $disposedOn', 'Retired on $disposedOn'));
 
   factory FixedAsset.fromJson(Map<String, dynamic> j) => FixedAsset(
         id: j['id'] as String? ?? '',
