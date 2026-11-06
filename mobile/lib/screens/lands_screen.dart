@@ -8,6 +8,7 @@ import '../lands.dart';
 import '../theme.dart';
 import '../ui.dart';
 import 'account_screen.dart' show openOnSite;
+import 'evidence_sheet.dart';
 import 'land_map_screen.dart';
 
 /// «أراضيّ» (البند ٢٠٣): the person's lands as the website lists them, and each land's card.
@@ -162,11 +163,14 @@ const _satellite = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/defaul
 
 /// One land's card.
 class LandCardScreen extends StatefulWidget {
-  const LandCardScreen({super.key, required this.id, this.name = '', this.api});
+  const LandCardScreen({super.key, required this.id, this.name = '', this.api, this.pick});
 
   final String id;
   final String name;
   final LandsApi? api;
+
+  /// The camera, the gallery and the file chooser (the phone's own when null).
+  final EvidencePicker? pick;
 
   @override
   State<LandCardScreen> createState() => _LandCardScreenState();
@@ -204,6 +208,30 @@ class _LandCardScreenState extends State<LandCardScreen> {
     }
   }
 
+  /// «ارفع المستند»: the website's upload under «مستندات الأرض», a photo or a PDF.
+  Future<void> _upload(LandCard c) async {
+    final kinds = [for (final k in c.documentKinds) (k.key, k.label)];
+    if (kinds.isEmpty) return;
+    final message = await showEvidenceSheet(
+      context,
+      title: 'ارفع المستند',
+      subtitle: c.name,
+      kinds: kinds,
+      pick: widget.pick,
+      note: 'إثبات الحيازة أو العقد أو التصريح صورةً أو PDF حتى ١٠ ميجابايت. وصورة الأرض الملتقطة فيها يُحفظ وقتها ومكانها، ولا يبقيان في الملفّ نفسه.',
+      send: (kind, caption, file) => _api.addDocument(
+        widget.id,
+        kind: kind,
+        kindLabel: kinds.firstWhere((k) => k.$1 == kind).$2,
+        caption: caption,
+        file: file,
+      ),
+    );
+    if (message == null || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    await _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -231,7 +259,7 @@ class _LandCardScreenState extends State<LandCardScreen> {
                   const SizedBox(height: 12),
                   _WaterBox(water: _water, onRetry: () => setState(() { _water = _api.water(widget.id); })),
                   const SizedBox(height: 12),
-                  _DocumentsBox(card: c),
+                  _DocumentsBox(card: c, onUpload: () => _upload(c)),
                   if (c.verified && c.listed) ...[
                     const SizedBox(height: 12),
                     const _OfferBox(),
@@ -534,8 +562,9 @@ class _WaterBox extends StatelessWidget {
 }
 
 class _DocumentsBox extends StatelessWidget {
-  const _DocumentsBox({required this.card});
+  const _DocumentsBox({required this.card, required this.onUpload});
   final LandCard card;
+  final VoidCallback onUpload;
 
   @override
   Widget build(BuildContext context) {
@@ -561,13 +590,13 @@ class _DocumentsBox extends StatelessWidget {
             ),
         ],
         const SizedBox(height: 8),
-        const _Muted('تُرفع المستندات وصورها بإحداثياتها من الموقع الآن؛ ويُعدّ الموقع أنواعها هنا كما يعدّها هناك.'),
+        const _Muted('يُعدّ الموقع المستندات من الملفّات المرفوعة نفسها، فيظهر هنا ما يظهر هناك.'),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: OutlinedButton.icon(
-            onPressed: () => openOnSite(context, '/lands'),
+            onPressed: onUpload,
             icon: const Icon(Icons.upload_file, size: 18),
-            label: const Text('ارفع المستندات من الموقع'),
+            label: const Text('ارفع المستند'),
           ),
         ),
       ],

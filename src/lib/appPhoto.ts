@@ -187,6 +187,19 @@ export async function uploadAppPhoto(
 }
 
 /**
+ * A PDF the app put in the sender's own folder itself (backlog 203), as the website's browser does: straight to the
+ * `evidence` bucket with the person's own session, under `<user>/<folder>/<random id>.pdf`, the bucket holding it to
+ * its ten megabytes and its list of types. A PDF carries no capture time or place to read, and the website stores it
+ * as it is, so it does not come through here as a photo does; only its path does. Null for any other path — the
+ * shared step then checks again that it is the sender's and that the file is there.
+ */
+export function ownPdfPath(userId: string, folder: string, raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const m = /^([0-9a-f-]{36})\/([a-z]+)\/([0-9a-f-]{36})\.pdf$/.exec(raw.trim());
+  return m && m[1] === userId && m[2] === folder ? raw.trim() : null;
+}
+
+/**
  * A photo stored for a step the database then refused: removed again, so a refused handover or a refused piece of
  * evidence leaves no file behind. Best effort — the bucket's own rules decide, and a failure only leaves the file.
  */

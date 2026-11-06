@@ -7,6 +7,9 @@ import { recordSoilEstimate } from "@/lib/landSoil";
 import { INVESTOR_MODELS } from "@/lib/investors";
 import { PARTNER_CROP_KEYS } from "@/lib/partners";
 import { testProblem } from "@/lib/landTests";
+import { LAND_DOCUMENT_KINDS } from "@/lib/landDocuments";
+import { evidenceFileExists } from "@/lib/evidenceFile";
+import { sanitisePhotoMetadata } from "@/lib/exif";
 
 /**
  * What the owner of a land does on its card, once, for the website and the phone app (backlog 203).
@@ -193,4 +196,78 @@ export async function deleteLandTestStep(
   if (landId) q = q.eq("land_id", landId);
   const { data } = await q.select("id");
   return { deleted: (data ?? []).length > 0 };
+}
+
+// القائمةُ نفسُها هي مصدرُ الحقيقة، ومنها تُشتقّ المفاتيحُ المقبولة — فلا تفترقان.
+const LAND_DOCUMENT_KEYS = LAND_DOCUMENT_KINDS.map((k) => k.value);
+
+/**
+ * Records an uploaded land document — the website's «ارفع المستند» on /lands and the app's (backlog 203), each with
+ * the uploader's own client. The plot's documents_on_file is not touched here — a database trigger recomputes it from
+ * the stored files, so the count can never say more than the files support. Whether the land is the caller's to add
+ * to is row-level security's answer.
+ */
+export async function addLandDocumentStep(
+  supabase: SupabaseClient,
+  userId: string,
+  args: {
+    landId: string;
+    kind: string;
+    storagePath: string;
+    caption: string;
+    /** EXIF read before the file was re-encoded (in the browser) or stripped of it (lib/appPhoto). */
+    metadata?: unknown;
+  },
+  locale: Locale,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const t = T(locale);
+
+  if (!args.landId || !args.storagePath) {
+    return { ok: false, message: t("بيانات المستند ناقصة.", "The document details are incomplete.") };
+  }
+  if (!LAND_DOCUMENT_KEYS.includes(args.kind)) {
+    return { ok: false, message: t("نوع مستند غير معروف.", "Unknown document type.") };
+  }
+  if (!args.storagePath.startsWith(`${userId}/`)) {
+    return { ok: false, message: t("مسار ملف غير صالح.", "Invalid file path.") };
+  }
+
+  // The row must point at a file that is actually there. See lib/evidenceFile
+  // for why a failure to confirm is treated as a failure to upload.
+  if (!(await evidenceFileExists(supabase, args.storagePath))) {
+    return {
+      ok: false,
+      message: t(
+        "لم نجد الملف المرفوع. أعد رفعه ثم حاول مرة أخرى.",
+        "We could not find the uploaded file. Upload it again and try once more.",
+      ),
+    };
+  }
+
+  // A document kept offline is sent again if the reply to its first send was lost (backlog 185): the same file on the
+  // same land is the document already recorded.
+  const { data: already } = await supabase
+    .from("land_documents")
+    .select("id")
+    .eq("land_id", args.landId)
+    .eq("storage_path", args.storagePath)
+    .limit(1)
+    .maybeSingle();
+  if (already) return { ok: true };
+
+  const photo = sanitisePhotoMetadata(args.metadata);
+
+  const { error } = await supabase.from("land_documents").insert({
+    land_id: args.landId,
+    kind: args.kind,
+    storage_path: args.storagePath,
+    caption: args.caption,
+    captured_at: photo.capturedAt,
+    latitude: photo.latitude,
+    longitude: photo.longitude,
+    created_by: userId,
+  });
+
+  if (error) return { ok: false, message: dbMessage(error.message, locale) };
+  return { ok: true };
 }
