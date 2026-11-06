@@ -94,7 +94,7 @@ export default async function ExportPage() {
   const rejection = en ? REJECTION_EN : REJECTION;
 
   return (
-    <main className="mx-auto max-w-4xl space-y-14 px-4 py-10 lg:max-w-5xl">
+    <main className="mx-auto max-w-4xl px-4 py-10 space-y-14">
       <header className="space-y-4">
         <p className="text-xs tracking-widest text-emerald-700">{t("دراسة · سبتمبر 2026", "Study · September 2026")}</p>
         <h1 className="text-3xl font-bold sm:text-4xl">{t("ممرّ الصادر السوداني", "Sudan's export corridor")}</h1>

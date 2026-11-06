@@ -16,8 +16,7 @@ export default function FilmPlayer({
   base,
   poster,
   label,
-  // On a computer the page is wide (6 November 2026), and a film at its full width is a wall: it keeps to 56rem.
-  className = "block aspect-video w-full rounded-xl border border-border bg-black object-cover lg:max-w-4xl",
+  className = "aspect-video w-full rounded-xl border border-border bg-black object-cover",
 }: {
   /** The film's files without the extension: `${base}.webm` and `${base}.mp4`. */
   base: string;

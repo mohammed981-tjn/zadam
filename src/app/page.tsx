@@ -308,17 +308,17 @@ export default async function Home() {
         </picture>
         <HeroBackdrop />
 
-        <div className="flex min-h-[30rem] flex-col justify-end md:min-h-[34rem] lg:min-h-[38rem] xl:min-h-[44rem]">
+        <div className="flex min-h-[30rem] flex-col justify-end md:min-h-[34rem] lg:min-h-[38rem]">
           <div className="hero-scrim pt-28 md:pt-32">
-            <div className="mx-auto max-w-6xl px-5 pb-9 sm:pb-12 xl:max-w-7xl xl:pb-16">
-              <div className="max-w-[38rem] xl:max-w-[46rem]">
+            <div className="mx-auto max-w-6xl px-5 pb-9 sm:pb-12">
+              <div className="max-w-[38rem]">
                 <p className="hero-pill mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold">
                   {/* The logo's sun, as a dot. */}
                   <span aria-hidden className="size-2 rounded-full bg-gold" />
                   {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
                 </p>
 
-                <h1 className="text-[length:var(--text-display)] font-black leading-[1.2] xl:text-[4.25rem] xl:leading-[1.15]">
+                <h1 className="font-black leading-[1.2]" style={{ fontSize: "var(--text-display)" }}>
                   {t("كل رقمٍ هنا يمكنك أن تعيد حسابه بنفسك", "Every number here is one you can recompute yourself")}
                 </h1>
                 {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان — بذهب شمس الشعار على الأخضر. */}
@@ -361,7 +361,7 @@ export default async function Home() {
        * مكانه (المالك، 26 سبتمبر: «ادمجهم»). والإطارُ كبيرٌ بطلبه («الفيديو
        * أكبر»)، وتحته بطاقةٌ لكلّ فيلم (البند ١٢١).
        */}
-      <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl pt-8">
+      <section className="mx-auto max-w-6xl px-4 pt-8">
         <HeroVideo />
       </section>
 
@@ -370,7 +370,7 @@ export default async function Home() {
        * label. auto-fit, because the count is not fixed — a count that fails
        * drops its card, and a fixed grid would leave an empty cell.
        */}
-      <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl pb-10 pt-6">
+      <section className="mx-auto max-w-6xl px-4 pb-10 pt-6">
         <dl className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))" }}>
           {stats.map((s) => (
             <div key={s.label} className="rounded-2xl border border-border bg-card p-4 shadow-card">
@@ -391,9 +391,9 @@ export default async function Home() {
        * طلب المالك (25 سبتمبر): الرئيسيّةُ واجهةٌ ثمّ لوحة. والأخبار خرجت منها
        * إلى صفحتها `/news`، ولها هنا تبويبٌ أوّل بدل شريطٍ بين الأقسام.
        */}
-      <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl pt-8">
+      <section className="mx-auto max-w-6xl px-4 pt-8">
         <QuickTabs tabs={tabs} label={t("تبويبات سريعة", "Quick links")} />
-        <div className="mt-4 grid gap-3 lg:grid-cols-2 lg:items-start">
+        <div className="mt-4 flex flex-col gap-3">
           <SeasonStrip locale={locale} />
           <MarketTicker locale={locale} />
         </div>
@@ -407,7 +407,7 @@ export default async function Home() {
       </Suspense>
 
       {/* ───────────────────────── اللوحة ───────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl pt-10">
+      <section className="mx-auto max-w-6xl px-4 pt-10">
         <h2 className="title-bar font-bold" style={{ fontSize: "var(--text-section)" }}>
           {t("أقسام سوداقري", "Sudagri's sections")}
         </h2>
@@ -425,7 +425,7 @@ export default async function Home() {
        * قائمةِ المشاريع نفسها يوم يُنشر أوّلها.
        */}
       {!(projects && projects.length > 0) && openLandCount > 0 && (
-        <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl py-10">
+        <section className="mx-auto max-w-6xl px-4 py-10">
           <Link
             href="/projects"
             className="flex items-start gap-3 rounded-2xl border border-leaf/30 bg-leaf/5 p-5 transition hover:border-leaf"
@@ -448,7 +448,7 @@ export default async function Home() {
       )}
 
       {!(projects && projects.length > 0) && openLandCount === 0 && (
-        <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl py-10">
+        <section className="mx-auto max-w-6xl px-4 py-10">
           <div className="flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-5">
             <Icon name="shield" className="mt-0.5 size-5 shrink-0 text-accent" />
             <p className="text-sm leading-relaxed">
@@ -468,7 +468,7 @@ export default async function Home() {
        * يظهر حين يُنشر مشروعٌ فقط.
        */}
       {projects && projects.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 xl:max-w-7xl py-10">
+        <section className="mx-auto max-w-6xl px-4 py-10">
           <div className="mb-6 flex items-baseline justify-between gap-4">
             <h2 className="font-bold" style={{ fontSize: "var(--text-title)" }}>
               {t("المشاريع المتاحة", "Available projects")}

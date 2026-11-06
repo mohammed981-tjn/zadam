@@ -33,7 +33,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
   if (error) console.error("library: list failed", error);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
+    <div className="mx-auto max-w-5xl px-4 py-10">
       <PageHeader icon="book" eyebrow={t("المعرفة", "Knowledge")} title={t("مكتبة الدراسات والبحوث", "Studies and research library")}>
         {t(
           "دراسات جدوى وبحوثٌ ورسائل جامعيّة وتقارير عن الزراعة في السودان، يرسلها الباحثون والمزارعون والزوّار، وتراجعها سوداقري قبل نشرها. كلُّ عملٍ هنا يبني على ما قبله، فتصير المكتبة ذاكرةً للزراعة السودانيّة يرجع إليها من يأتي بعدنا.",
@@ -84,7 +84,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
           </p>
         </div>
       ) : (
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2">
           {items.map((r) => (
             <li key={r.id}>
               <Link

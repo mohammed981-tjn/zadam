@@ -116,7 +116,7 @@ export default async function LandsPage({
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 lg:max-w-6xl xl:max-w-7xl">
+    <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t("أراضيّ", "My land")}</h1>
@@ -166,7 +166,7 @@ export default async function LandsPage({
           )}
         </p>
       ) : (
-        <ul className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <ul className="flex flex-col gap-4">
           {lands.map((l) => {
             const station = stationName(l.station_key, locale);
             return (
