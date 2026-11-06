@@ -459,7 +459,8 @@ class _ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (hero) {
-      const ink = SudagriColors.primaryForeground;
+      final ink = Theme.of(context).colorScheme.onSurface;
+      final olive = textGreenOn(context);
       return HeroBand(
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
         child: Column(
@@ -467,11 +468,11 @@ class _ResultCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 18, color: ink),
+                Icon(icon, size: 18, color: olive),
                 const SizedBox(width: 6),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: ink,
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -485,18 +486,18 @@ class _ResultCard extends StatelessWidget {
               child: Text(
                 primary,
                 key: ValueKey(primary),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
-                  color: ink,
+                  color: olive,
                 ),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               secondary,
-              style: const TextStyle(
-                color: ink,
+              style: TextStyle(
+                color: mutedOn(context),
                 fontSize: 12.5,
                 height: 1.5,
                 fontWeight: FontWeight.w500,

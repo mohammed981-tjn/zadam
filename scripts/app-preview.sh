@@ -19,6 +19,12 @@ flutter build web --release --no-web-resources-cdn --no-wasm-dry-run \
   --dart-define=SUPABASE_URL="${SUPABASE_URL:-}" \
   --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}" \
   --dart-define=SITE_URL="${SITE_URL:-}"
+# A server left on the port from an earlier run would answer instead, with an old build: refuse rather than
+# photograph the wrong app.
+if curl -sf "http://localhost:$PORT/" >/dev/null 2>&1; then
+  echo "المنفذ $PORT مشغول بخادمٍ آخر؛ أوقفه أو شغّل بـ PORT=<منفذ آخر>." >&2
+  exit 1
+fi
 python3 -m http.server "$PORT" --directory build/web >/dev/null 2>&1 &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null || true' EXIT

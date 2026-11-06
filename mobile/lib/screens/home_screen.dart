@@ -218,33 +218,12 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const ink = SudagriColors.primaryForeground;
     return HeroBand(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.55),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.verified_outlined, size: 14, color: ink),
-                SizedBox(width: 4),
-                Text(
-                  'الأدوات تعمل الآن · مجاناً وبلا تسجيل',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                    color: ink,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const TagPill('الأدوات تعمل الآن · مجاناً وبلا تسجيل',
+              icon: Icons.verified_outlined),
           const SizedBox(height: 14),
           // Broken after «هنا» so the two lines balance on a phone.
           const Text(
@@ -253,37 +232,24 @@ class _Hero extends StatelessWidget {
               fontSize: 23,
               fontWeight: FontWeight.w900,
               height: 1.4,
-              color: ink,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'منصّة معرفة زراعية وبيانات للسودان — لكل رقمٍ مصدره ومنهجه.',
-            style: TextStyle(
-              height: 1.7,
-              color: ink,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(height: 1.7, color: mutedOn(context)),
           ),
           const SizedBox(height: 16),
+          // The olive fills the one button that matters; the other is outlined.
           Row(
             children: [
               Expanded(
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: ink,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 8,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   ),
                   onPressed: onWater,
-                  icon: const Icon(
-                    Icons.water_drop,
-                    size: 18,
-                    color: SudagriColors.textGreen,
-                  ),
+                  icon: const Icon(Icons.water_drop, size: 18),
                   label: const Text('احسب الري'),
                 ),
               ),
@@ -291,20 +257,9 @@ class _Hero extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: ink,
-                    backgroundColor: Colors.white.withValues(alpha: 0.22),
-                    side: BorderSide(
-                      color: ink.withValues(alpha: 0.45),
-                      width: 1.2,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 8,
-                    ),
-                    textStyle: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
-                    ),
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                   ),
                   onPressed: onAsk,
                   icon: const Icon(Icons.chat_bubble_outline, size: 18),

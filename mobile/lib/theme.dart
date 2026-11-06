@@ -7,9 +7,11 @@
 ///
 /// The brand (owner, 6 November 2026: «الوان الهوية بيج أخضر فاتح», then
 /// chosen from swatches the same day): a beige ground and a calm OLIVE green
-/// that sits with it. The olive leads — buttons, the selected tab, the hero and
-/// the chips are filled with it, and what sits on it is the dark ink #1C2B1E,
-/// not white (white on #8A9A5B is 3.1:1). Olive that is itself text or a line
+/// that sits with it — «أخضر يميل للبيج، لكن البيج ظاهر». The beige stays the
+/// ground everywhere, the hero included (soft pools of olive and gold over it,
+/// see HeroBand). The olive fills only buttons, the selected tab and other
+/// selected states, and chips; what sits on it is the dark ink #1C2B1E, not
+/// white (white on #8A9A5B is 3.1:1). Cards and tiles stay white. Olive that is itself text or a line
 /// icon on the beige is the deeper #5C6B30. A lighter olive (#B5C08A, #9AA86A)
 /// carries the soft touches: tints and gradients. Gold is the accent. No red
 /// and no orange anywhere (the owner's standing rule): errors and warnings are
@@ -68,15 +70,6 @@ class SudagriColors {
   static const darkAccent = Color(0xFFD4A72C);
   static const darkWarn = Color(0xFFE0B440);
   static const darkWarnTint = Color(0xFF2C2914);
-
-  /// The hero band: the light olive, deepening to the far side, with the dark
-  /// ink on it.
-  static const heroGradient = LinearGradient(
-    begin: AlignmentDirectional.topStart,
-    end: AlignmentDirectional.bottomEnd,
-    colors: [lightOlive, midOlive, primary],
-    stops: [0, 0.55, 1],
-  );
 
   /// The selected tab and other selected pills.
   static const selectedGradient = LinearGradient(
@@ -209,14 +202,14 @@ ThemeData _build({required bool dark}) {
       thumbColor: primary,
       overlayColor: primary.withValues(alpha: 0.16),
     ),
+    // Selected states take the olive fill, with the dark ink on it.
     chipTheme: ChipThemeData(
       backgroundColor: card,
-      selectedColor: tint,
-      checkmarkColor: dark
-          ? SudagriColors.darkForeground
-          : SudagriColors.primaryForeground,
+      selectedColor: primary,
+      checkmarkColor: onPrimary,
       side: BorderSide(color: border),
       labelStyle: TextStyle(color: fg, fontWeight: FontWeight.w600),
+      secondaryLabelStyle: TextStyle(color: onPrimary, fontWeight: FontWeight.w700),
       shape: const StadiumBorder(),
     ),
     expansionTileTheme: ExpansionTileThemeData(
@@ -252,15 +245,13 @@ ThemeData _build({required bool dark}) {
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(foregroundColor: fg),
     ),
-    // The selected segment takes the light-olive tint, with the dark ink.
+    // The selected segment takes the olive fill, with the dark ink.
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
         backgroundColor: card,
         foregroundColor: fg,
-        selectedBackgroundColor: tint,
-        selectedForegroundColor: dark
-            ? SudagriColors.darkForeground
-            : SudagriColors.primaryForeground,
+        selectedBackgroundColor: primary,
+        selectedForegroundColor: onPrimary,
         side: BorderSide(color: border),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),

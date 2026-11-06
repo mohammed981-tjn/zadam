@@ -76,15 +76,7 @@ class _SignedOutState extends State<_SignedOut> {
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
             child: Row(
               children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.person_rounded, size: 30),
-                ),
+                const IconChip(Icons.person_rounded, size: 52),
                 const SizedBox(width: 14),
                 const Expanded(
                   child: Text(
@@ -523,23 +515,11 @@ class _WhoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = roleLabel(account.role);
-    const ink = SudagriColors.primaryForeground;
     return HeroBand(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.6),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              account.isAdmin ? Icons.shield : Icons.person,
-              size: 28,
-            ),
-          ),
+          IconChip(account.isAdmin ? Icons.shield : Icons.person, size: 52),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -562,13 +542,6 @@ class _WhoCard extends StatelessWidget {
                   SegmentedButton<String>(
                     key: const Key('side-switch'),
                     showSelectedIcon: false,
-                    style: SegmentedButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.45),
-                      foregroundColor: ink,
-                      selectedBackgroundColor: Colors.white,
-                      selectedForegroundColor: ink,
-                      side: BorderSide(color: ink.withValues(alpha: 0.25)),
-                    ),
                     segments: const [
                       ButtonSegment(
                         value: 'farmer',
@@ -603,7 +576,6 @@ class _WhoCard extends StatelessWidget {
             ),
           ),
           TextButton.icon(
-            style: TextButton.styleFrom(foregroundColor: ink),
             onPressed: () => accountSignOut(context),
             icon: const Icon(Icons.logout, size: 18),
             label: const Text('خروج'),

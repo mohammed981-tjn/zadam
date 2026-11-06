@@ -13,8 +13,11 @@ import 'package:flutter/material.dart';
 
 import 'theme.dart';
 
-/// The hero band: the light-olive gradient with the dark ink on it, and a faint
-/// leaf in the far corner.
+/// The hero band (owner, 6 November: «أخضر يميل للبيج، لكن البيج ظاهر —
+/// الخلفية القديمة»): the beige ground itself, with soft pools of olive, gold
+/// and light olive washed over it, and the dark type. The beige stays visible;
+/// olive is never a solid block here — it fills only buttons, selected states
+/// and chips.
 class HeroBand extends StatelessWidget {
   const HeroBand({
     super.key,
@@ -25,53 +28,52 @@ class HeroBand extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
+  static Widget _pool(AlignmentGeometry at, Color colour, double alpha, double radius) =>
+      Positioned.fill(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: at,
+              radius: radius,
+              colors: [colour.withValues(alpha: alpha), colour.withValues(alpha: 0)],
+            ),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ground = dark ? SudagriColors.darkCard : SudagriColors.background;
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: SudagriColors.heroGradient,
+        color: ground,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: SudagriColors.primary.withValues(alpha: 0.28),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: Border.all(color: scheme.outline),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: Stack(
           children: [
+            _pool(const AlignmentDirectional(-0.9, -1.0), SudagriColors.primary, 0.25, 1.1),
+            _pool(const AlignmentDirectional(0.85, -0.55), SudagriColors.lightOlive, 0.18, 0.8),
+            _pool(const AlignmentDirectional(0.95, 1.1), SudagriColors.accent, 0.14, 0.9),
             PositionedDirectional(
-              end: -28,
-              bottom: -34,
+              end: -26,
+              bottom: -30,
               child: Icon(
                 Icons.eco,
-                size: 150,
-                color: Colors.white.withValues(alpha: 0.16),
-              ),
-            ),
-            PositionedDirectional(
-              end: 70,
-              top: -40,
-              child: Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.10),
-                ),
+                size: 130,
+                color: SudagriColors.primary.withValues(alpha: 0.10),
               ),
             ),
             Padding(
               padding: padding,
               child: DefaultTextStyle.merge(
-                style: const TextStyle(color: SudagriColors.primaryForeground),
+                style: TextStyle(color: scheme.onSurface),
                 child: IconTheme.merge(
-                  data: const IconThemeData(
-                    color: SudagriColors.primaryForeground,
-                  ),
+                  data: IconThemeData(color: textGreenOn(context)),
                   child: child,
                 ),
               ),
@@ -412,12 +414,16 @@ class TagPill extends StatelessWidget {
             ),
             const SizedBox(width: 4),
           ],
-          Text(
-            text,
-            style: TextStyle(
-              color: fg,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
+          // A narrow phone or a large text size wraps the label rather than
+          // pushing it past the pill.
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: fg,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
