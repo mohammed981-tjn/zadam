@@ -52,6 +52,8 @@ export default function BlankLedgerForm() {
       label: t("قيدٌ بلا موسم", "An entry with no season yet"),
       formData,
       stamp: "entry_date",
+      // The key goes with it to whichever season it is sent: a resend after a lost answer is «already saved».
+      clientKey: true,
     });
     const kept = keptMessage(result, t);
     setNote(

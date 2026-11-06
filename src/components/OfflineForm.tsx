@@ -4,7 +4,7 @@ import { startTransition, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { tr } from "@/lib/i18n";
-import { isNetworkError, keepOffline, keptMessage, listPending, offlineNow, replayPending } from "@/lib/outboxClient";
+import { isNetworkError, keepOffline, keptMessage, listPending, offlineNow, replayPending, stampClientKey } from "@/lib/outboxClient";
 
 const RETRY_MS = 30_000;
 
@@ -18,12 +18,17 @@ const RETRY_MS = 30_000;
  *
  * `stamp` names a hidden field to fill with the phone's own day when a form is kept, so a cost
  * typed on Monday and sent on Thursday still says Monday.
+ *
+ * `clientKey` gives each submission an idempotency key (`client_key`) before its first attempt, kept with it if it has
+ * to wait: when the server saved the entry but its answer never arrived, the later send is «already saved», not a
+ * second line in the book (the ledger's form; 20261106060000_ledger_client_key.sql).
  */
 export default function OfflineForm({
   action,
   outboxKey,
   label,
   stamp,
+  clientKey,
   className,
   children,
 }: {
@@ -31,6 +36,7 @@ export default function OfflineForm({
   outboxKey: string;
   label: string;
   stamp?: string;
+  clientKey?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -39,10 +45,11 @@ export default function OfflineForm({
   const path = usePathname();
   const [note, setNote] = useState<{ ok: boolean; message: string } | null>(null);
 
-  const keep = (formData: FormData) => setNote(keptMessage(keepOffline({ key: outboxKey, path, label, formData, stamp }), t));
+  const keep = (formData: FormData) => setNote(keptMessage(keepOffline({ key: outboxKey, path, label, formData, stamp, clientKey }), t));
 
   const submit = async (formData: FormData) => {
     setNote(null);
+    if (clientKey) stampClientKey(formData);
     if (offlineNow()) return keep(formData);
     try {
       await action(formData);

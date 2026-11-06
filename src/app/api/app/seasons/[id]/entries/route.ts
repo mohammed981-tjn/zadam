@@ -8,7 +8,8 @@ import { recordLedgerEntry } from "@/lib/seasonWrites";
  * The same `recordLedgerEntry` the website's action calls, with the app's session: the same reading of the figures
  * and the day, the same refusal of a stage from another season, the same insert through row-level security, and the
  * ledger's own refusals in the same words. An entry the phone kept with no network arrives here later with the day
- * it was written (`entry_date`), which is accepted on the same terms as the website's outbox.
+ * it was written (`entry_date`), which is accepted on the same terms as the website's outbox, and with the key it was
+ * given when typed (`client_key`): sent again after an answer that never reached the phone, it is not saved twice.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await clientFromBearer(req);
@@ -37,9 +38,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       description: text("description", 500),
       entry_date: text("entry_date", 10),
       stage_id: text("stage_id", 40),
+      client_key: text("client_key", 40),
     },
     "ar",
   );
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
-  return NextResponse.json({ ok: true, message: "سُجّل القيد في دفتر الموسم." });
+  // A resend of an entry already saved (its key is in the book) is the same success: the phone stops sending it.
+  return NextResponse.json({ ok: true, already: result.already === true, message: "سُجّل القيد في دفتر الموسم." });
 }

@@ -45,13 +45,45 @@ export interface LedgerEntryFields {
   description: string;
   entry_date: string;
   stage_id: string;
+  /**
+   * The random key the phone gave the entry when it was typed (`client_key`), the same on every attempt to send it.
+   * Empty for a form sent before keys existed: it is saved as it always was.
+   */
+  client_key?: string;
 }
+
+/** The index that refuses a second row with the same (season, key): 20261106060000_ledger_client_key.sql. */
+export const CLIENT_KEY_INDEX = "ledger_entries_season_client_key";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The entry's key as the column takes it, or null: anything that is not a UUID is no key (and no error). */
+export function readClientKey(raw: string | undefined): string | null {
+  const k = (raw ?? "").trim().toLowerCase();
+  return UUID.test(k) ? k : null;
+}
+
+/**
+ * The database's refusal of a second row with a key it already holds: the entry was saved by an earlier attempt whose
+ * answer never reached the phone. Row-level security checks the row before the index does, so this can only be the
+ * season owner's own entry — the same success as a first save.
+ */
+export function isAlreadySaved(error: { code?: string | null; message?: string | null; details?: string | null } | null): boolean {
+  if (!error || error.code !== "23505") return false;
+  return `${error.message ?? ""} ${error.details ?? ""}`.includes(CLIENT_KEY_INDEX);
+}
+
+/** PostgREST's «no such column» for the key: the code reached a database the migration has not reached yet. */
+const keyColumnMissing = (error: { code?: string | null; message?: string | null }) =>
+  (error.code === "PGRST204" || error.code === "42703") && (error.message ?? "").includes("client_key");
 
 /**
  * `invalid` is a form that names no season or no known category: the website has always ignored it without a word
  * (no field of its own form can send that), and still does; the app is told.
  */
-export type SeasonWriteResult = { ok: true } | { ok: false; code: "invalid" | "refused"; message: string };
+export type SeasonWriteResult =
+  | { ok: true; /** Saved by an earlier attempt with the same key; nothing new was written. */ already?: boolean }
+  | { ok: false; code: "invalid" | "refused"; message: string };
 
 export async function recordLedgerEntry(
   supabase: SupabaseClient,
@@ -111,7 +143,7 @@ export async function recordLedgerEntry(
     stageId = stageChoice;
   }
 
-  const { error } = await supabase.from("ledger_entries").insert({
+  const row = {
     season_id: seasonId,
     stage_id: stageId,
     category,
@@ -119,7 +151,18 @@ export async function recordLedgerEntry(
     description: f.description.trim() || null,
     entry_date: entryDate ?? today,
     created_by: userId,
-  });
+  };
+  // The same insert, with the key when the phone sent one: sending again after a lost answer is refused by the index
+  // and read here as «already saved» (20261106060000). An entry with no key is written exactly as before.
+  const clientKey = readClientKey(f.client_key);
+  const keyed: typeof row & { client_key?: string } = clientKey ? { ...row, client_key: clientKey } : row;
+  let { error } = await supabase.from("ledger_entries").insert(keyed);
+  if (error && clientKey && keyColumnMissing(error)) {
+    // The website went out before the migration: save the entry as before rather than lose it, and say so in the log.
+    console.warn("addLedgerEntry: ledger_entries.client_key is missing; saved without the key", { seasonId });
+    ({ error } = await supabase.from("ledger_entries").insert(row));
+  }
+  if (error && clientKey && isAlreadySaved(error)) return { ok: true, already: true };
 
   if (error) {
     console.error("addLedgerEntry failed", { seasonId, category, error });

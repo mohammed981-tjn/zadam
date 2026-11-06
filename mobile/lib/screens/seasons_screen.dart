@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../account.dart';
 import '../api.dart';
+import '../ledger_autosend.dart';
 import '../seasons.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -87,7 +88,23 @@ class _SeasonsBodyState extends State<_SeasonsBody> {
   @override
   void initState() {
     super.initState();
+    ledgerAutoSender.reports.addListener(_autoSent);
     _load();
+  }
+
+  @override
+  void dispose() {
+    ledgerAutoSender.reports.removeListener(_autoSent);
+    super.dispose();
+  }
+
+  /// The app sent kept entries by itself while this list was open: say so, show what was refused, read the box again.
+  void _autoSent() {
+    final report = ledgerAutoSender.reports.value;
+    if (report == null || !mounted) return;
+    if (report.refused.isNotEmpty) setState(() => _refused = report.refused);
+    if (report.sent > 0) _say('أُرسل ${report.sent} من القيود المحفوظة على هاتفك.');
+    _readBox();
   }
 
   Future<void> _load() async {
