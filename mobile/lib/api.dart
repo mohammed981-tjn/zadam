@@ -126,8 +126,12 @@ class NewsItem {
 
 /// Raised for anything the caller should show the user rather than swallow.
 class ApiException implements Exception {
-  ApiException(this.message);
+  ApiException(this.message, {this.status});
   final String message;
+
+  /// The HTTP status of the route's answer, when there was one: a 5xx with the route's own words (a 503 that says the
+  /// book could not be reached) is still an outage, not a refusal of the form (backlog 209).
+  final int? status;
   @override
   String toString() => message;
 }

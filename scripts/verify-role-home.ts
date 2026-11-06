@@ -118,6 +118,9 @@ console.log("\nThe farmer: seasons, stages, evidence, budget");
   ok(v.full[0].items[0].kind === "waiting", "what waits comes before where things stand");
   const many = roleHome(raw({ seasons: ["a", "b", "c", "d", "e"].map((id) => season(id, [{ planned_start: "2027-01-01" }])) }));
   ok(keys(many).filter((k) => k.startsWith("season:")).length === 3 && item(many, "seasons:more")?.count === 2, "three season cards at most, the rest counted in one");
+  // (209) The running seasons as the database counts them, not as many as the list read.
+  const counted = roleHome(raw({ seasons: ["a", "b", "c", "d"].map((id) => season(id, [{ planned_start: "2027-01-01" }])), seasonCount: 14 }));
+  ok(item(counted, "seasons:more")?.count === 11, "fourteen running seasons, four read: the rest counted is eleven, not one", String(item(counted, "seasons:more")?.count));
   const nobudget = roleHome(raw({ seasons: [season("s4", [{ budget: 0, planned_start: "2027-01-01" }])] }));
   ok(/بلا ميزانيّة/.test(item(nobudget, "season:s4")?.detail?.ar ?? ""), "a stage with no planned budget says so instead of dividing by zero");
 }
@@ -351,6 +354,8 @@ const READS = new Set([
   "agent_my_agents",
   "investor_open_lands",
   "farm_credit_status",
+  // 20261106100000 (backlog 209): farm_credit_status's own rule over every running season, a stable read.
+  "farm_open_credit_by_season",
   "land_investor_requests",
   "group_order_directory",
   "agent_my_farmers",

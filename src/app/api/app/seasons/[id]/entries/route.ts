@@ -45,7 +45,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     },
     locale,
   );
-  if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
+  // A write that never reached the database's decision is 503, so the phone's outbox keeps the entry and sends it again
+  // (mobile/lib/seasons.dart isOutage); the database's own refusal stays 400, and the phone shows it.
+  if (!result.ok) return NextResponse.json({ error: result.message }, { status: result.code === "outage" ? 503 : 400 });
   // A resend of an entry already saved (its key is in the book) is the same success: the phone stops sending it.
   return NextResponse.json({ ok: true, already: result.already === true, message: tr(locale, "سُجّل القيد في دفتر الموسم.", "The entry was recorded in the season's ledger.") });
 }

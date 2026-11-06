@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
-import { ownPdfPath, photoError, uploadAppPhoto } from "@/lib/appPhoto";
+import { discardAppPhoto, ownUploadPath, photoError, uploadAppPhoto } from "@/lib/appPhoto";
 import { ledgerToday } from "@/lib/ledger/today";
 import { postableAccounts, templatesFor, type LineInput } from "@/lib/ledger/journal";
 import { bookLabel, loadChart, loadTemplates, writableBooks } from "@/lib/ledger/journalLoad";
@@ -81,14 +81,18 @@ export async function POST(req: Request) {
     };
   });
 
+  // The receipt: the path the app stored it at before sending (a PDF it put in the bucket, or a photo stored by
+  // ./photo), the same on every retry of the entry; or, from an app that does not do that yet, the photo itself,
+  // stored here for this one attempt (backlog 209).
   let document: string | null = null;
-  if (typeof body.photo === "string" && body.photo) {
+  let storedHere: string | null = null;
+  if (typeof body.storage_path === "string" && body.storage_path) {
+    document = ownUploadPath(user.id, "ledger", body.storage_path);
+    if (!document) return NextResponse.json({ error: tr(locale, "مسار المستند ليس في مجلّدك", "The document's path is not in your folder") }, { status: 400 });
+  } else if (typeof body.photo === "string" && body.photo) {
     const photo = await uploadAppPhoto(supabase, user.id, "ledger", body.photo);
     if ("error" in photo) return NextResponse.json({ error: photoError(locale, photo.error) }, { status: 400 });
-    document = photo.path;
-  } else if (typeof body.storage_path === "string" && body.storage_path) {
-    document = ownPdfPath(user.id, "ledger", body.storage_path);
-    if (!document) return NextResponse.json({ error: tr(locale, "مسار المستند ليس في مجلّدك", "The document's path is not in your folder") }, { status: 400 });
+    document = storedHere = photo.path;
   }
 
   const r = await submitJournalEntry(
@@ -108,6 +112,13 @@ export async function POST(req: Request) {
     "app",
     locale,
   );
-  if (!r.ok) return NextResponse.json({ error: r.message }, { status: 400 });
+  if (!r.ok) {
+    // A refused entry leaves no file behind (as the other routes' discardAppPhoto): the one stored for this attempt
+    // always, the one the app kept only when the entry was refused — after an outage the app sends it again with the
+    // same path. A file an entry or a draft already carries stays whatever happens (the bucket's keep policy).
+    const discard = r.outage ? storedHere : document;
+    if (discard) await discardAppPhoto(supabase, discard);
+    return NextResponse.json({ error: r.message }, { status: r.outage ? 503 : 400 });
+  }
   return NextResponse.json({ ok: true, status: r.status, id: r.id, message: r.message });
 }

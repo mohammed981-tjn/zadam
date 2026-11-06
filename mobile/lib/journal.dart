@@ -9,6 +9,7 @@ library;
 import 'dart:math';
 
 import 'account.dart';
+import 'api.dart';
 import 'i18n.dart';
 
 List<Map<String, dynamic>> _maps(Object? v) => [for (final x in (v as List? ?? const [])) (x as Map).cast<String, dynamic>()];
@@ -220,6 +221,37 @@ String? entryProblem({required String date, required String memo, required List<
   return null;
 }
 
+/// The receipt of the entry being sent, stored once and kept for its retries (backlog 209). [forFile] stores the chosen
+/// file the first time and gives back the same stored path after that, until the file changes; [settle] keeps it after
+/// an outage (the retry carries it) and lets it go otherwise — posted, or refused, which removes the file on the server.
+class ReceiptKeeper {
+  Map<String, dynamic>? _stored;
+  Object? _file;
+
+  Map<String, dynamic>? get stored => _stored;
+
+  void reset() {
+    _stored = null;
+    _file = null;
+  }
+
+  Future<Map<String, dynamic>?> forFile(Object? file, Future<Map<String, dynamic>> Function() store) async {
+    if (file == null) {
+      reset();
+      return null;
+    }
+    if (_stored != null && identical(_file, file)) return _stored;
+    final s = await store();
+    _stored = s;
+    _file = file;
+    return s;
+  }
+
+  void settle({required bool outage}) {
+    if (!outage) reset();
+  }
+}
+
 /// A key the server keeps with the entry: a retry with it (a reply lost on a weak network) writes nothing twice.
 String newEntryKey([Random? random]) {
   final r = random ?? Random.secure();
@@ -229,10 +261,16 @@ String newEntryKey([Random? random]) {
 // ── Review ───────────────────────────────────────────────────────────────────
 
 class DraftLineView {
-  const DraftLineView(this.account, this.side, this.amount);
+  const DraftLineView(this.account, this.side, this.amount, {this.base, this.tags});
   final String account;
   final String side;
   final String amount;
+
+  /// Its worth in the book's currency as it will post, for a line in another currency (backlog 209).
+  final String? base;
+
+  /// The season, land, herd or project it is tagged with, and its own memo.
+  final String? tags;
 }
 
 class DraftView {
@@ -246,6 +284,8 @@ class DraftView {
     required this.hasDocument,
     required this.lines,
     this.note,
+    this.rate,
+    this.permissionEnded = false,
   });
   final String id;
   final String date;
@@ -257,6 +297,12 @@ class DraftView {
   final List<DraftLineView> lines;
   final String? note;
 
+  /// The rate a pound entry carries and who set it.
+  final String? rate;
+
+  /// The preparer's permission (or the agent's mandate) has ended since it was prepared.
+  final bool permissionEnded;
+
   factory DraftView.fromJson(Map<String, dynamic> j) => DraftView(
         id: j['id'] as String? ?? '',
         date: j['date'] as String? ?? '',
@@ -266,9 +312,12 @@ class DraftView {
         by: j['by'] as String? ?? '',
         hasDocument: j['has_document'] == true,
         note: j['note'] as String?,
+        rate: j['rate'] as String?,
+        permissionEnded: j['permission_ended'] == true,
         lines: [
           for (final l in _maps(j['lines']))
-            DraftLineView(l['account'] as String? ?? '', l['side'] as String? ?? 'D', l['amount'] as String? ?? ''),
+            DraftLineView(l['account'] as String? ?? '', l['side'] as String? ?? 'D', l['amount'] as String? ?? '',
+                base: l['base'] as String?, tags: l['tags'] as String?),
         ],
       );
 }
@@ -438,6 +487,16 @@ String dayBefore(String iso) {
   return '${p.year}-${two(p.month)}-${two(p.day)}';
 }
 
+/// The day a season's income is closed on (backlog 209; reportParams.ts `seasonCloseDefault`): yesterday, like the
+/// period's own close, so closing the season and then the period through yesterday takes the season's closing into that
+/// period; today when the book or its income is closed through yesterday already. ISO dates compare as text.
+String seasonCloseDay(String today, String? closedThrough, String? incomeClosedThrough) {
+  final yesterday = dayBefore(today);
+  final last = [?closedThrough, ?incomeClosedThrough]..sort();
+  if (last.isNotEmpty && last.last.compareTo(yesterday) >= 0) return today;
+  return yesterday;
+}
+
 // ── The client ───────────────────────────────────────────────────────────────
 
 class JournalApi {
@@ -447,11 +506,26 @@ class JournalApi {
   Future<JournalContext> context({String? book}) async => JournalContext.fromJson(
       await _account.call('GET', '/api/app/books/journal${book == null ? '' : '?${Uri(queryParameters: {'book': book}).query}'}'));
 
-  /// Sends the entry; [attachment] is what EvidenceSender.attach('ledger', …) gave (`photo` or `storage_path`).
+  /// Sends the entry; [attachment] is what EvidenceSender.attach('ledger', …) gave (`photo` or `storage_path`), or —
+  /// as the entry form sends it — what [storeReceipt] made of it.
   /// Returns `(status, message)`: `posted`, or `pending` when it waits for the owner.
   Future<(String, String)> submit(Map<String, dynamic> entry, {Map<String, dynamic>? attachment}) async {
     final r = await _account.call('POST', '/api/app/books/journal', body: {...entry, ...?attachment});
     return (r['status'] as String? ?? '', r['message'] as String? ?? '');
+  }
+
+  /// The receipt stored before the entry is sent (backlog 209): a photo goes to the route that stores it and comes back
+  /// as its path; a PDF is in the bucket already and is its path. The form keeps that path with the entry, so a retry
+  /// after a lost reply sends the same file, not a second copy that makes the retry look like another entry.
+  Future<Map<String, dynamic>> storeReceipt(Map<String, dynamic> attachment) async {
+    final photo = attachment['photo'];
+    if (photo is! String || photo.isEmpty) return attachment;
+    final r = await _account.call('POST', '/api/app/books/journal/photo', body: {'photo': photo});
+    final path = r['storage_path'];
+    if (path is! String || path.isEmpty) {
+      throw ApiException(tr('تعذّر رفع الصورة. أعد المحاولة.', 'Could not upload the photo. Try again.'));
+    }
+    return {'storage_path': path};
   }
 
   Future<ReviewView> review() async => ReviewView.fromJson(await _account.call('GET', '/api/app/books/review'));

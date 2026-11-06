@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sudagri/account.dart';
+import 'package:sudagri/api.dart';
 import 'package:sudagri/ledger_autosend.dart';
 import 'package:sudagri/seasons.dart';
 
@@ -160,6 +161,50 @@ void main() {
       expect(most, 1, reason: 'never two at once');
       expect(ra.sent + rb.sent, 2);
       expect(LedgerOutbox.busy, isFalse);
+    });
+
+    test('an entry kept while a send is under way waits for it, and is not written over when the unsent go back (209)', () async {
+      final box = await boxWith(2);
+      final gate = Completer<void>();
+      addTearDown(() => gate.isCompleted ? null : gate.complete());
+      final sending = box.send(userId: 'u1', post: (s, f) async {
+        await gate.future;
+        throw ApiException('The book could not be reached just now.', status: 503);
+      });
+      await settle();
+      var keptDone = false;
+      final kept = box.keep(key: 'ledger:s1', userId: 'u1', fields: {'amount': 'mid-send'}).then((r) {
+        keptDone = true;
+        return r;
+      });
+      await settle();
+      expect(keptDone, isFalse, reason: 'keeping waits for the send that holds the box');
+      gate.complete();
+      await sending;
+      expect(await kept, KeepResult.kept);
+      final left = [for (final i in await box.pending('u1')) i.fields['amount']];
+      expect(left..sort(), ['0', '1', 'mid-send'], reason: 'the two put back and the one kept meanwhile, none lost');
+    });
+
+    test('a 503 with the route\'s own words is an outage: the entries stay, none is counted refused (209)', () async {
+      final box = await boxWith(2);
+      final r = await box.send(userId: 'u1', post: (s, f) async => throw ApiException('تعذّر الوصول إلى الدفتر الآن.', status: 503));
+      expect(r.refused, isEmpty);
+      expect((await box.pending('u1')).length, 2);
+      expect(isOutage(ApiException('الفترة مقفلة', status: 400)), isFalse, reason: 'a refusal stays a refusal');
+    });
+
+    test('what goes back after an outage is never cut to the box\'s size (209)', () async {
+      await boxWith(LedgerOutbox.maxItems);
+      final prefs = await SharedPreferences.getInstance();
+      final list = jsonDecode(prefs.getString(LedgerOutbox.storageKey)!) as List;
+      list.add({...(list.first as Map<String, dynamic>), 'id': 'one-more'});
+      await prefs.setString(LedgerOutbox.storageKey, jsonEncode(list));
+      final box = LedgerOutbox();
+      expect((await box.pending('u1')).length, LedgerOutbox.maxItems + 1);
+      final r = await box.send(userId: 'u1', post: (s, f) async => throw ApiException(offlineMessage));
+      expect(r.sent, 0);
+      expect((await box.pending('u1')).length, LedgerOutbox.maxItems + 1, reason: 'not one unsent entry dropped');
     });
 
     test('an error that is not the server\'s answer puts the entry back instead of losing it', () async {

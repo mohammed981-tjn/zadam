@@ -82,8 +82,10 @@ export interface HomeRaw {
   today: string;
   // The farmer's side.
   lands: { id: string; name: string; verification: string }[];
-  /** Own seasons that are running, each with its stages. */
+  /** Own seasons that are running, each with its stages (the first few: the cards and the stage reminders read these). */
   seasons: RawSeason[];
+  /** How many own seasons are running, counted by the database (null: the list above is all of them). */
+  seasonCount: number | null;
   /** Dollars spent (revenue left out) on each stage read, by stage id. */
   spentByStage: Record<string, number>;
   /** Pieces of evidence on each stage read, by stage id. */
@@ -126,6 +128,7 @@ export function emptyRaw(userId: string, role: string | null, today: string): Ho
     today,
     lands: [],
     seasons: [],
+    seasonCount: null,
     spentByStage: {},
     evidenceByStage: {},
     openCreditBySeason: {},
@@ -287,8 +290,10 @@ export function buildItems(raw: HomeRaw): HomeItem[] {
       href: `/seasons/${season.id}`,
     });
   }
-  if (raw.seasons.length > MAX_SEASON_CARDS) {
-    const more = raw.seasons.length - MAX_SEASON_CARDS;
+  // The running seasons as the database counts them, not as many as the list read (backlog 209).
+  const running = Math.max(raw.seasonCount ?? 0, raw.seasons.length);
+  if (running > MAX_SEASON_CARDS) {
+    const more = running - Math.min(raw.seasons.length, MAX_SEASON_CARDS);
     push({
       key: "seasons:more",
       group: "farmer",

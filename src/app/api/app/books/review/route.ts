@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { formatMoney, isCurrency } from "@/lib/ledger/money";
-import { bookLabel, loadReview, type DraftRow, type PreparerRow } from "@/lib/ledger/journalLoad";
-import type { ChartAccount } from "@/lib/ledger/journal";
+import { bookLabel, draftFacts, loadReview, type DraftRow, type PreparerRow, type TagNames } from "@/lib/ledger/journalLoad";
+import { accountName, type ChartAccount } from "@/lib/ledger/journal";
 import {
   addAgentPreparer,
   answerInvitation,
@@ -36,11 +36,17 @@ const status = (locale: Locale): Record<string, string> => ({
 
 const money = (minor: number, currency: string) => formatMoney(BigInt(Math.round(Number(minor))), isCurrency(currency) ? currency : "USD");
 
-function draftView(d: DraftRow, chart: ChartAccount[], by: string, locale: Locale) {
-  const name = (code?: string) => {
-    const a = chart.find((c) => c.code === code);
-    return a ? `${a.code} — ${a.name_ar}` : (code ?? "");
+/**
+ * A draft as the app shows it. For the approver (backlog 209, S4): each line's worth in the book's currency as it will
+ * post (`base`), its tags and memo (`tags`), the entry's rate and who set it (`rate`), and `permission_ended` when the
+ * preparer's permission or the agent's mandate has ended since.
+ */
+function draftView(d: DraftRow, chart: ChartAccount[], by: string, locale: Locale, tagNames: TagNames = new Map(), preparer?: PreparerRow) {
+  const name = (code?: string, key?: string) => {
+    const a = chart.find((c) => (code ? c.code === code : !!key && c.system_key === key));
+    return a ? `${a.code} — ${accountName(a, locale)}` : (code ?? key ?? "");
   };
+  const facts = draftFacts(d, name, tagNames, preparer, locale);
   return {
     id: d.id,
     date: d.entry_date,
@@ -50,7 +56,15 @@ function draftView(d: DraftRow, chart: ChartAccount[], by: string, locale: Local
     note: d.decision_note,
     by,
     has_document: !!d.document_path,
-    lines: d.lines.map((l) => ({ account: name(l.account), side: l.side, amount: money(l.minor, l.currency) })),
+    permission_ended: facts.permissionEnded,
+    rate: facts.rate ? [facts.rate.value, facts.rate.source].filter(Boolean).join(" — ") : null,
+    lines: facts.lines.map((l) => ({
+      account: l.account,
+      side: l.side,
+      amount: money(l.minor, l.currency),
+      base: l.base === null || l.currency === l.baseCurrency ? null : money(l.base, l.baseCurrency),
+      tags: [...l.tags, ...(l.memo ? [`${tr(locale, "بيان السطر", "Line memo")}: ${l.memo}`] : [])].join(" · ") || null,
+    })),
   };
 }
 
@@ -69,14 +83,17 @@ export async function GET(req: Request) {
     const data = await loadReview(supabase, user.id);
     return NextResponse.json(
       {
-        books: data.owned.map(({ book, pending, preparers, chart }) => {
+        books: data.owned.map(({ book, pending, preparers, chart, tagNames }) => {
           const byRef = new Map(preparers.map((p) => [p.id, p]));
           return {
             id: book.id,
             label: bookLabel(book, locale),
             kind: book.kind,
             always_review: book.always_review,
-            pending: pending.map((d) => draftView(d, chart, preparerName(d.preparer_ref ? byRef.get(d.preparer_ref) : undefined, locale), locale)),
+            pending: pending.map((d) => {
+              const prep = d.preparer_ref ? byRef.get(d.preparer_ref) : undefined;
+              return draftView(d, chart, preparerName(prep, locale), locale, tagNames, prep);
+            }),
             preparers: preparers.map((p) => ({
               id: p.id,
               name: preparerName(p, locale),

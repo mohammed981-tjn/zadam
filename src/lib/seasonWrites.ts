@@ -13,6 +13,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { dbMessage } from "./dbMessages";
+import { isDbOutage } from "./dbOutage";
 import { ledgerEntryDate } from "./entryDate";
 import { evidenceFileExists } from "./evidenceFile";
 import { sanitisePhotoMetadata } from "./exif";
@@ -79,11 +80,18 @@ const keyColumnMissing = (error: { code?: string | null; message?: string | null
 
 /**
  * `invalid` is a form that names no season or no known category: the website has always ignored it without a word
- * (no field of its own form can send that), and still does; the app is told.
+ * (no field of its own form can send that), and still does; the app is told. `outage` is a write that never reached
+ * the database's decision (isDbOutage): nothing was saved, and the entry is to be sent again, not corrected.
  */
 export type SeasonWriteResult =
   | { ok: true; /** Saved by an earlier attempt with the same key; nothing new was written. */ already?: boolean }
-  | { ok: false; code: "invalid" | "refused"; message: string };
+  | { ok: false; code: "invalid" | "refused" | "outage"; message: string };
+
+const outageMessage = (t: (ar: string, en: string) => string) =>
+  t(
+    "تعذّر الوصول إلى الدفتر الآن. لم يُحفظ شيء — يُرسَل القيد حين يعود الاتصال.",
+    "The book could not be reached just now. Nothing was saved — the entry is sent when the connection is back.",
+  );
 
 export async function recordLedgerEntry(
   supabase: SupabaseClient,
@@ -124,12 +132,17 @@ export async function recordLedgerEntry(
   const stageChoice = category === "revenue" ? "" : f.stage_id.trim();
   let stageId: string | null = null;
   if (stageChoice) {
-    const { data: stage } = await supabase
+    const { data: stage, error: stageError } = await supabase
       .from("season_stages")
       .select("id")
       .eq("id", stageChoice)
       .eq("season_id", seasonId)
       .maybeSingle();
+    if (stageError) {
+      // The look itself failed: that is no answer about the stage, so the entry is not refused for it.
+      console.error("addLedgerEntry: stage lookup failed", { seasonId, error: stageError });
+      return { ok: false, code: "outage", message: outageMessage(t) };
+    }
     if (!stage) {
       return {
         ok: false,
@@ -164,6 +177,10 @@ export async function recordLedgerEntry(
   }
   if (error && clientKey && isAlreadySaved(error)) return { ok: true, already: true };
 
+  if (error && isDbOutage(error)) {
+    console.error("addLedgerEntry: the database was not reached", { seasonId, category, error });
+    return { ok: false, code: "outage", message: outageMessage(t) };
+  }
   if (error) {
     console.error("addLedgerEntry failed", { seasonId, category, error });
     // The ledger's own refusals (no rate to take, a closed period) say exactly what to do; anything

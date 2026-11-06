@@ -227,13 +227,28 @@ class _DraftCard extends StatelessWidget {
           Text(d.memo, style: const TextStyle(fontWeight: FontWeight.w700)),
           Text([d.date, tr('أعدّه ${d.by}', 'Prepared by ${d.by}'), d.statusLabel, d.hasDocument ? tr('بمستند', 'with a document') : tr('بلا مستند', 'No document')].join(' · '),
               style: TextStyle(color: mutedOn(context), fontSize: 12)),
+          if (d.permissionEnded)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Chip(label: Text(tr('انتهى الإذن', 'Permission ended')), visualDensity: VisualDensity.compact),
+            ),
           if (d.note != null) Text(tr('السبب: ${d.note}', 'Reason: ${d.note}')),
           const SizedBox(height: 6),
+          // What the approver must see (backlog 209): the worth in the book's currency, the tags and memo, the rate.
           for (final l in d.lines)
-            Row(children: [
-              Expanded(child: Text(l.account, overflow: TextOverflow.ellipsis)),
-              Text(l.side == 'D' ? tr('مدين ${l.amount}', 'Debit ${l.amount}') : tr('دائن ${l.amount}', 'Credit ${l.amount}')),
-            ]),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(l.account, overflow: TextOverflow.ellipsis)),
+                  Text(l.side == 'D' ? tr('مدين ${l.amount}', 'Debit ${l.amount}') : tr('دائن ${l.amount}', 'Credit ${l.amount}')),
+                ]),
+                if (l.base != null)
+                  Text(tr('بعملة الدفتر: ${l.base}', 'In the book\'s currency: ${l.base}'), style: TextStyle(color: mutedOn(context), fontSize: 12)),
+                if (l.tags != null) Text(l.tags!, style: TextStyle(color: mutedOn(context), fontSize: 12)),
+              ]),
+            ),
+          if (d.rate != null) Text(tr('سعر الصرف: ${d.rate}', 'Exchange rate: ${d.rate}'), style: const TextStyle(fontSize: 12)),
           if (actions.isNotEmpty) ...[
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: actions),

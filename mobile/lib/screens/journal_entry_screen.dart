@@ -11,6 +11,7 @@ import '../api.dart';
 import '../evidence.dart';
 import '../i18n.dart';
 import '../journal.dart';
+import '../seasons.dart' show isOutage;
 import '../theme.dart';
 import '../ui.dart';
 import 'evidence_sheet.dart';
@@ -63,6 +64,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
   String _currency = 'USD';
   bool _adjusting = false;
   EvidenceFile? _file;
+  final _receipt = ReceiptKeeper();
   String _key = newEntryKey();
   bool _busy = false;
   String? _message;
@@ -147,7 +149,10 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
       _message = null;
     });
     try {
-      final attachment = _file == null ? null : await (widget.sender ?? EvidenceSender()).attach('ledger', _file!);
+      // Stored once and kept with the entry until it is answered: a retry carries the same path with the same key.
+      final file = _file;
+      final attachment = await _receipt.forFile(
+          file, () async => widget.api.storeReceipt(await (widget.sender ?? EvidenceSender()).attach('ledger', file!)));
       final (_, message) = await widget.api.submit({
         'book': c.bookId,
         'key': _key,
@@ -159,6 +164,7 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
         'template': ?_template?.key,
         'kind': _adjusting ? 'adjusting' : 'manual',
       }, attachment: attachment);
+      _receipt.reset();
       if (!mounted) return;
       setState(() {
         _ok = true;
@@ -171,6 +177,8 @@ class _JournalEntryBodyState extends State<JournalEntryBody> {
         _lines = _template != null ? (fillTemplate(_template!, c.accounts) ?? _lines) : [JournalLine(side: 'D'), JournalLine(side: 'C')];
       });
     } on ApiException catch (e) {
+      // After an outage the stored receipt waits for the retry; a refusal removed it on the server.
+      _receipt.settle(outage: isOutage(e));
       if (mounted) {
         setState(() {
           _ok = false;

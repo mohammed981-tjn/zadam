@@ -676,7 +676,8 @@ class AccountController extends ValueNotifier<Session?> {
     final res = await _authed(method, path, body: body);
     final json = _json(res);
     if (res.statusCode != 200) {
-      throw ApiException(json['error'] as String? ?? tr('تعذّر الطلب (${res.statusCode}).', 'The request failed (${res.statusCode}).'));
+      throw ApiException(json['error'] as String? ?? tr('تعذّر الطلب (${res.statusCode}).', 'The request failed (${res.statusCode}).'),
+          status: res.statusCode);
     }
     return json;
   }

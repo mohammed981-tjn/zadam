@@ -139,8 +139,11 @@ class _BooksCloseBodyState extends State<BooksCloseBody> {
               OutlinedButton(
                 onPressed: _busy || _season == null
                     ? null
-                    : () => _do('close_season', {'book': v.bookId, 'season': _season, 'date': v.today},
-                        tr('يُقيَّد قيد إقفال هذا الموسم في الأرباح المحتجزة بتاريخ اليوم.', 'A closing entry for this season is posted to retained earnings with today\'s date.')),
+                    : () {
+                        final day = seasonCloseDay(v.today, v.closedThrough, v.incomeClosedThrough);
+                        _do('close_season', {'book': v.bookId, 'season': _season, 'date': day},
+                            tr('يُقيَّد قيد إقفال هذا الموسم في الأرباح المحتجزة بتاريخ $day.', 'A closing entry for this season is posted to retained earnings dated $day.'));
+                      },
                 child: Text(tr('أقفل دخل الموسم', 'Close the season\'s income')),
               ),
             ],

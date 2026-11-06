@@ -146,6 +146,21 @@ if (clean) {
 }
 ok(stripJpegMetadata(Uint8Array.from([0xff, 0xd8, 0xff, 0xe1, 0xff, 0xff])) === null, "a JPEG it cannot follow is refused, not stored as it came");
 
+// (backlog 209) What follows the image's end-of-image marker is not the image: a second JPEG with its own EXIF and GPS
+// appended (a motion photo, a crafted file) is cut away, not stored behind the pixels.
+const appended = Uint8Array.from([...jpeg, ...jpeg, 0x00, 0x11, 0x22]);
+const cut = stripJpegMetadata(appended);
+ok(!!cut && !!clean && Buffer.from(cut).equals(Buffer.from(clean)), "a file with a second JPEG after the end-of-image is stored as the first image alone");
+ok(!!cut && !Buffer.from(cut).toString("hex").includes(Buffer.from("2026:10:01").toString("hex")) && !Buffer.from(cut).toString("hex").includes("112233"),
+   "so neither the appended file's time and place nor anything after it survives");
+ok(stripJpegMetadata(Uint8Array.from([0xff, 0xd8, ...dqt, 0xff, 0xda, ...u16(4), 9, 9, 0x12, 0x34])) === null,
+   "a JPEG whose pixels never end (no end-of-image) is refused rather than stored with whatever it carries");
+// Restart markers and a second scan (a progressive JPEG) are part of the image and stay.
+const dht = [0xff, 0xc4, ...u16(4), 1, 2];
+const progressive = Uint8Array.from([0xff, 0xd8, ...dqt, 0xff, 0xda, ...u16(4), 9, 9, 0x01, 0xff, 0xd0, 0x02, ...dht, 0xff, 0xda, ...u16(4), 8, 8, 0x03, 0xff, 0xd9]);
+const progClean = stripJpegMetadata(progressive);
+ok(!!progClean && Buffer.from(progClean).equals(Buffer.from(progressive)), "restart markers, a table between scans and a second scan are kept as they are");
+
 const chunk = (type: string, data: number[]) => [...u32(data.length), ...[...type].map((c) => c.charCodeAt(0)), ...data, 0, 0, 0, 0];
 const png = Uint8Array.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,

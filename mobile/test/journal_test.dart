@@ -11,7 +11,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sudagri/account.dart';
+import 'package:sudagri/api.dart';
 import 'package:sudagri/journal.dart';
+import 'package:sudagri/seasons.dart' show isOutage;
 import 'package:sudagri/screens/books_review_screen.dart';
 import 'package:sudagri/screens/journal_entry_screen.dart';
 import 'package:sudagri/theme.dart';
@@ -106,9 +108,11 @@ final review = <String, dynamic>{
           'by': 'المحاسب',
           'has_document': true,
           'note': null,
+          'rate': '2400 — كتبه مُعِدّ القيد',
+          'permission_ended': true,
           'lines': [
-            {'account': '5130 — مبيدات', 'side': 'D', 'amount': '30.00 دولار'},
-            {'account': '1110 — نقد في اليد', 'side': 'C', 'amount': '30.00 دولار'},
+            {'account': '5130 — مبيدات', 'side': 'D', 'amount': '72,000.00 جنيه', 'base': '30.00 دولار', 'tags': 'موسم: موسم الذرة'},
+            {'account': '1110 — نقد في اليد', 'side': 'C', 'amount': '72,000.00 جنيه', 'base': '30.00 دولار', 'tags': null},
           ],
         },
       ],
@@ -196,6 +200,10 @@ void main() {
       expect(r.waiting, 2, reason: 'one draft waiting and one invitation');
       expect(r.books.single.pending.single.lines.length, 2);
       expect(dayBefore('2026-11-01'), '2026-10-31');
+      // A season's income is closed on yesterday, like the period (209), or today once yesterday is closed.
+      expect(seasonCloseDay('2026-11-06', null, null), '2026-11-05');
+      expect(seasonCloseDay('2026-11-06', '2026-10-31', '2026-10-31'), '2026-11-05');
+      expect(seasonCloseDay('2026-11-06', '2026-11-05', null), '2026-11-06');
       expect(newEntryKey().length, greaterThanOrEqualTo(8));
       expect(newEntryKey() == newEntryKey(), isFalse);
     });
@@ -220,6 +228,51 @@ void main() {
       expect(message, contains('ينتظر'));
       expect(sent['photo'], 'AAAA');
       expect((sent['lines'] as List).first, {'account': '5110', 'side': 'D', 'amount': '5'});
+    });
+
+    test('the receipt photo is stored once; every retry after an outage sends its path, and a refusal lets it go (209)', () async {
+      SharedPreferences.setMockInitialValues(sessionPrefs());
+      final paths = <String>[];
+      var photos = 0, entries = 0;
+      final c = await controller((req) async {
+        final body = jsonDecode(req.body) as Map<String, dynamic>;
+        if (req.url.path == '/api/app/books/journal/photo') {
+          photos++;
+          expect(body['photo'], 'AAAA');
+          return json({'ok': true, 'storage_path': 'u1/ledger/receipt-$photos.jpg'});
+        }
+        expect(req.url.path, '/api/app/books/journal');
+        expect(body.containsKey('photo'), isFalse, reason: 'the entry carries the stored path, never the photo again');
+        paths.add(body['storage_path'] as String);
+        entries++;
+        if (entries <= 2) return json({'error': 'تعذّر الوصول إلى الدفتر الآن.'}, 503);
+        if (entries == 3) return json({'ok': true, 'status': 'pending', 'message': 'ينتظر'});
+        return json({'error': 'الفترة حتى 2026-10-31 مقفلة؛ لا قيد بتاريخٍ فيها'}, 400);
+      });
+      final api = JournalApi(account: c);
+      final keeper = ReceiptKeeper();
+      const file = Object();
+      Future<void> attempt(Object f) async {
+        try {
+          final a = await keeper.forFile(f, () => api.storeReceipt({'photo': 'AAAA'}));
+          await api.submit({'book': 'b2', 'key': 'app-123456789'}, attachment: a);
+          keeper.reset();
+        } on ApiException catch (e) {
+          keeper.settle(outage: isOutage(e));
+        }
+      }
+
+      await attempt(file); // the network gives out
+      await attempt(file); // and again
+      await attempt(file); // the third goes through
+      expect(photos, 1, reason: 'one photo stored for one entry, whatever the retries');
+      expect(paths, ['u1/ledger/receipt-1.jpg', 'u1/ledger/receipt-1.jpg', 'u1/ledger/receipt-1.jpg']);
+      expect(keeper.stored, isNull, reason: 'answered: the next entry stores its own receipt');
+
+      const next = Object();
+      await attempt(next); // refused: the server removed that file
+      expect(photos, 2);
+      expect(keeper.stored, isNull, reason: 'a refusal does not keep the removed path for a corrected entry');
     });
 
     test('an answer to a draft is the website\'s step', () async {
@@ -337,6 +390,11 @@ void main() {
       expect(find.text('سعاد يدعوك لتُعِدّ قيود دفتره.'), findsOneWidget);
       expect(find.text('مبيدات أعدّها المحاسب'), findsOneWidget);
       expect(find.text('ينتظر اعتمادك (1)'), findsOneWidget);
+      // What the approver must see (209): the rate and who set it, the worth in the book's currency, tags, the ended permission.
+      expect(find.text('سعر الصرف: 2400 — كتبه مُعِدّ القيد'), findsOneWidget);
+      expect(find.text('بعملة الدفتر: 30.00 دولار'), findsNWidgets(2));
+      expect(find.text('موسم: موسم الذرة'), findsOneWidget);
+      expect(find.text('انتهى الإذن'), findsOneWidget);
       await tester.tap(find.text('أعتمده فيُرحَّل'));
       await settle(tester);
       expect(posts.single, {'action': 'approve', 'id': 'd1'});
