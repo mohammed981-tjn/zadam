@@ -3,8 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { explain, signedIn, str, translator } from "@/lib/supplyActions";
-import { decideLandInvestorInterest, setLandInvestorConsent } from "@/lib/landOwnerSteps";
-import { INVESTOR_MODELS } from "@/lib/investors";
+import { decideLandInvestorInterest } from "@/lib/landOwnerSteps";
+import {
+  consentSentence,
+  expressInvestorInterest as expressInterestStep,
+  interestSentSentence,
+  setInvestorConsent as setInvestorConsentStep,
+} from "@/lib/investSteps";
 
 /**
  * Every step between an investor and a landowner is a database function
@@ -21,9 +26,6 @@ function back(path: string, key: "ok" | "error", message: string): never {
   redirect(`${path}${sep}${key}=${encodeURIComponent(message)}`);
 }
 
-const models = (fd: FormData) =>
-  [...new Set(fd.getAll("models").map(String).filter((m) => (INVESTOR_MODELS as readonly string[]).includes(m)))];
-
 // ── المستثمر ─────────────────────────────────────────────────────────────────
 
 export async function expressInvestorInterest(fd: FormData) {
@@ -32,47 +34,15 @@ export async function expressInvestorInterest(fd: FormData) {
   // Asked from a project page (backlog 135): a refusal goes back there. Nowhere else.
   const from = str(fd, "return_to");
   const origin = /^\/projects\/[A-Za-z0-9_-]{1,80}$/.test(from) ? from : "/invest";
-  const model = str(fd, "model");
-  const message = str(fd, "message");
-  if (!(INVESTOR_MODELS as readonly string[]).includes(model)) {
-    back(origin, "error", t("اختر نموذج الشراكة.", "Choose a partnership model."));
-  }
-  if (message.length < 10) {
-    back(
-      origin,
-      "error",
-      t(
-        "اكتب لصاحب الأرض سطرين على الأقلّ: من أنت، وماذا تقترح.",
-        "Write the owner at least a couple of lines: who you are and what you propose.",
-      ),
-    );
-  }
-  // البند ١٣٦: الإقرار بالمخاطرة شرطٌ، والقاعدة تتحقّق منه وتحفظ وقته.
-  if (str(fd, "risk_ack") !== "yes") {
-    back(
-      origin,
-      "error",
-      t(
-        "اقرأ تنبيه المخاطرة وأقرّ به قبل أن ترسل الطلب.",
-        "Read the risk notice and confirm it before sending the request.",
-      ),
-    );
-  }
-  const { error } = await supabase.rpc("investor_express_interest", {
-    p_land: str(fd, "land_id"),
-    p_model: model,
-    p_message: message.slice(0, 1000),
-    p_risk_ack: true,
-  });
-  if (error) back(origin, "error", explain(locale, error));
-  back(
-    "/invest/mine",
-    "ok",
-    t(
-      "أُرسل طلبك. وصل صاحبَ الأرض إشعار، وحين يقبل ترى اسمه وهاتفه وموقع الأرض هنا.",
-      "Your request was sent. The owner has been notified; once they accept you will see their name, phone and the land's location here.",
-    ),
+  // The checks — the risk notice above all (backlog 136) — and the database function are shared with the phone
+  // app's route (src/lib/investSteps.ts).
+  const result = await expressInterestStep(
+    supabase,
+    { landId: str(fd, "land_id"), model: str(fd, "model"), message: str(fd, "message"), riskAck: str(fd, "risk_ack") },
+    { locale, t },
   );
+  if (!result.ok) back(origin, "error", result.message);
+  back("/invest/mine", "ok", interestSentSentence(t));
 }
 
 export async function withdrawInvestorInterest(fd: FormData) {
@@ -92,20 +62,22 @@ export async function withdrawInvestorInterest(fd: FormData) {
  */
 export async function setInvestorConsent(fd: FormData) {
   const { supabase, user } = await signedIn();
-  const { locale } = await translator();
+  const { locale, t } = await translator();
   // Sent from the project page built on this land: back there. Nowhere else.
   const from = str(fd, "return_to");
   const origin = /^\/projects\/[A-Za-z0-9_-]{1,80}$/.test(from) ? from : "/lands";
-  // The step is shared with the phone app's land card (backlog 203): src/lib/landOwnerSteps.ts.
-  const result = await setLandInvestorConsent(
+  const open = str(fd, "open") === "true";
+  // Shared with the phone app's route (src/lib/investSteps.ts): the same model check, ownership read, soil
+  // reading and database function.
+  const result = await setInvestorConsentStep(
     supabase,
     user.id,
-    { landId: str(fd, "land_id"), open: str(fd, "open") === "true", models: models(fd), note: str(fd, "note") },
-    locale,
+    { landId: str(fd, "land_id"), open, models: fd.getAll("models").map(String), note: str(fd, "note") },
+    { locale, t },
   );
   if (!result.ok) back(origin, "error", result.message);
   if (origin !== "/lands") revalidatePath(origin);
-  back(origin, "ok", result.message);
+  back(origin, "ok", consentSentence(open, t));
 }
 
 export async function decideInvestorInterest(fd: FormData) {

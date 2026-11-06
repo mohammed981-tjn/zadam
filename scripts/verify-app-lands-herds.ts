@@ -109,7 +109,12 @@ steps("src/app/api/app/herds/[id]/route.ts", "@/lib/herdSteps", [
   "addHerdTagRange",
   "loadHerdReadiness",
 ]);
-steps("src/app/invest/actions.ts", "@/lib/landOwnerSteps", ["setLandInvestorConsent", "decideLandInvestorInterest"]);
+steps("src/app/invest/actions.ts", "@/lib/landOwnerSteps", ["decideLandInvestorInterest"]);
+// Opening a land to investors is one shared step (src/lib/investSteps.ts): the website, the invest route and the land
+// card all reach it — the land card through setLandInvestorConsent, which delegates to it.
+steps("src/app/invest/actions.ts", "@/lib/investSteps", ["setInvestorConsent"]);
+ok(/await setInvestorConsent\(supabase, userId, input/.test(read("src/lib/landOwnerSteps.ts")), "setLandInvestorConsent delegates to investSteps' setInvestorConsent");
+ok(read("src/lib/investSteps.ts").includes('rpc("land_set_investor_consent"'), "src/lib/investSteps.ts calls the database's land_set_investor_consent");
 steps("src/app/partners/actions.ts", "@/lib/landOwnerSteps", ["setLandPartnerConsent", "decideLandPartnerInterest"]);
 steps("src/app/lands/actions.ts", "@/lib/landOwnerSteps", ["addLandTestStep", "deleteLandTestStep"]);
 steps("src/app/herds/actions.ts", "@/lib/herdSteps", [
@@ -131,7 +136,7 @@ for (const r of all.filter((r) => r !== "src/app/api/app/lands/route.ts")) {
   );
 }
 for (const [lib, rpcs] of [
-  ["src/lib/landOwnerSteps.ts", ["land_set_investor_consent", "land_investor_decide", "land_set_partner_consent", "land_interest_decide"]],
+  ["src/lib/landOwnerSteps.ts", ["land_investor_decide", "land_set_partner_consent", "land_interest_decide"]],
   ["src/lib/herdSteps.ts", ["herd_health_add", "herd_tags_add_range"]],
 ] as const) {
   const src = read(lib);

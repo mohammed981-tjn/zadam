@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { setInvestorConsent } from "@/lib/investSteps";
 import { tr, type Locale } from "@/lib/i18n";
 import { dbMessage } from "@/lib/dbMessages";
 import { explain } from "@/lib/supplyActions";
@@ -43,29 +44,11 @@ export async function setLandInvestorConsent(
   input: { landId: string; open: boolean; models: string[]; note: string },
   locale: Locale,
 ): Promise<StepResult> {
+  // One step, not two: the website's action and the invest route already share src/lib/investSteps.ts, and the
+  // land card calls the same function so the model check, the soil reading and the database call cannot drift.
   const t = T(locale);
-  const chosen = pickInvestorModels(input.models);
-  if (input.open && chosen.length === 0) {
-    return { ok: false, message: t("اختر نموذجاً واحداً على الأقلّ من نماذج الشراكة.", "Choose at least one partnership model.") };
-  }
-  const { data: land } = await supabase
-    .from("lands")
-    .select("latitude, longitude, soil_class")
-    .eq("id", input.landId)
-    .eq("owner_id", userId)
-    .maybeSingle();
-  if (!land) return { ok: false, message: t("ليست لك هذه الأرض.", "This land is not yours.") };
-  // The soil at the land's own point, not the 160 km map cell's (backlog 180). A failed read keeps what is stored.
-  const estimate = input.open ? await recordSoilEstimate(userId, input.landId, land.longitude, land.latitude) : null;
-  const note = input.note.trim().slice(0, 500);
-  const { error } = await supabase.rpc("land_set_investor_consent", {
-    p_land: input.landId,
-    p_open: input.open,
-    p_models: chosen,
-    p_note: note.length >= 10 ? note : null,
-    p_soil_class: estimate?.wrb ?? land.soil_class ?? null,
-  });
-  if (error) return { ok: false, message: explain(locale, error) };
+  const result = await setInvestorConsent(supabase, userId, input, { locale, t });
+  if (!result.ok) return result;
   return {
     ok: true,
     message: input.open

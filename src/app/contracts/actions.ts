@@ -11,6 +11,7 @@ import { evidenceFileExists } from "@/lib/evidenceFile";
 import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { loginHrefHere } from "@/lib/loginHere";
+import { moveServiceContract } from "@/lib/contractSteps";
 
 /** The reader's language for a message this action returns. */
 async function translator() {
@@ -500,47 +501,25 @@ export async function setMilestoneStatus(formData: FormData) {
  * `enforce_contract_status` and nowhere else; this function's whole job is to
  * carry a request to it and carry the refusal back in Arabic.
  *
- * The allow-list below is therefore not the rule. It is a spelling check: it
+ * The allow-list (CONTRACT_STATES in src/lib/contractSteps.ts) is therefore not the rule. It is a spelling check: it
  * keeps a malformed request from reaching the database as an enum cast error,
  * and it is deliberately wider than what any one caller may do. Narrowing it to
  * "what this user can do" would put a second copy of the map here, and two
  * copies drift.
  */
-const CONTRACT_STATES = [
-  "draft",
-  "proposed",
-  "active",
-  "completed",
-  "cancelled",
-  "disputed",
-] as const;
-
 export async function setContractStatus(formData: FormData) {
   const supabase = await createClient();
   const contractId = str(formData, "contract_id");
   const status = str(formData, "status");
-
-  if (!contractId) return;
-  if (!(CONTRACT_STATES as readonly string[]).includes(status)) return;
   const t = await translator();
+  const locale = await getLocale();
 
-  const { data, error } = await supabase
-    .from("service_contracts")
-    .update({ status })
-    .eq("id", contractId)
-    .select("id");
+  // The step itself is shared with the phone app's route (src/lib/contractSteps.ts), so the two cannot drift.
+  const result = await moveServiceContract(supabase, contractId, status, { locale, t });
+  if (!result.ok && result.invalid) return;
 
   revalidatePath(`/contracts/${contractId}`);
   revalidatePath("/contracts");
 
-  if (error) {
-    // رسائلُ الزناد مكتوبةٌ للقارئ لا للمطوّر — «قبولُ العقد من صلاحية مقدّم
-    // الخدمة» — فتُمرَّر كما هي.
-    redirect(`/contracts/${contractId}?error=${encodeURIComponent(await dbText(error.message))}`);
-  }
-  if ((data ?? []).length === 0) {
-    redirect(
-      `/contracts/${contractId}?error=${encodeURIComponent(t("لم يتغيّر العقد — لا صلاحية لك عليه", "The contract did not change \u2014 you do not have permission on it"))}`,
-    );
-  }
+  if (!result.ok) redirect(`/contracts/${contractId}?error=${encodeURIComponent(result.message)}`);
 }

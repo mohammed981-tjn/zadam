@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { explain, numOrNull, signedIn, str, translator } from "@/lib/supplyActions";
+import { signPartnershipAgreement, signedSentence } from "@/lib/contractSteps";
 import { AGREEMENT_ITEMS, LOSS_RULES, RENT_SCHEDULES, type AgreementTerms } from "@/lib/agreements";
 
 /**
@@ -109,38 +110,22 @@ export async function signAgreement(fd: FormData) {
   const { supabase } = await signedIn();
   const { locale, t } = await translator();
   const id = str(fd, "agreement_id");
-  if (str(fd, "agree") !== "yes") {
-    back(id, "error", t("أكّد أنّك قرأت العقد ووافقت على بنوده.", "Confirm that you have read the agreement and accept its terms."));
-  }
-  const signature = str(fd, "signature");
-  if (!/^[ML0-9 .-]{20,30000}$/.test(signature)) {
-    back(id, "error", t("ارسم توقيعك بإصبعك في المربّع.", "Draw your signature with your finger in the box."));
-  }
-  const fullName = str(fd, "full_name");
-  if (fullName.length < 5) {
-    back(id, "error", t("اكتب اسمك الكامل كما في إثبات هويّتك.", "Write your full name as on your ID."));
-  }
   const ua = (await headers()).get("user-agent") ?? null;
-  const { data, error } = await supabase.rpc("partnership_agreement_sign", {
-    p_agreement: id,
-    p_version: Number(str(fd, "version")),
-    p_hash: str(fd, "hash"),
-    p_full_name: fullName.slice(0, 120),
-    p_signature: signature,
-    p_user_agent: ua ? ua.slice(0, 400) : null,
-  });
-  if (error) back(id, "error", explain(locale, error));
-  back(
-    id,
-    "ok",
-    data
-      ? t(
-          `وقّع الطرفان. أُقفل العقد وشهدت عليه سوداقري برقم ${data}.`,
-          `Both parties have signed. The agreement is sealed and witnessed by Sudagri under reference ${data}.`,
-        )
-      : t(
-          "وُقِّع توقيعك. وصل الطرفَ الآخر إشعار، ويُقفل العقد حين يوقّع.",
-          "Your signature is recorded. The other party was notified; the agreement is sealed when they sign.",
-        ),
+  // The checks and the database function are shared with the phone app's route (src/lib/contractSteps.ts): the
+  // same confirmation, signature and name, and the same partnership_agreement_sign.
+  const result = await signPartnershipAgreement(
+    supabase,
+    {
+      agreementId: id,
+      version: Number(str(fd, "version")),
+      hash: str(fd, "hash"),
+      fullName: str(fd, "full_name"),
+      signature: str(fd, "signature"),
+      agree: str(fd, "agree"),
+      userAgent: ua,
+    },
+    { locale, t },
   );
+  if (!result.ok) back(id, "error", result.message);
+  back(id, "ok", signedSentence(result.data, t));
 }
