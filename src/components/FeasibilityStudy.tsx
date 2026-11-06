@@ -467,7 +467,7 @@ export default function FeasibilityStudy({
             <form action={createPlanFromStudy} className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
               <input type="hidden" name="crop" value={cropKey} />
               <input type="hidden" name="feddans" value={study.feddans} />
-              <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">{t("حوّلها إلى مشروع", "Turn it into a project")}</button>
+              <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">{t("حوّلها إلى مشروع", "Turn it into a project")}</button>
               <p className="mt-1 text-xs leading-relaxed text-muted">
                 {t(
                   "تُنشأ قائمة هذه المدخلات لمساحتك في «مشروعي»: توافق عليها، وتدفع لكلّ مورد مباشرةً، وتسجّل ما دفعت وما استلمت. سوداقري لا تستلم مالك ولا تحفظه.",

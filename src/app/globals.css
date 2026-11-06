@@ -34,8 +34,11 @@
   --foreground: #1c2b1e;
   --card: #ffffff;
   --border: #e2ded0;
-  --primary: #1f7a3d;
-  --primary-foreground: #ffffff;
+  /* The light green leads (owner, 6 November 2026, twice: «بيج أخضر فاتح»): a fill with dark type on it (5.5:1).
+     Green that is itself the text — a link, a title, an icon on beige — is --primary-ink, 4.6:1. */
+  --primary: #3fae66;
+  --primary-foreground: #0e2a17;
+  --primary-ink: #1b8043;
   /* Green as a touch: the sprout, a dot, the tip of a bar, a price that rose.
      The site's green, a shade lighter than the #1f7a3d it was. */
   --leaf: #1b8043;
@@ -106,6 +109,7 @@
     --border: #2a3527;
     --primary: #3fae66;
     --primary-foreground: #08130a;
+    --primary-ink: #6fd08f;
     --leaf: #6fd08f;
     --leaf-light: #6fd08f;
     --muted: #a3a698;
@@ -139,6 +143,7 @@
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-ink: var(--primary-ink);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-danger: var(--danger);
@@ -370,9 +375,9 @@ html {
 .tab-on {
   /* Green since 6 November 2026 (owner: the old beige and light green): #1f7a3d is 5.4:1 and #17642f 7:1 under
      white. */
-  background: linear-gradient(135deg, #2a8a47, #17642f);
-  color: #fff;
-  box-shadow: 0 3px 10px rgb(31 122 61 / 0.3);
+  background: linear-gradient(135deg, #5cb874, #3fae66);
+  color: #0e2a17;
+  box-shadow: 0 3px 10px rgb(63 174 102 / 0.35);
 }
 
 /*
@@ -386,8 +391,8 @@ html {
   overflow: hidden;
   /* Light green at the top corner deepening to the site's green (owner, 6 November 2026). White type holds 4.4:1+
      from the middle down, where the headline sits. */
-  background: linear-gradient(160deg, #4fb872 0%, #1f7a3d 55%, #155c2d 100%);
-  color: #fff;
+  background: linear-gradient(160deg, #8fd6a0 0%, #5cb874 50%, #3fae66 100%);
+  color: #0e2a17;
   border-end-start-radius: 2.25rem;
   border-end-end-radius: 2.25rem;
 }
@@ -463,4 +468,16 @@ html {
     from { opacity: 1; transform: none; }
     to   { opacity: 1; transform: none; }
   }
+}
+
+
+/*
+ * Green as text (owner, 6 November 2026). `--primary` is now the light green fill, too light to be read as text on
+ * beige (2.6:1), so wherever a utility paints text, an outline or an icon in it, the darker ink is used. These rules sit
+ * outside Tailwind's layers, so they win over the generated utilities.
+ */
+.text-primary,
+.hover\:text-primary:hover,
+.group:hover .group-hover\:text-primary {
+  color: var(--primary-ink);
 }

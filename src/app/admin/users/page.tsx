@@ -125,7 +125,7 @@ export default async function UsersPage({
           placeholder={t("ابحث بالاسم أو الجوّال أو البريد", "Search by name, phone or email")}
           className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm"
         />
-        <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white">
+        <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
           {t("بحث", "Search")}
         </button>
       </form>

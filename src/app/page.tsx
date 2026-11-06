@@ -256,9 +256,9 @@ export default async function Home() {
        */}
       <section className="hero-band">
         <div className="relative mx-auto max-w-6xl px-5 pb-9 pt-7 sm:pb-14 sm:pt-12">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/45 px-3 py-1 text-sm font-bold">
             {/* A green touch: a sprout-coloured dot. */}
-            <span aria-hidden className="size-2 rounded-full bg-[#86efac]" />
+            <span aria-hidden className="size-2 rounded-full bg-[#1f7a3d]" />
             {t("معرفة زراعية وبيانات مفتوحة — للسودان", "Agricultural knowledge and open data — for Sudan")}
           </p>
 
@@ -267,10 +267,10 @@ export default async function Home() {
           </h1>
           {/* خطُّ النيل (البند ١٠٦): يُرسم مرّةً تحت العنوان — أخضرَ فاتحاً على الوردي، لمسةُ الأخضر في الواجهة. */}
           <svg className="nile-line mt-3 h-4 w-52 max-w-full" viewBox="0 0 400 24" fill="none" aria-hidden>
-            <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="#86efac" strokeWidth="5" strokeLinecap="round" />
+            <path d="M4 14c40-12 70 10 110 0s70-12 110 0 70 10 110 0 40-8 62-4" stroke="#1f7a3d" strokeWidth="5" strokeLinecap="round" />
           </svg>
 
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg">
+          <p className="mt-4 max-w-2xl text-base leading-relaxed opacity-90 sm:text-lg">
             {t(
               "سوداقري منصّة معرفة زراعية وبيانات للسودان. لا يُعرض رقمٌ دون مصدره ومنهجه: الغلّة من FAOSTAT، والمناخ من NASA POWER، والتربة من SoilGrids، والاحتياج المائي محسوبٌ بمحرّك FAO-56 داخل المنصّة نفسها.",
               "Sudagri is an agricultural knowledge and data platform for Sudan. No number is shown without its source and method: yields from FAOSTAT, climate from NASA POWER, soil from SoilGrids, and crop water needs computed by an FAO-56 engine on the platform itself.",
@@ -288,7 +288,7 @@ export default async function Home() {
             </Link>
             <Link
               href="/arc-canal"
-              className="rounded-2xl border-[1.5px] border-white/70 bg-white/10 px-6 py-3.5 text-center font-bold transition hover:bg-white/20"
+              className="rounded-2xl border-[1.5px] border-[#0e2a17]/40 bg-white/25 px-6 py-3.5 text-center font-bold transition hover:bg-white/40"
             >
               {t("اقرأ دراسة القناة القوسية", "Read the Arc Canal study")}
             </Link>
