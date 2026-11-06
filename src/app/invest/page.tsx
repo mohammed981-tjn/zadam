@@ -318,7 +318,7 @@ export default async function InvestPage({
           <Link href={user ? "/lands" : "/signup?next=/lands"} className="rounded-xl bg-white px-4 py-2 text-sm font-black text-primary">
             {user ? t("أراضيّ", "My land") : t("سجّل مجّاناً", "Sign up free")}
           </Link>
-          <Link href="/lands/new" className="rounded-xl px-4 py-2 text-sm font-bold ring-1 ring-[#0e2a17]/40">
+          <Link href="/lands/new" className="rounded-xl px-4 py-2 text-sm font-bold ring-1 ring-[#1c2b1e]/40">
             {t("سجّل أرضاً", "Register land")}
           </Link>
         </div>
