@@ -630,6 +630,7 @@ export default async function SeasonPage({
             outboxKey={`ledger:${season.id}`}
             label={t("قيد مصروف أو إيراد", "A cost or revenue entry")}
             stamp="entry_date"
+            clientKey
             className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-4"
           >
             <input type="hidden" name="season_id" value={season.id} />

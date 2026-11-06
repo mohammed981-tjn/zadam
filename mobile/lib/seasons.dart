@@ -18,11 +18,18 @@
 ///   - Sending takes each item out of the box first. One that never reached the server, or met a server that was
 ///     down, goes back with those after it; one the server answered with a refusal is not sent again, and its reason
 ///     is shown — as the website does. The app also keeps an item whose session had ended, rather than lose it.
+///   - Each entry is given a random key (`client_key`, a UUID) when it is typed, before the first attempt to send it,
+///     and every attempt carries the same key. If the server saved the entry but its answer never reached the phone,
+///     the next attempt is answered «already saved» instead of writing it twice (20261106060000_ledger_client_key.sql).
+///   - One send at a time, on the whole phone: a second waits for the first, so no item goes out twice at once. The
+///     app also sends by itself when the network may be back (ledger_autosend.dart).
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'account.dart';
@@ -483,6 +490,33 @@ bool isOutage(ApiException e) {
       RegExp(r'\(5\d\d\)').hasMatch(m);
 }
 
+/// The field that carries an entry's idempotency key: outbox.ts `CLIENT_KEY_FIELD`.
+const clientKeyField = 'client_key';
+
+/// A version-4 UUID (outbox.ts `newClientKey`), from the phone's secure random source unless a test gives another.
+String newClientKey([Random? random]) {
+  final r = random ?? _secureRandom();
+  final b = List<int>.generate(16, (_) => r.nextInt(256));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  final h = [for (final x in b) x.toRadixString(16).padLeft(2, '0')].join();
+  return '${h.substring(0, 8)}-${h.substring(8, 12)}-${h.substring(12, 16)}-${h.substring(16, 20)}-${h.substring(20)}';
+}
+
+Random _secureRandom() {
+  try {
+    return Random.secure();
+  } on UnsupportedError {
+    return Random();
+  }
+}
+
+/// The fields with a key added when they have none yet (outbox.ts `withClientKey`). A form that has one keeps it.
+Map<String, String> withClientKey(Map<String, String> fields, [Random? random]) {
+  if ((fields[clientKeyField] ?? '').isNotEmpty) return fields;
+  return {...fields, clientKeyField: newClientKey(random)};
+}
+
 /// The `YYYY-MM-DD` the person wrote the form on, in the phone's own day (outbox.ts `localDay`).
 String localDay(DateTime t) {
   final l = t.toLocal();
@@ -505,12 +539,18 @@ String? userIdOf(String accessToken) {
 }
 
 class LedgerOutbox {
-  LedgerOutbox({DateTime Function()? now, Random? random})
+  LedgerOutbox({DateTime Function()? now, Random? random, this.keyRandom})
       : _now = now ?? DateTime.now,
         _random = random ?? Random();
 
   final DateTime Function() _now;
   final Random _random;
+
+  /// Where the idempotency keys' bytes come from: the phone's secure source unless a test gives another.
+  final Random? keyRandom;
+
+  /// A new idempotency key for an entry about to be sent for the first time.
+  String newKey() => newClientKey(keyRandom);
 
   static const storageKey = 'sudagri.outbox.v1';
   static const maxItems = 20;
@@ -521,7 +561,27 @@ class LedgerOutbox {
   static String keyFor(String seasonId) => 'ledger:$seasonId';
 
   static final _secret = RegExp(r'pass(word)?|secret|token|otp|pin\b', caseSensitive: false);
-  static final _sending = <String>{};
+
+  /// One send at a time on the whole phone, whichever form it is for: the tail of the queue of sends.
+  static Future<void> _lock = Future<void>.value();
+  static int _sends = 0;
+
+  /// Whether a send is under way or waiting its turn. The automatic sender does not queue behind one.
+  static bool get busy => _sends > 0;
+
+  /// Rings each time an entry is kept, so the automatic sender knows something waits.
+  static final kept = ValueNotifier<int>(0);
+
+  static Future<T> _exclusive<T>(Future<T> Function() body) {
+    final before = _lock;
+    final done = Completer<void>();
+    _lock = done.future;
+    _sends++;
+    return before.then((_) => body()).whenComplete(() {
+      _sends--;
+      done.complete();
+    });
+  }
 
   int get _ms => _now().millisecondsSinceEpoch;
 
@@ -566,21 +626,25 @@ class LedgerOutbox {
     ];
   }
 
-  /// Keeps a form that could not be sent, stamped with the phone's day as `entry_date` unless it has one.
+  /// Keeps a form that could not be sent, stamped with the phone's day as `entry_date` unless it has one, and with an
+  /// idempotency key (`client_key`) unless it has one — a form that already tried to go keeps the key it went with.
   Future<KeepResult> keep({required String key, required String? userId, required Map<String, String> fields}) async {
     if (userId == null) return KeepResult.noOwner;
-    final kept = <String, String>{};
+    final form = <String, String>{};
     for (final e in fields.entries) {
       if (_secret.hasMatch(e.key)) continue;
       if (e.value.length > maxValueChars) return KeepResult.unfit;
-      kept[e.key] = e.value;
+      form[e.key] = e.value;
     }
     final now = _ms;
-    kept.putIfAbsent('entry_date', () => localDay(_now()));
+    form.putIfAbsent('entry_date', () => localDay(_now()));
+    if ((form[clientKeyField] ?? '').isEmpty) form[clientKeyField] = newKey();
     final items = await load();
-    final same = jsonEncode(kept);
+    // The same form, whatever its key: two taps on «send» are given two keys, and are still one double tap.
+    String plain(Map<String, String> f) => jsonEncode({...f}..remove(clientKeyField));
+    final same = plain(form);
     if (items.any((i) =>
-        i.userId == userId && i.key == key && now - i.createdAt < duplicateWindow.inMilliseconds && jsonEncode(i.fields) == same)) {
+        i.userId == userId && i.key == key && now - i.createdAt < duplicateWindow.inMilliseconds && plain(i.fields) == same)) {
       return KeepResult.duplicate;
     }
     if (items.length >= maxItems) return KeepResult.full;
@@ -590,56 +654,64 @@ class LedgerOutbox {
       label: 'قيد مصروف أو إيراد',
       userId: userId,
       createdAt: now,
-      fields: kept,
+      fields: form,
     );
-    return await _save([...items, item]) ? KeepResult.kept : KeepResult.unavailable;
+    if (!await _save([...items, item])) return KeepResult.unavailable;
+    kept.value++;
+    return KeepResult.kept;
   }
 
   Future<void> drop(String id) async => _save([for (final i in await load()) if (i.id != id) i]);
 
   /// Sends what this account kept for [key] (every ledger item when null). Each item leaves the box before it is sent,
-  /// so a second send at the same moment cannot send it twice; [post] throws [ApiException] on a refusal or an outage.
-  /// [seasonFor] names the season of an unassigned item (the blank form's): one with none chosen stays in the box.
+  /// and one send runs at a time on the whole phone (a second waits for the first, then finds what is left), so no
+  /// item goes out twice at once; [post] throws [ApiException] on a refusal or an outage. [seasonFor] names the season
+  /// of an unassigned item (the blank form's): one with none chosen stays in the box.
   Future<SendReport> send({
     required String? userId,
     String? key,
     required Future<void> Function(String seasonId, Map<String, String> fields) post,
     String? Function(OutboxItem item)? seasonFor,
   }) async {
-    final guard = key ?? '*';
-    if (userId == null || _sending.contains(guard)) {
-      return SendReport(sent: 0, refused: const [], waiting: (await pending(userId, key)).length);
-    }
-    _sending.add(guard);
+    if (userId == null) return const SendReport(sent: 0, refused: [], waiting: 0);
+    return _exclusive(() => _send(userId: userId, key: key, post: post, seasonFor: seasonFor));
+  }
+
+  Future<SendReport> _send({
+    required String userId,
+    String? key,
+    required Future<void> Function(String seasonId, Map<String, String> fields) post,
+    String? Function(OutboxItem item)? seasonFor,
+  }) async {
     var sent = 0;
     final refused = <(OutboxItem, String)>[];
-    try {
-      final all = await load();
-      final mine = [
-        for (final i in all)
-          if (i.userId == userId && (key == null ? i.key.startsWith('ledger:') : i.key == key))
-            if (i.seasonId != null || seasonFor?.call(i) != null) i,
-      ];
-      if (mine.isEmpty) return SendReport(sent: 0, refused: const [], waiting: (await pending(userId, key)).length);
-      final ids = {for (final i in mine) i.id};
-      await _save([for (final i in all) if (!ids.contains(i.id)) i]);
-      for (var n = 0; n < mine.length; n++) {
-        final item = mine[n];
-        final season = item.seasonId ?? seasonFor!(item)!;
-        try {
-          await post(season, item.fields);
-          sent++;
-        } on ApiException catch (e) {
-          if (isOutage(e)) {
-            final back = await load();
-            await _save([...back, ...mine.sublist(n)].take(maxItems).toList());
-            break;
-          }
-          refused.add((item, e.message));
+    final all = await load();
+    final mine = [
+      for (final i in all)
+        if (i.userId == userId && (key == null ? i.key.startsWith('ledger:') : i.key == key))
+          if (i.seasonId != null || seasonFor?.call(i) != null) i,
+    ];
+    if (mine.isEmpty) return SendReport(sent: 0, refused: const [], waiting: (await pending(userId, key)).length);
+    final ids = {for (final i in mine) i.id};
+    await _save([for (final i in all) if (!ids.contains(i.id)) i]);
+    Future<void> putBack(int n) async => _save([...await load(), ...mine.sublist(n)].take(maxItems).toList());
+    for (var n = 0; n < mine.length; n++) {
+      final item = mine[n];
+      final season = item.seasonId ?? seasonFor!(item)!;
+      try {
+        await post(season, item.fields);
+        sent++;
+      } on ApiException catch (e) {
+        if (isOutage(e)) {
+          await putBack(n);
+          break;
         }
+        refused.add((item, e.message));
+      } catch (_) {
+        // Not an answer from the server about the form: it goes back with those after it, rather than be lost.
+        await putBack(n);
+        break;
       }
-    } finally {
-      _sending.remove(guard);
     }
     return SendReport(sent: sent, refused: refused, waiting: (await pending(userId, key)).length);
   }
@@ -672,13 +744,17 @@ class SeasonsApi {
 
   /// Sends an entry, or keeps it on the phone if it could not reach the server. Returns null when it was sent, or
   /// what happened to it on the phone. A refusal from the server is thrown, so the form keeps what was typed.
+  ///
+  /// The entry gets its key before the first attempt, and is kept with that key: when this attempt reached the server
+  /// but its answer did not reach the phone, the later send is «already saved», not a second line in the book.
   Future<KeepResult?> addOrKeep(String seasonId, Map<String, String> fields) async {
+    final keyed = (fields[clientKeyField] ?? '').isEmpty ? {...fields, clientKeyField: outbox.newKey()} : fields;
     try {
-      await addEntry(seasonId, fields);
+      await addEntry(seasonId, keyed);
       return null;
     } on ApiException catch (e) {
       if (!isOutage(e)) rethrow;
-      return outbox.keep(key: LedgerOutbox.keyFor(seasonId), userId: userId, fields: fields);
+      return outbox.keep(key: LedgerOutbox.keyFor(seasonId), userId: userId, fields: keyed);
     }
   }
 

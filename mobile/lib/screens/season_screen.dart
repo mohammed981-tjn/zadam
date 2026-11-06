@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../ledger_autosend.dart';
 import '../seasons.dart';
 import '../theme.dart';
 import '../ui.dart';
@@ -37,7 +38,29 @@ class _SeasonScreenState extends State<SeasonScreen> {
   @override
   void initState() {
     super.initState();
+    ledgerAutoSender.reports.addListener(_autoSent);
     _load();
+  }
+
+  @override
+  void dispose() {
+    ledgerAutoSender.reports.removeListener(_autoSent);
+    super.dispose();
+  }
+
+  /// The app sent kept entries by itself (the network came back while this page was open): read the page again, and
+  /// show what was refused for this season.
+  void _autoSent() {
+    final report = ledgerAutoSender.reports.value;
+    if (report == null || !mounted) return;
+    final mine = [for (final r in report.refused) if (r.$1.seasonId == widget.id) r];
+    if (mine.isNotEmpty) setState(() => _refused = mine);
+    if (report.sent > 0) {
+      _say('أُرسل ${report.sent} من القيود المحفوظة على هاتفك.');
+      _load();
+    } else {
+      _readBox();
+    }
   }
 
   Future<void> _readBox() async {
@@ -75,7 +98,7 @@ class _SeasonScreenState extends State<SeasonScreen> {
       stages: v?.stages ?? const [],
       rateHint: v?.rateHint,
       suggestedRate: v?.rate,
-      note: v == null ? 'لا اتّصال الآن: يُحفظ القيد على هاتفك ويُرسَل حين تعود الشبكة وتفتح هذا الموسم.' : null,
+      note: v == null ? 'لا اتّصال الآن: يُحفظ القيد على هاتفك ويُرسَل وحده حين تعود الشبكة والتطبيق مفتوح.' : null,
       onSubmit: (fields) async {
         try {
           final kept = await _api.addOrKeep(widget.id, fields);

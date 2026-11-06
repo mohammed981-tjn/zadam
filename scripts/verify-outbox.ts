@@ -4,6 +4,7 @@
  *   npx tsx scripts/verify-outbox.ts
  */
 import {
+  CLIENT_KEY_FIELD,
   DUPLICATE_WINDOW_MS,
   MAX_AGE_MS,
   MAX_ITEMS,
@@ -13,14 +14,17 @@ import {
   isNetworkError,
   load,
   localDay,
+  newClientKey,
   newItemId,
   pendingFor,
   remove,
   snapshotFields,
   toFormData,
+  withClientKey,
   type OutboxItem,
   type StorageLike,
 } from "../src/lib/outbox";
+import { CLIENT_KEY_INDEX, isAlreadySaved, readClientKey } from "../src/lib/seasonWrites";
 import { ledgerEntryDate } from "../src/lib/entryDate";
 
 let failed = 0;
@@ -97,6 +101,33 @@ const full = memory();
 for (let i = 0; i < MAX_ITEMS; i++) enqueue(full, item({ id: `x${i}`, fields: [["n", String(i)]] }), NOW);
 eq(load(full, NOW).length, MAX_ITEMS, "twenty are kept");
 eq(enqueue(full, item({ id: "x-over", fields: [["n", "over"]] }), NOW), "full", "the twenty-first is refused, not silently dropped");
+
+console.log("\nThe idempotency key (20261106060000_ledger_client_key.sql)");
+const UUID4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+eq(UUID4.test(newClientKey()), true, "a key is a version-4 UUID");
+eq(newClientKey() === newClientKey(), false, "and two keys differ");
+eq(newClientKey((b) => b.fill(0xff)), "ffffffff-ffff-4fff-bfff-ffffffffffff", "the version and variant bits are set whatever the bytes");
+eq(readClientKey(newClientKey((b) => b.fill(0))), "00000000-0000-4000-8000-000000000000", "the server reads the key the browser made");
+const keyed = withClientKey([["amount", "500"]], () => "k-1");
+eq(keyed, [["amount", "500"], [CLIENT_KEY_FIELD, "k-1"]], "a form without a key is given one");
+eq(withClientKey(keyed, () => "k-2"), keyed, "a form that has one keeps it (every attempt sends the same key)");
+eq(withClientKey([[CLIENT_KEY_FIELD, ""]], () => "k-3")[1], [CLIENT_KEY_FIELD, "k-3"], "an empty key is no key");
+const ks = memory();
+eq(enqueue(ks, item({ fields: [["amount", "500"], [CLIENT_KEY_FIELD, "k-a"]] }), NOW), "kept", "a keyed entry is kept with its key");
+eq(load(ks, NOW)[0].fields.find(([n]) => n === CLIENT_KEY_FIELD)?.[1], "k-a", "and read back with it");
+eq(enqueue(ks, item({ id: "i2", fields: [["amount", "500"], [CLIENT_KEY_FIELD, "k-b"]] }), NOW + 5_000), "duplicate", "two taps are one double tap, whatever their keys");
+eq(toFormData(load(ks, NOW)[0]).get(CLIENT_KEY_FIELD), "k-a", "the kept key is what the late send carries");
+
+console.log("\nThe server reads a resend as «already saved»");
+eq(readClientKey(" C1000000-0000-4000-8000-0000000000C1 "), "c1000000-0000-4000-8000-0000000000c1", "a key is read whatever its case");
+eq(readClientKey(""), null, "no key is no key (an item kept before keys existed)");
+eq(readClientKey(undefined), null, "nor a form with no such field");
+eq(readClientKey("not-a-key"), null, "and anything else is no key, not an error");
+const dup = { code: "23505", message: `duplicate key value violates unique constraint "${CLIENT_KEY_INDEX}"`, details: null };
+eq(isAlreadySaved(dup), true, "the key's own index refusing a second row is «already saved»");
+eq(isAlreadySaved({ ...dup, message: 'duplicate key value violates unique constraint "ledger_entries_pkey"' }), false, "another unique refusal is not");
+eq(isAlreadySaved({ code: "42501", message: "new row violates row-level security policy" }), false, "nor a refusal by the policy");
+eq(isAlreadySaved(null), false, "nor no error");
 
 console.log("\nBad storage never breaks the page");
 const broken: StorageLike = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("quota"); }, removeItem: () => { throw new Error("denied"); } };

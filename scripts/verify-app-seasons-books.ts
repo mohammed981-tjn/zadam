@@ -168,6 +168,20 @@ ok(num(/DUPLICATE_WINDOW_MS = ([\d_]+)/, outbox) === num(/duplicateWindow = Dura
 ok(/'ledger:\$seasonId'/.test(dartSeasons) && /'ledger:unassigned'/.test(dartSeasons), "the app keys a kept entry by its season, as the website does");
 ok(/putIfAbsent\('entry_date'/.test(dartSeasons), "a kept entry carries the day it was written");
 
+// The idempotency key (20261106060000_ledger_client_key.sql): the same field on both sides, given before the first
+// attempt, carried by the insert, and a resend refused by the key's index read as the same success.
+ok(/CLIENT_KEY_FIELD = "client_key"/.test(outbox) && /const clientKeyField = 'client_key';/.test(dartSeasons), "the app and the website name the entry's key alike (client_key)");
+ok(/clientKeyField: outbox\.newKey\(\)/.test(dartSeasons), "the app gives an entry its key before the first attempt, and keeps it with that key");
+ok(/stampClientKey\(formData\)/.test(read("src/components/OfflineForm.tsx")) && /clientKey\s*\n/.test(read("src/app/seasons/[id]/page.tsx")), "the season page's form gives an entry its key before the first attempt");
+ok(/clientKey: true/.test(read("src/app/seasons/offline/BlankLedgerForm.tsx")), "and so does the blank form, when it keeps one");
+ok(/client_key: str\(formData, "client_key"\)/.test(read("src/app/seasons/actions.ts")), "the website's action passes the key on");
+ok(/client_key: text\("client_key", \d+\)/.test(read("src/app/api/app/seasons/[id]/entries/route.ts")), "and so does the app's route");
+ok(/client_key: clientKey/.test(writes) && /isAlreadySaved\(error\)\) return \{ ok: true, already: true \}/.test(writes), "recordLedgerEntry inserts the key, and reads a resend as «already saved»");
+const keyMigration = read("supabase/migrations/20261106060000_ledger_client_key.sql");
+ok(keyMigration.includes(`create unique index if not exists ledger_entries_season_client_key`) && /\(season_id, client_key\)\s*\n\s*where client_key is not null/.test(keyMigration), "the key's index is per season, and only for entries that have a key");
+ok(new RegExp(`CLIENT_KEY_INDEX = "ledger_entries_season_client_key"`).test(writes), "the server names the same index the migration makes");
+ok(!/create policy|drop policy|alter policy/i.test(keyMigration), "the key's migration adds, drops and changes no policy");
+
 const labels = Object.fromEntries([...read("src/lib/season.ts").matchAll(/^\s+(\w+): "([^"]+)",$/gm)].map((m) => [m[1], m[2]]));
 const dartCategories = [...dartSeasons.matchAll(/\('(\w+)', '([^']+)'\),/g)].map((m) => [m[1], m[2]] as const);
 for (const key of ["seeds", "fertiliser", "pesticide", "labour", "irrigation", "transport", "other", "revenue"]) {

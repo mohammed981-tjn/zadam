@@ -283,6 +283,7 @@ export async function addLedgerEntry(formData: FormData) {
       description: str(formData, "description"),
       entry_date: str(formData, "entry_date"),
       stage_id: str(formData, "stage_id"),
+      client_key: str(formData, "client_key"),
     },
     await getLocale(),
   );
