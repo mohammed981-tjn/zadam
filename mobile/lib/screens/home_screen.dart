@@ -22,6 +22,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import '../ui.dart';
+import 'agent_screen.dart';
 import 'books_screen.dart';
 import 'contracts_screen.dart';
 import 'export_screen.dart';
@@ -33,6 +34,7 @@ import 'library_screen.dart';
 import 'maps_screen.dart';
 import 'prices_screen.dart';
 import 'seasons_screen.dart';
+import 'suppliers_screen.dart';
 import 'films_screen.dart';
 import 'mining_screen.dart';
 import 'nafir_screen.dart';
@@ -124,6 +126,18 @@ final _groups = <_Group>[
       'الفرص والشراكة',
       Icons.handshake_outlined,
       screen: () => const InvestScreen(),
+    ),
+    _Section(
+      'الموردون',
+      'البذور والأسمدة',
+      Icons.storefront_outlined,
+      screen: () => const SuppliersScreen(),
+    ),
+    _Section(
+      'الوكيل',
+      'تسجيلٌ بتفويض',
+      Icons.badge_outlined,
+      screen: () => const AgentScreen(),
     ),
   ]),
   _Group('الأدوات والمعرفة', 'مجّاناً وبلا تسجيل', [
