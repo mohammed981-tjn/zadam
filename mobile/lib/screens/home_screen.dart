@@ -15,15 +15,26 @@
 /// The tiles for the calculator, the assistant and the knowledge base switch
 /// the bottom tab rather than opening a second copy of the screen, so a
 /// half-finished calculation is still there when the farmer comes back.
+///
+/// Backlog 206 (6 November): for a signed-in person, a «ينتظرك» list under the
+/// hero — what concerns them and what waits for them, as the website's home
+/// shows it (GET /api/app/home), with the entries kept on this phone counted
+/// in — and the three groups ordered by the side they are on: an investor's
+/// first group is the market and investment.
 library;
 
 import 'package:flutter/material.dart';
 
+import '../account.dart';
 import '../api.dart';
+import '../home.dart';
+import '../seasons.dart' show LedgerOutbox, userIdOf;
 import '../theme.dart';
 import '../ui.dart';
+import 'account_screen.dart';
 import 'agent_screen.dart';
 import 'books_screen.dart';
+import 'contract_detail_screen.dart' show AgreementScreen;
 import 'contracts_screen.dart';
 import 'export_screen.dart';
 import 'feasibility_screen.dart';
@@ -33,6 +44,7 @@ import 'lands_screen.dart';
 import 'library_screen.dart';
 import 'maps_screen.dart';
 import 'prices_screen.dart';
+import 'season_screen.dart';
 import 'seasons_screen.dart';
 import 'suppliers_screen.dart';
 import 'films_screen.dart';
@@ -210,12 +222,27 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _api = SudagriApi();
+  final _homeApi = HomeApi();
   late Future<List<Project>> _future;
+
+  /// What waits for the signed-in person; null for a visitor.
+  Future<RoleHomeData>? _home;
+
+  /// The side the loaded home says the person is on, which orders the groups.
+  String? _side;
+
+  /// Entries kept on this phone with no network, not yet sent.
+  int _offline = 0;
+
+  /// The account the «ينتظرك» list was read for, so a new sign-in reads it again.
+  String? _readFor;
 
   @override
   void initState() {
     super.initState();
     _future = _load();
+    accountController.addListener(_sessionChanged);
+    _sessionChanged();
   }
 
   /// The projects sit below the fold, and the list builds them only when they
@@ -223,10 +250,64 @@ class _HomeScreenState extends State<HomeScreen> {
   /// would surface as an unhandled error. The FutureBuilder still gets it.
   Future<List<Project>> _load() => _api.projects()..ignore();
 
+  void _sessionChanged() {
+    final s = accountController.value;
+    final user = s == null ? null : userIdOf(s.accessToken);
+    if (user == _readFor) return;
+    _readFor = user;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _home = null;
+          _side = null;
+          _offline = 0;
+        });
+      }
+      return;
+    }
+    _loadHome();
+  }
+
+  void _loadHome() {
+    final home = _homeApi.load();
+    // The list is drawn by a FutureBuilder; the side is read here too, and a failure is the builder's to show.
+    home.then((d) {
+      if (mounted) setState(() => _side = d.side);
+    }, onError: (_) {});
+    _home = home;
+    if (mounted) setState(() {});
+    LedgerOutbox().pending(_readFor).then((items) {
+      if (mounted) setState(() => _offline = items.length);
+    });
+  }
+
   @override
   void dispose() {
+    accountController.removeListener(_sessionChanged);
     _api.dispose();
     super.dispose();
+  }
+
+  /// A «ينتظرك» card opens its page's own screen in the app.
+  void _openCard(HomeCard c) {
+    final d = destinationOf(c.href);
+    final Widget screen = switch (d.screen) {
+      HomeScreenKey.season => SeasonScreen(id: d.id!),
+      HomeScreenKey.seasons => const SeasonsScreen(),
+      HomeScreenKey.lands => const LandsScreen(),
+      HomeScreenKey.herds => const HerdsScreen(),
+      HomeScreenKey.books => const BooksScreen(),
+      HomeScreenKey.agreement => AgreementScreen(id: d.id!),
+      HomeScreenKey.invest => InvestScreen(initialTab: d.tab),
+      HomeScreenKey.prices => PricesScreen(initialTab: d.tab),
+      HomeScreenKey.suppliers => SuppliersScreen(initialTab: d.tab),
+      HomeScreenKey.agent => AgentScreen(initialTab: d.tab),
+      HomeScreenKey.account => const AccountScreen(),
+    };
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen)).then((_) {
+      // Back from a screen where something may have been answered: read it again.
+      if (mounted && _readFor != null) _loadHome();
+    });
   }
 
   void _open(_Section s) {
@@ -240,6 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final home = _home;
     return Scaffold(
       appBar: const BrandAppBar(),
       drawer: _Menu(
@@ -249,7 +331,10 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       body: RefreshIndicator(
-        onRefresh: () async => setState(() => _future = _load()),
+        onRefresh: () async {
+          setState(() => _future = _load());
+          if (_readFor != null) _loadHome();
+        },
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
@@ -259,8 +344,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 onAsk: () => widget.onTab?.call(2),
               ),
             ),
+            if (home != null) ...[
+              const SizedBox(height: 18),
+              FutureBuilder<RoleHomeData>(
+                future: home,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const LoadingView(compact: true);
+                  }
+                  if (snapshot.hasError) {
+                    return Card(
+                      child: StateView.error(snapshot.error, compact: true, onRetry: _loadHome),
+                    );
+                  }
+                  return WaitingBoard(
+                    data: snapshot.data!,
+                    offline: _offline,
+                    onOpen: _openCard,
+                    onOffline: () =>
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SeasonsScreen())),
+                  );
+                },
+              ),
+            ],
             const SizedBox(height: 22),
-            for (final g in _groups) ...[
+            for (final g in [for (final i in sectionOrder(_side)) _groups[i]]) ...[
               SectionTitle(g.title, subtitle: g.subtitle),
               GridView.count(
                 crossAxisCount: 3,
@@ -319,6 +427,163 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/* ------------------------------------------------------------------ */
+
+/// «ينتظرك» (backlog 206): the count and the greeting, what is kept on this phone, the person's own groups card by
+/// card, and one line each for what waits on their other sides. Colours from theme.dart only: the olive for what
+/// waits, the light-olive chip for where things stand.
+class WaitingBoard extends StatelessWidget {
+  const WaitingBoard({
+    super.key,
+    required this.data,
+    required this.onOpen,
+    this.offline = 0,
+    this.onOffline,
+  });
+
+  final RoleHomeData data;
+  final int offline;
+  final ValueChanged<HomeCard> onOpen;
+  final VoidCallback? onOffline;
+
+  @override
+  Widget build(BuildContext context) {
+    // The group titles are said when there is more than one to tell apart.
+    final named = data.full.length > 1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionTitle(data.headline(offline), subtitle: data.greeting),
+        if (offline > 0)
+          _WaitingTile(
+            card: HomeCard(
+              key: 'offline',
+              kind: 'waiting',
+              count: offline,
+              title: 'محفوظٌ على هاتفك لم يُرسل بعد',
+              detail: 'يُرسل وحده حين تعود الشبكة، أو افتح «المواسم» لترسله الآن',
+              href: '/seasons',
+            ),
+            onTap: onOffline ?? () {},
+          ),
+        for (final g in data.full) ...[
+          if (named)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 6),
+              child: Text(
+                g.title,
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: textGreenOn(context)),
+              ),
+            ),
+          for (final c in g.items) _WaitingTile(card: c, onTap: () => onOpen(c)),
+        ],
+        if (data.compact.isNotEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('وينتظرك في جوانبك الأخرى', style: TextStyle(fontWeight: FontWeight.w800)),
+                  for (final g in data.compact)
+                    for (final c in g.items)
+                      InkWell(
+                        onTap: () => onOpen(c),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${g.title}: ${c.title}',
+                                  style: TextStyle(color: textGreenOn(context), fontSize: 13, height: 1.5),
+                                ),
+                              ),
+                              if (c.count != null) TagPill('${c.count}'),
+                            ],
+                          ),
+                        ),
+                      ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _WaitingTile extends StatelessWidget {
+  const _WaitingTile({required this.card, required this.onTap});
+
+  final HomeCard card;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final waiting = card.waiting;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: waiting ? leafTintOn(context) : scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: waiting ? scheme.primary.withValues(alpha: 0.45) : scheme.outline),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (card.count != null)
+                  Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: waiting ? scheme.primary : leafTintOn(context),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${card.count}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: waiting ? scheme.onPrimary : textGreenOn(context),
+                      ),
+                    ),
+                  )
+                else
+                  IconChip(waiting ? Icons.notifications_active_outlined : Icons.eco_outlined, size: 36),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(card.title, style: const TextStyle(fontWeight: FontWeight.w800, height: 1.4)),
+                      if (card.detail != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          card.detail!,
+                          style: TextStyle(fontSize: 12.5, height: 1.6, color: mutedOn(context)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_left, color: mutedOn(context)),
+              ],
+            ),
+          ),
         ),
       ),
     );

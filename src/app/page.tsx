@@ -17,6 +17,7 @@ import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { VISITOR_COLUMNS } from "@/lib/visitorColumns";
 import { loadProjectLands } from "@/lib/landOffers";
+import RoleHome, { RoleHomeSkeleton } from "@/components/RoleHome";
 
 /**
  * الصفحة الأولى — ما تملكه المنصّة، لا ما تعد به.
@@ -204,7 +205,12 @@ export default async function Home() {
     loading: "eager",
   });
 
-  const [{ data: projects }, { count: kbCount }, { count: faoCount }, { data: kbLatest }, { data: openLands }, projectLands] = await Promise.all([
+  /*
+   * Who is reading (backlog 206): a signed-in person meets what concerns them where a visitor meets the hero. Asked
+   * beside the page's own reads, not before them; with no session cookie it answers without a network call.
+   */
+  const [{ data: { user } }, { data: projects }, { count: kbCount }, { count: faoCount }, { data: kbLatest }, { data: openLands }, projectLands] = await Promise.all([
+    supabase.auth.getUser(),
     supabase
       .from("projects")
       .select(VISITOR_COLUMNS.projects)
@@ -281,7 +287,15 @@ export default async function Home() {
        * holds 8.5:1 over any frame). The poster is sent as a real <picture>, the tall cut on a phone and the wide
        * one from `md`, and it is the page's largest paint; the film fades in over it (HeroBackdrop), or never
        * does for a reader who asked for less motion or to save data. The films with sound stay below.
+       *
+       * Signed in, the role home takes the hero's place (backlog 206) and streams in its own boundary; everything
+       * below it is the same page for everyone.
        */}
+      {user ? (
+        <Suspense fallback={<RoleHomeSkeleton locale={locale} />}>
+          <RoleHome userId={user.id} locale={locale} />
+        </Suspense>
+      ) : (
       <section className="hero-video">
         <picture>
           <source media="(min-width: 768px)" srcSet={heroWide} sizes={HERO_SIZES} />
@@ -340,6 +354,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ───────────────────────── الأفلام ─────────────────────────
        * الفيديو والشعارُ في إطارٍ واحد: يعمل المقطعُ مرّةً ثمّ يظهر الشعار
