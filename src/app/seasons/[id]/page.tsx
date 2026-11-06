@@ -55,10 +55,10 @@ export default async function SeasonPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, ok } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -253,6 +253,11 @@ export default async function SeasonPage({
       {error && (
         <p className="mt-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
           {error}
+        </p>
+      )}
+      {ok && !error && (
+        <p className="mt-4 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary" role="status">
+          {ok}
         </p>
       )}
 

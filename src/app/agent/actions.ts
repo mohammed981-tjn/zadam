@@ -135,8 +135,6 @@ export async function objectAgentWrite(fd: FormData) {
   const back = (key: "ok" | "error", message: string): never => {
     revalidatePath(page);
     revalidatePath("/account/agents");
-    // The season page shows only `error`; there the mark itself says the objection was recorded.
-    if (key === "ok" && page !== "/account/agents") redirect(page);
     redirect(`${page}?${key}=${encodeURIComponent(message)}`);
   };
   const action = Number(str(fd, "action_id"));
