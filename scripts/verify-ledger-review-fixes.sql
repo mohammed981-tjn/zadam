@@ -375,6 +375,47 @@ begin
               'وفهرسا مسار المستند قائمان');
 end $$;
 
+\o
+\echo 'ح) الاعتماد بالسعر الذي رآه صاحب الدفتر (هجرة 20261107010000)'
+\o /dev/null
+reset role;
+select _as(null);
+insert into market_quotes (kind, market, crop, market_date, buy, sell, source_url, status, method) values
+  ('fx_parallel', '', '', ledger_today(), 1990, 2000, 'https://example.com/fz1', 'published', 'manual');
+set role authenticated;
+select _as('ac000000-0000-0000-0000-0000000000ac');
+do $$
+declare r jsonb;
+begin
+  r := ledger_entry_submit(_id('O'), ledger_today(), 'بذور بالجنيه بسعر السوق',
+         jsonb_build_array(_l('5110', 'D', 600000, 'SDG'), _l('1110', 'C', 600000, 'SDG')), 'k-h-0001');
+  perform _eq(r ->> 'status', 'pending', 'المُعِدّ يرسل قيداً بالجنيه بلا سعرٍ مكتوب');
+  perform _set('DF', (r ->> 'draft_id')::uuid);
+end $$;
+-- A newer rate is published between the check and the approval.
+reset role;
+select _as(null);
+insert into market_quotes (kind, market, crop, market_date, buy, sell, source_url, status, method) values
+  ('fx_parallel', '', '', ledger_today(), 2990, 3000, 'https://example.com/fz2', 'published', 'manual');
+set role authenticated;
+select _as('02000000-0000-0000-0000-000000000002');
+do $$
+declare c jsonb; e uuid;
+begin
+  select checked into c from ledger_drafts where id = _id('DF');
+  perform _eq((c ->> 'rate')::numeric, 2000::numeric, 'فُحص بسعر السوق يومها (٢٠٠٠)');
+  perform _eq(c ->> 'fx_source', 'parallel', 'ومصدره السوق الموازي');
+  e := ledger_draft_approve(_id('DF'));
+  perform _eq((select fx_rate from journal_entries where id = e), 2000::numeric,
+              'ويُرحَّل بالسعر الذي رآه صاحب الدفتر وإن نُشر بعده سعرٌ أحدث (٣٠٠٠)');
+  perform _eq((select fx_source from journal_entries where id = e), 'parallel', 'ومصدر السعر كما رآه');
+  perform _eq((select sum(base_minor) from journal_lines where entry_id = e and side = 'D')::bigint, 300::bigint,
+              'وبالمعادل الذي رآه: ٦٠٠٠ جنيه ÷ ٢٠٠٠ = ٣$ لا ٢$');
+  perform _eq((select status from ledger_drafts where id = _id('DF')), 'posted', 'والمسوّدة اعتُمدت');
+end $$;
+reset role;
+select _as(null);
+
 do $$
 declare f integer; p integer;
 begin

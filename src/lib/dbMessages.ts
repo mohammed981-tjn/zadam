@@ -757,6 +757,7 @@ const MESSAGES: [string, string][] = [
   ["أُقفل دخل الدفتر حتى %؛ يُقفل دخل الموسم بتاريخٍ بعده", "The book's income is closed up to %; the season's income is closed on a day after it"],
   ["السطر % موسومٌ بموسمٍ أو أرضٍ أو قطيعٍ أو مشروعٍ ليس لصاحب الدفتر", "Line % is tagged with a season, land, herd or project that is not the book owner's"],
   ["في دفتر المنصّة يعتمد القيدَ مديرٌ غيرُ من أعدّه", "In the platform's book, an administrator other than the one who prepared the entry approves it"],
+  ["تغيّر في الدفتر ما يجعل هذا القيد غير الذي رأيته؛ ردّه إلى من أعدّه ليرسله من جديد", "Something in the book changed, so this entry would no longer post as you saw it; return it to whoever prepared it to send again"],
   ["سجلّ الدعوات لا يُحذف", "The record of invitations is not deleted"],
   ["لا يتغيّر من الدعوة إلا ما صنعته وإنهاؤها", "Nothing of an invitation changes but what it made and its ending"],
 ];
