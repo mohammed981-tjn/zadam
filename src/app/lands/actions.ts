@@ -199,6 +199,15 @@ export async function setLandLocation(
     ? Math.round(drawn.shape.centre.lng * 1e6) / 1e6
     : pasted ? pasted.lng : gpsLat !== null && gpsLng !== null ? gpsLng : optNum(formData, "longitude");
 
+  if (!drawn && str(formData, "drawing")) {
+    return {
+      ok: false,
+      message: t(
+        "ضع ثلاث نقاطٍ على الأقلّ حول الأرض على الخريطة، أو ألغِ رسم الحدود واختر طريقةً أخرى.",
+        "Put at least three points round the land on the map, or cancel drawing and choose another way.",
+      ),
+    };
+  }
   if (lat === null || lng === null) {
     return {
       ok: false,
