@@ -10,7 +10,7 @@ import { getLocale } from "@/lib/locale";
 import { tr } from "@/lib/i18n";
 import { locationMessage, locationProblem, parseCoordinates } from "@/lib/landLocation";
 import { addLandTestStep, deleteLandTestStep } from "@/lib/landOwnerSteps";
-import { landInputProblem } from "@/lib/landInput";
+import { boundaryOf, landInputProblem, MAX_CORNERS, type Boundary } from "@/lib/landInput";
 import { recordSoilEstimate } from "@/lib/landSoil";
 import { wrbShort, wrbShortEn } from "@/lib/soilClasses";
 import { loginHrefHere } from "@/lib/loginHere";
@@ -23,6 +23,31 @@ const optNum = (fd: FormData, k: string) => {
   const v = Number(raw);
   return Number.isFinite(v) ? v : null;
 };
+
+/**
+ * The corners drawn on the website's map (`BoundaryDrawer`), as the app sends them: a JSON list of {lat, lng}.
+ * Absent → null; present but not a field → "bad". The area and the centre are this server's own, from `boundaryOf`,
+ * never the figure the page showed.
+ */
+function drawnBoundary(fd: FormData): { corners: [number, number][]; shape: Boundary } | null | "bad" {
+  const raw = str(fd, "boundary");
+  if (!raw) return null;
+  let list: unknown;
+  try {
+    list = JSON.parse(raw);
+  } catch {
+    return "bad";
+  }
+  if (!Array.isArray(list) || list.length > MAX_CORNERS) return "bad";
+  const corners = list.map((c) => ({
+    lat: Number((c as { lat?: unknown } | null)?.lat),
+    lng: Number((c as { lng?: unknown } | null)?.lng),
+  }));
+  const shape = boundaryOf(corners);
+  if (!shape) return "bad";
+  // Stored [lat, lng] to a decimetre, as the app's route stores them (20261031010000).
+  return { corners: corners.map((c) => [Math.round(c.lat * 1e6) / 1e6, Math.round(c.lng * 1e6) / 1e6]), shape };
+}
 
 export interface LandResult {
   ok: boolean;
@@ -50,13 +75,24 @@ export async function registerLand(
 
   const name = str(formData, "name");
   const state = str(formData, "state");
-  const feddans = num(formData, "feddans");
   const stationKey = str(formData, "station_key");
   const waterSource = str(formData, "water_source");
   const tenure = str(formData, "tenure");
 
-  const lat = optNum(formData, "latitude");
-  const lng = optNum(formData, "longitude");
+  // The land drawn by its corners on the map (backlog 210): its area and place are the corners', as in the app.
+  const drawn = drawnBoundary(formData);
+  if (drawn === "bad") {
+    return {
+      ok: false,
+      message: t(
+        "النقاط على الخريطة لا تحيط بأرض. ضع ثلاث نقاطٍ على الأقلّ حول الأرض بالترتيب، أو امسحها.",
+        "The points on the map do not enclose a land. Put at least three points round it in order, or clear them.",
+      ),
+    };
+  }
+  const feddans = drawn ? Math.round(drawn.shape.feddans * 100) / 100 : num(formData, "feddans");
+  const lat = drawn ? Math.round(drawn.shape.centre.lat * 1e6) / 1e6 : optNum(formData, "latitude");
+  const lng = drawn ? Math.round(drawn.shape.centre.lng * 1e6) / 1e6 : optNum(formData, "longitude");
   const problem = landInputProblem(
     { name, state, feddans, stationKey, waterSource, tenure, latitude: lat, longitude: lng },
     t,
@@ -76,6 +112,7 @@ export async function registerLand(
     village: str(formData, "village") || null,
     latitude: lat,
     longitude: lng,
+    boundary: drawn ? drawn.corners : null,
     feddans,
     station_key: stationKey,
     water_source: waterSource as WaterSource,
@@ -141,11 +178,26 @@ export async function setLandLocation(
   const t = (ar: string, en: string) => tr(locale, ar, en);
 
   const landId = str(formData, "land_id");
+  // Its corners drawn on the map come first (backlog 210): the place is then their centre.
+  const drawn = drawnBoundary(formData);
+  if (drawn === "bad") {
+    return {
+      ok: false,
+      message: t(
+        "النقاط على الخريطة لا تحيط بأرض. ضع ثلاث نقاطٍ على الأقلّ حول الأرض بالترتيب، أو امسحها.",
+        "The points on the map do not enclose a land. Put at least three points round it in order, or clear them.",
+      ),
+    };
+  }
   const pasted = parseCoordinates(str(formData, "paste"));
   const gpsLat = optNum(formData, "lat");
   const gpsLng = optNum(formData, "lng");
-  const lat = pasted ? pasted.lat : gpsLat !== null && gpsLng !== null ? gpsLat : optNum(formData, "latitude");
-  const lng = pasted ? pasted.lng : gpsLat !== null && gpsLng !== null ? gpsLng : optNum(formData, "longitude");
+  const lat = drawn
+    ? Math.round(drawn.shape.centre.lat * 1e6) / 1e6
+    : pasted ? pasted.lat : gpsLat !== null && gpsLng !== null ? gpsLat : optNum(formData, "latitude");
+  const lng = drawn
+    ? Math.round(drawn.shape.centre.lng * 1e6) / 1e6
+    : pasted ? pasted.lng : gpsLat !== null && gpsLng !== null ? gpsLng : optNum(formData, "longitude");
 
   if (lat === null || lng === null) {
     return {
@@ -161,7 +213,7 @@ export async function setLandLocation(
 
   const { data, error } = await supabase
     .from("lands")
-    .update({ latitude: lat, longitude: lng })
+    .update(drawn ? { latitude: lat, longitude: lng, boundary: drawn.corners } : { latitude: lat, longitude: lng })
     .eq("id", landId)
     .eq("owner_id", user.id)
     .select("id, verification")
@@ -185,6 +237,13 @@ export async function setLandLocation(
         "حُفظ الموقع. وإن كانت أرضك موثّقة فتغيير موقعها يعيدها إلى مراجعة الإدارة قبل أن تُعرض من جديد.",
         "The location is saved. If your land was verified, changing its place sends it back to the administrators before it is shown again.",
       ) +
+      (drawn
+        ? " " +
+          t(
+            `وحُفظت حدودها: نحو ${(Math.round(drawn.shape.feddans * 100) / 100).toLocaleString("ar-SA")} فدان داخل النقاط، وتقارنها الإدارة بالمساحة المسجّلة.`,
+            `Its boundary is saved too: about ${Math.round(drawn.shape.feddans * 100) / 100} feddans inside the points, which the administrators compare with the registered area.`,
+          )
+        : "") +
       (soilName
         ? " " +
           t(

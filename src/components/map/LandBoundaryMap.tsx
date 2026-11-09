@@ -7,7 +7,7 @@ import type { MapOverlay } from "./LiveMap";
 const LiveMap = dynamic(() => import("./LiveMap"), { ssr: false });
 
 /**
- * حدود الأرض كما رسمها صاحبها في التطبيق، على صورة الأقمار (البند ١٣٤).
+ * حدود الأرض كما رسمها صاحبها في التطبيق أو الموقع، على صورة الأقمار (البند ١٣٤).
  *
  * The corners are stored [lat, lng] (20261031010000); GeoJSON wants [lng, lat] and a closed ring. The map opens on
  * the field itself, with a margin, rather than on the whole country.

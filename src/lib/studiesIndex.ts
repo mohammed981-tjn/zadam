@@ -37,6 +37,19 @@ export const STUDIES = [
     altEn: "A warehouse with sacks of sesame and gum arabic, and workers loading a lorry",
   },
   {
+    href: "/studies/compost",
+    title: "دراسة جدوى مصنع السماد العضوي (الكمبوست)",
+    titleEn: "Feasibility study: an organic compost factory",
+    note: "مصنع ٢٠ طن/يوم على مرحلتين: الكمبوست أوّلاً ثمّ التحبيب والتعبئة. السوق والموقع والتكاليف والعائد والمخاطر والتراخيص.",
+    noteEn:
+      "A 20-tonne-a-day factory in two phases: compost first, then granulating and bagging. The market, site, costs, returns, risks and licences. In Arabic.",
+    kind: "دراسة مُرسَلة — رُوجعت واختُصرت",
+    kindEn: "Submitted study — reviewed and condensed",
+    photo: PHOTOS.geziraFarmer,
+    alt: "مزارعٌ عند حقل ذرةٍ وترعةٍ ترابيّة، ونخيلٌ في الأفق",
+    altEn: "A farmer by a sorghum field and an earth canal, with palms on the horizon",
+  },
+  {
     href: "/arc-canal",
     title: "القناة القوسية",
     titleEn: "The Arc Canal",
@@ -61,3 +74,15 @@ export const STUDIES = [
     altEn: "A man up a palm lowering a basket of dates to men below, with the Nile behind them",
   },
 ];
+
+/** Under the compost study's title, on the page and in the app (backlog 210). */
+export const COMPOST_NOTE = {
+  ar: "دراسةٌ أرسلها مالكُ المنصّة في ٨ نوفمبر ٢٠٢٦، فراجعتها المنصّة ورتّبتها واختصرتها من ١٨ قسماً إلى ١٢.",
+  en: "A study sent by the platform's owner on 8 November 2026, reviewed, ordered and condensed by the platform from 18 sections to 12. In Arabic.",
+};
+
+/** What the reader should know about the compost study's numbers before reading them. */
+export const COMPOST_CAVEAT = {
+  ar: "عن الأرقام: كلّها بالدولار، والمقابل بالجنيه بسعر ١٠٬٢٠٠ ج.س للدولار (٨ نوفمبر ٢٠٢٦). أعادت المنصّة حساب الاستثمار والتكاليف والإيرادات ونقطة التعادل والاسترداد والعائد فطابقت الدراسة. أمّا الأسعار المحلية (الروث والنقل والإيجار) فتقديرات، والدراسة نفسها تشترط استبدالها بعروضٍ مكتوبة قبل أيّ التزام.",
+  en: "About the numbers: all are in US dollars, with the Sudanese pound at 10,200 to the dollar (8 November 2026). The platform recomputed the capital, costs, revenue, break-even, payback and returns, and they match the study. The local prices (manure, transport, rent) are estimates, and the study itself requires written quotes in their place before any commitment.",
+};

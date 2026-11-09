@@ -10,8 +10,8 @@ export async function generateMetadata() {
     title: tr(locale, "الدراسات | سوداقري", "Studies | Sudagri"),
     description: tr(
       locale,
-      "دراسات سوداقري: القناة القوسية، وممرّ الصادر السوداني، وأزمة سعر الصرف والتضخم وبرنامج العمل لمعالجتها.",
-      "Sudagri's studies: the Arc Canal, the Sudanese export corridor, and the exchange-rate and inflation crisis with a programme of action to address it.",
+      "دراسات سوداقري: القناة القوسية، وممرّ الصادر السوداني، وأزمة سعر الصرف والتضخم وبرنامج العمل لمعالجتها، ودراسة جدوى مصنع السماد العضوي.",
+      "Sudagri's studies: the Arc Canal, the Sudanese export corridor, the exchange-rate and inflation crisis with a programme of action to address it, and a feasibility study for an organic compost factory.",
     ),
   };
 }

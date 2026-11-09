@@ -244,6 +244,7 @@ export default async function Navbar() {
       { href: "/studies", label: t("كلّ الدراسات", "All studies") },
       { href: "/library", label: t("مكتبة الدراسات والبحوث", "Studies and research library") },
       { href: "/studies/exchange-rate", label: t("أزمة سعر الصرف والتضخم", "The exchange-rate and inflation crisis") },
+      { href: "/studies/compost", label: t("مصنع السماد العضوي (الكمبوست)", "The compost factory") },
       { href: "/arc-canal", label: t("القناة القوسية", "The Arc Canal") },
       { href: "/export", label: t("ممرّ الصادر السوداني", "Sudan's export corridor") },
       { href: "/export/market", label: t("عروض التصدير المنشورة", "Published export offers") },

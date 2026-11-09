@@ -19,6 +19,8 @@ const SOURCES = Object.keys(WATER_SOURCE_LABEL) as WaterSource[];
 
 /** The live map, fetched only when the farmer opens it (البند ١٤٧). */
 const LiveMap = dynamic(() => import("@/components/map/LiveMap"), { ssr: false });
+/** The corners drawn on the map, as in the app (backlog 210). */
+const BoundaryDrawer = dynamic(() => import("@/components/map/BoundaryDrawer"), { ssr: false });
 const deg = (v: number) => String(Math.round(v * 1e5) / 1e5);
 const field =
   "rounded-lg border border-border bg-background px-3 py-2 outline-none focus:border-primary";
@@ -50,6 +52,9 @@ export default function LandForm({ forFarmer }: { forFarmer?: string } = {}) {
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
   const [picking, setPicking] = useState(false);
+  // Its corners drawn on the map: while they enclose an area, the area and the place are theirs.
+  const [drawing, setDrawing] = useState(false);
+  const [drawnFeddans, setDrawnFeddans] = useState<number | null>(null);
   const at: [number, number] | null =
     lat !== "" && lon !== "" && Number.isFinite(Number(lat)) && Number.isFinite(Number(lon))
       ? [Number(lon), Number(lat)]
@@ -181,7 +186,35 @@ export default function LandForm({ forFarmer }: { forFarmer?: string } = {}) {
             >
               📍 {picking ? t("أخفِ الخريطة", "Hide the map") : t("حدّد موقع الأرض على الخريطة", "Find the land on the map")}
             </button>
-            {picking && (
+            <button
+              type="button"
+              onClick={() => {
+                setDrawing((v) => !v);
+                setPicking(false);
+                setDrawnFeddans(null);
+              }}
+              aria-expanded={drawing}
+              className="self-start rounded-full border border-primary px-4 py-2 text-sm font-bold text-primary transition hover:bg-primary/10"
+            >
+              🔷 {drawing ? t("ألغِ رسم الحدود", "Cancel drawing the boundary") : t("ارسم حدود أرضك بالنقاط على الخريطة", "Draw your land's boundary with points on the map")}
+            </button>
+            {drawing && (
+              <BoundaryDrawer
+                start={at}
+                onShape={(shape) => {
+                  if (!shape) {
+                    setDrawnFeddans(null);
+                    return;
+                  }
+                  const f = Math.round(shape.feddans * 100) / 100;
+                  setDrawnFeddans(f);
+                  setFeddans(f);
+                  setLat(deg(shape.centre.lat));
+                  setLon(deg(shape.centre.lng));
+                }}
+              />
+            )}
+            {picking && !drawing && (
               <>
                 <p className="text-xs leading-6 text-muted">
                   {t(
@@ -214,13 +247,19 @@ export default function LandForm({ forFarmer }: { forFarmer?: string } = {}) {
             <input
               type="number"
               name="feddans"
-              min={1}
-              step="0.5"
+              min={drawnFeddans !== null ? 0 : 1}
+              step={drawnFeddans !== null ? "any" : "0.5"}
               required
+              readOnly={drawnFeddans !== null}
               value={feddans}
               onChange={(e) => setFeddans(Number(e.target.value))}
               className={field}
             />
+            {drawnFeddans !== null && (
+              <span className="text-xs text-muted">
+                {t("محسوبةٌ من النقاط التي رسمتها على الخريطة.", "Worked out from the points you drew on the map.")}
+              </span>
+            )}
           </label>
 
           <label className="flex flex-col gap-1 text-sm">

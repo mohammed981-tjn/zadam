@@ -2,7 +2,7 @@ import type { Block } from "@/lib/studyDoc";
 
 /**
  * نصٌّ مكتوبٌ بتنسيق Markdown البسيط، مرسوماً: العناوين والقوائم والفقرات
- * والمعادلات. تستعمله الدراسات، والأخبار الطويلة التي تُكتب بالتنسيق نفسه.
+ * والمعادلات والجداول. تستعمله الدراسات، والأخبار الطويلة التي تُكتب بالتنسيق نفسه.
  */
 export default function StudyBody({ blocks }: { blocks: Block[] }) {
   return (
@@ -56,6 +56,33 @@ function BlockView({ b }: { b: Block }) {
             <li key={i}>{t}</li>
           ))}
         </ul>
+      );
+    case "table":
+      return (
+        <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card shadow-card">
+          <table className="w-full text-sm">
+            <thead className="bg-primary/10">
+              <tr>
+                {b.rows[0].map((c, i) => (
+                  <th key={i} className="px-3 py-2 text-start font-bold">
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {b.rows.slice(1).map((r, i) => (
+                <tr key={i} className="border-t border-border">
+                  {r.map((c, j) => (
+                    <td key={j} className="figure px-3 py-2 align-top leading-7">
+                      {c}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       );
     case "hr":
       return <hr className="my-10 border-border" />;

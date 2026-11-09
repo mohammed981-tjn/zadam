@@ -20,6 +20,8 @@ export type Block =
   | { kind: "formula"; text: string }
   | { kind: "ol"; items: string[] }
   | { kind: "ul"; items: string[] }
+  /** A Markdown table, its heading row first — the shape the app's reader already draws (`pageBlocks`). */
+  | { kind: "table"; rows: string[][] }
   | { kind: "hr" };
 
 export interface StudyDoc {
@@ -46,9 +48,26 @@ export function parseStudy(md: string, { titled = true } = {}): StudyDoc {
   const sections: { id: string; text: string }[] = [];
   let seenSection = false;
 
+  // A table runs over consecutive lines only: a blank line ends it, so two tables never merge.
+  let inTable = false;
   for (const raw of md.split(/\r?\n/)) {
     const line = raw.trim();
-    if (!line) continue;
+    if (!line) {
+      inTable = false;
+      continue;
+    }
+
+    if (line.startsWith("|")) {
+      // The rule under the heading row (|---|:--:|) is not a row.
+      if (/^\|?(\s*:?-{3,}:?\s*\|)+\s*:?-{0,}:?\s*$/.test(line)) continue;
+      const cells = line.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim().replace(/\*\*/g, ""));
+      const last = blocks[blocks.length - 1];
+      if (inTable && last && last.kind === "table") last.rows.push(cells);
+      else blocks.push({ kind: "table", rows: [cells] });
+      inTable = true;
+      continue;
+    }
+    inTable = false;
 
     const h = /^(#{1,4})\s+(.*)$/.exec(line);
     if (h) {
