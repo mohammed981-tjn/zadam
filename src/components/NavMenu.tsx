@@ -124,7 +124,7 @@ export default function NavMenu({
         // On a phone the bottom bar carries «القائمة», so the header does
         // not show the same button a second time.
         // On the header, so in the header's ink (`.hdr-chip`), with a gold edge while open.
-        className="hdr-chip hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition sm:flex"
+        className="hdr-chip hidden h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold transition sm:flex"
       >
         {/* Three bars, the middle one shorter, so the mark reads as a list and not as a flag. */}
         <span aria-hidden className="flex flex-col items-end gap-[3px]">

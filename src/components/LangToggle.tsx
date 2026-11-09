@@ -26,7 +26,7 @@ export default function LangToggle() {
       lang={next}
       aria-label={next === "en" ? "Switch to English" : "التحويل إلى العربية"}
       // It lives on the header, so it paints with the header's ink in every palette (`.hdr-chip`, globals.css).
-      className="hdr-chip rounded-xl px-2.5 py-2 text-sm font-bold transition disabled:opacity-60"
+      className="hdr-chip inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition disabled:opacity-60"
     >
       {next === "en" ? "EN" : "ع"}
     </button>
