@@ -7,9 +7,10 @@ import { ROUTE, ROUTE_LENGTH_KM, distanceKm, summarise } from "@/lib/arcCanal";
 import { LOCALE_COOKIE } from "@/lib/i18n";
 import { tr } from "@/lib/i18n";
 import { appLocale } from "@/lib/appLocale";
+import { COMPOST_CAVEAT, COMPOST_NOTE } from "@/lib/studiesIndex";
 
 /**
- * الدراسات والدليل للقراءة في التطبيق (البند ٢٠٣): /studies/exchange-rate و/arc-canal و/guide.
+ * الدراسات والدليل للقراءة في التطبيق (البند ٢٠٣): /studies/exchange-rate و/studies/compost و/arc-canal و/guide.
  *
  * Each from the source the website renders, never a copy:
  *   - exchange-rate: content/studies/exchange-rate-ar.md through `parseStudy`, exactly as the page reads it.
@@ -53,6 +54,23 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
         sections: doc.sections,
         blocks: doc.blocks,
         pageUrl: pageUrl("/studies/exchange-rate"),
+      },
+      { headers: CACHE },
+    );
+  }
+
+  if (slug === "compost") {
+    const md = readFileSync(join(process.cwd(), "content/studies/compost-ar.md"), "utf8");
+    const doc = parseStudy(md);
+    return NextResponse.json(
+      {
+        slug,
+        title: doc.title,
+        note: tr(locale, COMPOST_NOTE.ar, COMPOST_NOTE.en),
+        caveat: tr(locale, COMPOST_CAVEAT.ar, COMPOST_CAVEAT.en),
+        sections: doc.sections,
+        blocks: doc.blocks,
+        pageUrl: pageUrl("/studies/compost"),
       },
       { headers: CACHE },
     );

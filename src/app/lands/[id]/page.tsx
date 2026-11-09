@@ -106,8 +106,8 @@ export default async function FieldCardPage({ params }: { params: Promise<{ id: 
             {enclosed && (
               <p className="mt-2 text-xs text-muted">
                 {t(
-                  `الحدود كما رُسمت في التطبيق (${drawn.length} ركناً) تحيط بـ ${enclosed.feddans.toFixed(2)} فدان.`,
-                  `The boundary as drawn in the app (${drawn.length} corners) encloses ${enclosed.feddans.toFixed(2)} feddans.`,
+                  `الحدود كما رسمها صاحبها على الخريطة (${drawn.length} ركناً) تحيط بـ ${enclosed.feddans.toFixed(2)} فدان.`,
+                  `The boundary as its owner drew it on the map (${drawn.length} corners) encloses ${enclosed.feddans.toFixed(2)} feddans.`,
                 )}
               </p>
             )}

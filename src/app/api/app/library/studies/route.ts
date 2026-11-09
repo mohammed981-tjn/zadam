@@ -9,7 +9,11 @@ import { STUDIES } from "@/lib/studiesIndex";
  */
 export const dynamic = "force-dynamic";
 
-const READ: Record<string, string> = { "/studies/exchange-rate": "exchange-rate", "/arc-canal": "arc-canal" };
+const READ: Record<string, string> = {
+  "/studies/exchange-rate": "exchange-rate",
+  "/studies/compost": "compost",
+  "/arc-canal": "arc-canal",
+};
 
 export async function GET(req: Request) {
   return NextResponse.json(

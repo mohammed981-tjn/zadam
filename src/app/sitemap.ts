@@ -40,6 +40,7 @@ const PUBLIC_ROUTES: {
   { path: "/studies", priority: 0.7, changeFrequency: "monthly" },
   { path: "/library", priority: 0.7, changeFrequency: "weekly" },
   { path: "/studies/exchange-rate", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/studies/compost", priority: 0.7, changeFrequency: "monthly" },
   { path: "/export", priority: 0.8, changeFrequency: "monthly" },
   { path: "/export/market", priority: 0.7, changeFrequency: "monthly" },
   { path: "/services", priority: 0.7, changeFrequency: "weekly" },

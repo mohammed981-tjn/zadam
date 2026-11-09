@@ -32,6 +32,19 @@ const srcItems = md.split("\n").filter((l) => /^(\d+\.|-)\s/.test(l.trim())).len
 ok(items === srcItems, `ولا بندَ ضاع من القوائم (${items} من ${srcItems})`);
 ok(md.includes("7,500 جنيه") && md.includes("51.28%"), "والأرقام كما كُتبت");
 
+console.log("\nالجداول (البند ٢١٠):");
+const tab = parseStudy("# ع\n## أولاً: أ\n| أ | ب |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n\n| ج | د |\n|:--|--:|\n| 5 | 6 |\nبعده نصّ");
+const tables = tab.blocks.filter((b) => b.kind === "table");
+ok(tables.length === 2, "جدولان يفصلهما سطرٌ فارغ لا يندمجان");
+ok(tables[0]?.kind === "table" && tables[0].rows.length === 3 && tables[0].rows[0].join("|") === "أ|ب", "وصفّ العنوان أوّلاً، وسطر الفاصل ليس صفّاً");
+ok(tab.blocks.at(-1)?.kind === "p", "والسطر بعد الجدول فقرة");
+
+console.log("\nدراسة الكمبوست:");
+const compost = parseStudy(readFileSync("content/studies/compost-ar.md", "utf8"));
+ok(compost.sections.length === 12, `أقسامها اثنا عشر (${compost.sections.length})`);
+ok(compost.blocks.filter((b) => b.kind === "table").every((b) => b.kind === "table" && b.rows.every((r) => r.length === b.rows[0].length)), "وكلّ صفٍّ في جداولها بعدد أعمدة عنوانه");
+ok(readFileSync("content/studies/compost-ar.md", "utf8").includes("916,020"), "والنقد التراكمي للسيناريو B كما حُسب");
+
 if (fail) {
   console.error(`\n${fail} فشل`);
   process.exit(1);
