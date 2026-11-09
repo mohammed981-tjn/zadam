@@ -355,21 +355,31 @@ export default async function Navbar() {
             <Image src={SUDAGRI_LOGO} alt="" sizes="44px" placeholder="blur" className="size-full object-cover" />
           </span>
           <span className="flex min-w-0 flex-col leading-tight">
-            <span className="text-lg font-black sm:text-xl">{t("سوداقري", "Sudagri")}</span>
-            <span className="hidden truncate text-[0.6875rem] font-medium text-header-muted min-[360px]:block">
+            {/* The name never breaks: «سودا / قري» on two lines was how a full row of actions squeezed it (owner, 9 Nov). */}
+            <span className="whitespace-nowrap text-lg font-black sm:text-xl">{t("سوداقري", "Sudagri")}</span>
+            {/* The line fits beside a visitor's two buttons; beside a member's four it was cut to «منصّة سـ…», so on a
+                phone it waits for the wider screen. */}
+            <span
+              className={`hidden truncate text-[0.6875rem] font-medium text-header-muted ${user ? "sm:block" : "min-[360px]:block"}`}
+            >
               {t("منصّة سودانيّة للزراعة والتجارة", "A Sudanese platform for farming and trade")}
             </span>
           </span>
         </Link>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
           {pending > 0 && (
             <Link
               href="/admin/inbox"
               aria-label={t(`قائمة المراجعة، ${pending} ينتظر`, `Review list, ${pending} waiting`)}
-              className="whitespace-nowrap rounded-xl bg-gold px-2.5 py-2 text-xs font-black text-gold-ink shadow-card transition hover:opacity-90"
+              className="inline-flex h-10 shrink-0 items-center gap-1 whitespace-nowrap rounded-xl bg-gold px-2.5 text-sm font-black text-gold-ink shadow-card transition hover:opacity-90"
             >
-              {t("للمراجعة", "Review")} {pending > 99 ? "99+" : pending}
+              {/* On a phone the word gives way to a mark, so the four actions sit in one even row of 40px squares. */}
+              <span aria-hidden className="sm:hidden">
+                📋
+              </span>
+              <span className="hidden sm:inline">{t("للمراجعة", "Review")}</span>
+              <span className="figure">{pending > 99 ? "99+" : pending}</span>
             </Link>
           )}
           {user && (
@@ -380,7 +390,7 @@ export default async function Navbar() {
                   ? t(`الرسائل، ${unreadMessages} غير مقروءة`, `Messages, ${unreadMessages} unread`)
                   : t("الرسائل", "Messages")
               }
-              className="hdr-chip relative rounded-xl px-2.5 py-2 text-sm transition"
+              className="hdr-chip relative inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-base transition"
             >
               💬
               {unreadMessages > 0 && (
@@ -398,7 +408,7 @@ export default async function Navbar() {
                   ? t(`الإشعارات، ${unread} غير مقروء`, `Notifications, ${unread} unread`)
                   : t("الإشعارات", "Notifications")
               }
-              className="hdr-chip relative rounded-xl px-2.5 py-2 text-sm transition"
+              className="hdr-chip relative inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-base transition"
             >
               🔔
               {unread > 0 && (
@@ -428,7 +438,7 @@ export default async function Navbar() {
             <Link
               href="/signup"
               // The sun's gold with dark type: the one filled button on the header, whichever palette it is in.
-              className="whitespace-nowrap rounded-xl bg-gold px-3 py-2 text-sm font-black text-gold-ink shadow-card transition hover:opacity-90 active:scale-[0.98] sm:px-3.5"
+              className="inline-flex h-10 items-center whitespace-nowrap rounded-xl bg-gold px-3 text-sm font-black text-gold-ink shadow-card transition hover:opacity-90 active:scale-[0.98] sm:px-3.5"
             >
               {t("ابدأ الآن", "Get started")}
             </Link>
