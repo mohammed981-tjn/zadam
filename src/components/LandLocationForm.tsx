@@ -57,7 +57,13 @@ export default function LandLocationForm({
         >
           🔷 {drawing ? t("ألغِ رسم الحدود", "Cancel drawing the boundary") : t("ارسم حدود الأرض بالنقاط على الخريطة", "Draw the land's boundary with points on the map")}
         </button>
-        {drawing && <BoundaryDrawer start={current ? [current.lng, current.lat] : null} />}
+        {drawing && (
+          <>
+            {/* Tells the server the other ways are hidden, so too few points get their own sentence. */}
+            <input type="hidden" name="drawing" value="1" />
+            <BoundaryDrawer start={current ? [current.lng, current.lat] : null} />
+          </>
+        )}
         {!drawing && (
           <>
         <GpsField label={t("وأنت واقفٌ في الأرض:", "While you stand on the land:")} />

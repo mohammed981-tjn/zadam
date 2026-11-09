@@ -55,6 +55,14 @@ export default function LandForm({ forFarmer }: { forFarmer?: string } = {}) {
   // Its corners drawn on the map: while they enclose an area, the area and the place are theirs.
   const [drawing, setDrawing] = useState(false);
   const [drawnFeddans, setDrawnFeddans] = useState<number | null>(null);
+  // When the drawn area stops counting (the drawing is cancelled, or a point is undone below three), the typed box
+  // takes over again with its own rule — at least 1, in halves — so a drawn 3.27 left in it does not stop the form
+  // at the browser's «enter a valid value» with no word of why.
+  const leaveDrawn = () => {
+    if (drawnFeddans === null) return;
+    setFeddans((f) => Math.max(1, Math.round(f * 2) / 2));
+    setDrawnFeddans(null);
+  };
   const at: [number, number] | null =
     lat !== "" && lon !== "" && Number.isFinite(Number(lat)) && Number.isFinite(Number(lon))
       ? [Number(lon), Number(lat)]
@@ -191,7 +199,7 @@ export default function LandForm({ forFarmer }: { forFarmer?: string } = {}) {
               onClick={() => {
                 setDrawing((v) => !v);
                 setPicking(false);
-                setDrawnFeddans(null);
+                leaveDrawn();
               }}
               aria-expanded={drawing}
               className="self-start rounded-full border border-primary px-4 py-2 text-sm font-bold text-primary transition hover:bg-primary/10"
@@ -203,7 +211,7 @@ export default function LandForm({ forFarmer }: { forFarmer?: string } = {}) {
                 start={at}
                 onShape={(shape) => {
                   if (!shape) {
-                    setDrawnFeddans(null);
+                    leaveDrawn();
                     return;
                   }
                   const f = Math.round(shape.feddans * 100) / 100;
