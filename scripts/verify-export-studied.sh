@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # بوّابةُ الطرق المدروسة (البند ١١٨): اثنا عشر طريقاً لها شروطها ومراجعتها بمصادرها، والتكرار لا يضيف شيئاً،
-# وما لم يُدرس (الصمغ إلى الهند) يبقى بلا قواعد.
+# وما لم يُدرس (الصمغ إلى الهند) يبقى بلا قواعد؛ والقطن إلى بنغلاديش (10 نوفمبر).
 #
 #   ./scripts/verify-export-studied.sh
 
@@ -22,6 +22,7 @@ AGE="$(pg_stage "$ROOT/supabase/migrations/20260905160000_rules_declare_their_ow
 PAIRS="$(pg_stage "$ROOT/supabase/migrations/20261021120000_export_all_products_destinations.sql" pairs.sql)"
 STUDIED="$(pg_stage "$ROOT/supabase/migrations/20261106030000_export_corridors_studied.sql" studied.sql)"
 HIBISCUS="$(pg_stage "$ROOT/supabase/migrations/20261106040000_hibiscus_eu_phyto_recommended.sql" hibiscus.sql)"
+COTTON_BD="$(pg_stage "$ROOT/supabase/migrations/20261110010000_export_cotton_bangladesh.sql" cotton-bd.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-export-studied.sql" checks.sql)"
 
 DEFAULTS="$(printf '%s\n' \
@@ -40,6 +41,8 @@ echo "── الطرق المدروسة";     pg_run "$STUDIED" >/dev/null
 echo "── وثانيةً، فلا يتكرّر شيء"; pg_run "$STUDIED" >/dev/null
 echo "── الكركديه إلى أوروبا";  pg_run "$HIBISCUS" >/dev/null
 echo "── وثانيةً";              pg_run "$HIBISCUS" >/dev/null
+echo "── القطن إلى بنغلاديش";   pg_run "$COTTON_BD" >/dev/null
+echo "── وثانيةً";              pg_run "$COTTON_BD" >/dev/null
 
 echo "── الفحوص"
 pg_run "$CHECKS"
