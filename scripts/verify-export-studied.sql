@@ -56,6 +56,11 @@ begin
   perform _eq(_reviews('groundnut', 'CN'), 1, 'ومراجعة الفول إلى الصين مرّةً واحدة رغم تطبيق الهجرة مرّتين');
   perform _eq((select bool_and(length(source_note) > 80) from export_corridor_reviews where reviewed_at = '2026-11-05 21:00+00'), true, 'وكلّ مراجعةٍ تذكر مصدرها وشروطها');
   perform _eq(_reqs('gum_arabic', 'IN'), 0, 'والصمغ إلى الهند بلا قواعد: لم يُوجد مصدرٌ رسميّ');
+  perform _eq(_reqs('cotton', 'BD'), 3, 'القطن إلى بنغلاديش: ٣ (10 نوفمبر)');
+  perform _eq(_has('cotton', 'BD', 'import_permit', 'required'), true, 'إذن الاستيراد مطلوب');
+  perform _eq(_has('cotton', 'BD', 'phytosanitary', 'required'), true, 'وشهادة الحجر مطلوبة');
+  perform _eq(_has('cotton', 'BD', 'certificate_of_origin', 'recommended'), true, 'وشهادة المنشأ يُنصح بها');
+  perform _eq(_reviews('cotton', 'BD'), 1, 'ومراجعةٌ واحدة بمصدرها ولو طُبِّقت الهجرة مرّتين');
   perform _eq((select count(*)::int from export_corridor_requirements r join export_corridors cr on cr.id = r.corridor_id
                 join export_commodities c on c.id = cr.commodity_id join export_destinations d on d.id = cr.destination_id
                where c.code = 'sesame' and d.code = 'EU' and r.effective_to is null), 6, 'وما كان (السمسم إلى أوروبا) لم يُمسّ');
