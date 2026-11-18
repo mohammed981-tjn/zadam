@@ -55,7 +55,13 @@ begin
   perform _eq((select count(*)::int from export_corridor_reviews where reviewed_at = '2026-11-05 21:00+00'), 12, 'اثنتا عشرة مراجعة، لكلّ طريقٍ واحدة');
   perform _eq(_reviews('groundnut', 'CN'), 1, 'ومراجعة الفول إلى الصين مرّةً واحدة رغم تطبيق الهجرة مرّتين');
   perform _eq((select bool_and(length(source_note) > 80) from export_corridor_reviews where reviewed_at = '2026-11-05 21:00+00'), true, 'وكلّ مراجعةٍ تذكر مصدرها وشروطها');
-  perform _eq(_reqs('gum_arabic', 'IN'), 0, 'والصمغ إلى الهند بلا قواعد: لم يُوجد مصدرٌ رسميّ');
+  perform _eq(_reqs('gum_arabic', 'IN'), 2, 'الصمغ إلى الهند: ٢ (18 نوفمبر)');
+  perform _eq(_has('gum_arabic', 'IN', 'food_import_licence', 'required'), true, 'ترخيص استيراد الأغذية لدى المستورد مطلوب');
+  perform _eq(_has('gum_arabic', 'IN', 'certificate_of_origin', 'required'), true, 'وشهادة المنشأ مطلوبة');
+  perform _eq(_has('gum_arabic', 'IN', 'phytosanitary', 'required'), false, 'ولا شهادة حجر: صمغ الأشجار معفى');
+  perform _eq(_has('gum_arabic', 'IN', 'import_permit', 'required'), false, 'ولا إذن استيراد من الحجر');
+  perform _eq(_reviews('gum_arabic', 'IN'), 1, 'ومراجعةٌ واحدة بمصدرها ولو طُبِّقت الهجرة مرّتين');
+  perform _eq((select count(*)::int from export_document_types where code = 'food_import_licence'), 1, 'ونوع المستند الجديد مرّةً واحدة');
   perform _eq(_reqs('cotton', 'BD'), 3, 'القطن إلى بنغلاديش: ٣ (10 نوفمبر)');
   perform _eq(_has('cotton', 'BD', 'import_permit', 'required'), true, 'إذن الاستيراد مطلوب');
   perform _eq(_has('cotton', 'BD', 'phytosanitary', 'required'), true, 'وشهادة الحجر مطلوبة');

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # بوّابةُ الطرق المدروسة (البند ١١٨): اثنا عشر طريقاً لها شروطها ومراجعتها بمصادرها، والتكرار لا يضيف شيئاً،
-# وما لم يُدرس (الصمغ إلى الهند) يبقى بلا قواعد؛ والقطن إلى بنغلاديش (10 نوفمبر).
+# والقطن إلى بنغلاديش (10 نوفمبر)، والصمغ إلى الهند (18 نوفمبر).
 #
 #   ./scripts/verify-export-studied.sh
 
@@ -23,6 +23,7 @@ PAIRS="$(pg_stage "$ROOT/supabase/migrations/20261021120000_export_all_products_
 STUDIED="$(pg_stage "$ROOT/supabase/migrations/20261106030000_export_corridors_studied.sql" studied.sql)"
 HIBISCUS="$(pg_stage "$ROOT/supabase/migrations/20261106040000_hibiscus_eu_phyto_recommended.sql" hibiscus.sql)"
 COTTON_BD="$(pg_stage "$ROOT/supabase/migrations/20261110010000_export_cotton_bangladesh.sql" cotton-bd.sql)"
+GUM_IN="$(pg_stage "$ROOT/supabase/migrations/20261118010000_export_gum_arabic_india.sql" gum-in.sql)"
 CHECKS="$(pg_stage "$ROOT/scripts/verify-export-studied.sql" checks.sql)"
 
 DEFAULTS="$(printf '%s\n' \
@@ -43,6 +44,8 @@ echo "── الكركديه إلى أوروبا";  pg_run "$HIBISCUS" >/dev/nu
 echo "── وثانيةً";              pg_run "$HIBISCUS" >/dev/null
 echo "── القطن إلى بنغلاديش";   pg_run "$COTTON_BD" >/dev/null
 echo "── وثانيةً";              pg_run "$COTTON_BD" >/dev/null
+echo "── الصمغ إلى الهند";      pg_run "$GUM_IN" >/dev/null
+echo "── وثانيةً";              pg_run "$GUM_IN" >/dev/null
 
 echo "── الفحوص"
 pg_run "$CHECKS"

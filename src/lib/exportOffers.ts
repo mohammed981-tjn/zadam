@@ -144,6 +144,13 @@ const REFERENCE_NAME_EN: Record<string, string> = {
   lab_report: "Laboratory report",
   packing_list: "Packing list",
   invoice: "Commercial invoice",
+  import_permit: "Import permit",
+  certificate_of_origin: "Certificate of origin",
+  halal_slaughter: "Halal slaughter certificate",
+  fumigation_cert: "Fumigation (treatment) certificate",
+  prior_notice: "Prior notice of the shipment",
+  facility_registration: "Facility registration with the food authority",
+  food_import_licence: "Food import licence held by the importer",
 };
 
 const REFERENCE_NOTE_EN: Record<string, string> = {
@@ -153,6 +160,13 @@ const REFERENCE_NOTE_EN: Record<string, string> = {
   eudr_dds: "Covers small buyers from 30 June 2027",
   saber_coc: "Mandatory for every import into Saudi Arabia since 2018; obtained by the importer",
   lab_report: "Aflatoxin and salmonella",
+  import_permit: "The importer obtains it from the quarantine authority in their country before shipping; its number goes on the health certificate",
+  certificate_of_origin: "Issued by the chamber of commerce or a government body; some countries want it legalised by their embassy",
+  halal_slaughter: "From a body the importing country recognises",
+  fumigation_cert: "The treatment, its substance and duration, as the importing country requires",
+  prior_notice: "Filed electronically with the importing country's authority before shipping or arrival",
+  facility_registration: "The plant or store where the goods were prepared is registered with the importing country's authority",
+  food_import_licence: "The importer obtains it from the food authority in their country, and the shipment is presented to it on arrival",
 };
 
 /** A seeded document type's note in the reader's language. */
